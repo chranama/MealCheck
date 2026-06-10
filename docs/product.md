@@ -2,14 +2,14 @@
 
 MealCheck answers one verification question:
 
-`Does this LLM-generated meal plan satisfy declared constraints and source-backed checks well enough to use, or should it be revised?`
+`Does this meal plan satisfy declared constraints and source-backed checks well enough to use, or should it be revised?`
 
-The plan may come from ChatGPT, Claude, Gemini, another workflow agent, a saved
-prompt, or MealCheck's own bring-your-own-key generation flow.
+The plan may be entered manually, generated from profile fields, or generated
+from a user prompt through MealCheck's bring-your-own-key LLM flow.
 
 ## Problem
 
-LLM-generated meal plans can look plausible while hiding basic failures:
+Meal plans can look plausible while hiding basic failures:
 
 - calories and nutrients do not add up
 - allergens or excluded foods appear in the plan
@@ -29,15 +29,16 @@ MealCheck should make the check bounded, source-linked, and inspectable.
 - General users who already ask LLMs for meal plans and want a sanity check.
 - People with recurring meal-prep prompts who want to compare prompt or model
   changes.
-- Portfolio reviewers inspecting a constrained, evidence-based LLM application.
 - Developers evaluating whether this pattern can generalize to other
   guideline-backed consumer workflows.
 
 ## Core Use Cases
 
-- Validate a pasted meal plan.
-- Compare a baseline meal plan against a candidate meal plan.
-- Compare two prompt/model outputs using bring-your-own-key execution.
+- Validate a manually entered structured meal plan.
+- Generate a structured meal plan from profile and constraints through
+  bring-your-own-key execution.
+- Generate a structured meal plan from a user prompt plus profile and
+  constraints through bring-your-own-key execution.
 - Check declared allergens, exclusions, and profile constraints.
 - Check calculated nutrition totals against configured guideline-derived
   thresholds.
@@ -56,8 +57,10 @@ MealCheck is:
 - local-first with a constrained hosted wrapper
 - honest about uncertainty and unresolved foods
 
-The LLM may generate, parse, or explain meal plans. It is not the authority for
-nutrition totals or guideline compliance.
+All input modes converge on the same normalized JSON meal-plan contract before
+evaluation. The LLM may generate structured JSON, perform bounded JSON repair,
+or explain failed checks. It is not the authority for nutrition totals or
+guideline compliance.
 
 ## Public Demo Model
 
@@ -68,12 +71,14 @@ credentials, model API keys, or paid inference calls.
 The public frontend should be a static site hosted on Cloudflare Pages. Live
 backend behavior should be reached through the MacBook-hosted API.
 
-Live generation or parsing should require bring-your-own-key execution and
+Live LLM generation or repair should require bring-your-own-key execution and
 strict resource limits.
 
 ## In Scope
 
 - Healthy-adult seeded scenarios.
+- Manual structured entry, profile-only generation, and prompt-based generation
+  as the first input modes.
 - Strict meal-plan schema.
 - Small fixture nutrient catalog for the first proof.
 - Versioned guideline packs derived from public sources.

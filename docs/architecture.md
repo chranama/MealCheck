@@ -13,7 +13,8 @@ create a second product model.
 ```text
 case loader
   -> config resolver
-  -> optional LLM generator or parser
+  -> input-mode handler
+  -> optional LLM generator or repairer
   -> meal-plan normalizer
   -> food and portion resolver
   -> guideline-pack rule loader
@@ -27,9 +28,10 @@ case loader
 MealCheck separates LLM roles from verification roles:
 
 - Generator LLM: optional model that creates a meal plan from profile and
-  constraints.
-- Parser LLM: optional model that converts freeform pasted plans into the
-  normalized meal-plan schema.
+  constraints, or from profile, constraints, and a custom user prompt.
+- Repair LLM: optional bounded repair step for malformed JSON or minor schema
+  mismatches. It must not invent missing quantities, units, or nutrition-critical
+  details.
 - Explainer LLM: optional model that rewrites check failures in user-friendly
   language.
 
@@ -44,10 +46,20 @@ Owns case loading, config resolution, plan normalization, food resolution,
 guideline-pack loading, deterministic checks, regression classification, and
 artifact generation.
 
+Input-mode handling supports:
+
+- manual structured entry without an LLM
+- profile-only LLM generation
+- prompt-based LLM generation
+
+All three paths must produce the same normalized JSON meal-plan artifact before
+verification starts.
+
 ### Guideline Pack
 
 Versioned local data derived from official public sources. The pack stores
-source metadata, derived rules, thresholds, citations, and disclaimers.
+source metadata, derived rules, thresholds, citations, and disclaimers. Source
+selection and preprocessing are documented in `docs/nutritional-guidelines.md`.
 
 The engine should record the exact pack used in every artifact bundle.
 
@@ -87,7 +99,7 @@ Initial worker policy:
 - small bounded queue
 - timeout per run
 - max plan size
-- max model calls when BYOK generation or parsing is enabled
+- max model calls when BYOK generation or repair is enabled
 - no anonymous paid inference
 
 ### Storage

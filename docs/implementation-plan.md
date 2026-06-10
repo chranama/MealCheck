@@ -17,10 +17,13 @@ The MVP should include:
 - Versioned guideline pack snapshot.
 - Local fixture nutrient catalog sufficient for the seeded scenario.
 - Strict normalized meal-plan schema.
+- Three input modes: manual structured entry, profile-only generation, and
+  prompt-based generation.
 - Deterministic checks for structure, allergens, nutrient limits, unresolved
   foods, and baseline-versus-candidate regression.
 - Human-readable report and machine-readable artifacts.
-- BYOK path behind an access gate for optional generation or parsing.
+- BYOK path behind an access gate for optional generation and bounded JSON
+  repair.
 - One worker and explicit resource limits.
 
 The MVP excludes:
@@ -90,7 +93,7 @@ Build in this order:
 6. Human-readable reports.
 7. Static frontend with seeded artifacts.
 8. Hosted API and worker.
-9. BYOK generation or parsing.
+9. BYOK profile-only generation, prompt-based generation, and bounded repair.
 10. Live nutrient lookup, if still needed.
 
 This order proves the hard part first: evidence-backed evaluation.
@@ -99,21 +102,22 @@ This order proves the hard part first: evidence-backed evaluation.
 
 Use one JSON file per case for MVP. JSONL can wait until batch runs matter.
 
-The case should name profile, constraints, guideline pack, plan paths, and
-expected check policy.
+The case should name input mode, profile, constraints, guideline pack, plan
+paths or generation prompt, and expected check policy.
 
 ### 3. Meal Plan Contract
 
 Require normalized JSON before evaluation.
 
-The checker should not evaluate arbitrary prose directly. Freeform meal plans
-must be normalized by:
+The checker should not evaluate arbitrary prose directly. The three MVP input
+modes are:
 
-- user editing
-- deterministic parser for simple formats
-- optional BYOK parser LLM
+- manual structured entry
+- profile-only LLM generation
+- prompt-based LLM generation
 
-The normalized plan is the auditable artifact.
+All three modes must produce the same normalized meal-plan JSON. The normalized
+plan is the auditable artifact.
 
 ### 4. Guideline Pack Contract
 
@@ -128,6 +132,8 @@ Initial scope:
 - added sugar limit
 - saturated fat limit
 - calorie target tolerance
+- declared allergen exclusion
+- declared food exclusion
 - meal-prep safety reminders
 - source citations and disclaimer text
 
@@ -141,6 +147,9 @@ The first pack should not cover:
 - allergies beyond declared ingredient exclusion checks
 - sports nutrition
 
+The selected source set and preprocessing pipeline are documented in
+`docs/nutritional-guidelines.md`.
+
 ### 5. Nutrient Catalog Strategy
 
 Start with local fixture data.
@@ -153,7 +162,9 @@ Reason:
 - predictable MacBook resource use
 - clear seeded demo behavior
 
-Later, add FoodData Central lookup behind a cache and rate limit.
+Later, add FoodData Central lookup behind a cache and rate limit. The MVP uses
+fixture nutrient data so seeded demos and tests do not require network access or
+a FoodData Central API key.
 
 ### 6. Deterministic Check Set
 
@@ -187,12 +198,14 @@ Decision policy:
 
 Support two provider modes first:
 
-- `none`: validation of supplied normalized plans
-- `openai_compatible`: optional BYOK generation or parsing
+- `none`: validation of manually entered or fixture normalized plans
+- `openai_compatible`: optional BYOK profile-generation, prompt-generation, and
+  bounded JSON repair
 
 No provider is needed for the seeded public demo.
 
-The LLM should not be used as the source of truth for nutrition compliance.
+The LLM should not be used as the source of truth for nutrition compliance or
+missing nutrition-critical plan details.
 
 ### 8. Hosted Access Gate
 
@@ -245,7 +258,7 @@ Initial hosted defaults:
 - no local LLM inference
 
 This fits the reset 2019 MacBook Air because the expensive work is remote BYOK
-generation or parsing, and local work is bounded parsing, lookup, arithmetic,
+generation or repair, and local work is bounded parsing, lookup, arithmetic,
 and report generation.
 
 ### 11. Frontend Layout
@@ -260,6 +273,9 @@ The frontend should show:
 - daily nutrition totals
 - unresolved foods
 - source-pack citations
+- manual structured entry form
+- profile-only generation form
+- prompt-based generation form
 - optional create-run form for invite-token BYOK users
 - backend status
 
@@ -308,6 +324,8 @@ Error shape:
 Deliver:
 
 - JSON schemas for case, meal plan, guideline pack, decision, and report.
+- Source registry and preprocessing notes matching
+  `docs/nutritional-guidelines.md`.
 - Seeded case for healthy adult meal plan.
 - Baseline and candidate plan fixtures.
 - Fixture guideline pack.
@@ -385,14 +403,15 @@ Acceptance:
 - limits are enforced in code
 - artifacts expire according to retention policy
 
-## Milestone 5: BYOK Generation Or Parsing
+## Milestone 5: BYOK Generation And Repair
 
 Deliver:
 
 - invite-token access gate
 - OpenAI-compatible provider support
-- optional generate-plan flow
-- optional parse-plan flow
+- profile-only generate-plan flow
+- prompt-based generate-plan flow
+- bounded JSON repair flow
 - secret redaction
 
 Acceptance:
@@ -400,6 +419,7 @@ Acceptance:
 - public users cannot trigger maintainer-paid inference
 - user keys do not appear in logs, database records, reports, or artifacts
 - deterministic evaluation remains separate from LLM explanation
+- repair never invents missing quantities, units, or nutrition-critical details
 
 ## First Scenario
 
@@ -422,10 +442,7 @@ Seeded candidate failures:
 ## Remaining Decisions
 
 - Choose implementation language and framework.
-- Decide whether `us-adult-general-v1` uses FDA Daily Values, DRI-derived
-  values, or user-configured limits for each threshold.
 - Define allergen taxonomy for MVP.
 - Define unit conversion scope.
-- Decide whether FoodData Central lookup is post-MVP or part of hosted MVP.
 - Decide exact invite-token/auth shape.
 - Decide final project name if MealCheck is only a working name.

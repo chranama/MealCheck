@@ -34,7 +34,7 @@ this workspace:
 - MacBook-hosted backend exposed through Cloudflare Tunnel
 - no local LLM inference
 - public seeded demos without maintainer-paid model calls
-- live generation or parsing only through bring-your-own-key execution
+- live generation or bounded repair only through bring-your-own-key execution
 
 ## What It Is Not
 
@@ -52,6 +52,8 @@ MealCheck is not:
 
 - [Documentation Index](docs/README.md)
 - [Product](docs/product.md)
+- [User Story](docs/user-story.md)
+- [Nutritional Guidelines](docs/nutritional-guidelines.md)
 - [Contracts](docs/contracts.md)
 - [Architecture](docs/architecture.md)
 - [Backend Server](docs/backend_server.md)

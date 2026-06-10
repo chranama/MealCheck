@@ -9,6 +9,8 @@ spreading across separate ADR, RFC, and planning documents.
 ## Documents
 
 - [Product](product.md): problem, users, scope, non-goals, and success criteria.
+- [User Story](user-story.md): MVP user story, flow, LLM role, checks, and acceptance criteria.
+- [Nutritional Guidelines](nutritional-guidelines.md): source selection, guideline-pack preprocessing, and meal-plan JSON normalization.
 - [Contracts](contracts.md): meal-plan, guideline-pack, API, decision, report, and artifact contracts.
 - [Architecture](architecture.md): checker engine, guideline sources, hosted wrapper, BYOK execution, and server shape.
 - [Backend Server](backend_server.md): MacBook server requirements, required programs, and setup checklist.

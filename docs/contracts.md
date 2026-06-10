@@ -11,12 +11,15 @@ The first case format should be JSON. JSONL can be added once batch runs exist.
 Initial fields:
 
 - `case_id`: stable identifier.
+- `input_mode`: `manual_structured`, `profile_generation`, or `prompt_generation`.
 - `profile`: age, sex, height, weight, activity level, and optional calorie
   target.
 - `constraints`: allergies, excluded foods, diet pattern, days, meals per day,
   budget or prep limits, and check thresholds.
 - `baseline_plan`: optional baseline plan.
-- `candidate_plan`: required plan to evaluate.
+- `candidate_plan`: required plan to evaluate for manual or seeded cases; created
+  by the LLM for generation cases.
+- `generation_prompt`: optional user prompt for `prompt_generation`.
 - `expectations`: deterministic checks and severity settings.
 - `guideline_pack`: versioned pack identifier.
 - `tags`: optional grouping metadata.
@@ -26,11 +29,12 @@ Example:
 ```json
 {
   "case_id": "seeded-3-day-peanut-allergy",
+  "input_mode": "manual_structured",
   "profile": {
     "age": 35,
-    "sex": "female",
-    "height_cm": 165,
-    "weight_kg": 68,
+    "sex": "male",
+    "height_cm": 178,
+    "weight_kg": 82,
     "activity_level": "moderate",
     "calorie_target_kcal": 2000
   },
@@ -48,9 +52,24 @@ Example:
 }
 ```
 
+## Input Modes
+
+MealCheck has three MVP input modes:
+
+- `manual_structured`: the user enters a meal plan through a form. No LLM is
+  required.
+- `profile_generation`: the user supplies profile and constraints; MealCheck
+  builds the LLM prompt and requires JSON output.
+- `prompt_generation`: the user supplies profile, constraints, and a custom
+  natural-language prompt; MealCheck wraps the prompt with its system prompt and
+  requires JSON output.
+
+All modes must produce the same normalized meal-plan JSON before evaluation.
+The verifier evaluates the JSON artifact, not the prompt or user-facing prose.
+
 ## Meal Plan Schema
 
-LLM-generated or user-pasted plans must be normalized before evaluation.
+Every input mode must produce a normalized JSON meal plan before evaluation.
 
 Minimal normalized shape:
 
@@ -119,13 +138,15 @@ Required fields:
 - `name`
 - `audience`
 - `source_documents`
-- `derived_rules`
-- `limits`
+- `rules`
 - `citation_labels`
-- `last_verified`
+- `retrieved_at` or `last_verified`
 - `disclaimer`
 
-Initial source candidates:
+The source selection and preprocessing pipeline are defined in
+`docs/nutritional-guidelines.md`.
+
+Selected initial source set:
 
 - Dietary Guidelines for Americans 2025-2030:
   `https://www.dietaryguidelines.gov/`
@@ -134,7 +155,9 @@ Initial source candidates:
 - USDA FoodData Central:
   `https://fdc.nal.usda.gov/`
 - FDA Daily Values for Nutrition Facts labels:
-  `https://www.fda.gov/food/nutrition-facts-label/daily-value-new-nutrition-and-supplement-facts-labels`
+  `https://www.fda.gov/food/food-labeling-nutrition`
+- FDA Food Allergies:
+  `https://www.fda.gov/food/food-allergensgluten-free-guidance-documents-regulatory-information/food-allergies`
 - FoodSafety.gov:
   `https://www.foodsafety.gov/`
 
@@ -216,7 +239,8 @@ Bring-your-own-key execution must follow these rules:
 
 - API keys are never written to Postgres, artifact bundles, reports, logs, or
   metrics.
-- Generation and parsing credentials are separate inputs when both are needed.
+- LLM credentials are accepted only for `profile_generation`,
+  `prompt_generation`, or bounded JSON repair.
 - Resolved configs stored in artifacts must redact secret material.
 - Async hosted runs may hold keys only in memory or short-lived encrypted job
   state.
@@ -265,6 +289,8 @@ artifacts/<run-id>/
   metrics.json
   manifest.json
   normalized-plan.json
+  llm-output.json
+  normalization-events.json
   configs/
     run.json
     redacted-provider.json
@@ -289,6 +315,10 @@ Responsibilities:
 - `metrics.json`: aggregate runtime, resolution, and check metrics.
 - `manifest.json`: MealCheck version, timestamps, config hashes, and provenance.
 - `normalized-plan.json`: schema-normalized evaluated plan.
+- `llm-output.json`: original LLM output when an LLM was used; omitted for
+  manual-only runs.
+- `normalization-events.json`: validation, repair, unresolved-field, and
+  normalization events.
 - `guideline-pack/`: exact source-pack snapshot used for the run.
 - `schemas/`: validation schemas for artifact consumers.
 
@@ -298,7 +328,8 @@ The initial hosted backend should expose:
 
 - `GET /api/health`: read service health.
 - `GET /api/demo-runs`: list seeded public reports.
-- `POST /api/runs`: create a validation or BYOK generation run.
+- `POST /api/runs`: create a manual validation, profile-generation, or
+  prompt-generation run.
 - `GET /api/runs/{run_id}`: read run status and summary.
 - `GET /api/runs/{run_id}/events`: stream run events over SSE.
 - `GET /api/runs/{run_id}/report`: fetch the rendered report.
