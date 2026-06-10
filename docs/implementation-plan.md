@@ -543,10 +543,12 @@ Current status:
   reports, artifact listing, artifact download, and run deletion
 - queue size, upload size, run timeout, and retention are enforced in code
 - cleanup deletes expired run artifacts and marks expired runs deleted
-- Milestone 4 run creation accepts checked-in case paths; LLM BYOK generation
-  and repair remain Milestone 5
+- Milestone 4 run creation accepted checked-in case paths; LLM BYOK generation
+  and repair were assigned to Milestone 5
 
 ## Milestone 5: BYOK Generation And Repair
+
+Status: Implemented in the hosted backend.
 
 Deliver:
 
@@ -556,6 +558,22 @@ Deliver:
 - prompt-based generate-plan flow
 - bounded JSON repair flow
 - secret redaction
+
+Implemented shape:
+
+- `POST /api/runs` accepts `manual_structured`, `profile_generation`, and
+  `prompt_generation` request bodies in addition to checked-in `case_path`
+  demo runs.
+- Generation modes require an `openai_compatible` BYOK provider with `model`
+  and `api_key`; `https://api.openai.com/v1` is the default base URL.
+- BYOK keys are stored only in a shared in-memory pending map until the worker
+  claims the run.
+- Generated or manually submitted plans are written as runtime case files under
+  the server data directory and then evaluated by the existing deterministic
+  checker.
+- Provider output and normalization events are optional artifacts; provider
+  config is persisted only as `configs/redacted-provider.json`.
+- One bounded JSON repair attempt is allowed by default for generation modes.
 
 Acceptance:
 

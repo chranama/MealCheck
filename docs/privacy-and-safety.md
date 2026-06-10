@@ -215,14 +215,17 @@ The service may continue with a warning when:
 
 ## Implementation Requirements
 
-Before hosted live runs ship, implementation should include:
+Before public hosted live runs ship, implementation should include:
 
 - non-medical-use disclaimer in the UI and report
 - explicit BYOK third-party disclosure
-- secret redaction tests
-- log redaction tests
-- artifact redaction tests
+- backend secret and artifact redaction tests
+- log redaction policy or tests if structured request logging is added
 - private-by-default live reports
+
+Milestone 5 includes backend tests that exercise BYOK provider generation,
+bounded repair, redacted provider artifacts, and absence of user API keys from
+runtime files and artifact bundles.
 - cleanup job for expired live runs
 - user-triggered deletion for private runs
 - admin-only access to queue and cleanup operations

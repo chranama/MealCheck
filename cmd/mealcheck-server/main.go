@@ -65,14 +65,15 @@ func run(args []string) error {
 	}
 	defer store.Close()
 
-	worker := hosted.NewWorker(config, store)
-	cleanup := hosted.CleanupJob{Config: config, Store: store}
+	pendingInputs := hosted.NewPendingInputs()
+	worker := hosted.NewWorker(config, store, pendingInputs, hosted.DefaultProviderFactory)
+	cleanup := hosted.CleanupJob{Config: config, Store: store, Pending: pendingInputs}
 	go worker.Run(ctx)
 	go cleanup.Run(ctx)
 
 	server := &http.Server{
 		Addr:              config.Addr,
-		Handler:           hosted.NewServer(config, store).Handler(),
+		Handler:           hosted.NewServer(config, store, pendingInputs).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

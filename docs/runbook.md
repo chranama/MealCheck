@@ -150,6 +150,35 @@ curl -X POST http://127.0.0.1:8080/api/runs \
 The queued seeded run is expected to complete with a `block` decision because
 the fixture intentionally contains blocking findings.
 
+Invite-gated BYOK generation uses the same run endpoint. Use placeholders below
+and do not commit real provider keys:
+
+```bash
+curl -X POST http://127.0.0.1:8080/api/runs \
+  -H 'Content-Type: application/json' \
+  -H "X-MealCheck-Invite-Token: $MEALCHECK_INVITE_TOKEN" \
+  -d '{
+    "input_mode": "profile_generation",
+    "profile": {
+      "age": 35,
+      "sex": "male",
+      "height_cm": 178,
+      "weight_kg": 82,
+      "activity_level": "moderate"
+    },
+    "constraints": {
+      "days": 3,
+      "meals_per_day": 3
+    },
+    "provider": {
+      "type": "openai_compatible",
+      "model": "gpt-example",
+      "api_key": "replace-with-user-key"
+    },
+    "repair_json": true
+  }'
+```
+
 Avoid initially:
 
 - Kubernetes

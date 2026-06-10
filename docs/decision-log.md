@@ -503,9 +503,9 @@ The API binds to `127.0.0.1:8080` by default for Cloudflare Tunnel exposure. A
 memory store exists for tests and local development, but the intended hosted
 store is Postgres.
 
-Milestone 4 run creation accepts checked-in case paths and executes the existing
-checker/artifact writer. BYOK provider generation and JSON repair stay in
-Milestone 5.
+Milestone 4 run creation accepted checked-in case paths and executed the
+existing checker/artifact writer. BYOK provider generation and JSON repair were
+assigned to Milestone 5.
 
 Reason:
 
@@ -522,3 +522,44 @@ Consequences:
 - The initial Postgres schema is applied at server startup.
 - Future BYOK work should reuse the same run, event, artifact, and cleanup
   contracts.
+
+## 2026-06-10: Milestone 5 Uses In-Memory BYOK Input And Deterministic Judging
+
+Status: Accepted
+
+Decision:
+
+MealCheck supports three hosted live input modes: `manual_structured`,
+`profile_generation`, and `prompt_generation`. Manual structured input requires
+a normalized meal-plan JSON object and does not require a provider. Generation
+modes require an `openai_compatible` BYOK provider with a user-supplied model
+and API key.
+
+Provider credentials are held only in a shared in-memory pending-input map
+between run creation and worker claim. They are not written to Postgres, report
+artifacts, runtime case files, or logs. The worker writes only redacted provider
+metadata to `configs/redacted-provider.json`.
+
+Remote LLM output can generate the candidate plan or make one bounded JSON
+repair attempt. It cannot make the nutrition decision. The local deterministic
+checker remains the source of truth for guideline checks, resolved foods,
+unresolved foods, decision, and report artifacts.
+
+Reason:
+
+This preserves the fixed-cost hosting model: the server operator is not paying
+for user inference, and the MacBook only runs bounded parsing, normalization,
+evaluation, and artifact writing. In-memory provider credentials are simpler and
+safer than durable encrypted job payloads for the early invite-only backend.
+
+Consequences:
+
+- Server restarts can strand queued BYOK jobs because pending provider input is
+  intentionally not durable.
+- Live BYOK flows require an invite token before they can trigger provider
+  calls.
+- One repair attempt is allowed by default for generation modes, but repair
+  prompts must preserve missing or vague nutrition-critical details as
+  unresolved.
+- Optional artifacts can include provider output and normalization events, but
+  API keys must not appear in artifact bundles.

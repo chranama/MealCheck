@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,6 +14,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/chranama/MealCheck/internal/checker"
 )
 
 func TestHostedRunLifecycle(t *testing.T) {
@@ -32,7 +36,7 @@ func TestHostedRunLifecycle(t *testing.T) {
 		t.Fatal("expected run id")
 	}
 
-	processed, err := NewWorker(config, store).ProcessOne(context.Background())
+	processed, err := NewWorker(config, store, nil, nil).ProcessOne(context.Background())
 	if err != nil {
 		t.Fatalf("process run: %v", err)
 	}
@@ -91,6 +95,225 @@ func TestHostedRunLifecycle(t *testing.T) {
 		if !strings.Contains(eventsResp.Body.String(), expected) {
 			t.Fatalf("events missing %q:\n%s", expected, eventsResp.Body.String())
 		}
+	}
+}
+
+func TestProfileGenerationUsesBYOKProviderAndRedactsSecret(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	seeded := seededCase(t, root)
+	provider := &fakeProvider{responses: []string{string(readFile(t, filepath.Join(root, "examples/seeded-3-day-peanut-allergy/plans/candidate.json")))}}
+	secret := "sk-test-secret"
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:   "profile_generation",
+		Profile:     seeded.Profile,
+		Constraints: seeded.Constraints,
+		Provider: ProviderConfig{
+			Type:   "openai_compatible",
+			Model:  "fake-model",
+			APIKey: secret,
+		},
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	worker := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		return provider, nil
+	})
+	processed, err := worker.ProcessOne(context.Background())
+	if err != nil {
+		t.Fatalf("process run: %v", err)
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+	if provider.calls != 1 {
+		t.Fatalf("provider calls = %d, want 1", provider.calls)
+	}
+
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	if run.Status != StatusCompleted {
+		t.Fatalf("run status = %q, want completed", run.Status)
+	}
+
+	var redacted RedactedProviderConfig
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "configs", "redacted-provider.json")), &redacted)
+	if redacted.APIKey != "redacted" {
+		t.Fatalf("redacted provider api_key = %q, want redacted", redacted.APIKey)
+	}
+	assertFileTreeDoesNotContain(t, config.DataDir, secret)
+
+	artifactListResp := doRequest(t, server, http.MethodGet, "/api/runs/"+created.RunID+"/artifacts", "")
+	if artifactListResp.Code != http.StatusOK {
+		t.Fatalf("artifact list status = %d body=%s", artifactListResp.Code, artifactListResp.Body.String())
+	}
+	for _, expected := range []string{"optional/llm-output.json", "optional/normalization-events.json"} {
+		if !strings.Contains(artifactListResp.Body.String(), expected) {
+			t.Fatalf("artifact list missing %q: %s", expected, artifactListResp.Body.String())
+		}
+	}
+}
+
+func TestManualStructuredRunDoesNotRequireProvider(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	seeded := seededCase(t, root)
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:     "manual_structured",
+		Profile:       seeded.Profile,
+		Constraints:   seeded.Constraints,
+		CandidatePlan: ptr(seededPlan(t, root)),
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	providerCalled := false
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		providerCalled = true
+		return nil, fmt.Errorf("provider should not be called")
+	}).ProcessOne(context.Background())
+	if err != nil {
+		t.Fatalf("process run: %v", err)
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+	if providerCalled {
+		t.Fatal("manual_structured run called provider")
+	}
+
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	if run.Status != StatusCompleted {
+		t.Fatalf("run status = %q, want completed", run.Status)
+	}
+	if _, err := os.Stat(filepath.Join(run.ArtifactDir, "optional", "llm-output.json")); !os.IsNotExist(err) {
+		t.Fatalf("manual run wrote llm output or unexpected stat error: %v", err)
+	}
+}
+
+func TestPromptGenerationAllowsOneBoundedRepair(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	seeded := seededCase(t, root)
+	provider := &fakeProvider{responses: []string{
+		"this is not json",
+		string(readFile(t, filepath.Join(root, "examples/seeded-3-day-peanut-allergy/plans/candidate.json"))),
+	}}
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:        "prompt_generation",
+		Profile:          seeded.Profile,
+		Constraints:      seeded.Constraints,
+		GenerationPrompt: "Create a simple 3 day meal plan that avoids shellfish.",
+		Provider: ProviderConfig{
+			Type:   "openai_compatible",
+			Model:  "fake-model",
+			APIKey: "sk-repair-secret",
+		},
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		return provider, nil
+	}).ProcessOne(context.Background())
+	if err != nil {
+		t.Fatalf("process run: %v", err)
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+	if provider.calls != 2 {
+		t.Fatalf("provider calls = %d, want initial call plus one repair", provider.calls)
+	}
+
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	var events []NormalizationEvent
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "normalization-events.json")), &events)
+	if !hasNormalizationEvent(events, "json_decode_failed") || !hasNormalizationEvent(events, "repair_attempted") || !hasNormalizationEvent(events, "repair_succeeded") {
+		t.Fatalf("normalization events missing repair lifecycle: %+v", events)
+	}
+}
+
+func TestPromptGenerationFailsWithoutRepairAfterInvalidJSON(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	seeded := seededCase(t, root)
+	repairJSON := false
+	provider := &fakeProvider{responses: []string{"not json"}}
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:        "prompt_generation",
+		Profile:          seeded.Profile,
+		Constraints:      seeded.Constraints,
+		GenerationPrompt: "Create a simple 3 day meal plan.",
+		Provider: ProviderConfig{
+			Type:   "openai_compatible",
+			Model:  "fake-model",
+			APIKey: "sk-no-repair-secret",
+		},
+		RepairJSON: &repairJSON,
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		return provider, nil
+	}).ProcessOne(context.Background())
+	if err == nil {
+		t.Fatal("expected invalid JSON without repair to fail")
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+	if provider.calls != 1 {
+		t.Fatalf("provider calls = %d, want 1", provider.calls)
+	}
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	if run.Status != StatusFailed {
+		t.Fatalf("run status = %q, want failed", run.Status)
 	}
 }
 
@@ -207,6 +430,99 @@ func decodeJSON(t *testing.T, data []byte, out any) {
 	if err := json.Unmarshal(data, out); err != nil {
 		t.Fatalf("decode JSON: %v\n%s", err, string(data))
 	}
+}
+
+func marshalJSON(t *testing.T, value any) string {
+	t.Helper()
+	b, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("marshal JSON: %v", err)
+	}
+	return string(b)
+}
+
+func readFile(t *testing.T, path string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	return b
+}
+
+func seededCase(t *testing.T, root string) checker.Case {
+	t.Helper()
+	var c checker.Case
+	decodeJSON(t, readFile(t, filepath.Join(root, "examples/seeded-3-day-peanut-allergy/case.json")), &c)
+	return c
+}
+
+func seededPlan(t *testing.T, root string) checker.Plan {
+	t.Helper()
+	var plan checker.Plan
+	decodeJSON(t, readFile(t, filepath.Join(root, "examples/seeded-3-day-peanut-allergy/plans/candidate.json")), &plan)
+	return plan
+}
+
+func ptr[T any](value T) *T {
+	return &value
+}
+
+func hasNormalizationEvent(events []NormalizationEvent, eventType string) bool {
+	for _, event := range events {
+		if event.Type == eventType {
+			return true
+		}
+	}
+	return false
+}
+
+func assertFileTreeDoesNotContain(t *testing.T, root, secret string) {
+	t.Helper()
+	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if bytes.Contains(b, []byte(secret)) {
+			return fmt.Errorf("%s contains secret", path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+type fakeProvider struct {
+	responses []string
+	calls     int
+	messages  [][]ProviderMessage
+	configs   []ProviderConfig
+}
+
+func (p *fakeProvider) Complete(_ context.Context, config ProviderConfig, messages []ProviderMessage) (string, error) {
+	if config.APIKey != "" {
+		for _, message := range messages {
+			if strings.Contains(message.Content, config.APIKey) {
+				return "", fmt.Errorf("provider key leaked into prompt")
+			}
+		}
+	}
+	p.configs = append(p.configs, config)
+	p.messages = append(p.messages, append([]ProviderMessage(nil), messages...))
+	if p.calls >= len(p.responses) {
+		return "", fmt.Errorf("fake provider response exhausted")
+	}
+	response := p.responses[p.calls]
+	p.calls++
+	return response, nil
 }
 
 func testConfig(t *testing.T, root string) Config {

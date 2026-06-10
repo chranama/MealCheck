@@ -15,13 +15,18 @@ import (
 )
 
 type Server struct {
-	Config Config
-	Store  Store
-	mux    *http.ServeMux
+	Config  Config
+	Store   Store
+	Pending *PendingInputs
+	mux     *http.ServeMux
 }
 
-func NewServer(config Config, store Store) *Server {
-	s := &Server{Config: config, Store: store, mux: http.NewServeMux()}
+func NewServer(config Config, store Store, pending ...*PendingInputs) *Server {
+	pendingInputs := NewPendingInputs()
+	if len(pending) > 0 && pending[0] != nil {
+		pendingInputs = pending[0]
+	}
+	s := &Server{Config: config, Store: store, Pending: pendingInputs, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -184,14 +189,22 @@ func (s *Server) createRun(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", "invalid JSON request", nil)
 		return
 	}
-	casePath, err := cleanCasePath(s.Config.Root, request.CasePath)
+
+	casePath, pendingInput, hasPending, err := requestRunInput(s.Config, request)
 	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "invalid_case_path", err.Error(), nil)
+		writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 		return
 	}
 
 	run := newRun(s.Config, casePath)
+	if hasPending {
+		run.CasePath = runtimeCasePath(s.Config, run.ID)
+		s.Pending.Put(run.ID, pendingInput)
+	}
 	if err := s.Store.CreateRun(r.Context(), run, s.Config.QueueSize); err != nil {
+		if hasPending {
+			s.Pending.Delete(run.ID)
+		}
 		if errors.Is(err, ErrQueueFull) {
 			writeError(w, r, http.StatusTooManyRequests, "queue_full", "run queue is full", map[string]any{"queue_size": s.Config.QueueSize})
 			return
@@ -200,6 +213,9 @@ func (s *Server) createRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.Store.AppendEvent(r.Context(), run.ID, EventQueued, "run queued", time.Now().UTC()); err != nil {
+		if hasPending {
+			s.Pending.Delete(run.ID)
+		}
 		writeError(w, r, http.StatusInternalServerError, "store_error", err.Error(), nil)
 		return
 	}
@@ -209,6 +225,100 @@ func (s *Server) createRun(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: run.ExpiresAt,
 		Links:     linksForRun(run.ID),
 	})
+}
+
+func requestRunInput(config Config, request CreateRunRequest) (string, PendingRunInput, bool, error) {
+	inputMode := strings.TrimSpace(request.InputMode)
+	if inputMode == "" {
+		if hasDynamicRunFields(request) {
+			return "", PendingRunInput{}, false, fmt.Errorf("input_mode is required for hosted meal-plan input")
+		}
+		casePath, err := cleanCasePath(config.Root, request.CasePath)
+		if err != nil {
+			return "", PendingRunInput{}, false, err
+		}
+		return casePath, PendingRunInput{}, false, nil
+	}
+	if strings.TrimSpace(request.CasePath) != "" {
+		return "", PendingRunInput{}, false, fmt.Errorf("case_path cannot be combined with input_mode")
+	}
+
+	repairJSON := inputMode == "profile_generation" || inputMode == "prompt_generation"
+	if request.RepairJSON != nil {
+		repairJSON = *request.RepairJSON
+	}
+	pendingInput := PendingRunInput{
+		Mode:             inputMode,
+		Profile:          request.Profile,
+		Constraints:      request.Constraints,
+		CandidatePlan:    request.CandidatePlan,
+		GenerationPrompt: strings.TrimSpace(request.GenerationPrompt),
+		Provider:         normalizeProviderConfig(request.Provider),
+		RepairJSON:       repairJSON,
+	}
+	if err := validateProfileAndConstraints(pendingInput.Profile, pendingInput.Constraints); err != nil {
+		return "", PendingRunInput{}, false, err
+	}
+
+	switch inputMode {
+	case "manual_structured":
+		if pendingInput.CandidatePlan == nil {
+			return "", PendingRunInput{}, false, fmt.Errorf("candidate_plan is required for manual_structured")
+		}
+		if err := validatePlan(*pendingInput.CandidatePlan); err != nil {
+			return "", PendingRunInput{}, false, err
+		}
+	case "profile_generation":
+		if err := validateProviderConfig(pendingInput.Provider); err != nil {
+			return "", PendingRunInput{}, false, err
+		}
+	case "prompt_generation":
+		if pendingInput.GenerationPrompt == "" {
+			return "", PendingRunInput{}, false, fmt.Errorf("generation_prompt is required for prompt_generation")
+		}
+		if err := validateProviderConfig(pendingInput.Provider); err != nil {
+			return "", PendingRunInput{}, false, err
+		}
+	default:
+		return "", PendingRunInput{}, false, fmt.Errorf("unsupported input_mode %q", inputMode)
+	}
+	return "", pendingInput, true, nil
+}
+
+func hasDynamicRunFields(request CreateRunRequest) bool {
+	return request.CandidatePlan != nil ||
+		request.GenerationPrompt != "" ||
+		request.Provider.Type != "" ||
+		request.Provider.BaseURL != "" ||
+		request.Provider.Model != "" ||
+		request.Provider.APIKey != "" ||
+		request.RepairJSON != nil
+}
+
+func normalizeProviderConfig(config ProviderConfig) ProviderConfig {
+	providerType := strings.TrimSpace(config.Type)
+	if providerType == "" {
+		providerType = "openai_compatible"
+	}
+	return ProviderConfig{
+		Type:    providerType,
+		BaseURL: strings.TrimRight(strings.TrimSpace(config.BaseURL), "/"),
+		Model:   strings.TrimSpace(config.Model),
+		APIKey:  strings.TrimSpace(config.APIKey),
+	}
+}
+
+func validateProviderConfig(config ProviderConfig) error {
+	if config.Type != "openai_compatible" {
+		return fmt.Errorf("unsupported provider type %q", config.Type)
+	}
+	if config.Model == "" {
+		return fmt.Errorf("provider model is required")
+	}
+	if config.APIKey == "" {
+		return fmt.Errorf("provider api_key is required")
+	}
+	return nil
 }
 
 func (s *Server) getRun(w http.ResponseWriter, r *http.Request, runID string) {
@@ -226,6 +336,7 @@ func (s *Server) deleteRun(w http.ResponseWriter, r *http.Request, runID string)
 		writeStoreError(w, r, err)
 		return
 	}
+	s.Pending.Delete(runID)
 	if run.ArtifactDir != "" {
 		if err := removeArtifactDir(s.Config.ArtifactDir, run.ArtifactDir); err != nil {
 			writeError(w, r, http.StatusInternalServerError, "artifact_delete_failed", err.Error(), nil)

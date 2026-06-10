@@ -10,8 +10,9 @@ type Case struct {
 	GuidelinePackPath   string       `json:"guideline_pack_path"`
 	NutrientCatalogID   string       `json:"nutrient_catalog_id"`
 	NutrientCatalogPath string       `json:"nutrient_catalog_path"`
-	BaselinePlan        string       `json:"baseline_plan"`
+	BaselinePlan        string       `json:"baseline_plan,omitempty"`
 	CandidatePlan       string       `json:"candidate_plan"`
+	GenerationPrompt    string       `json:"generation_prompt,omitempty"`
 	Expectations        Expectations `json:"expectations"`
 	Tags                []string     `json:"tags"`
 }

@@ -98,6 +98,10 @@ Secrets:
 - Secrets must be discarded when a run completes, fails, expires, or is
   cancelled.
 
+Milestone 5 uses the simpler in-memory option: the API stores BYOK input in a
+pending map keyed by run ID, and the worker removes it when it claims the run.
+This means queued BYOK jobs are not durable across server restarts by design.
+
 Network exposure:
 
 - Expose the backend through Cloudflare Tunnel.

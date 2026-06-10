@@ -116,9 +116,10 @@ Initial worker policy:
 - max model calls when BYOK generation or repair is enabled
 - no anonymous paid inference
 
-For Milestone 4, the worker processes checked-in case paths through the same
-artifact writer used by the CLI. Provider generation and repair remain
-Milestone 5 work.
+The worker processes both checked-in case paths and runtime cases generated
+from hosted manual/BYOK input through the same artifact writer used by the CLI.
+For BYOK runs, the worker first normalizes the plan, writes a runtime case, and
+then runs deterministic evaluation.
 
 ### Storage
 
@@ -152,6 +153,17 @@ browser
 
 Keys are accepted only for live BYOK runs. Public demo runs should replay seeded
 or cached artifacts.
+
+Milestone 5 implements this as an in-memory pending-input map shared by the API
+handler and the worker. The database stores only run metadata and the generated
+runtime case path. Provider API keys are removed from memory when the worker
+claims the run, the run is deleted, or cleanup expires the run.
+
+Generation and repair are normalization steps only. The remote provider may
+produce or repair a meal-plan JSON document, but nutrition compliance,
+guideline checks, and report decisions are still produced by the local
+deterministic checker. Repair is limited to one attempt and must not invent
+missing foods, quantities, units, nutrition totals, or compliance judgments.
 
 ## Full Stack Hosting Shape
 

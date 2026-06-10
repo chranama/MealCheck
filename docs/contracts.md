@@ -378,7 +378,9 @@ The initial hosted backend should expose:
 The frontend is a Cloudflare Pages static site. It should consume these
 endpoints rather than depending on backend internals.
 
-Milestone 4 `POST /api/runs` accepts a checked-in example case path:
+`POST /api/runs` supports four request shapes.
+
+Checked-in demo or fixture case:
 
 ```json
 {
@@ -386,8 +388,114 @@ Milestone 4 `POST /api/runs` accepts a checked-in example case path:
 }
 ```
 
-Arbitrary uploaded meal plans and BYOK provider generation remain Milestone 5
-work.
+Manual structured meal plan:
+
+```json
+{
+  "input_mode": "manual_structured",
+  "profile": {
+    "age": 35,
+    "sex": "male",
+    "height_cm": 178,
+    "weight_kg": 82,
+    "activity_level": "moderate"
+  },
+  "constraints": {
+    "days": 1,
+    "meals_per_day": 3
+  },
+  "candidate_plan": {
+    "schema_version": "0.1",
+    "plan_id": "manual-example",
+    "description": "One day manually entered plan.",
+    "days": [
+      {
+        "day": 1,
+        "meals": [
+          {
+            "name": "breakfast",
+            "items": [
+              {
+                "food": "cooked oatmeal",
+                "quantity": 1,
+                "unit": "cup"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "shopping_list": [],
+    "prep_notes": []
+  }
+}
+```
+
+Profile-only BYOK generation:
+
+```json
+{
+  "input_mode": "profile_generation",
+  "profile": {
+    "age": 35,
+    "sex": "male",
+    "height_cm": 178,
+    "weight_kg": 82,
+    "activity_level": "moderate"
+  },
+  "constraints": {
+    "days": 3,
+    "meals_per_day": 3
+  },
+  "provider": {
+    "type": "openai_compatible",
+    "base_url": "https://api.openai.com/v1",
+    "model": "gpt-example",
+    "api_key": "user-supplied-key"
+  },
+  "repair_json": true
+}
+```
+
+Prompt-based BYOK generation:
+
+```json
+{
+  "input_mode": "prompt_generation",
+  "profile": {
+    "age": 35,
+    "sex": "male",
+    "height_cm": 178,
+    "weight_kg": 82,
+    "activity_level": "moderate"
+  },
+  "constraints": {
+    "days": 3,
+    "meals_per_day": 3
+  },
+  "generation_prompt": "Create a simple 3 day high-protein meal plan.",
+  "provider": {
+    "type": "openai_compatible",
+    "model": "gpt-example",
+    "api_key": "user-supplied-key"
+  },
+  "repair_json": true
+}
+```
+
+Rules:
+
+- `case_path` cannot be combined with `input_mode`.
+- `profile_generation` and `prompt_generation` require an
+  `openai_compatible` BYOK provider with `model` and `api_key`.
+- `repair_json` defaults to `true` for generation modes and allows one bounded
+  repair attempt.
+- Provider API keys are held only in memory while the queued run is pending and
+  are never written to run metadata, reports, or artifact bundles.
+- `configs/redacted-provider.json` records provider type, base URL, and model
+  with `api_key` set to `redacted`.
+- `optional/llm-output.json` and `optional/normalization-events.json` are
+  emitted only when a run used provider generation or normalization metadata.
 
 ## Frontend Boundary Contract
 

@@ -14,16 +14,26 @@ import (
 )
 
 type Worker struct {
-	Config Config
-	Store  Store
-	ID     string
+	Config          Config
+	Store           Store
+	Pending         *PendingInputs
+	ProviderFactory ProviderFactory
+	ID              string
 }
 
-func NewWorker(config Config, store Store) *Worker {
+func NewWorker(config Config, store Store, pending *PendingInputs, providerFactory ProviderFactory) *Worker {
+	if pending == nil {
+		pending = NewPendingInputs()
+	}
+	if providerFactory == nil {
+		providerFactory = DefaultProviderFactory
+	}
 	return &Worker{
-		Config: config,
-		Store:  store,
-		ID:     "worker-" + newID(),
+		Config:          config,
+		Store:           store,
+		Pending:         pending,
+		ProviderFactory: providerFactory,
+		ID:              "worker-" + newID(),
 	}
 }
 
@@ -57,14 +67,29 @@ func (w *Worker) ProcessOne(ctx context.Context) (bool, error) {
 
 	done := make(chan error, 1)
 	var result artifacts.BundleResult
+	var processedPending bool
 	go func() {
 		var err error
+		var prepared PreparedRun
+		casePath := run.CasePath
+		if pendingInput, ok := w.Pending.Take(run.ID); ok {
+			processedPending = true
+			prepared, err = PrepareRunInput(runCtx, w.Config, w.ProviderFactory, run, pendingInput)
+			if err != nil {
+				done <- err
+				return
+			}
+			casePath = prepared.CasePath
+		}
 		result, err = artifacts.WriteBundle(artifacts.BundleOptions{
 			Root:     w.Config.Root,
-			CasePath: run.CasePath,
+			CasePath: casePath,
 			OutDir:   run.ArtifactDir,
 			Mode:     "hosted",
 		})
+		if err == nil && processedPending {
+			err = writeOptionalArtifacts(result.OutDir, prepared)
+		}
 		done <- err
 	}()
 
@@ -82,6 +107,11 @@ func (w *Worker) ProcessOne(ctx context.Context) (bool, error) {
 			_ = w.Store.AppendEvent(ctx, run.ID, EventFailed, err.Error(), now)
 			return true, err
 		}
+		if processedPending {
+			if err := w.Store.AppendEvent(ctx, run.ID, EventPlanNormalized, "meal plan normalized", now); err != nil {
+				return true, err
+			}
+		}
 		if err := w.Store.AppendEvent(ctx, run.ID, EventArtifactWritten, "artifact bundle written", now); err != nil {
 			return true, err
 		}
@@ -96,8 +126,9 @@ func (w *Worker) ProcessOne(ctx context.Context) (bool, error) {
 }
 
 type CleanupJob struct {
-	Config Config
-	Store  Store
+	Config  Config
+	Store   Store
+	Pending *PendingInputs
 }
 
 func (j CleanupJob) Run(ctx context.Context) {
@@ -124,6 +155,9 @@ func (j CleanupJob) RunOnce(ctx context.Context) error {
 		}
 		if err := removeArtifactDir(j.Config.ArtifactDir, run.ArtifactDir); err != nil {
 			return err
+		}
+		if j.Pending != nil {
+			j.Pending.Delete(run.ID)
 		}
 		_ = j.Store.AppendEvent(ctx, run.ID, "expired", "expired run artifacts deleted", time.Now().UTC())
 	}

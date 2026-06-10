@@ -3,6 +3,8 @@ package hosted
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/chranama/MealCheck/internal/checker"
 )
 
 const (
@@ -16,6 +18,7 @@ const (
 const (
 	EventQueued          = "queued"
 	EventStarted         = "started"
+	EventPlanNormalized  = "plan_normalized"
 	EventArtifactWritten = "artifact_written"
 	EventCompleted       = "completed"
 	EventFailed          = "failed"
@@ -66,7 +69,14 @@ type RunEvent struct {
 }
 
 type CreateRunRequest struct {
-	CasePath string `json:"case_path"`
+	CasePath         string              `json:"case_path,omitempty"`
+	InputMode        string              `json:"input_mode,omitempty"`
+	Profile          checker.Profile     `json:"profile,omitempty"`
+	Constraints      checker.Constraints `json:"constraints,omitempty"`
+	CandidatePlan    *checker.Plan       `json:"candidate_plan,omitempty"`
+	GenerationPrompt string              `json:"generation_prompt,omitempty"`
+	Provider         ProviderConfig      `json:"provider,omitempty"`
+	RepairJSON       *bool               `json:"repair_json,omitempty"`
 }
 
 type CreateRunResponse struct {
@@ -115,6 +125,30 @@ type APIError struct {
 	Message   string         `json:"message"`
 	RequestID string         `json:"request_id"`
 	Details   map[string]any `json:"details,omitempty"`
+}
+
+type ProviderConfig struct {
+	Type    string `json:"type,omitempty"`
+	BaseURL string `json:"base_url,omitempty"`
+	Model   string `json:"model,omitempty"`
+	APIKey  string `json:"api_key,omitempty"`
+}
+
+type RedactedProviderConfig struct {
+	Type    string `json:"type"`
+	BaseURL string `json:"base_url,omitempty"`
+	Model   string `json:"model,omitempty"`
+	APIKey  string `json:"api_key"`
+}
+
+type PendingRunInput struct {
+	Mode             string
+	Profile          checker.Profile
+	Constraints      checker.Constraints
+	CandidatePlan    *checker.Plan
+	GenerationPrompt string
+	Provider         ProviderConfig
+	RepairJSON       bool
 }
 
 func jsonRaw(v any) json.RawMessage {
