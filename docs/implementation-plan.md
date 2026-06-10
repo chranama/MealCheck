@@ -55,11 +55,10 @@ seeded validation locally without model API keys.
 Expected future flow:
 
 ```bash
-uv sync
-uv run mealcheck validate \
+go run ./cmd/mealcheck validate \
   --case examples/seeded-3-day-peanut-allergy/case.json \
   --out artifacts/latest
-uv run mealcheck decision artifacts/latest/decision.json
+go run ./cmd/mealcheck decision artifacts/latest/decision.json
 ```
 
 The seeded example should:
@@ -98,14 +97,35 @@ Build in this order:
 
 This order proves the hard part first: evidence-backed evaluation.
 
-### 2. Case Contract
+### 2. Implementation Language And Framework
+
+Use Go for the first implementation.
+
+Initial Go scope:
+
+- checker engine
+- local CLI
+- hosted API
+- worker
+- cleanup job
+- artifact writer
+
+Use JSON Schema contracts for the external artifact shapes. The Go code can use
+generated or hand-written types, but the JSON contracts remain the cross-surface
+source of truth.
+
+Python may be used later for offline preprocessing helpers if that becomes the
+fastest way to prepare guideline or nutrient source data. It is not the runtime
+default and should not be presented as a product differentiator.
+
+### 3. Case Contract
 
 Use one JSON file per case for MVP. JSONL can wait until batch runs matter.
 
 The case should name input mode, profile, constraints, guideline pack, plan
 paths or generation prompt, and expected check policy.
 
-### 3. Meal Plan Contract
+### 4. Meal Plan Contract
 
 Require normalized JSON before evaluation.
 
@@ -119,11 +139,11 @@ modes are:
 All three modes must produce the same normalized meal-plan JSON. The normalized
 plan is the auditable artifact.
 
-### 4. Guideline Pack Contract
+### 5. Guideline Pack Contract
 
 Create one initial pack:
 
-`us-adult-general-v1`
+`dga-2025-2030-us-adult-general-v1`
 
 Initial scope:
 
@@ -150,9 +170,37 @@ The first pack should not cover:
 The selected source set and preprocessing pipeline are documented in
 `docs/nutritional-guidelines.md`.
 
-### 5. Nutrient Catalog Strategy
+### 6. Nutrient Catalog Strategy
 
 Start with local fixture data.
+
+MVP fixture scope:
+
+- the foods needed by the seeded fixture
+- reviewed aliases for those foods
+- per-food conversions for supported household units
+- canonical gram quantities internally
+
+The first fixture catalog has 17 foods. That is sufficient for Milestone 0
+because it covers the seeded baseline, candidate, allergen, high-sodium,
+food-group, unit-conversion, and unresolved-quantity paths. A broader 30 to 60
+food catalog can be added later if the public demo needs a more credible manual
+entry surface.
+
+Supported MVP units:
+
+- `g`
+- `oz`
+- `cup`
+- `tbsp`
+- `tsp`
+- `serving`
+
+Unit conversion is allowed only when the fixture defines the conversion for that
+food. Missing conversions remain unresolved rather than guessed.
+
+Food resolution should use exact matches plus reviewed aliases. Fuzzy matching is
+post-MVP.
 
 Reason:
 
@@ -166,7 +214,7 @@ Later, add FoodData Central lookup behind a cache and rate limit. The MVP uses
 fixture nutrient data so seeded demos and tests do not require network access or
 a FoodData Central API key.
 
-### 6. Deterministic Check Set
+### 7. Deterministic Check Set
 
 Initial checks:
 
@@ -189,12 +237,24 @@ Decision policy:
 
 - block when a declared allergy or forbidden food appears
 - block when required structure is missing
+- block when a nutrition-critical food, quantity, or unit cannot be resolved
 - block when candidate newly violates a configured hard limit
-- warn when foods are unresolved but not enough to invalidate the whole plan
+- warn when optional foods or shopping-list items are unresolved but not enough
+  to invalidate the whole plan
+- warn when sodium exceeds 2,300 mg/day
+- warn when saturated fat exceeds 10 percent of calories
+- warn when a meal exceeds 10 g added sugar
+- warn when calories are outside the configured target tolerance
+- warn when protein is below a user-configured minimum
 - warn when food-group or prep-safety checks are incomplete
 - pass when no blocking violation or material regression is detected
 
-### 7. Provider Scope
+Protein checks are `not_applicable` when no protein minimum is configured.
+
+Nutrient thresholds are warnings by default unless the case or user marks a
+threshold as hard.
+
+### 8. Provider Scope
 
 Support two provider modes first:
 
@@ -207,7 +267,7 @@ No provider is needed for the seeded public demo.
 The LLM should not be used as the source of truth for nutrition compliance or
 missing nutrition-critical plan details.
 
-### 8. Hosted Access Gate
+### 9. Hosted Access Gate
 
 Public access:
 
@@ -217,7 +277,7 @@ Public access:
 
 Live BYOK access:
 
-- require invite token or simple account gate
+- require invite token
 - apply upload, runtime, and queue limits
 - discard provider credentials after each run
 
@@ -228,7 +288,7 @@ Admin access:
 - delete runs
 - trigger cleanup
 
-### 9. Database Schema
+### 10. Database Schema
 
 Initial hosted tables:
 
@@ -240,11 +300,11 @@ Initial hosted tables:
 
 Do not store model provider API keys.
 
-Avoid storing detailed profile data longer than required for the report. If a
-field is not needed after artifact creation, do not persist it in normalized
-database columns.
+Apply the privacy and retention defaults in `docs/privacy-and-safety.md`. If a
+field is not needed for queueing, filtering, deletion, or operational status, do
+not persist it in normalized database columns.
 
-### 10. Resource Limits
+### 11. Resource Limits
 
 Initial hosted defaults:
 
@@ -261,7 +321,7 @@ This fits the reset 2019 MacBook Air because the expensive work is remote BYOK
 generation or repair, and local work is bounded parsing, lookup, arithmetic,
 and report generation.
 
-### 11. Frontend Layout
+### 12. Frontend Layout
 
 Keep the frontend in the same repo under `ui/`.
 
@@ -281,7 +341,7 @@ The frontend should show:
 
 The purpose of the project is not to prove frontend complexity.
 
-### 12. API Details
+### 13. API Details
 
 Initial endpoints:
 
@@ -321,9 +381,12 @@ Error shape:
 
 ## Milestone 0: Contracts And Fixtures
 
+Status: Complete
+
 Deliver:
 
-- JSON schemas for case, meal plan, guideline pack, decision, and report.
+- JSON schemas for case, meal plan, source registry, guideline pack, nutrient
+  catalog, decision, and report.
 - Source registry and preprocessing notes matching
   `docs/nutritional-guidelines.md`.
 - Seeded case for healthy adult meal plan.
@@ -336,8 +399,25 @@ Acceptance:
 - fixtures validate against schemas
 - seeded candidate includes at least one block-worthy failure
 - expected report evidence can be described without implementation
+- repeatable fixture validation runs through
+  `go run ./cmd/mealcheck-fixture-check`
+
+Current status:
+
+- schemas exist in `schemas/`
+- source registry and guideline pack exist in
+  `data/guidelines/dga-2025-2030-us-adult-general-v1/`
+- fixture nutrient catalog exists in `data/nutrients/`
+- seeded baseline, candidate, case, expected decision, and expected evidence
+  exist in
+  `examples/seeded-3-day-peanut-allergy/`
+- the fixture catalog is intentionally scoped to the seeded case for Milestone 0
+- artifact filenames are fixed in `docs/contracts.md`
+- a native Go fixture validator exists under `cmd/mealcheck-fixture-check`
 
 ## Milestone 1: Resolver And Checks
+
+Status: Complete for the seeded proof case.
 
 Deliver:
 
@@ -353,6 +433,20 @@ Acceptance:
 - seeded case produces expected `pass`, `warn`, or `block`
 - unresolved foods are visible
 - LLM-supplied nutrient totals are ignored or flagged
+
+Current status:
+
+- checker core exists in `internal/checker/`
+- seeded case loading, food normalization, exact alias matching, unit
+  normalization, nutrient lookup, daily totals, and meal totals are implemented
+- deterministic checks cover meal structure, unresolved quantities, allergens,
+  user-excluded foods, calories, sodium, added sugar, saturated fat, protein,
+  vegetable coverage, and prep-safety notes
+- decision aggregation produces a `pass`, `warn`, or `block` result
+- tests verify the seeded case blocks as expected and reject LLM-supplied
+  nutrition totals
+- serving-count and detailed food-safety numeric rules are encoded in the
+  guideline pack, but remain post-seeded-case checker expansion work
 
 ## Milestone 2: CLI And Artifacts
 
@@ -429,7 +523,7 @@ Use a three-day plan for a healthy adult with:
 - peanut allergy
 - shellfish excluded
 - sodium max 2,300 mg/day
-- added sugar max 10 percent of calories
+- added sugar max 10 g/meal
 - saturated fat max 10 percent of calories
 
 Seeded candidate failures:
@@ -441,8 +535,10 @@ Seeded candidate failures:
 
 ## Remaining Decisions
 
-- Choose implementation language and framework.
-- Define allergen taxonomy for MVP.
-- Define unit conversion scope.
-- Decide exact invite-token/auth shape.
-- Decide final project name if MealCheck is only a working name.
+These decisions remain after Milestone 0:
+
+- frontend package/build tool and Cloudflare Pages settings
+- database migration tool
+- final runtime data and artifact paths on the MacBook server
+- whether the public demo needs the nutrient catalog expanded beyond the seeded
+  fixture set

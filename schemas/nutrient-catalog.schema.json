@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mealcheck.local/schemas/nutrient-catalog.schema.json",
+  "title": "MealCheck Nutrient Catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "catalog_id", "source", "foods"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "catalog_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fixture_note": {
+      "type": "string"
+    },
+    "foods": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/food"
+      }
+    }
+  },
+  "$defs": {
+    "food": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "food_id",
+        "name",
+        "base_quantity_g",
+        "nutrients_per_100g",
+        "unit_conversions",
+        "allergens",
+        "food_groups"
+      ],
+      "properties": {
+        "food_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "base_quantity_g": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "nutrients_per_100g": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "energy_kcal",
+            "protein_g",
+            "carbohydrate_g",
+            "fat_g",
+            "saturated_fat_g",
+            "sodium_mg"
+          ],
+          "properties": {
+            "energy_kcal": {
+              "type": "number",
+              "minimum": 0
+            },
+            "protein_g": {
+              "type": "number",
+              "minimum": 0
+            },
+            "carbohydrate_g": {
+              "type": "number",
+              "minimum": 0
+            },
+            "fat_g": {
+              "type": "number",
+              "minimum": 0
+            },
+            "saturated_fat_g": {
+              "type": "number",
+              "minimum": 0
+            },
+            "sodium_mg": {
+              "type": "number",
+              "minimum": 0
+            },
+            "added_sugar_g": {
+              "type": "number",
+              "minimum": 0
+            },
+            "fiber_g": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "unit_conversions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "allergens": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "food_groups": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

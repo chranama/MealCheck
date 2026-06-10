@@ -32,7 +32,7 @@ The MVP assumes:
 - the user is an adult
 - the user is not asking for disease-specific, pediatric, pregnancy, or
   therapeutic nutrition guidance
-- the selected guideline pack is `us-adult-general-v1`
+- the selected guideline pack is `dga-2025-2030-us-adult-general-v1`
 - all input modes eventually produce a normalized JSON meal plan
 - nutrient values are calculated from MealCheck's resolver, not trusted from the
   LLM
@@ -88,7 +88,7 @@ Minimal internal shape:
    - activity level
    - goal, such as maintain weight or mild calorie deficit
 3. MealCheck selects the default guideline pack for the profile. MVP default:
-   `us-adult-general-v1`.
+   `dga-2025-2030-us-adult-general-v1`.
 4. The user enters or adjusts plan settings and optional constraints:
    - number of days
    - meals per day

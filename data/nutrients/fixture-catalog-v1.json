@@ -1,0 +1,409 @@
+{
+  "schema_version": "0.1",
+  "catalog_id": "fixture-catalog-v1",
+  "source": "hand_authored_seed_fixture",
+  "fixture_note": "Deterministic seed values for tests and demos. Values are rounded fixture data and should be replaced or verified against FoodData Central before broad public nutrition claims.",
+  "foods": [
+    {
+      "food_id": "oatmeal_cooked_plain",
+      "name": "cooked oatmeal",
+      "aliases": ["oatmeal", "plain oatmeal"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 71,
+        "protein_g": 2.5,
+        "carbohydrate_g": 12,
+        "fat_g": 1.5,
+        "saturated_fat_g": 0.3,
+        "sodium_mg": 4,
+        "added_sugar_g": 0,
+        "fiber_g": 1.7
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "cup": 234,
+        "serving": 234
+      },
+      "allergens": [],
+      "food_groups": ["whole_grains"]
+    },
+    {
+      "food_id": "blueberries_raw",
+      "name": "blueberries",
+      "aliases": ["blueberry"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 57,
+        "protein_g": 0.7,
+        "carbohydrate_g": 14.5,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0,
+        "sodium_mg": 1,
+        "added_sugar_g": 0,
+        "fiber_g": 2.4
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "cup": 148,
+        "serving": 148
+      },
+      "allergens": [],
+      "food_groups": ["fruits"]
+    },
+    {
+      "food_id": "greek_yogurt_plain",
+      "name": "plain Greek yogurt",
+      "aliases": ["greek yogurt", "plain yogurt"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 73,
+        "protein_g": 10,
+        "carbohydrate_g": 3.9,
+        "fat_g": 2,
+        "saturated_fat_g": 1.3,
+        "sodium_mg": 36,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "cup": 245,
+        "serving": 170
+      },
+      "allergens": ["milk"],
+      "food_groups": ["dairy"]
+    },
+    {
+      "food_id": "chicken_breast_cooked",
+      "name": "chicken breast",
+      "aliases": ["cooked chicken breast", "grilled chicken breast"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 165,
+        "protein_g": 31,
+        "carbohydrate_g": 0,
+        "fat_g": 3.6,
+        "saturated_fat_g": 1,
+        "sodium_mg": 74,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 170
+      },
+      "allergens": [],
+      "food_groups": ["protein"]
+    },
+    {
+      "food_id": "brown_rice_cooked",
+      "name": "brown rice",
+      "aliases": ["cooked brown rice"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 112,
+        "protein_g": 2.3,
+        "carbohydrate_g": 23.5,
+        "fat_g": 0.8,
+        "saturated_fat_g": 0.2,
+        "sodium_mg": 5,
+        "added_sugar_g": 0,
+        "fiber_g": 1.8
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "cup": 195,
+        "serving": 195
+      },
+      "allergens": [],
+      "food_groups": ["whole_grains"]
+    },
+    {
+      "food_id": "broccoli_cooked",
+      "name": "broccoli",
+      "aliases": ["cooked broccoli"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 35,
+        "protein_g": 2.4,
+        "carbohydrate_g": 7.2,
+        "fat_g": 0.4,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 41,
+        "added_sugar_g": 0,
+        "fiber_g": 3.3
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "cup": 156,
+        "serving": 156
+      },
+      "allergens": [],
+      "food_groups": ["vegetables"]
+    },
+    {
+      "food_id": "salmon_cooked",
+      "name": "salmon",
+      "aliases": ["cooked salmon", "baked salmon"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 206,
+        "protein_g": 22,
+        "carbohydrate_g": 0,
+        "fat_g": 12,
+        "saturated_fat_g": 2.5,
+        "sodium_mg": 60,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 170
+      },
+      "allergens": ["fish"],
+      "food_groups": ["protein"]
+    },
+    {
+      "food_id": "sweet_potato_baked",
+      "name": "sweet potato",
+      "aliases": ["baked sweet potato"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 90,
+        "protein_g": 2,
+        "carbohydrate_g": 20.7,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0,
+        "sodium_mg": 36,
+        "added_sugar_g": 0,
+        "fiber_g": 3.3
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 180
+      },
+      "allergens": [],
+      "food_groups": ["vegetables"]
+    },
+    {
+      "food_id": "spinach_raw",
+      "name": "spinach",
+      "aliases": ["raw spinach"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 23,
+        "protein_g": 2.9,
+        "carbohydrate_g": 3.6,
+        "fat_g": 0.4,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 79,
+        "added_sugar_g": 0,
+        "fiber_g": 2.2
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "cup": 30,
+        "serving": 85
+      },
+      "allergens": [],
+      "food_groups": ["vegetables"]
+    },
+    {
+      "food_id": "olive_oil",
+      "name": "olive oil",
+      "aliases": ["extra virgin olive oil"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 884,
+        "protein_g": 0,
+        "carbohydrate_g": 0,
+        "fat_g": 100,
+        "saturated_fat_g": 13.8,
+        "sodium_mg": 2,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "tbsp": 13.5,
+        "tsp": 4.5
+      },
+      "allergens": [],
+      "food_groups": ["fats"]
+    },
+    {
+      "food_id": "eggs_large",
+      "name": "egg",
+      "aliases": ["large egg", "eggs"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 143,
+        "protein_g": 12.6,
+        "carbohydrate_g": 0.7,
+        "fat_g": 9.5,
+        "saturated_fat_g": 3.1,
+        "sodium_mg": 142,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 100
+      },
+      "allergens": ["eggs"],
+      "food_groups": ["protein"]
+    },
+    {
+      "food_id": "apple_raw",
+      "name": "apple",
+      "aliases": ["apples"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 52,
+        "protein_g": 0.3,
+        "carbohydrate_g": 13.8,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0,
+        "sodium_mg": 1,
+        "added_sugar_g": 0,
+        "fiber_g": 2.4
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 182
+      },
+      "allergens": [],
+      "food_groups": ["fruits"]
+    },
+    {
+      "food_id": "black_beans_cooked",
+      "name": "black beans",
+      "aliases": ["cooked black beans"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 132,
+        "protein_g": 8.9,
+        "carbohydrate_g": 23.7,
+        "fat_g": 0.5,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 1,
+        "added_sugar_g": 0,
+        "fiber_g": 8.7
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "cup": 172,
+        "serving": 172
+      },
+      "allergens": [],
+      "food_groups": ["protein", "vegetables"]
+    },
+    {
+      "food_id": "whole_wheat_bread",
+      "name": "whole wheat bread",
+      "aliases": ["wheat bread"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 247,
+        "protein_g": 13,
+        "carbohydrate_g": 41,
+        "fat_g": 4.2,
+        "saturated_fat_g": 0.9,
+        "sodium_mg": 400,
+        "added_sugar_g": 4,
+        "fiber_g": 7
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 56
+      },
+      "allergens": ["wheat"],
+      "food_groups": ["whole_grains"]
+    },
+    {
+      "food_id": "peanut_sauce",
+      "name": "peanut sauce",
+      "aliases": ["peanut dressing"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 360,
+        "protein_g": 10,
+        "carbohydrate_g": 20,
+        "fat_g": 28,
+        "saturated_fat_g": 5,
+        "sodium_mg": 900,
+        "added_sugar_g": 12,
+        "fiber_g": 3
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "tbsp": 16,
+        "tsp": 5.3,
+        "serving": 32
+      },
+      "allergens": ["peanuts"],
+      "food_groups": ["fats", "protein"]
+    },
+    {
+      "food_id": "instant_ramen",
+      "name": "instant ramen",
+      "aliases": ["ramen noodles"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 436,
+        "protein_g": 9,
+        "carbohydrate_g": 62,
+        "fat_g": 16,
+        "saturated_fat_g": 7,
+        "sodium_mg": 1700,
+        "added_sugar_g": 2,
+        "fiber_g": 2
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 85
+      },
+      "allergens": ["wheat"],
+      "food_groups": ["refined_grains"]
+    },
+    {
+      "food_id": "soy_sauce",
+      "name": "soy sauce",
+      "aliases": ["regular soy sauce"],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 53,
+        "protein_g": 8,
+        "carbohydrate_g": 5,
+        "fat_g": 0.6,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 5493,
+        "added_sugar_g": 0,
+        "fiber_g": 0.8
+      },
+      "unit_conversions": {
+        "g": 1,
+        "tbsp": 16,
+        "tsp": 5.3
+      },
+      "allergens": ["soybeans", "wheat"],
+      "food_groups": ["condiments"]
+    }
+  ]
+}

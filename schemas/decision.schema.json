@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mealcheck.local/schemas/decision.schema.json",
+  "title": "MealCheck Decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "decision",
+    "summary",
+    "risk_level",
+    "failed_checks",
+    "unresolved_items",
+    "recommended_action",
+    "guideline_pack_id",
+    "artifact_paths",
+    "checks"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["pass", "warn", "block"]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "failed_checks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "unresolved_items": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "recommended_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "guideline_pack_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "artifact_paths": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/check_result"
+      }
+    }
+  },
+  "$defs": {
+    "check_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["check_id", "status", "severity", "message"],
+      "properties": {
+        "check_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pass", "warn", "block", "not_applicable"]
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["block", "warn", "info", "not_applicable"]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "affected_days": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "affected_meals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

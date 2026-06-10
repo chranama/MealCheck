@@ -114,7 +114,8 @@ Public access:
 Safety:
 
 - MealCheck reports must include a non-medical-use disclaimer.
-- Health-sensitive profile data should not be retained longer than needed.
+- Health-sensitive profile data should follow the retention and minimization
+  rules in `docs/privacy-and-safety.md`.
 - The hosted service should avoid collecting unnecessary personal data.
 
 ## Required Programs
@@ -129,8 +130,7 @@ belong in the project dependency file once implementation starts.
 | Git | Source control and deploy pulls | Required. |
 | GitHub CLI (`gh`) | GitHub auth and repository operations | Useful for deploy and repo setup. |
 | OpenSSH | SSH Git access to GitHub | Required for private deploy keys if used. |
-| Python 3.12+ | Likely runtime for checker engine, CLI, API, worker, and cleanup jobs | Preferred first implementation path. |
-| `uv` | Python dependency and virtual environment management | Preferred project tool if Python is used. |
+| Go stable toolchain | Runtime implementation for checker engine, CLI, API, worker, and cleanup jobs | Preferred first implementation path. |
 | Postgres | Run metadata, job state, and retention bookkeeping | Start when hosted mode needs a database. |
 | Cloudflare Tunnel | Safe public API exposure without router port forwarding | Preferred exposure path. |
 | `jq` | Inspecting JSON artifacts, API responses, and smoke test output | Helpful for operations and debugging. |
@@ -142,10 +142,10 @@ belong in the project dependency file once implementation starts.
 
 No project-specific install commands have been run yet.
 
-Likely first install path if this becomes a Python implementation:
+Likely first install path for the Go implementation:
 
 ```bash
-brew install python@3.12 uv postgresql@17 jq cloudflared
+brew install go postgresql@17 jq cloudflared
 ```
 
 Start Postgres when the backend implementation needs the database:
@@ -183,8 +183,8 @@ These paths are provisional until the implementation lands.
 The server is ready for the first hosted proof when:
 
 - the repository pulls cleanly from GitHub
-- Python 3.12+ and `uv` are available if the Python path is chosen
-- project dependencies install into a local virtual environment
+- the Go toolchain is available
+- project dependencies resolve with `go mod`
 - Postgres is installed, running, and reachable locally
 - the backend can run a seeded no-secret meal-plan check
 - the API can serve a seeded report from local artifacts
@@ -196,10 +196,6 @@ The server is ready for the first hosted proof when:
 
 ## Open Decisions
 
-- Confirm implementation language and framework.
-- Choose the first nutrient catalog strategy after fixture validation.
-- Choose whether live BYOK runs require login, invite token, or another access
-  gate.
 - Choose the frontend repo/package layout and Cloudflare Pages build settings.
+- Choose the database migration tool.
 - Decide final runtime data and artifact paths.
-- Decide how much profile data, if any, is persisted for live runs.

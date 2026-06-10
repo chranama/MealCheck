@@ -15,6 +15,31 @@ Initial development should work on a normal laptop with:
 
 Live model calls should be optional.
 
+## Fixture Validation
+
+Milestone 0 fixtures should validate locally with:
+
+```bash
+go run ./cmd/mealcheck-fixture-check
+```
+
+This command validates JSON fixtures against the checked-in JSON Schemas and
+performs cross-file checks that schemas cannot express, such as case paths,
+guideline pack IDs, nutrient catalog IDs, source references, and source claim
+references.
+
+## Checker Tests
+
+The seeded checker core should pass:
+
+```bash
+go test ./...
+```
+
+The current tests verify the seeded `block` decision, unresolved quantity
+visibility, sodium warning evidence, computed nutrient totals, and rejection of
+LLM-supplied nutrition totals.
+
 ## MacBook Air Server Target
 
 Hardware target:

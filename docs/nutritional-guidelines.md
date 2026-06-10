@@ -23,7 +23,11 @@ The product should say "this plan violates the configured sodium limit," not
 
 The first guideline pack is:
 
-`us-adult-general-v1`
+`dga-2025-2030-us-adult-general-v1`
+
+The `schema_version` field remains the artifact-format version. The guideline
+source and content version are encoded in `pack_id` so reports can distinguish
+data shape changes from source-basis changes.
 
 Audience:
 
@@ -141,14 +145,172 @@ Guideline preprocessing is a build-time or maintainer task.
    - Pack updates require review, changelog notes, and regenerated fixtures when
      rules change.
 
+## Preprocessing Agent Prompt
+
+Use this prompt when regenerating or reviewing a guideline pack with a chat agent
+that has internet search. Prefer this over ad hoc source review.
+
+```text
+You are preparing a MealCheck guideline pack. MealCheck is a verifier, not a
+medical nutrition advisor. Your job is to transform official public source
+material into bounded, auditable JSON rules.
+
+Target pack:
+
+- pack_id: dga-2025-2030-us-adult-general-v1
+- audience: generally healthy adults, non-clinical, age 18+
+- out of scope: pediatric, pregnancy, lactation, disease-specific diets,
+  therapeutic diets, eating-disorder contexts, supplements, medication
+  interactions, guaranteed weight-loss claims
+
+Use only official U.S. public sources unless explicitly told otherwise:
+
+- Dietary Guidelines for Americans current edition from dietaryguidelines.gov
+  or its official linked PDF
+- USDA DRI Calculator from nal.usda.gov
+- USDA FoodData Central API Guide from fdc.nal.usda.gov
+- FDA Food Allergies page from fda.gov
+- FoodSafety.gov 4 Steps to Food Safety page
+
+Tasks:
+
+1. Retrieve each source from its official URL.
+2. Record source metadata:
+   - source_id
+   - title
+   - publisher
+   - URL
+   - retrieved_at date
+   - source version or content-current-as-of date when available
+   - page, section, or table locator for each extracted claim
+3. Extract only bounded rules that MealCheck can evaluate from structured meal
+   plan JSON, resolved nutrient data, user constraints, or prep notes.
+4. For each candidate rule, classify it as:
+   - hard_check: objective rule that can block a plan
+   - soft_check: source-backed threshold that should warn by default
+   - advisory: useful guidance that should not affect final decision by default
+   - excluded: source text intentionally not represented in MealCheck
+5. Normalize numeric rules into canonical fields and units:
+   - sodium -> sodium_mg, mg/day
+   - saturated fat -> saturated_fat_pct_calories, pct_calories/day
+   - added sugars -> added_sugar_g, g/meal when the current source states a
+     per-meal threshold
+   - protein -> protein_g_per_kg, g/kg/day, preserving both lower and upper
+     bounds when the current source gives a range
+   - dairy servings -> dairy, servings/day, including the calorie-pattern basis
+   - vegetable servings -> vegetables, servings/day, including the
+     calorie-pattern basis
+   - fruit servings -> fruits, servings/day, including the calorie-pattern basis
+   - whole grain servings -> whole_grains, servings/day, preserving lower and
+     upper bounds when the current source gives a range
+   - snack added sugar -> added_sugar_g plus the source serving equivalent
+   - food safety temperature -> deg_f
+   - food safety time -> hours
+6. Capture all explicit, bounded limits from the selected source set. For the
+   DGA 2025-2030 source, this includes at least:
+   - protein target range
+   - saturated fat percent-of-calories limit
+   - added sugar per-meal limit
+   - grain snack added-sugar equivalent limit
+   - dairy snack added-sugar equivalent limit
+   - sodium daily limit
+   - dairy servings for the stated calorie pattern
+   - vegetable servings for the stated calorie pattern
+   - fruit servings for the stated calorie pattern
+   - whole grain serving range
+7. Capture all explicit, bounded food-safety limits from FoodSafety.gov that can
+   be represented as prep-note, temperature, time, or storage checks. This
+   includes at least:
+   - 20-second handwashing
+   - hot holding at or above 140 degrees F
+   - temperature danger zone of 40 to 140 degrees F
+   - microwave cooking at or above 165 degrees F
+   - refrigerator at or below 40 degrees F
+   - freezer at or below 0 degrees F
+   - refrigeration within 2 hours
+   - refrigeration within 1 hour above 90 degrees F
+8. Extract the FDA major allergen taxonomy exactly as the current FDA source
+   states it. Do not invent allergen thresholds. If the source says no threshold
+   is established, record that as a limitation.
+9. Extract only meal-prep safety rules that can be checked from prep notes, such
+   as clean/separate/cook/chill framing and prompt refrigeration of leftovers.
+10. Do not interpret broad source prose as a deterministic check. Put unsupported
+   or vague material in excluded or advisory notes.
+11. If a current source conflicts with an older project note, use the current
+   source for the generated pack and list the conflict in the review notes.
+12. Do not provide medical advice. Do not write disease-specific, pregnancy,
+    pediatric, or therapeutic diet rules.
+
+Output:
+
+1. source-registry.json
+   - registry_id
+   - retrieved_at
+   - sources[]
+   - claims_used[] for each source, with claim_id, summary, and source_locator
+
+2. guideline-pack.json
+   - schema_version
+   - pack_id
+   - name
+   - audience
+   - source_documents[]
+   - rules[]
+   - disclaimer
+
+For each rule, include:
+
+- rule_id
+- domain
+- status
+- strength
+- severity
+- nutrient, operator, value, unit, and period when numeric
+- applicability
+- user-facing message
+- source_refs
+- source_claims
+
+Use these field conventions:
+
+- `domain`: one of `nutrient_limit`, `profile_target`, `food_exclusion`,
+  `meal_prep_safety`, `food_group_coverage`, `food_group_servings`,
+  `snack_added_sugar_limit`, `food_safety_temperature`, `food_safety_time`, or
+  `food_safety_storage`.
+- `operator`: one of `<`, `<=`, `>`, `>=`, `=`, `between`, `contains_none`, or
+  `requires_any`.
+- `value`: number for simple thresholds, array for controlled lists, or object
+  with `min` and `max` for ranges.
+- `unit`: canonical unit such as `mg/day`, `pct_calories/day`, `g/meal`,
+  `g/kg/day`, `servings/day`, `deg_f`, `hours`, `seconds`, or a source-specific
+  equivalent such as `g_per_0_75_oz_whole_grain_equivalent`.
+- `period`: `meal`, `day`, `snack`, `prep`, `storage`, `after_preparation`,
+  `after_cooking`, `microwave_cooking`, or `storage_or_holding` as applicable.
+- `applicability`: structured conditions such as age, calorie-pattern basis,
+  food group, food category, storage type, temperature condition, or whether
+  prep notes are required.
+- `source_refs`: source document IDs present in `source_documents`.
+- `source_claims`: claim IDs present in `source-registry.json`.
+
+Quality bar:
+
+- Every active source-backed rule must point to at least one source_id.
+- Every active source-backed rule should point to at least one source claim ID.
+- Every source_id in source_refs must exist in source_documents.
+- Strong claims must be grounded in source material, user constraints, resolved
+  nutrient data, or a trusted baseline.
+- The pack must be reproducible without live web access after generation.
+- Keep quotes short. Prefer paraphrased summaries with precise source locators.
+```
+
 ## Guideline Pack JSON Shape
 
 Initial pack shape:
 
 ```json
 {
-  "pack_id": "us-adult-general-v1",
-  "name": "U.S. Adult General MealCheck Guidelines",
+  "pack_id": "dga-2025-2030-us-adult-general-v1",
+  "name": "DGA 2025-2030 U.S. Adult General MealCheck Guidelines",
   "audience": {
     "age_min_years": 18,
     "clinical_scope": "non_clinical_general_adult"
@@ -167,13 +329,27 @@ Initial pack shape:
       "rule_id": "sodium_max_default",
       "domain": "nutrient_limit",
       "status": "active",
-      "strength": "hard_check",
+      "strength": "soft_check",
       "nutrient": "sodium_mg",
-      "operator": "<=",
+      "operator": "<",
       "value": 2300,
       "period": "day",
-      "severity": "block",
-      "source_refs": ["dga-2025-2030"]
+      "severity": "warn",
+      "source_refs": ["dga-2025-2030"],
+      "source_claims": ["dga-sodium-mg-per-day"]
+    },
+    {
+      "rule_id": "added_sugar_max_10g_per_meal",
+      "domain": "nutrient_limit",
+      "status": "active",
+      "strength": "soft_check",
+      "nutrient": "added_sugar_g",
+      "operator": "<=",
+      "value": 10,
+      "period": "meal",
+      "severity": "warn",
+      "source_refs": ["dga-2025-2030"],
+      "source_claims": ["dga-added-sugar-grams-per-meal"]
     }
   ],
   "disclaimer": "MealCheck checks bounded guideline-derived rules. It does not provide medical nutrition advice."

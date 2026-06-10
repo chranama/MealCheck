@@ -105,7 +105,7 @@ Consequences:
 
 - Every report records the guideline pack identifier.
 - Source updates require an explicit pack update.
-- The initial pack is `us-adult-general-v1`.
+- The initial pack is `dga-2025-2030-us-adult-general-v1`.
 - The first pack should stay limited to healthy-adult general checks.
 
 ## 2026-06-10: Nutrient Totals Are Computed, Not Trusted
@@ -212,8 +212,8 @@ Status: Accepted
 
 Decision:
 
-The first guideline pack, `us-adult-general-v1`, will use official U.S. public
-sources documented in `docs/nutritional-guidelines.md`:
+The first guideline pack, `dga-2025-2030-us-adult-general-v1`, will use
+official U.S. public sources documented in `docs/nutritional-guidelines.md`:
 
 - Dietary Guidelines for Americans 2025-2030
 - USDA DRI Calculator
@@ -263,3 +263,161 @@ Consequences:
 - Deterministic validation still decides whether the plan can be evaluated.
 - LLM output remains non-authoritative for nutrition totals and guideline
   compliance.
+
+## 2026-06-10: Privacy And Safety Defaults Are Part Of MVP
+
+Status: Accepted
+
+Decision:
+
+MealCheck will include explicit privacy and safety defaults before hosted live
+runs ship. These defaults are documented in `docs/privacy-and-safety.md`.
+
+MVP defaults:
+
+- seeded demos require no account
+- live BYOK reports are private by default
+- live BYOK artifacts and metadata expire after 7 days
+- provider API keys are never persisted
+- profile, prompt, and meal-plan payloads are not written to application logs
+- manual structured entry can run without sending data to an LLM provider
+- BYOK flows must disclose third-party model-provider data transfer
+- user-triggered deletion is required before public live BYOK access ships
+
+Reason:
+
+MealCheck handles health-adjacent profile and meal-plan data. Even when the
+project is not intended to be HIPAA-covered or clinical, the product should
+minimize collection, disclose third-party processing, and avoid creating
+unnecessary sensitive records.
+
+Consequences:
+
+- Logging, artifact, and secret-redaction tests are implementation requirements.
+- The database should store operational metadata, not duplicated profile details,
+  unless a field is needed for queueing, deletion, or status.
+- Shared reports require an explicit user action.
+- The project should not claim HIPAA compliance or medical suitability.
+
+## 2026-06-10: MVP Technical And Product Defaults
+
+Status: Accepted
+
+Decision:
+
+MealCheck will use these defaults for the first implementation:
+
+- Keep the project name `MealCheck` for now.
+- Use Go for the checker engine, CLI, hosted API, worker, and cleanup job.
+- Use JSON Schema contracts for cases, meal plans, guideline packs, decisions,
+  reports, and artifact manifests.
+- Allow Python only as an offline preprocessing helper if it is useful for
+  guideline or nutrient data preparation; do not position Python as a product
+  differentiator.
+- Start with a hand-authored fixture nutrient catalog scoped to the seeded proof
+  case. Expand toward 30 to 60 common foods later if the public demo needs it.
+- Do not require live FoodData Central lookup in the MVP.
+- Normalize quantities to grams internally.
+- Accept `g`, `oz`, `cup`, `tbsp`, `tsp`, and `serving` in the MVP only where
+  the nutrient fixture defines the conversion for that food.
+- Use exact food matches plus reviewed aliases in the MVP; do not use fuzzy food
+  matching until unresolved and false-positive behavior is understood.
+- Use the FDA major allergen categories as the MVP allergen taxonomy: milk,
+  eggs, fish, crustacean shellfish, tree nuts, peanuts, wheat, soybeans, and
+  sesame.
+- Treat allergen and declared-exclusion matching conservatively.
+- Use user-entered calorie and protein targets first. Optional estimated targets
+  can be added later, but must be labeled as estimates and overrideable.
+- Make nutrient thresholds warnings by default unless the user or fixture marks
+  a limit as hard.
+- Block on declared allergen violations, declared excluded-food violations,
+  missing required structure, and unresolved nutrition-critical quantities.
+- Warn on sodium above 2,300 mg/day, saturated fat above 10 percent of calories,
+  meals above the guideline-pack added sugar threshold, calories outside target tolerance,
+  protein below a configured minimum, weak food-group variety, or incomplete
+  prep-safety evidence.
+- Require invite-token access for live BYOK runs and a separate admin credential
+  for queue, cleanup, and operational controls.
+- Keep live reports private by default. Sharing requires an explicit action.
+
+Reason:
+
+These defaults keep the first build implementable on the MacBook Air target while
+preserving MealCheck's evidence model. The product should prove deterministic
+verification with small, inspectable data before adding broad lookup, fuzzy
+matching, account systems, or larger nutrition domains.
+
+Consequences:
+
+- Milestone 0 can begin with contracts, fixtures, and schemas instead of more
+  product design.
+- The first public demo can be deterministic and run without network access.
+- The Go implementation should expose the same engine through CLI and hosted
+  API surfaces.
+- Broad FoodData Central search, fuzzy matching, estimated targets, full account
+  management, and expanded nutrition domains remain post-MVP decisions.
+
+## 2026-06-10: Milestone 0 Uses Seed-Scoped Fixtures
+
+Status: Accepted
+
+Decision:
+
+Milestone 0 is complete with a nutrient catalog scoped to the seeded proof case,
+not the broader 30 to 60 food target. The first catalog has 17 foods and exists
+to exercise the schema, resolver, allergen, sodium, unit, and unresolved-quantity
+paths needed by the seeded example.
+
+MealCheck will use a native Go fixture validator:
+
+```bash
+go run ./cmd/mealcheck-fixture-check
+```
+
+The validator checks JSON Schema conformance plus cross-file integrity for case
+paths, guideline pack IDs, nutrient catalog IDs, source references, source claim
+references, and expected seeded failures.
+
+Reason:
+
+Milestone 0 should prove contracts and fixtures, not build a broad hand-authored
+nutrition database. A larger fixture catalog increases maintenance cost and can
+imply false precision before the resolver and FoodData Central strategy exist.
+
+Consequences:
+
+- The current 17-food catalog is sufficient for Milestone 0.
+- Public demo credibility may still require a 30 to 60 food fixture set later.
+- Formal fixture validation is part of the local development workflow.
+- Bash may be added later as a thin wrapper, but durable project validation
+  logic should live in Go.
+
+## 2026-06-10: Milestone 1 Checker Core Targets Seeded Proof First
+
+Status: Accepted
+
+Decision:
+
+The first checker core implements the deterministic path needed by the seeded
+case before broad guideline-pack coverage. It resolves foods by exact name or
+reviewed alias, normalizes supported units to grams, calculates nutrient totals
+from fixture catalog values, runs the first check set, and aggregates the final
+decision.
+
+The checker rejects unknown fields in loaded plan JSON. This means
+LLM-supplied nutrition totals are flagged instead of trusted.
+
+Reason:
+
+The value of the first implementation is proving the evidence path end to end.
+Serving-count rules and detailed food-safety numeric rules are encoded in the
+guideline pack, but implementing every advisory rule before the resolver is
+stable would blur Milestone 1 into a broader rules engine.
+
+Consequences:
+
+- `go test ./...` is now the primary seeded checker verification command.
+- The seeded candidate produces a `block` decision.
+- Unresolved quantities are visible in evaluation output.
+- Detailed DGA serving-count checks and FoodSafety temperature/time checks remain
+  future checker expansion work.

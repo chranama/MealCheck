@@ -21,7 +21,10 @@ Initial fields:
   by the LLM for generation cases.
 - `generation_prompt`: optional user prompt for `prompt_generation`.
 - `expectations`: deterministic checks and severity settings.
-- `guideline_pack`: versioned pack identifier.
+- `guideline_pack_id`: versioned pack identifier.
+- `guideline_pack_path`: path to the local guideline pack artifact.
+- `nutrient_catalog_id`: versioned nutrient catalog identifier.
+- `nutrient_catalog_path`: path to the local nutrient catalog artifact.
 - `tags`: optional grouping metadata.
 
 Example:
@@ -44,10 +47,13 @@ Example:
     "allergies": ["peanut"],
     "excluded_foods": ["shellfish"],
     "max_sodium_mg_per_day": 2300,
-    "max_added_sugar_pct_calories": 10,
+    "max_added_sugar_g_per_meal": 10,
     "max_saturated_fat_pct_calories": 10
   },
-  "guideline_pack": "us-adult-general-v1",
+  "guideline_pack_id": "dga-2025-2030-us-adult-general-v1",
+  "guideline_pack_path": "data/guidelines/dga-2025-2030-us-adult-general-v1/guideline-pack.json",
+  "nutrient_catalog_id": "fixture-catalog-v1",
+  "nutrient_catalog_path": "data/nutrients/fixture-catalog-v1.json",
   "candidate_plan": "plans/candidate.json"
 }
 ```
@@ -191,6 +197,14 @@ For each food item, the resolver should produce:
 MVP behavior:
 
 - Use a small local fixture nutrient catalog for seeded examples.
+- Start with the foods needed by seeded fixtures.
+- Expand toward roughly 30 to 60 common foods only when public demos or manual
+  entry need broader coverage.
+- Resolve foods by exact match plus reviewed aliases only.
+- Do not use fuzzy matching in the MVP.
+- Normalize quantities to grams internally.
+- Accept `g`, `oz`, `cup`, `tbsp`, `tsp`, and `serving` only when the fixture
+  defines the conversion for that food.
 - Mark unresolved foods explicitly.
 - Warn or block when too much of the plan cannot be resolved.
 - Add live FoodData Central lookup only after the local fixture path is stable.
@@ -233,6 +247,23 @@ Strong judgments require at least one of:
 - versioned guideline-pack rule
 - trusted baseline
 
+MVP severity defaults:
+
+- block on declared allergen violations
+- block on declared excluded-food violations
+- block on missing required meal-plan structure
+- block when a nutrition-critical food, quantity, or unit cannot be resolved
+- warn when sodium exceeds 2,300 mg/day
+- warn when saturated fat exceeds 10 percent of calories
+- warn when a meal exceeds the guideline-pack added-sugar threshold
+- warn when calories are outside the configured target tolerance
+- warn when protein is below a configured minimum
+- warn on weak food-group coverage or incomplete prep-safety evidence
+
+Protein checks are `not_applicable` when no protein minimum is configured.
+Nutrient thresholds are warnings by default unless the case or user marks them
+as hard limits.
+
 ## LLM Secret Contract
 
 Bring-your-own-key execution must follow these rules:
@@ -262,7 +293,7 @@ Required `decision.json` fields:
 - `failed_checks`
 - `unresolved_items`
 - `recommended_action`
-- `guideline_pack`
+- `guideline_pack_id`
 - `artifact_paths`
 
 CLI exit behavior:
@@ -281,16 +312,16 @@ The shared evidence bundle should be:
 ```text
 artifacts/<run-id>/
   decision.json
+  report.json
   report.html
   report.md
   failures.jsonl
-  nutrition-totals.json
+  daily-totals.json
+  resolved-foods.json
   unresolved-foods.json
   metrics.json
   manifest.json
   normalized-plan.json
-  llm-output.json
-  normalization-events.json
   configs/
     run.json
     redacted-provider.json
@@ -301,24 +332,31 @@ artifacts/<run-id>/
     decision.schema.json
     meal-plan.schema.json
     guideline-pack.schema.json
+    nutrient-catalog.schema.json
     report.schema.json
+  optional/
+    llm-output.json
+    normalization-events.json
 ```
 
 Responsibilities:
 
 - `decision.json`: final machine-readable decision.
+- `report.json`: structured report data for UI rendering.
 - `report.html`: public reviewer view.
 - `report.md`: lightweight text report for terminals and PRs.
 - `failures.jsonl`: failed or review-needed checks.
-- `nutrition-totals.json`: calculated daily and aggregate nutrition values.
+- `daily-totals.json`: calculated daily and aggregate nutrition values.
+- `resolved-foods.json`: resolver matches, normalized quantities, and nutrient
+  contributions.
 - `unresolved-foods.json`: foods and quantities the resolver could not verify.
 - `metrics.json`: aggregate runtime, resolution, and check metrics.
 - `manifest.json`: MealCheck version, timestamps, config hashes, and provenance.
 - `normalized-plan.json`: schema-normalized evaluated plan.
-- `llm-output.json`: original LLM output when an LLM was used; omitted for
-  manual-only runs.
-- `normalization-events.json`: validation, repair, unresolved-field, and
-  normalization events.
+- `optional/llm-output.json`: original LLM output when an LLM was used; omitted
+  for manual-only runs.
+- `optional/normalization-events.json`: validation, repair, unresolved-field,
+  and normalization events.
 - `guideline-pack/`: exact source-pack snapshot used for the run.
 - `schemas/`: validation schemas for artifact consumers.
 
@@ -372,5 +410,7 @@ Default hosted policy:
 - seeded demo runs are public
 - live BYOK runs are private by default
 - shareable reports require an explicit share setting
-- artifacts expire after a short retention window
+- artifacts expire after a short retention window, initially 7 days for live
+  BYOK runs
 - expired artifacts and metadata are deleted by a cleanup job
+- privacy and safety defaults are defined in `docs/privacy-and-safety.md`

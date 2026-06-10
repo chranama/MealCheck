@@ -24,8 +24,9 @@ regressions.
 
 ## Current Shape
 
-The project is in planning. The first proof should use seeded fixtures and a
-small local nutrient catalog before live provider calls or a hosted workflow.
+The project is in Milestone 0. The first proof uses seeded fixtures, JSON
+Schemas, and a small local nutrient catalog before live provider calls or a
+hosted workflow.
 
 The intended deployment shape mirrors the MacBook server idea already scoped in
 this workspace:
@@ -54,6 +55,7 @@ MealCheck is not:
 - [Product](docs/product.md)
 - [User Story](docs/user-story.md)
 - [Nutritional Guidelines](docs/nutritional-guidelines.md)
+- [Privacy And Safety](docs/privacy-and-safety.md)
 - [Contracts](docs/contracts.md)
 - [Architecture](docs/architecture.md)
 - [Backend Server](docs/backend_server.md)
@@ -63,4 +65,15 @@ MealCheck is not:
 
 ## Status
 
-Planning only. No implementation has been started.
+Milestone 0 contracts and fixtures are complete. The Milestone 1 checker core is
+in place for the seeded case. Validate fixtures with:
+
+```bash
+go run ./cmd/mealcheck-fixture-check
+```
+
+Run the Go test suite with:
+
+```bash
+go test ./...
+```

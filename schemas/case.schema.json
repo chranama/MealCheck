@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mealcheck.local/schemas/case.schema.json",
+  "title": "MealCheck Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "input_mode",
+    "profile",
+    "constraints",
+    "guideline_pack_id",
+    "guideline_pack_path",
+    "nutrient_catalog_id",
+    "nutrient_catalog_path",
+    "candidate_plan"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_mode": {
+      "type": "string",
+      "enum": ["manual_structured", "profile_generation", "prompt_generation"]
+    },
+    "profile": {
+      "$ref": "#/$defs/profile"
+    },
+    "constraints": {
+      "$ref": "#/$defs/constraints"
+    },
+    "guideline_pack_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "guideline_pack_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nutrient_catalog_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nutrient_catalog_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "baseline_plan": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_plan": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generation_prompt": {
+      "type": "string"
+    },
+    "expectations": {
+      "$ref": "#/$defs/expectations"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["age", "sex", "height_cm", "weight_kg", "activity_level"],
+      "properties": {
+        "age": {
+          "type": "integer",
+          "minimum": 18
+        },
+        "sex": {
+          "type": "string",
+          "enum": ["male", "female"]
+        },
+        "height_cm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "weight_kg": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "activity_level": {
+          "type": "string",
+          "enum": ["inactive", "low_active", "moderate", "active", "very_active"]
+        },
+        "goal": {
+          "type": "string"
+        },
+        "calorie_target_kcal": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "protein_target_g": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["days", "meals_per_day"],
+      "properties": {
+        "days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        },
+        "meals_per_day": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "allergies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "excluded_foods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "diet_pattern": {
+          "type": "string"
+        },
+        "max_sodium_mg_per_day": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_added_sugar_g_per_meal": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_saturated_fat_pct_calories": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100
+        },
+        "calorie_tolerance_pct": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100
+        },
+        "requires_shopping_list": {
+          "type": "boolean"
+        },
+        "requires_prep_safety_notes": {
+          "type": "boolean"
+        }
+      }
+    },
+    "expectations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_decision": {
+          "type": "string",
+          "enum": ["pass", "warn", "block"]
+        },
+        "expected_block_checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "expected_warn_checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
