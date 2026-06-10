@@ -40,6 +40,55 @@ The current tests verify the seeded `block` decision, unresolved quantity
 visibility, sodium warning evidence, computed nutrient totals, and rejection of
 LLM-supplied nutrition totals.
 
+## Local CLI Artifact Run
+
+The Milestone 2 CLI writes a full local artifact bundle for the seeded proof
+case:
+
+```bash
+go run ./cmd/mealcheck validate \
+  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --out artifacts/latest
+```
+
+The seeded candidate is expected to fail with a `block` decision, so this command
+exits `1` after writing artifacts. That is the correct policy behavior.
+
+The bundle includes:
+
+- `decision.json`
+- `report.json`
+- `report.html`
+- `report.md`
+- `failures.jsonl`
+- `daily-totals.json`
+- `resolved-foods.json`
+- `unresolved-foods.json`
+- `metrics.json`
+- `manifest.json`
+- `normalized-plan.json`
+- redacted run config
+- guideline-pack snapshot
+- copied JSON Schemas
+
+Read an existing decision and apply the same exit-code policy with:
+
+```bash
+go run ./cmd/mealcheck decision artifacts/latest/decision.json
+```
+
+Use `compare` when exercising the baseline/candidate CLI surface:
+
+```bash
+go run ./cmd/mealcheck compare \
+  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --out artifacts/latest-compare
+```
+
+For Milestone 2, `compare` uses the same seeded evaluation path and records
+`compare` in `manifest.json`. Baseline-specific regression expansion remains a
+future checker enhancement.
+
 ## MacBook Air Server Target
 
 Hardware target:
@@ -117,9 +166,9 @@ Initial defaults:
 
 These defaults should be enforced in code, not only documented.
 
-## Operations To Add After Implementation
+## Operations To Add After Hosted Implementation
 
-Once code exists, this file should include:
+Once hosted code exists, this file should include:
 
 - Cloudflare Pages project setup
 - frontend build command and output directory

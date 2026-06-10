@@ -421,3 +421,41 @@ Consequences:
 - Unresolved quantities are visible in evaluation output.
 - Detailed DGA serving-count checks and FoodSafety temperature/time checks remain
   future checker expansion work.
+
+## 2026-06-10: Milestone 2 CLI Writes The Shared Artifact Contract
+
+Status: Accepted
+
+Decision:
+
+MealCheck's first local CLI surface is:
+
+- `mealcheck validate`
+- `mealcheck compare`
+- `mealcheck decision`
+
+`validate` and `compare` write the same artifact bundle shape documented in
+`docs/contracts.md`. `decision` reads an existing `decision.json` and applies the
+same exit-code policy.
+
+The seeded `compare` command records `compare` mode in `manifest.json` but uses
+the same deterministic evaluation path as `validate` for Milestone 2.
+Baseline-specific regression reporting can expand later without changing the
+external command shape.
+
+Reason:
+
+The hosted API should wrap the same checker and artifact writer used locally.
+Proving the bundle and exit-code policy in the CLI first gives the future
+frontend and backend a stable contract.
+
+Consequences:
+
+- `go run ./cmd/mealcheck validate --case <case> --out <dir>` is the primary
+  local seeded run command.
+- The seeded fixture exits `1` because it intentionally produces a `block`
+  decision.
+- Warnings continue to exit `0` unless `--strict` is used.
+- Invalid configuration, unreadable decisions, or unusable artifacts exit `2`.
+- The artifact writer refuses to use the repository root as the output
+  directory.

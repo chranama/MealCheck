@@ -49,10 +49,10 @@ The MVP is complete when a reviewer can inspect a seeded report and understand:
 
 ## Local CLI User Story
 
-The first user story is a reviewer pulling the MealCheck repository and running a
-seeded validation locally without model API keys.
+The first user story is a reviewer pulling the MealCheck repository and running
+a seeded validation locally without model API keys.
 
-Expected future flow:
+Current flow:
 
 ```bash
 go run ./cmd/mealcheck validate \
@@ -450,6 +450,8 @@ Current status:
 
 ## Milestone 2: CLI And Artifacts
 
+Status: Complete for the seeded proof case.
+
 Deliver:
 
 - `mealcheck validate`
@@ -463,6 +465,19 @@ Acceptance:
 - seeded example runs with no network access
 - artifact bundle matches contract
 - CLI exit codes match decision policy
+
+Current status:
+
+- `cmd/mealcheck` implements `validate`, `compare`, and `decision`
+- `validate` and `compare` write the shared artifact bundle through
+  `internal/artifacts`
+- `decision` reads `decision.json` and applies the same exit-code policy
+- the seeded example writes Markdown, HTML, JSON, JSONL, source-pack, config,
+  and schema artifacts
+- tests verify the seeded block exit, compare manifest mode, decision command
+  exit behavior, invalid CLI usage, and required artifact files
+- `compare` currently shares the seeded validation path and records its mode;
+  richer baseline/candidate regression reporting remains future checker work
 
 ## Milestone 3: Public Seeded Demo
 

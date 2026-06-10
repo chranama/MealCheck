@@ -146,16 +146,16 @@ type CheckResult struct {
 }
 
 type ResolvedItem struct {
-	Day        int
-	Meal       string
-	Food       string
-	FoodID     string
-	Quantity   float64
-	Unit       string
-	Grams      float64
-	Nutrients  Nutrients
-	Allergens  []string
-	FoodGroups []string
+	Day        int       `json:"day"`
+	Meal       string    `json:"meal"`
+	Food       string    `json:"food"`
+	FoodID     string    `json:"food_id"`
+	Quantity   float64   `json:"quantity"`
+	Unit       string    `json:"unit"`
+	Grams      float64   `json:"grams"`
+	Nutrients  Nutrients `json:"nutrients"`
+	Allergens  []string  `json:"allergens"`
+	FoodGroups []string  `json:"food_groups"`
 }
 
 type UnresolvedItem struct {
@@ -168,14 +168,14 @@ type UnresolvedItem struct {
 }
 
 type DailyTotal struct {
-	Day                     int
-	Nutrients               Nutrients
-	SaturatedFatPctCalories float64
-	FoodGroups              map[string]bool
+	Day                     int             `json:"day"`
+	Nutrients               Nutrients       `json:"nutrients"`
+	SaturatedFatPctCalories float64         `json:"saturated_fat_pct_calories"`
+	FoodGroups              map[string]bool `json:"food_groups"`
 }
 
 type MealTotal struct {
-	Day       int
-	Meal      string
-	Nutrients Nutrients
+	Day       int       `json:"day"`
+	Meal      string    `json:"meal"`
+	Nutrients Nutrients `json:"nutrients"`
 }

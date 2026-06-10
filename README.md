@@ -24,9 +24,10 @@ regressions.
 
 ## Current Shape
 
-The project is in Milestone 0. The first proof uses seeded fixtures, JSON
-Schemas, and a small local nutrient catalog before live provider calls or a
-hosted workflow.
+The project is through Milestone 2 for the seeded proof path. It has seeded
+fixtures, JSON Schemas, a small local nutrient catalog, a checker core, and a
+local CLI that writes the artifact bundle before live provider calls or a hosted
+workflow.
 
 The intended deployment shape mirrors the MacBook server idea already scoped in
 this workspace:
@@ -65,11 +66,28 @@ MealCheck is not:
 
 ## Status
 
-Milestone 0 contracts and fixtures are complete. The Milestone 1 checker core is
-in place for the seeded case. Validate fixtures with:
+Milestone 0 contracts and fixtures, Milestone 1 checker core, and Milestone 2
+CLI/artifact output are complete for the seeded proof case.
+
+Validate fixtures with:
 
 ```bash
 go run ./cmd/mealcheck-fixture-check
+```
+
+Run the seeded checker and artifact bundle with:
+
+```bash
+go run ./cmd/mealcheck validate \
+  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --out artifacts/latest
+```
+
+The seeded candidate intentionally returns a `block` decision, so the command
+exits `1` after writing the bundle. Inspect the decision with:
+
+```bash
+go run ./cmd/mealcheck decision artifacts/latest/decision.json
 ```
 
 Run the Go test suite with:
