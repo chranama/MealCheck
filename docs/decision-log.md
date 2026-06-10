@@ -487,3 +487,38 @@ Consequences:
   present in the frontend.
 - A frontend framework can be introduced later only if the manual entry or live
   BYOK flows justify it.
+
+## 2026-06-10: Milestone 4 Hosts The Existing Checker Behind A Small API
+
+Status: Accepted
+
+Decision:
+
+MealCheck's first hosted wrapper is a Go HTTP server in
+`cmd/mealcheck-server`. It runs the API, one worker, and cleanup loop in one
+process. It uses Postgres for run metadata and queue state when `DATABASE_URL`
+is configured, and filesystem storage for artifact bundles.
+
+The API binds to `127.0.0.1:8080` by default for Cloudflare Tunnel exposure. A
+memory store exists for tests and local development, but the intended hosted
+store is Postgres.
+
+Milestone 4 run creation accepts checked-in case paths and executes the existing
+checker/artifact writer. BYOK provider generation and JSON repair stay in
+Milestone 5.
+
+Reason:
+
+This proves the hosted shape without creating a second evaluation engine or
+adding provider complexity too early. One process is adequate for the MacBook
+Air target and keeps operational setup small.
+
+Consequences:
+
+- The backend can serve seeded reports and generated run artifacts.
+- Queue size, one-active-run worker behavior, timeout, upload limit, and
+  retention are enforced in code.
+- Expired run artifacts are deleted by cleanup.
+- The initial Postgres schema is applied at server startup.
+- Future BYOK work should reuse the same run, event, artifact, and cleanup
+  contracts.

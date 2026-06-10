@@ -98,6 +98,11 @@ events, and exposes generated reports and artifacts.
 The API should not contain evaluation logic. It should orchestrate the same
 engine used by the CLI.
 
+The first hosted implementation lives in `cmd/mealcheck-server` and exposes the
+documented `/api/*` surface over Go's standard HTTP server. It binds to
+`127.0.0.1:8080` by default so Cloudflare Tunnel can publish it without direct
+router port forwarding.
+
 ### Worker
 
 Runs one check job at a time on the MacBook-hosted deployment target.
@@ -111,6 +116,10 @@ Initial worker policy:
 - max model calls when BYOK generation or repair is enabled
 - no anonymous paid inference
 
+For Milestone 4, the worker processes checked-in case paths through the same
+artifact writer used by the CLI. Provider generation and repair remain
+Milestone 5 work.
+
 ### Storage
 
 Initial hosted storage:
@@ -121,6 +130,10 @@ Initial hosted storage:
 - Optional nutrient-cache storage only after live FoodData Central lookup is
   added.
 - No Redis until queue complexity justifies it.
+
+The implementation includes a Postgres-backed store and applies its initial
+schema at server startup. Tests use an in-memory store to avoid requiring local
+Postgres for the normal development suite.
 
 ## Hosted BYOK Flow
 

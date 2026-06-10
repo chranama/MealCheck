@@ -24,10 +24,10 @@ regressions.
 
 ## Current Shape
 
-The project is through Milestone 3 for the seeded proof path. It has seeded
+The project is through Milestone 4 for the seeded proof path. It has seeded
 fixtures, JSON Schemas, a small local nutrient catalog, a checker core, a local
-CLI that writes the artifact bundle, and a static public demo frontend before
-live provider calls or a hosted workflow.
+CLI that writes the artifact bundle, a static public demo frontend, and a
+hosted API/worker wrapper before live provider calls.
 
 The intended deployment shape mirrors the MacBook server idea already scoped in
 this workspace:
@@ -67,8 +67,8 @@ MealCheck is not:
 ## Status
 
 Milestone 0 contracts and fixtures, Milestone 1 checker core, Milestone 2
-CLI/artifact output, and Milestone 3 static demo UI are complete for the seeded
-proof case.
+CLI/artifact output, Milestone 3 static demo UI, and Milestone 4 hosted wrapper
+are complete for the seeded proof case.
 
 Validate fixtures with:
 
@@ -104,3 +104,11 @@ python3 -m http.server 4173 --directory ui
 ```
 
 Then open `http://localhost:4173`.
+
+Run the hosted API locally with an in-memory store for development:
+
+```bash
+go run ./cmd/mealcheck-server -store memory
+```
+
+Production-style metadata storage uses Postgres through `DATABASE_URL`.

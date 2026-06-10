@@ -512,6 +512,8 @@ Current status:
 
 ## Milestone 4: Hosted Wrapper
 
+Status: Complete for the first hosted proof.
+
 Deliver:
 
 - hosted API
@@ -524,9 +526,25 @@ Deliver:
 Acceptance:
 
 - backend can serve seeded reports
-- one live BYOK run can be queued and completed
+- one hosted validation run can be queued and completed
 - limits are enforced in code
 - artifacts expire according to retention policy
+
+Current status:
+
+- `cmd/mealcheck-server` runs the hosted API, one worker, and cleanup loop
+- API binds to `127.0.0.1:8080` by default for Cloudflare Tunnel compatibility
+- Postgres-backed run metadata and queue storage are implemented through
+  `DATABASE_URL`
+- tests use the same store contract with an in-memory implementation
+- filesystem artifact storage writes under `.mealcheck-data/artifacts/` by
+  default
+- endpoints cover health, demo runs, run creation, run status, SSE events,
+  reports, artifact listing, artifact download, and run deletion
+- queue size, upload size, run timeout, and retention are enforced in code
+- cleanup deletes expired run artifacts and marks expired runs deleted
+- Milestone 4 run creation accepts checked-in case paths; LLM BYOK generation
+  and repair remain Milestone 5
 
 ## Milestone 5: BYOK Generation And Repair
 
@@ -566,9 +584,8 @@ Seeded candidate failures:
 
 ## Remaining Decisions
 
-These decisions remain after Milestone 3:
+These decisions remain after Milestone 4:
 
-- database migration tool
 - final runtime data and artifact paths on the MacBook server
 - whether the public demo needs the nutrient catalog expanded beyond the seeded
   fixture set

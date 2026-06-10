@@ -372,10 +372,22 @@ The initial hosted backend should expose:
 - `GET /api/runs/{run_id}/events`: stream run events over SSE.
 - `GET /api/runs/{run_id}/report`: fetch the rendered report.
 - `GET /api/runs/{run_id}/artifacts`: list downloadable artifacts.
+- `GET /api/runs/{run_id}/artifacts/{artifact_path}`: fetch one artifact.
 - `DELETE /api/runs/{run_id}`: delete run metadata and artifacts.
 
 The frontend is a Cloudflare Pages static site. It should consume these
 endpoints rather than depending on backend internals.
+
+Milestone 4 `POST /api/runs` accepts a checked-in example case path:
+
+```json
+{
+  "case_path": "examples/seeded-3-day-peanut-allergy/case.json"
+}
+```
+
+Arbitrary uploaded meal plans and BYOK provider generation remain Milestone 5
+work.
 
 ## Frontend Boundary Contract
 

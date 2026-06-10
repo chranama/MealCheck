@@ -157,6 +157,55 @@ brew services start postgresql@17
 The exact database name, user, migrations, and environment variables should be
 added after the backend implementation defines them.
 
+## Backend Environment
+
+The first hosted command is:
+
+```bash
+go run ./cmd/mealcheck-server
+```
+
+Default behavior:
+
+- bind address: `127.0.0.1:8080`
+- metadata store: Postgres
+- runtime data: `.mealcheck-data/`
+- artifact storage: `.mealcheck-data/artifacts/`
+- queue size: 3
+- active workers: 1
+- run timeout: 10 minutes
+- retention: 7 days
+
+Required for Postgres-backed mode:
+
+```bash
+export DATABASE_URL='postgres://mealcheck:mealcheck@localhost:5432/mealcheck?sslmode=disable'
+```
+
+Useful local development mode without Postgres:
+
+```bash
+go run ./cmd/mealcheck-server -store memory
+```
+
+Supported configuration:
+
+- `MEALCHECK_ADDR`
+- `MEALCHECK_DATA_DIR`
+- `MEALCHECK_ARTIFACT_DIR`
+- `MEALCHECK_STORE`
+- `DATABASE_URL`
+- `MEALCHECK_ALLOWED_ORIGIN`
+- `MEALCHECK_INVITE_TOKEN`
+- `MEALCHECK_QUEUE_SIZE`
+- `MEALCHECK_MAX_UPLOAD_BYTES`
+- `MEALCHECK_RUN_TIMEOUT`
+- `MEALCHECK_RETENTION`
+- `MEALCHECK_WORKER_POLL`
+- `MEALCHECK_CLEANUP_INTERVAL`
+
+The Postgres schema is applied at server startup by the Postgres store.
+
 ## Operating Requirements
 
 The MacBook should be configured as a server:
@@ -185,7 +234,8 @@ The server is ready for the first hosted proof when:
 - the repository pulls cleanly from GitHub
 - the Go toolchain is available
 - project dependencies resolve with `go mod`
-- Postgres is installed, running, and reachable locally
+- Postgres is installed, running, and reachable locally for production-style
+  metadata storage
 - the backend can run a seeded no-secret meal-plan check
 - the API can serve a seeded report from local artifacts
 - the Cloudflare Pages frontend can call the tunneled backend API
@@ -196,6 +246,4 @@ The server is ready for the first hosted proof when:
 
 ## Open Decisions
 
-- Choose the frontend repo/package layout and Cloudflare Pages build settings.
-- Choose the database migration tool.
 - Decide final runtime data and artifact paths.

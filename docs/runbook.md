@@ -119,6 +119,37 @@ Initial hosted runtime:
 - cleanup job for expired runs
 - Cloudflare Tunnel for API exposure
 
+Current backend command:
+
+```bash
+go run ./cmd/mealcheck-server
+```
+
+Production-style Postgres mode requires:
+
+```bash
+export DATABASE_URL='postgres://mealcheck:mealcheck@localhost:5432/mealcheck?sslmode=disable'
+```
+
+Local development without Postgres:
+
+```bash
+go run ./cmd/mealcheck-server -store memory
+```
+
+Smoke test:
+
+```bash
+curl http://127.0.0.1:8080/api/health
+curl http://127.0.0.1:8080/api/demo-runs
+curl -X POST http://127.0.0.1:8080/api/runs \
+  -H 'Content-Type: application/json' \
+  -d '{"case_path":"examples/seeded-3-day-peanut-allergy/case.json"}'
+```
+
+The queued seeded run is expected to complete with a `block` decision because
+the fixture intentionally contains blocking findings.
+
 Avoid initially:
 
 - Kubernetes
@@ -175,10 +206,10 @@ Public visitors should not be able to:
 Initial defaults:
 
 - one active live run
-- queue size of 3 to 5
+- queue size of 3
 - max 20 cases per run
-- max 5 to 10 minutes per run
-- short artifact retention, such as 7 days
+- max 10 minutes per run
+- 7-day artifact retention
 - explicit upload and output-size limits
 
 These defaults should be enforced in code, not only documented.
