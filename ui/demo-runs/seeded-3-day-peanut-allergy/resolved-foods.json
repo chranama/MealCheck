@@ -1,0 +1,642 @@
+[
+  {
+    "day": 1,
+    "meal": "breakfast",
+    "food": "blueberries",
+    "food_id": "blueberries_raw",
+    "quantity": 0.5,
+    "unit": "cup",
+    "grams": 74,
+    "nutrients": {
+      "energy_kcal": 42.18,
+      "protein_g": 0.518,
+      "carbohydrate_g": 10.73,
+      "fat_g": 0.222,
+      "saturated_fat_g": 0,
+      "sodium_mg": 0.74,
+      "added_sugar_g": 0,
+      "fiber_g": 1.776
+    },
+    "allergens": null,
+    "food_groups": [
+      "fruits"
+    ]
+  },
+  {
+    "day": 1,
+    "meal": "breakfast",
+    "food": "cooked oatmeal",
+    "food_id": "oatmeal_cooked_plain",
+    "quantity": 1,
+    "unit": "cup",
+    "grams": 234,
+    "nutrients": {
+      "energy_kcal": 166.14,
+      "protein_g": 5.85,
+      "carbohydrate_g": 28.08,
+      "fat_g": 3.51,
+      "saturated_fat_g": 0.702,
+      "sodium_mg": 9.36,
+      "added_sugar_g": 0,
+      "fiber_g": 3.9779999999999998
+    },
+    "allergens": null,
+    "food_groups": [
+      "whole_grains"
+    ]
+  },
+  {
+    "day": 1,
+    "meal": "breakfast",
+    "food": "plain Greek yogurt",
+    "food_id": "greek_yogurt_plain",
+    "quantity": 1,
+    "unit": "cup",
+    "grams": 245,
+    "nutrients": {
+      "energy_kcal": 178.85000000000002,
+      "protein_g": 24.5,
+      "carbohydrate_g": 9.555,
+      "fat_g": 4.9,
+      "saturated_fat_g": 3.1850000000000005,
+      "sodium_mg": 88.2,
+      "added_sugar_g": 0,
+      "fiber_g": 0
+    },
+    "allergens": [
+      "milk"
+    ],
+    "food_groups": [
+      "dairy"
+    ]
+  },
+  {
+    "day": 1,
+    "meal": "dinner",
+    "food": "olive oil",
+    "food_id": "olive_oil",
+    "quantity": 1,
+    "unit": "tbsp",
+    "grams": 13.5,
+    "nutrients": {
+      "energy_kcal": 119.34,
+      "protein_g": 0,
+      "carbohydrate_g": 0,
+      "fat_g": 13.5,
+      "saturated_fat_g": 1.8630000000000002,
+      "sodium_mg": 0.27,
+      "added_sugar_g": 0,
+      "fiber_g": 0
+    },
+    "allergens": null,
+    "food_groups": [
+      "fats"
+    ]
+  },
+  {
+    "day": 1,
+    "meal": "dinner",
+    "food": "salmon",
+    "food_id": "salmon_cooked",
+    "quantity": 6,
+    "unit": "oz",
+    "grams": 170.10000000000002,
+    "nutrients": {
+      "energy_kcal": 350.40600000000006,
+      "protein_g": 37.422000000000004,
+      "carbohydrate_g": 0,
+      "fat_g": 20.412000000000003,
+      "saturated_fat_g": 4.2525,
+      "sodium_mg": 102.06000000000002,
+      "added_sugar_g": 0,
+      "fiber_g": 0
+    },
+    "allergens": [
+      "fish"
+    ],
+    "food_groups": [
+      "protein"
+    ]
+  },
+  {
+    "day": 1,
+    "meal": "dinner",
+    "food": "sweet potato",
+    "food_id": "sweet_potato_baked",
+    "quantity": 1,
+    "unit": "serving",
+    "grams": 180,
+    "nutrients": {
+      "energy_kcal": 162,
+      "protein_g": 3.6,
+      "carbohydrate_g": 37.26,
+      "fat_g": 0.36000000000000004,
+      "saturated_fat_g": 0,
+      "sodium_mg": 64.8,
+      "added_sugar_g": 0,
+      "fiber_g": 5.9399999999999995
+    },
+    "allergens": null,
+    "food_groups": [
+      "vegetables"
+    ]
+  },
+  {
+    "day": 1,
+    "meal": "lunch",
+    "food": "broccoli",
+    "food_id": "broccoli_cooked",
+    "quantity": 1,
+    "unit": "cup",
+    "grams": 156,
+    "nutrients": {
+      "energy_kcal": 54.6,
+      "protein_g": 3.7439999999999998,
+      "carbohydrate_g": 11.232000000000001,
+      "fat_g": 0.6240000000000001,
+      "saturated_fat_g": 0.15600000000000003,
+      "sodium_mg": 63.96,
+      "added_sugar_g": 0,
+      "fiber_g": 5.148
+    },
+    "allergens": null,
+    "food_groups": [
+      "vegetables"
+    ]
+  },
+  {
+    "day": 1,
+    "meal": "lunch",
+    "food": "brown rice",
+    "food_id": "brown_rice_cooked",
+    "quantity": 1,
+    "unit": "cup",
+    "grams": 195,
+    "nutrients": {
+      "energy_kcal": 218.4,
+      "protein_g": 4.484999999999999,
+      "carbohydrate_g": 45.824999999999996,
+      "fat_g": 1.56,
+      "saturated_fat_g": 0.39,
+      "sodium_mg": 9.75,
+      "added_sugar_g": 0,
+      "fiber_g": 3.51
+    },
+    "allergens": null,
+    "food_groups": [
+      "whole_grains"
+    ]
+  },
+  {
+    "day": 1,
+    "meal": "lunch",
+    "food": "chicken breast",
+    "food_id": "chicken_breast_cooked",
+    "quantity": 6,
+    "unit": "oz",
+    "grams": 170.10000000000002,
+    "nutrients": {
+      "energy_kcal": 280.665,
+      "protein_g": 52.73100000000001,
+      "carbohydrate_g": 0,
+      "fat_g": 6.1236000000000015,
+      "saturated_fat_g": 1.7010000000000003,
+      "sodium_mg": 125.87400000000002,
+      "added_sugar_g": 0,
+      "fiber_g": 0
+    },
+    "allergens": null,
+    "food_groups": [
+      "protein"
+    ]
+  },
+  {
+    "day": 2,
+    "meal": "breakfast",
+    "food": "apple",
+    "food_id": "apple_raw",
+    "quantity": 1,
+    "unit": "serving",
+    "grams": 182,
+    "nutrients": {
+      "energy_kcal": 94.64,
+      "protein_g": 0.546,
+      "carbohydrate_g": 25.116000000000003,
+      "fat_g": 0.36400000000000005,
+      "saturated_fat_g": 0,
+      "sodium_mg": 1.82,
+      "added_sugar_g": 0,
+      "fiber_g": 4.368
+    },
+    "allergens": null,
+    "food_groups": [
+      "fruits"
+    ]
+  },
+  {
+    "day": 2,
+    "meal": "breakfast",
+    "food": "egg",
+    "food_id": "eggs_large",
+    "quantity": 1,
+    "unit": "serving",
+    "grams": 100,
+    "nutrients": {
+      "energy_kcal": 143,
+      "protein_g": 12.6,
+      "carbohydrate_g": 0.7,
+      "fat_g": 9.5,
+      "saturated_fat_g": 3.1,
+      "sodium_mg": 142,
+      "added_sugar_g": 0,
+      "fiber_g": 0
+    },
+    "allergens": [
+      "eggs"
+    ],
+    "food_groups": [
+      "protein"
+    ]
+  },
+  {
+    "day": 2,
+    "meal": "breakfast",
+    "food": "whole wheat bread",
+    "food_id": "whole_wheat_bread",
+    "quantity": 1,
+    "unit": "serving",
+    "grams": 56,
+    "nutrients": {
+      "energy_kcal": 138.32000000000002,
+      "protein_g": 7.280000000000001,
+      "carbohydrate_g": 22.96,
+      "fat_g": 2.3520000000000003,
+      "saturated_fat_g": 0.5040000000000001,
+      "sodium_mg": 224.00000000000003,
+      "added_sugar_g": 2.24,
+      "fiber_g": 3.9200000000000004
+    },
+    "allergens": [
+      "wheat"
+    ],
+    "food_groups": [
+      "whole_grains"
+    ]
+  },
+  {
+    "day": 2,
+    "meal": "dinner",
+    "food": "broccoli",
+    "food_id": "broccoli_cooked",
+    "quantity": 1,
+    "unit": "cup",
+    "grams": 156,
+    "nutrients": {
+      "energy_kcal": 54.6,
+      "protein_g": 3.7439999999999998,
+      "carbohydrate_g": 11.232000000000001,
+      "fat_g": 0.6240000000000001,
+      "saturated_fat_g": 0.15600000000000003,
+      "sodium_mg": 63.96,
+      "added_sugar_g": 0,
+      "fiber_g": 5.148
+    },
+    "allergens": null,
+    "food_groups": [
+      "vegetables"
+    ]
+  },
+  {
+    "day": 2,
+    "meal": "dinner",
+    "food": "chicken breast",
+    "food_id": "chicken_breast_cooked",
+    "quantity": 6,
+    "unit": "oz",
+    "grams": 170.10000000000002,
+    "nutrients": {
+      "energy_kcal": 280.665,
+      "protein_g": 52.73100000000001,
+      "carbohydrate_g": 0,
+      "fat_g": 6.1236000000000015,
+      "saturated_fat_g": 1.7010000000000003,
+      "sodium_mg": 125.87400000000002,
+      "added_sugar_g": 0,
+      "fiber_g": 0
+    },
+    "allergens": null,
+    "food_groups": [
+      "protein"
+    ]
+  },
+  {
+    "day": 2,
+    "meal": "dinner",
+    "food": "sweet potato",
+    "food_id": "sweet_potato_baked",
+    "quantity": 1,
+    "unit": "serving",
+    "grams": 180,
+    "nutrients": {
+      "energy_kcal": 162,
+      "protein_g": 3.6,
+      "carbohydrate_g": 37.26,
+      "fat_g": 0.36000000000000004,
+      "saturated_fat_g": 0,
+      "sodium_mg": 64.8,
+      "added_sugar_g": 0,
+      "fiber_g": 5.9399999999999995
+    },
+    "allergens": null,
+    "food_groups": [
+      "vegetables"
+    ]
+  },
+  {
+    "day": 2,
+    "meal": "lunch",
+    "food": "instant ramen",
+    "food_id": "instant_ramen",
+    "quantity": 2,
+    "unit": "serving",
+    "grams": 170,
+    "nutrients": {
+      "energy_kcal": 741.1999999999999,
+      "protein_g": 15.299999999999999,
+      "carbohydrate_g": 105.39999999999999,
+      "fat_g": 27.2,
+      "saturated_fat_g": 11.9,
+      "sodium_mg": 2890,
+      "added_sugar_g": 3.4,
+      "fiber_g": 3.4
+    },
+    "allergens": [
+      "wheat"
+    ],
+    "food_groups": [
+      "refined_grains"
+    ]
+  },
+  {
+    "day": 2,
+    "meal": "lunch",
+    "food": "peanut sauce",
+    "food_id": "peanut_sauce",
+    "quantity": 2,
+    "unit": "tbsp",
+    "grams": 32,
+    "nutrients": {
+      "energy_kcal": 115.2,
+      "protein_g": 3.2,
+      "carbohydrate_g": 6.4,
+      "fat_g": 8.96,
+      "saturated_fat_g": 1.6,
+      "sodium_mg": 288,
+      "added_sugar_g": 3.84,
+      "fiber_g": 0.96
+    },
+    "allergens": [
+      "peanuts"
+    ],
+    "food_groups": [
+      "fats",
+      "protein"
+    ]
+  },
+  {
+    "day": 2,
+    "meal": "lunch",
+    "food": "soy sauce",
+    "food_id": "soy_sauce",
+    "quantity": 2,
+    "unit": "tbsp",
+    "grams": 32,
+    "nutrients": {
+      "energy_kcal": 16.96,
+      "protein_g": 2.56,
+      "carbohydrate_g": 1.6,
+      "fat_g": 0.192,
+      "saturated_fat_g": 0.032,
+      "sodium_mg": 1757.76,
+      "added_sugar_g": 0,
+      "fiber_g": 0.256
+    },
+    "allergens": [
+      "soybeans",
+      "wheat"
+    ],
+    "food_groups": [
+      "condiments"
+    ]
+  },
+  {
+    "day": 3,
+    "meal": "breakfast",
+    "food": "blueberries",
+    "food_id": "blueberries_raw",
+    "quantity": 0.5,
+    "unit": "cup",
+    "grams": 74,
+    "nutrients": {
+      "energy_kcal": 42.18,
+      "protein_g": 0.518,
+      "carbohydrate_g": 10.73,
+      "fat_g": 0.222,
+      "saturated_fat_g": 0,
+      "sodium_mg": 0.74,
+      "added_sugar_g": 0,
+      "fiber_g": 1.776
+    },
+    "allergens": null,
+    "food_groups": [
+      "fruits"
+    ]
+  },
+  {
+    "day": 3,
+    "meal": "breakfast",
+    "food": "cooked oatmeal",
+    "food_id": "oatmeal_cooked_plain",
+    "quantity": 1,
+    "unit": "cup",
+    "grams": 234,
+    "nutrients": {
+      "energy_kcal": 166.14,
+      "protein_g": 5.85,
+      "carbohydrate_g": 28.08,
+      "fat_g": 3.51,
+      "saturated_fat_g": 0.702,
+      "sodium_mg": 9.36,
+      "added_sugar_g": 0,
+      "fiber_g": 3.9779999999999998
+    },
+    "allergens": null,
+    "food_groups": [
+      "whole_grains"
+    ]
+  },
+  {
+    "day": 3,
+    "meal": "breakfast",
+    "food": "plain Greek yogurt",
+    "food_id": "greek_yogurt_plain",
+    "quantity": 1,
+    "unit": "cup",
+    "grams": 245,
+    "nutrients": {
+      "energy_kcal": 178.85000000000002,
+      "protein_g": 24.5,
+      "carbohydrate_g": 9.555,
+      "fat_g": 4.9,
+      "saturated_fat_g": 3.1850000000000005,
+      "sodium_mg": 88.2,
+      "added_sugar_g": 0,
+      "fiber_g": 0
+    },
+    "allergens": [
+      "milk"
+    ],
+    "food_groups": [
+      "dairy"
+    ]
+  },
+  {
+    "day": 3,
+    "meal": "dinner",
+    "food": "black beans",
+    "food_id": "black_beans_cooked",
+    "quantity": 1,
+    "unit": "cup",
+    "grams": 172,
+    "nutrients": {
+      "energy_kcal": 227.04,
+      "protein_g": 15.308,
+      "carbohydrate_g": 40.763999999999996,
+      "fat_g": 0.86,
+      "saturated_fat_g": 0.17200000000000001,
+      "sodium_mg": 1.72,
+      "added_sugar_g": 0,
+      "fiber_g": 14.963999999999999
+    },
+    "allergens": null,
+    "food_groups": [
+      "protein",
+      "vegetables"
+    ]
+  },
+  {
+    "day": 3,
+    "meal": "dinner",
+    "food": "broccoli",
+    "food_id": "broccoli_cooked",
+    "quantity": 1,
+    "unit": "cup",
+    "grams": 156,
+    "nutrients": {
+      "energy_kcal": 54.6,
+      "protein_g": 3.7439999999999998,
+      "carbohydrate_g": 11.232000000000001,
+      "fat_g": 0.6240000000000001,
+      "saturated_fat_g": 0.15600000000000003,
+      "sodium_mg": 63.96,
+      "added_sugar_g": 0,
+      "fiber_g": 5.148
+    },
+    "allergens": null,
+    "food_groups": [
+      "vegetables"
+    ]
+  },
+  {
+    "day": 3,
+    "meal": "dinner",
+    "food": "olive oil",
+    "food_id": "olive_oil",
+    "quantity": 1,
+    "unit": "tbsp",
+    "grams": 13.5,
+    "nutrients": {
+      "energy_kcal": 119.34,
+      "protein_g": 0,
+      "carbohydrate_g": 0,
+      "fat_g": 13.5,
+      "saturated_fat_g": 1.8630000000000002,
+      "sodium_mg": 0.27,
+      "added_sugar_g": 0,
+      "fiber_g": 0
+    },
+    "allergens": null,
+    "food_groups": [
+      "fats"
+    ]
+  },
+  {
+    "day": 3,
+    "meal": "lunch",
+    "food": "brown rice",
+    "food_id": "brown_rice_cooked",
+    "quantity": 1,
+    "unit": "cup",
+    "grams": 195,
+    "nutrients": {
+      "energy_kcal": 218.4,
+      "protein_g": 4.484999999999999,
+      "carbohydrate_g": 45.824999999999996,
+      "fat_g": 1.56,
+      "saturated_fat_g": 0.39,
+      "sodium_mg": 9.75,
+      "added_sugar_g": 0,
+      "fiber_g": 3.51
+    },
+    "allergens": null,
+    "food_groups": [
+      "whole_grains"
+    ]
+  },
+  {
+    "day": 3,
+    "meal": "lunch",
+    "food": "chicken breast",
+    "food_id": "chicken_breast_cooked",
+    "quantity": 6,
+    "unit": "oz",
+    "grams": 170.10000000000002,
+    "nutrients": {
+      "energy_kcal": 280.665,
+      "protein_g": 52.73100000000001,
+      "carbohydrate_g": 0,
+      "fat_g": 6.1236000000000015,
+      "saturated_fat_g": 1.7010000000000003,
+      "sodium_mg": 125.87400000000002,
+      "added_sugar_g": 0,
+      "fiber_g": 0
+    },
+    "allergens": null,
+    "food_groups": [
+      "protein"
+    ]
+  },
+  {
+    "day": 3,
+    "meal": "lunch",
+    "food": "spinach",
+    "food_id": "spinach_raw",
+    "quantity": 2,
+    "unit": "cup",
+    "grams": 60,
+    "nutrients": {
+      "energy_kcal": 13.799999999999999,
+      "protein_g": 1.74,
+      "carbohydrate_g": 2.16,
+      "fat_g": 0.24,
+      "saturated_fat_g": 0.06,
+      "sodium_mg": 47.4,
+      "added_sugar_g": 0,
+      "fiber_g": 1.32
+    },
+    "allergens": null,
+    "food_groups": [
+      "vegetables"
+    ]
+  }
+]

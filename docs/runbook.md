@@ -130,11 +130,28 @@ Avoid initially:
 
 ## Frontend Hosting
 
-The production frontend should deploy to Cloudflare Pages from Git. It should
-use only public build-time configuration, such as the backend API base URL.
+The first production frontend can deploy `ui/` to Cloudflare Pages from Git with
+no build command.
+
+Suggested Cloudflare Pages settings:
+
+- root directory: `ui`
+- build command: none
+- build output directory: `/`
+
+The frontend should use only public build-time configuration, such as the
+backend API base URL.
 
 The MacBook should not serve the production frontend. It should remain focused
 on backend API, worker, database, artifacts, source packs, and cleanup.
+
+Local static preview:
+
+```bash
+python3 -m http.server 4173 --directory ui
+```
+
+Then open `http://localhost:4173`.
 
 ## Public Access Policy
 

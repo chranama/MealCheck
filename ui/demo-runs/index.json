@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.1",
+  "demo_runs": [
+    {
+      "id": "seeded-3-day-peanut-allergy",
+      "title": "Three-day peanut allergy check",
+      "summary": "Healthy adult seeded plan with allergen, sodium, unresolved quantity, and prep-safety findings.",
+      "base_path": "demo-runs/seeded-3-day-peanut-allergy"
+    }
+  ]
+}

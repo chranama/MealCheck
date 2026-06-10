@@ -43,6 +43,8 @@ func run(root string) error {
 		{"schemas/guideline-pack.schema.json", "data/guidelines/dga-2025-2030-us-adult-general-v1/guideline-pack.json"},
 		{"schemas/nutrient-catalog.schema.json", "data/nutrients/fixture-catalog-v1.json"},
 		{"schemas/decision.schema.json", "examples/seeded-3-day-peanut-allergy/expected-decision.json"},
+		{"schemas/decision.schema.json", "ui/demo-runs/seeded-3-day-peanut-allergy/decision.json"},
+		{"schemas/report.schema.json", "ui/demo-runs/seeded-3-day-peanut-allergy/report.json"},
 	}
 
 	for _, target := range targets {
@@ -60,6 +62,10 @@ func run(root string) error {
 	}
 
 	if err := validateExpectedDecision(root); err != nil {
+		return err
+	}
+
+	if err := validateStaticDemo(root); err != nil {
 		return err
 	}
 
@@ -220,6 +226,60 @@ func validateExpectedDecision(root string) error {
 	}
 	if !planContainsUnresolvedReason(candidate, "vague_quantity") {
 		return errors.New("candidate fixture must include a vague quantity unresolved item")
+	}
+
+	return nil
+}
+
+func validateStaticDemo(root string) error {
+	index, err := readObject(filepath.Join(root, "ui/demo-runs/index.json"))
+	if err != nil {
+		return err
+	}
+	demos := objectSlice(index, "demo_runs")
+	if len(demos) != 1 {
+		return fmt.Errorf("ui demo index should contain exactly one seeded demo, got %d", len(demos))
+	}
+
+	demo := demos[0]
+	if id := mustString(demo, "id"); id != "seeded-3-day-peanut-allergy" {
+		return fmt.Errorf("unexpected UI demo id %q", id)
+	}
+	basePath := mustString(demo, "base_path")
+	repoBasePath := filepath.Join("ui", basePath)
+	requiredFiles := []string{
+		"decision.json",
+		"report.json",
+		"daily-totals.json",
+		"resolved-foods.json",
+		"unresolved-foods.json",
+		"manifest.json",
+		"guideline-pack/pack.json",
+		"guideline-pack/citations.json",
+	}
+	for _, file := range requiredFiles {
+		if _, err := os.Stat(filepath.Join(root, repoBasePath, file)); err != nil {
+			return fmt.Errorf("static demo is missing %s: %w", filepath.Join(basePath, file), err)
+		}
+	}
+
+	decision, err := readObject(filepath.Join(root, repoBasePath, "decision.json"))
+	if err != nil {
+		return err
+	}
+	if got := mustString(decision, "decision"); got != "block" {
+		return fmt.Errorf("static demo decision = %q, want block", got)
+	}
+
+	manifest, err := readObject(filepath.Join(root, repoBasePath, "manifest.json"))
+	if err != nil {
+		return err
+	}
+	if got := mustString(manifest, "mode"); got != "validate" {
+		return fmt.Errorf("static demo manifest mode = %q, want validate", got)
+	}
+	if len(stringSlice(manifest, "artifacts")) == 0 {
+		return errors.New("static demo manifest must list artifacts")
 	}
 
 	return nil

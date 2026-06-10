@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1",
+  "case_id": "seeded-3-day-peanut-allergy",
+  "mode": "validate",
+  "generated_at": "2026-06-10T22:23:31Z",
+  "mealcheck": {
+    "version": "dev"
+  },
+  "inputs": {
+    "baseline_plan": "examples/seeded-3-day-peanut-allergy/plans/baseline.json",
+    "candidate_plan": "examples/seeded-3-day-peanut-allergy/plans/candidate.json",
+    "case": "examples/seeded-3-day-peanut-allergy/case.json",
+    "guideline_pack_path": "data/guidelines/dga-2025-2030-us-adult-general-v1/guideline-pack.json",
+    "nutrient_catalog_path": "data/nutrients/fixture-catalog-v1.json"
+  },
+  "artifacts": [
+    "decision.json",
+    "report.json",
+    "report.html",
+    "report.md",
+    "failures.jsonl",
+    "daily-totals.json",
+    "resolved-foods.json",
+    "unresolved-foods.json",
+    "metrics.json",
+    "manifest.json",
+    "normalized-plan.json",
+    "configs/run.json",
+    "configs/redacted-provider.json",
+    "guideline-pack/pack.json",
+    "guideline-pack/citations.json",
+    "schemas/decision.schema.json",
+    "schemas/meal-plan.schema.json",
+    "schemas/guideline-pack.schema.json",
+    "schemas/nutrient-catalog.schema.json",
+    "schemas/report.schema.json"
+  ]
+}

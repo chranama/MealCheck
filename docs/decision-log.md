@@ -459,3 +459,31 @@ Consequences:
 - Invalid configuration, unreadable decisions, or unusable artifacts exit `2`.
 - The artifact writer refuses to use the repository root as the output
   directory.
+
+## 2026-06-10: Milestone 3 Uses A No-Build Static Frontend
+
+Status: Accepted
+
+Decision:
+
+The first public demo frontend lives under `ui/` as plain static HTML, CSS, and
+JavaScript. It reads checked-in seeded artifacts from `ui/demo-runs/` and can be
+deployed directly by Cloudflare Pages with no build command.
+
+The frontend shows backend health only when an API base URL is configured. The
+seeded report path remains fully inspectable without a backend.
+
+Reason:
+
+The immediate goal is to prove the product and artifact contract, not frontend
+framework complexity. A no-build static frontend is cheap to host, easy to
+inspect, and stays available even when the MacBook-hosted backend is offline.
+
+Consequences:
+
+- `ui/` is the Cloudflare Pages static root for the first demo.
+- Seeded artifacts are committed for public offline inspection.
+- No model provider keys, backend secrets, tunnel credentials, or live calls are
+  present in the frontend.
+- A frontend framework can be introduced later only if the manual entry or live
+  BYOK flows justify it.

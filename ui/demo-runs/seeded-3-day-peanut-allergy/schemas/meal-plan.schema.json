@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mealcheck.local/schemas/meal-plan.schema.json",
+  "title": "MealCheck Meal Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "plan_id", "days"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "plan_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "days": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/day"
+      }
+    },
+    "shopping_list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/food_item"
+      }
+    },
+    "prep_notes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "day": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["day", "meals"],
+      "properties": {
+        "day": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "meals": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/meal"
+          }
+        }
+      }
+    },
+    "meal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "items"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/food_item"
+          }
+        }
+      }
+    },
+    "food_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["food"],
+      "properties": {
+        "food": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "quantity_text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
+        },
+        "preparation": {
+          "type": "string"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "resolution_status": {
+          "type": "string",
+          "enum": ["pending", "unresolved"]
+        },
+        "unresolved_reason": {
+          "type": "string",
+          "enum": [
+            "unknown_food",
+            "vague_quantity",
+            "unsupported_unit",
+            "missing_conversion"
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "required": ["quantity", "unit"]
+        },
+        {
+          "required": ["quantity_text", "resolution_status", "unresolved_reason"]
+        }
+      ]
+    }
+  }
+}

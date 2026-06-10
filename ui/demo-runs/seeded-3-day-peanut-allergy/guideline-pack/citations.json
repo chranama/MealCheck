@@ -1,0 +1,160 @@
+{
+  "schema_version": "0.1",
+  "registry_id": "dga-2025-2030-us-adult-general-v1-sources",
+  "retrieved_at": "2026-06-10",
+  "sources": [
+    {
+      "source_id": "dga-2025-2030",
+      "title": "Dietary Guidelines for Americans, 2025-2030",
+      "publisher": "U.S. Department of Agriculture and U.S. Department of Health and Human Services",
+      "url": "https://cdn.realfood.gov/DGA.pdf",
+      "source_version": "2025-2030",
+      "claims_used": [
+        {
+          "claim_id": "dga-protein-grams-per-kg",
+          "summary": "Protein serving goal is 1.2 to 1.6 grams per kilogram of body weight per day, adjusted for individual calorie needs.",
+          "source_locator": "PDF page 3, Prioritize Protein Foods at Every Meal"
+        },
+        {
+          "claim_id": "dga-saturated-fat-pct-calories",
+          "summary": "Saturated fat consumption should not exceed 10 percent of total daily calories.",
+          "source_locator": "PDF page 4, Incorporate Healthy Fats"
+        },
+        {
+          "claim_id": "dga-added-sugar-grams-per-meal",
+          "summary": "One meal should contain no more than 10 grams of added sugars.",
+          "source_locator": "PDF page 5, Limit Highly Processed Foods, Added Sugars, and Refined Carbohydrates"
+        },
+        {
+          "claim_id": "dga-sodium-mg-per-day",
+          "summary": "The general population ages 14 and above should consume less than 2,300 milligrams of sodium per day.",
+          "source_locator": "PDF page 6, Sodium"
+        },
+        {
+          "claim_id": "dga-food-group-serving-goals",
+          "summary": "For a 2,000 calorie pattern, the source gives serving goals for dairy, vegetables, fruits, and whole grains.",
+          "source_locator": "PDF pages 3-4, food group sections"
+        },
+        {
+          "claim_id": "dga-dairy-servings-2000-kcal",
+          "summary": "Dairy serving goal is 3 servings per day as part of a 2,000-calorie dietary pattern, adjusted for individual calorie needs.",
+          "source_locator": "PDF page 3, Consume Dairy"
+        },
+        {
+          "claim_id": "dga-vegetables-servings-2000-kcal",
+          "summary": "Vegetable serving goal is 3 servings per day as part of a 2,000-calorie dietary pattern, adjusted for individual calorie needs.",
+          "source_locator": "PDF page 4, Eat Vegetables & Fruits Throughout the Day"
+        },
+        {
+          "claim_id": "dga-fruits-servings-2000-kcal",
+          "summary": "Fruit serving goal is 2 servings per day as part of a 2,000-calorie dietary pattern, adjusted for individual calorie needs.",
+          "source_locator": "PDF page 4, Eat Vegetables & Fruits Throughout the Day"
+        },
+        {
+          "claim_id": "dga-whole-grains-servings-2000-kcal",
+          "summary": "Whole grain serving goal is 2 to 4 servings per day, adjusted for individual calorie needs.",
+          "source_locator": "PDF page 4, Focus on Whole Grains"
+        },
+        {
+          "claim_id": "dga-grain-snack-added-sugar-limit",
+          "summary": "Grain snacks should not exceed 5 grams of added sugar per 3/4 ounce whole-grain equivalent.",
+          "source_locator": "PDF page 5, Limit Highly Processed Foods, Added Sugars, and Refined Carbohydrates"
+        },
+        {
+          "claim_id": "dga-dairy-snack-added-sugar-limit",
+          "summary": "Dairy snacks should not exceed 2.5 grams of added sugar per 2/3 cup equivalent.",
+          "source_locator": "PDF page 5, Limit Highly Processed Foods, Added Sugars, and Refined Carbohydrates"
+        }
+      ]
+    },
+    {
+      "source_id": "fda-food-allergies",
+      "title": "Food Allergies",
+      "publisher": "U.S. Food and Drug Administration",
+      "url": "https://www.fda.gov/food/food-labeling-nutrition/food-allergies",
+      "content_current_as_of": "2026-03-11",
+      "claims_used": [
+        {
+          "claim_id": "fda-nine-major-allergens",
+          "summary": "The major food allergens are milk, eggs, fish, Crustacean shellfish, tree nuts, peanuts, wheat, soybeans, and sesame.",
+          "source_locator": "Major Food Allergens section"
+        },
+        {
+          "claim_id": "fda-no-allergen-threshold",
+          "summary": "FDA has not established a threshold level for any allergens.",
+          "source_locator": "Major Food Allergens section"
+        }
+      ]
+    },
+    {
+      "source_id": "foodsafety-four-steps",
+      "title": "4 Steps to Food Safety",
+      "publisher": "FoodSafety.gov",
+      "url": "https://www.foodsafety.gov/keep-food-safe/4-steps-to-food-safety",
+      "content_current_as_of": "2023-09-18",
+      "claims_used": [
+        {
+          "claim_id": "foodsafety-clean-separate-cook-chill",
+          "summary": "FoodSafety.gov frames home food safety around clean, separate, cook, and chill.",
+          "source_locator": "4 Steps to Food Safety"
+        },
+        {
+          "claim_id": "foodsafety-refrigerate-leftovers",
+          "summary": "Perishable foods should be refrigerated within 2 hours, or within 1 hour when exposed to temperatures above 90 degrees F.",
+          "source_locator": "Chill section"
+        },
+        {
+          "claim_id": "foodsafety-wash-hands-20-seconds",
+          "summary": "Hands should be scrubbed with soap and water for at least 20 seconds.",
+          "source_locator": "Clean section"
+        },
+        {
+          "claim_id": "foodsafety-hot-holding-140f",
+          "summary": "Food held hot after cooking should remain at 140 degrees F or above.",
+          "source_locator": "Cook section"
+        },
+        {
+          "claim_id": "foodsafety-danger-zone-40-140f",
+          "summary": "The temperature danger zone is between 40 degrees F and 140 degrees F.",
+          "source_locator": "Cook and Chill sections"
+        },
+        {
+          "claim_id": "foodsafety-microwave-165f",
+          "summary": "Microwaved food should be cooked thoroughly to 165 degrees F or above.",
+          "source_locator": "Cook section"
+        },
+        {
+          "claim_id": "foodsafety-refrigerator-freezer-temperatures",
+          "summary": "Refrigerators should be set to 40 degrees F or below and freezers to 0 degrees F or below.",
+          "source_locator": "Chill section"
+        }
+      ]
+    },
+    {
+      "source_id": "usda-dri-calculator",
+      "title": "DRI Calculator for Healthcare Professionals",
+      "publisher": "USDA National Agricultural Library",
+      "url": "https://www.nal.usda.gov/human-nutrition-and-food-safety/dri-calculator",
+      "claims_used": [
+        {
+          "claim_id": "dri-profile-inputs",
+          "summary": "The DRI calculator uses height, weight, age, and activity level to generate estimated calorie needs and nutrient recommendations.",
+          "source_locator": "DRI Calculator form description"
+        }
+      ]
+    },
+    {
+      "source_id": "usda-fooddata-central-api",
+      "title": "FoodData Central API Guide",
+      "publisher": "USDA Agricultural Research Service",
+      "url": "https://fdc.nal.usda.gov/api-guide",
+      "claims_used": [
+        {
+          "claim_id": "fdc-api-search-details",
+          "summary": "FoodData Central exposes REST endpoints for food search and food details and requires a data.gov API key.",
+          "source_locator": "Overview, What's Available, and Gaining Access sections"
+        }
+      ]
+    }
+  ]
+}

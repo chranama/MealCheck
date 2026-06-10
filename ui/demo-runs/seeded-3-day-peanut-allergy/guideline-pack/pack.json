@@ -1,0 +1,455 @@
+{
+  "schema_version": "0.1",
+  "pack_id": "dga-2025-2030-us-adult-general-v1",
+  "name": "DGA 2025-2030 U.S. Adult General MealCheck Guidelines",
+  "audience": {
+    "age_min_years": 18,
+    "clinical_scope": "non_clinical_general_adult",
+    "excluded_populations": [
+      "pediatric",
+      "pregnancy",
+      "lactation",
+      "disease_specific",
+      "therapeutic_diet",
+      "eating_disorder_context"
+    ]
+  },
+  "source_documents": [
+    {
+      "source_id": "dga-2025-2030",
+      "title": "Dietary Guidelines for Americans, 2025-2030",
+      "publisher": "USDA/HHS",
+      "url": "https://cdn.realfood.gov/DGA.pdf",
+      "retrieved_at": "2026-06-10",
+      "source_version": "2025-2030"
+    },
+    {
+      "source_id": "fda-food-allergies",
+      "title": "Food Allergies",
+      "publisher": "FDA",
+      "url": "https://www.fda.gov/food/food-labeling-nutrition/food-allergies",
+      "retrieved_at": "2026-06-10",
+      "content_current_as_of": "2026-03-11"
+    },
+    {
+      "source_id": "foodsafety-four-steps",
+      "title": "4 Steps to Food Safety",
+      "publisher": "FoodSafety.gov",
+      "url": "https://www.foodsafety.gov/keep-food-safe/4-steps-to-food-safety",
+      "retrieved_at": "2026-06-10",
+      "content_current_as_of": "2023-09-18"
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "sodium_max_2300_mg_per_day",
+      "domain": "nutrient_limit",
+      "status": "active",
+      "strength": "soft_check",
+      "severity": "warn",
+      "nutrient": "sodium_mg",
+      "operator": "<",
+      "value": 2300,
+      "unit": "mg/day",
+      "period": "day",
+      "applicability": {
+        "age_min_years": 18,
+        "default_for_mvp": true
+      },
+      "message": "Daily sodium is above the general adult guideline threshold.",
+      "source_refs": ["dga-2025-2030"],
+      "source_claims": ["dga-sodium-mg-per-day"]
+    },
+    {
+      "rule_id": "saturated_fat_max_10_pct_calories",
+      "domain": "nutrient_limit",
+      "status": "active",
+      "strength": "soft_check",
+      "severity": "warn",
+      "nutrient": "saturated_fat_pct_calories",
+      "operator": "<=",
+      "value": 10,
+      "unit": "pct_calories/day",
+      "period": "day",
+      "applicability": {
+        "age_min_years": 18,
+        "default_for_mvp": true
+      },
+      "message": "Daily saturated fat exceeds 10 percent of calories.",
+      "source_refs": ["dga-2025-2030"],
+      "source_claims": ["dga-saturated-fat-pct-calories"]
+    },
+    {
+      "rule_id": "added_sugar_max_10g_per_meal",
+      "domain": "nutrient_limit",
+      "status": "active",
+      "strength": "soft_check",
+      "severity": "warn",
+      "nutrient": "added_sugar_g",
+      "operator": "<=",
+      "value": 10,
+      "unit": "g/meal",
+      "period": "meal",
+      "applicability": {
+        "age_min_years": 18,
+        "default_for_mvp": true
+      },
+      "message": "A meal exceeds the guideline-pack added sugar threshold.",
+      "source_refs": ["dga-2025-2030"],
+      "source_claims": ["dga-added-sugar-grams-per-meal"]
+    },
+    {
+      "rule_id": "protein_range_1_2_to_1_6_g_per_kg_day",
+      "domain": "profile_target",
+      "status": "active",
+      "strength": "soft_check",
+      "severity": "warn",
+      "nutrient": "protein_g_per_kg",
+      "operator": "between",
+      "value": {
+        "min": 1.2,
+        "max": 1.6
+      },
+      "unit": "g/kg/day",
+      "period": "day",
+      "applicability": {
+        "age_min_years": 18,
+        "requires_weight_kg": true
+      },
+      "message": "Daily protein is outside the guideline-pack target range.",
+      "source_refs": ["dga-2025-2030"],
+      "source_claims": ["dga-protein-grams-per-kg"]
+    },
+    {
+      "rule_id": "dairy_min_3_servings_per_day_2000_kcal",
+      "domain": "food_group_servings",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": ">=",
+      "value": 3,
+      "unit": "servings/day",
+      "period": "day",
+      "applicability": {
+        "age_min_years": 18,
+        "calorie_pattern_kcal": 2000,
+        "adjust_for_calorie_needs": true,
+        "food_groups": ["dairy"]
+      },
+      "message": "Daily dairy servings are below the guideline-pack 2,000-calorie pattern target.",
+      "source_refs": ["dga-2025-2030"],
+      "source_claims": ["dga-dairy-servings-2000-kcal"]
+    },
+    {
+      "rule_id": "vegetables_min_3_servings_per_day_2000_kcal",
+      "domain": "food_group_servings",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": ">=",
+      "value": 3,
+      "unit": "servings/day",
+      "period": "day",
+      "applicability": {
+        "age_min_years": 18,
+        "calorie_pattern_kcal": 2000,
+        "adjust_for_calorie_needs": true,
+        "food_groups": ["vegetables"]
+      },
+      "message": "Daily vegetable servings are below the guideline-pack 2,000-calorie pattern target.",
+      "source_refs": ["dga-2025-2030"],
+      "source_claims": ["dga-vegetables-servings-2000-kcal"]
+    },
+    {
+      "rule_id": "fruits_min_2_servings_per_day_2000_kcal",
+      "domain": "food_group_servings",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": ">=",
+      "value": 2,
+      "unit": "servings/day",
+      "period": "day",
+      "applicability": {
+        "age_min_years": 18,
+        "calorie_pattern_kcal": 2000,
+        "adjust_for_calorie_needs": true,
+        "food_groups": ["fruits"]
+      },
+      "message": "Daily fruit servings are below the guideline-pack 2,000-calorie pattern target.",
+      "source_refs": ["dga-2025-2030"],
+      "source_claims": ["dga-fruits-servings-2000-kcal"]
+    },
+    {
+      "rule_id": "whole_grains_range_2_to_4_servings_per_day",
+      "domain": "food_group_servings",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": "between",
+      "value": {
+        "min": 2,
+        "max": 4
+      },
+      "unit": "servings/day",
+      "period": "day",
+      "applicability": {
+        "age_min_years": 18,
+        "adjust_for_calorie_needs": true,
+        "food_groups": ["whole_grains"]
+      },
+      "message": "Daily whole-grain servings are outside the guideline-pack target range.",
+      "source_refs": ["dga-2025-2030"],
+      "source_claims": ["dga-whole-grains-servings-2000-kcal"]
+    },
+    {
+      "rule_id": "grain_snack_added_sugar_max_5g_per_three_quarter_oz",
+      "domain": "snack_added_sugar_limit",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "nutrient": "added_sugar_g",
+      "operator": "<=",
+      "value": 5,
+      "unit": "g_per_0_75_oz_whole_grain_equivalent",
+      "period": "snack",
+      "applicability": {
+        "food_category": "grain_snack"
+      },
+      "message": "A grain snack exceeds the guideline-pack added-sugar snack limit.",
+      "source_refs": ["dga-2025-2030"],
+      "source_claims": ["dga-grain-snack-added-sugar-limit"]
+    },
+    {
+      "rule_id": "dairy_snack_added_sugar_max_2_5g_per_two_thirds_cup",
+      "domain": "snack_added_sugar_limit",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "nutrient": "added_sugar_g",
+      "operator": "<=",
+      "value": 2.5,
+      "unit": "g_per_0_67_cup_equivalent",
+      "period": "snack",
+      "applicability": {
+        "food_category": "dairy_snack"
+      },
+      "message": "A dairy snack exceeds the guideline-pack added-sugar snack limit.",
+      "source_refs": ["dga-2025-2030"],
+      "source_claims": ["dga-dairy-snack-added-sugar-limit"]
+    },
+    {
+      "rule_id": "declared_major_allergens_absent",
+      "domain": "food_exclusion",
+      "status": "active",
+      "strength": "hard_check",
+      "severity": "block",
+      "operator": "contains_none",
+      "value": [
+        "milk",
+        "eggs",
+        "fish",
+        "crustacean_shellfish",
+        "tree_nuts",
+        "peanuts",
+        "wheat",
+        "soybeans",
+        "sesame"
+      ],
+      "applicability": {
+        "requires_user_declared_allergy": true
+      },
+      "message": "A meal-plan item matches a declared major allergen.",
+      "source_refs": ["fda-food-allergies"],
+      "source_claims": ["fda-nine-major-allergens", "fda-no-allergen-threshold"]
+    },
+    {
+      "rule_id": "declared_excluded_foods_absent",
+      "domain": "food_exclusion",
+      "status": "active",
+      "strength": "hard_check",
+      "severity": "block",
+      "operator": "contains_none",
+      "value": "user_declared_excluded_foods",
+      "applicability": {
+        "requires_user_excluded_foods": true
+      },
+      "message": "A meal-plan item matches a user-declared excluded food.",
+      "source_refs": []
+    },
+    {
+      "rule_id": "prep_safety_refrigerate_leftovers",
+      "domain": "meal_prep_safety",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": "requires_any",
+      "value": ["refrigerate", "leftover", "promptly", "within 2 hours"],
+      "applicability": {
+        "requires_prep_safety_notes": true
+      },
+      "message": "Prep notes do not mention prompt refrigeration for leftovers.",
+      "source_refs": ["foodsafety-four-steps"],
+      "source_claims": ["foodsafety-refrigerate-leftovers"]
+    },
+    {
+      "rule_id": "prep_safety_wash_hands_20_seconds",
+      "domain": "meal_prep_safety",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": ">=",
+      "value": 20,
+      "unit": "seconds",
+      "period": "prep",
+      "applicability": {
+        "requires_prep_safety_notes": true,
+        "note_topic": "handwashing"
+      },
+      "message": "Prep notes do not mention 20-second handwashing.",
+      "source_refs": ["foodsafety-four-steps"],
+      "source_claims": ["foodsafety-wash-hands-20-seconds"]
+    },
+    {
+      "rule_id": "hot_holding_min_140f",
+      "domain": "food_safety_temperature",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": ">=",
+      "value": 140,
+      "unit": "deg_f",
+      "period": "after_cooking",
+      "applicability": {
+        "when_hot_holding_is_described": true
+      },
+      "message": "Hot-holding instructions should keep cooked food at or above 140 degrees F.",
+      "source_refs": ["foodsafety-four-steps"],
+      "source_claims": ["foodsafety-hot-holding-140f"]
+    },
+    {
+      "rule_id": "danger_zone_40_to_140f",
+      "domain": "food_safety_temperature",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": "between",
+      "value": {
+        "min": 40,
+        "max": 140
+      },
+      "unit": "deg_f",
+      "period": "storage_or_holding",
+      "applicability": {
+        "used_for_temperature_warning_context": true
+      },
+      "message": "Food-safety checks should treat 40 to 140 degrees F as the danger zone.",
+      "source_refs": ["foodsafety-four-steps"],
+      "source_claims": ["foodsafety-danger-zone-40-140f"]
+    },
+    {
+      "rule_id": "microwave_reheat_min_165f",
+      "domain": "food_safety_temperature",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": ">=",
+      "value": 165,
+      "unit": "deg_f",
+      "period": "microwave_cooking",
+      "applicability": {
+        "when_microwave_cooking_is_described": true
+      },
+      "message": "Microwave cooking instructions should reach at least 165 degrees F.",
+      "source_refs": ["foodsafety-four-steps"],
+      "source_claims": ["foodsafety-microwave-165f"]
+    },
+    {
+      "rule_id": "refrigerator_max_40f",
+      "domain": "food_safety_storage",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": "<=",
+      "value": 40,
+      "unit": "deg_f",
+      "period": "storage",
+      "applicability": {
+        "storage_type": "refrigerator"
+      },
+      "message": "Refrigerator storage guidance should be 40 degrees F or below.",
+      "source_refs": ["foodsafety-four-steps"],
+      "source_claims": ["foodsafety-refrigerator-freezer-temperatures"]
+    },
+    {
+      "rule_id": "freezer_max_0f",
+      "domain": "food_safety_storage",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": "<=",
+      "value": 0,
+      "unit": "deg_f",
+      "period": "storage",
+      "applicability": {
+        "storage_type": "freezer"
+      },
+      "message": "Freezer storage guidance should be 0 degrees F or below.",
+      "source_refs": ["foodsafety-four-steps"],
+      "source_claims": ["foodsafety-refrigerator-freezer-temperatures"]
+    },
+    {
+      "rule_id": "refrigerate_perishable_foods_within_2_hours",
+      "domain": "food_safety_time",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": "<=",
+      "value": 2,
+      "unit": "hours",
+      "period": "after_preparation",
+      "applicability": {
+        "food_type": "perishable",
+        "ambient_temp_max_deg_f": 90
+      },
+      "message": "Perishable foods should be refrigerated within 2 hours.",
+      "source_refs": ["foodsafety-four-steps"],
+      "source_claims": ["foodsafety-refrigerate-leftovers"]
+    },
+    {
+      "rule_id": "refrigerate_perishable_foods_within_1_hour_above_90f",
+      "domain": "food_safety_time",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": "<=",
+      "value": 1,
+      "unit": "hours",
+      "period": "after_preparation",
+      "applicability": {
+        "food_type": "perishable",
+        "ambient_temp_min_deg_f": 90
+      },
+      "message": "Perishable foods exposed above 90 degrees F should be refrigerated within 1 hour.",
+      "source_refs": ["foodsafety-four-steps"],
+      "source_claims": ["foodsafety-refrigerate-leftovers"]
+    },
+    {
+      "rule_id": "food_group_vegetables_present",
+      "domain": "food_group_coverage",
+      "status": "active",
+      "strength": "advisory",
+      "severity": "warn",
+      "operator": "requires_any",
+      "value": ["vegetables"],
+      "period": "day",
+      "applicability": {
+        "age_min_years": 18
+      },
+      "message": "A day lacks a resolved vegetable item.",
+      "source_refs": ["dga-2025-2030"],
+      "source_claims": ["dga-vegetables-servings-2000-kcal"]
+    }
+  ],
+  "disclaimer": "MealCheck checks bounded guideline-derived rules. It does not provide medical nutrition advice."
+}

@@ -1,0 +1,144 @@
+{
+  "schema_version": "0.1",
+  "case_id": "seeded-3-day-peanut-allergy",
+  "decision": "block",
+  "profile_summary": {
+    "age": 35,
+    "sex": "male",
+    "height_cm": 178,
+    "weight_kg": 82,
+    "activity_level": "moderate",
+    "goal": "maintain_weight",
+    "calorie_target_kcal": 2000,
+    "protein_target_g": 98
+  },
+  "constraint_summary": {
+    "days": 3,
+    "meals_per_day": 3,
+    "allergies": [
+      "peanuts"
+    ],
+    "excluded_foods": [
+      "shellfish"
+    ],
+    "diet_pattern": "general",
+    "max_sodium_mg_per_day": 2300,
+    "max_added_sugar_g_per_meal": 10,
+    "max_saturated_fat_pct_calories": 10,
+    "calorie_tolerance_pct": 15,
+    "requires_shopping_list": true,
+    "requires_prep_safety_notes": true
+  },
+  "guideline_pack_id": "dga-2025-2030-us-adult-general-v1",
+  "sections": [
+    {
+      "title": "Summary",
+      "body": "The candidate plan has blocking issues and should be revised before use."
+    },
+    {
+      "title": "Failed Or Warning Checks",
+      "body": "5 checks require attention.",
+      "items": [
+        {
+          "check_id": "quantities_resolvable",
+          "message": "The candidate includes unresolved food quantities or units.",
+          "severity": "block",
+          "status": "block"
+        },
+        {
+          "check_id": "allergens_absent",
+          "message": "The candidate includes a declared allergen.",
+          "severity": "block",
+          "status": "block"
+        },
+        {
+          "check_id": "calories_within_tolerance",
+          "message": "One or more days are outside the configured calorie tolerance.",
+          "severity": "warn",
+          "status": "warn"
+        },
+        {
+          "check_id": "sodium_under_limit",
+          "message": "One or more days exceed the configured sodium limit.",
+          "severity": "warn",
+          "status": "warn"
+        },
+        {
+          "check_id": "prep_safety_mentions_present",
+          "message": "Prep notes do not mention prompt refrigeration or leftover handling.",
+          "severity": "warn",
+          "status": "warn"
+        }
+      ]
+    },
+    {
+      "title": "Unresolved Foods",
+      "body": "1 unresolved food or quantity items.",
+      "items": [
+        {
+          "day": 2,
+          "food": "seasoning blend",
+          "meal": "lunch",
+          "quantity_text": "some",
+          "unresolved_reason": "vague_quantity"
+        }
+      ]
+    },
+    {
+      "title": "Daily Totals",
+      "body": "Calculated from the fixture nutrient catalog.",
+      "items": [
+        {
+          "added_sugar_g": 0,
+          "day": 1,
+          "energy_kcal": 1572.5810000000001,
+          "protein_g": 132.85000000000002,
+          "resolved_food_groups_present": {
+            "dairy": true,
+            "fats": true,
+            "fruits": true,
+            "protein": true,
+            "vegetables": true,
+            "whole_grains": true
+          },
+          "saturated_fat_pct_calories": 7.010481495070843,
+          "sodium_mg": 465.014
+        },
+        {
+          "added_sugar_g": 9.48,
+          "day": 2,
+          "energy_kcal": 1746.5850000000003,
+          "protein_g": 101.561,
+          "resolved_food_groups_present": {
+            "condiments": true,
+            "fats": true,
+            "fruits": true,
+            "protein": true,
+            "refined_grains": true,
+            "vegetables": true,
+            "whole_grains": true
+          },
+          "saturated_fat_pct_calories": 9.78692706052096,
+          "sodium_mg": 5558.214
+        },
+        {
+          "added_sugar_g": 0,
+          "day": 3,
+          "energy_kcal": 1301.015,
+          "protein_g": 108.876,
+          "resolved_food_groups_present": {
+            "dairy": true,
+            "fats": true,
+            "fruits": true,
+            "protein": true,
+            "vegetables": true,
+            "whole_grains": true
+          },
+          "saturated_fat_pct_calories": 5.6925554278774655,
+          "sodium_mg": 347.274
+        }
+      ]
+    }
+  ],
+  "disclaimer": "MealCheck checks bounded guideline-derived rules. It does not provide medical nutrition advice."
+}

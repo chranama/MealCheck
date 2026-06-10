@@ -1,0 +1,9 @@
+{
+  "case_id": "seeded-3-day-peanut-allergy",
+  "decision": "block",
+  "resolved_items": 27,
+  "unresolved_items": 1,
+  "check_count": 12,
+  "block_count": 2,
+  "warn_count": 3
+}

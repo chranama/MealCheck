@@ -1,0 +1,55 @@
+{
+  "schema_version": "0.1",
+  "case_id": "seeded-3-day-peanut-allergy",
+  "input_mode": "manual_structured",
+  "profile": {
+    "age": 35,
+    "sex": "male",
+    "height_cm": 178,
+    "weight_kg": 82,
+    "activity_level": "moderate",
+    "goal": "maintain_weight",
+    "calorie_target_kcal": 2000,
+    "protein_target_g": 98
+  },
+  "constraints": {
+    "days": 3,
+    "meals_per_day": 3,
+    "allergies": [
+      "peanuts"
+    ],
+    "excluded_foods": [
+      "shellfish"
+    ],
+    "diet_pattern": "general",
+    "max_sodium_mg_per_day": 2300,
+    "max_added_sugar_g_per_meal": 10,
+    "max_saturated_fat_pct_calories": 10,
+    "calorie_tolerance_pct": 15,
+    "requires_shopping_list": true,
+    "requires_prep_safety_notes": true
+  },
+  "guideline_pack_id": "dga-2025-2030-us-adult-general-v1",
+  "guideline_pack_path": "data/guidelines/dga-2025-2030-us-adult-general-v1/guideline-pack.json",
+  "nutrient_catalog_id": "fixture-catalog-v1",
+  "nutrient_catalog_path": "data/nutrients/fixture-catalog-v1.json",
+  "baseline_plan": "examples/seeded-3-day-peanut-allergy/plans/baseline.json",
+  "candidate_plan": "examples/seeded-3-day-peanut-allergy/plans/candidate.json",
+  "expectations": {
+    "expected_decision": "block",
+    "expected_block_checks": [
+      "allergens_absent",
+      "quantities_resolvable"
+    ],
+    "expected_warn_checks": [
+      "sodium_under_limit",
+      "prep_safety_mentions_present"
+    ]
+  },
+  "tags": [
+    "seeded",
+    "mvp",
+    "healthy_adult",
+    "peanut_allergy"
+  ]
+}

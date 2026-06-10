@@ -81,6 +81,15 @@ The first local surface:
 
 The CLI proves the artifact contract before service mode grows.
 
+### Static Frontend
+
+The first frontend is a no-build static app under `ui/`. It reads checked-in
+seeded artifact bundles from `ui/demo-runs/`, renders decision details, daily
+nutrition totals, food resolution, source references, and artifact links, and
+shows backend health when an API base URL is configured.
+
+The seeded frontend must remain useful when the hosted backend is offline.
+
 ### Hosted API
 
 Accepts validation requests, validates inputs, creates queued jobs, streams run
@@ -151,6 +160,9 @@ database URLs, and tunnel credentials must never be embedded in the frontend.
 
 If the backend is offline, the static frontend should still load and show seeded
 demo reports, cached examples, or a clear backend-unavailable state.
+
+For the first demo, Cloudflare Pages can deploy `ui/` directly with no build
+command.
 
 ## MacBook Air Deployment Target
 

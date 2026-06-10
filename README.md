@@ -24,10 +24,10 @@ regressions.
 
 ## Current Shape
 
-The project is through Milestone 2 for the seeded proof path. It has seeded
-fixtures, JSON Schemas, a small local nutrient catalog, a checker core, and a
-local CLI that writes the artifact bundle before live provider calls or a hosted
-workflow.
+The project is through Milestone 3 for the seeded proof path. It has seeded
+fixtures, JSON Schemas, a small local nutrient catalog, a checker core, a local
+CLI that writes the artifact bundle, and a static public demo frontend before
+live provider calls or a hosted workflow.
 
 The intended deployment shape mirrors the MacBook server idea already scoped in
 this workspace:
@@ -66,8 +66,9 @@ MealCheck is not:
 
 ## Status
 
-Milestone 0 contracts and fixtures, Milestone 1 checker core, and Milestone 2
-CLI/artifact output are complete for the seeded proof case.
+Milestone 0 contracts and fixtures, Milestone 1 checker core, Milestone 2
+CLI/artifact output, and Milestone 3 static demo UI are complete for the seeded
+proof case.
 
 Validate fixtures with:
 
@@ -95,3 +96,11 @@ Run the Go test suite with:
 ```bash
 go test ./...
 ```
+
+Preview the static seeded demo with:
+
+```bash
+python3 -m http.server 4173 --directory ui
+```
+
+Then open `http://localhost:4173`.

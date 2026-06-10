@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mealcheck.local/schemas/guideline-pack.schema.json",
+  "title": "MealCheck Guideline Pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "pack_id",
+    "name",
+    "audience",
+    "source_documents",
+    "rules",
+    "disclaimer"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "pack_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "audience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["age_min_years", "clinical_scope"],
+      "properties": {
+        "age_min_years": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clinical_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "excluded_populations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "source_documents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/source_document"
+      }
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/rule"
+      }
+    },
+    "disclaimer": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "source_document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "title", "publisher", "url", "retrieved_at"],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "publisher": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "retrieved_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "content_current_as_of": {
+          "type": "string"
+        },
+        "source_version": {
+          "type": "string"
+        }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "domain",
+        "status",
+        "strength",
+        "severity",
+        "message",
+        "source_refs"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain": {
+          "type": "string",
+          "enum": [
+            "nutrient_limit",
+            "profile_target",
+            "food_exclusion",
+            "meal_prep_safety",
+            "food_group_coverage",
+            "food_group_servings",
+            "snack_added_sugar_limit",
+            "food_safety_temperature",
+            "food_safety_time",
+            "food_safety_storage"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "inactive"]
+        },
+        "strength": {
+          "type": "string",
+          "enum": ["hard_check", "soft_check", "advisory", "excluded"]
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["block", "warn", "info", "not_applicable"]
+        },
+        "nutrient": {
+          "type": "string"
+        },
+        "operator": {
+          "type": "string",
+          "enum": [
+            "<",
+            "<=",
+            ">",
+            ">=",
+            "=",
+            "between",
+            "contains_none",
+            "requires_any"
+          ]
+        },
+        "value": {
+          "type": ["number", "string", "array", "object", "boolean"]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "period": {
+          "type": "string"
+        },
+        "applicability": {
+          "type": "object"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "source_claims": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

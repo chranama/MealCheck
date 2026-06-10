@@ -481,6 +481,8 @@ Current status:
 
 ## Milestone 3: Public Seeded Demo
 
+Status: Complete for the seeded proof case.
+
 Deliver:
 
 - static frontend under `ui/`
@@ -493,6 +495,20 @@ Acceptance:
 - frontend can be deployed as static files
 - seeded report remains inspectable if backend is offline
 - no secrets or live provider calls are required
+
+Current status:
+
+- `ui/` contains a no-build static frontend
+- seeded artifact bundle exists under
+  `ui/demo-runs/seeded-3-day-peanut-allergy/`
+- the frontend renders the seeded decision, check details, evidence, daily
+  nutrition totals, resolved and unresolved foods, source references, and
+  artifact links
+- backend health state is shown as static-demo by default and can call
+  `/api/health` when an API base URL is configured
+- local preview works by serving `ui/` over HTTP
+- no frontend secrets, model calls, or backend dependency are required for the
+  seeded report
 
 ## Milestone 4: Hosted Wrapper
 
@@ -550,9 +566,8 @@ Seeded candidate failures:
 
 ## Remaining Decisions
 
-These decisions remain after Milestone 0:
+These decisions remain after Milestone 3:
 
-- frontend package/build tool and Cloudflare Pages settings
 - database migration tool
 - final runtime data and artifact paths on the MacBook server
 - whether the public demo needs the nutrient catalog expanded beyond the seeded

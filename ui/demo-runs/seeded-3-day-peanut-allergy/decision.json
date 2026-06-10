@@ -1,0 +1,169 @@
+{
+  "schema_version": "0.1",
+  "case_id": "seeded-3-day-peanut-allergy",
+  "decision": "block",
+  "summary": "The candidate plan has blocking issues and should be revised before use.",
+  "risk_level": "high",
+  "failed_checks": [
+    "quantities_resolvable",
+    "allergens_absent",
+    "calories_within_tolerance",
+    "sodium_under_limit",
+    "prep_safety_mentions_present"
+  ],
+  "unresolved_items": [
+    {
+      "day": 2,
+      "meal": "lunch",
+      "food": "seasoning blend",
+      "quantity_text": "some",
+      "unresolved_reason": "vague_quantity"
+    }
+  ],
+  "recommended_action": "Revise blocking violations and rerun MealCheck.",
+  "guideline_pack_id": "dga-2025-2030-us-adult-general-v1",
+  "artifact_paths": {
+    "baseline_plan": "examples/seeded-3-day-peanut-allergy/plans/baseline.json",
+    "candidate_plan": "examples/seeded-3-day-peanut-allergy/plans/candidate.json",
+    "case": "examples/seeded-3-day-peanut-allergy/case.json",
+    "guideline_pack_path": "data/guidelines/dga-2025-2030-us-adult-general-v1/guideline-pack.json",
+    "nutrient_catalog_path": "data/nutrients/fixture-catalog-v1.json"
+  },
+  "checks": [
+    {
+      "check_id": "meal_plan_schema_valid",
+      "status": "pass",
+      "severity": "info",
+      "message": "The candidate plan was loaded as normalized meal-plan JSON."
+    },
+    {
+      "check_id": "required_meals_present",
+      "status": "pass",
+      "severity": "info",
+      "message": "The candidate includes the required number of days and meals per day."
+    },
+    {
+      "check_id": "quantities_resolvable",
+      "status": "block",
+      "severity": "block",
+      "message": "The candidate includes unresolved food quantities or units.",
+      "evidence": [
+        {
+          "day": 2,
+          "food": "seasoning blend",
+          "meal": "lunch",
+          "quantity_text": "some",
+          "unit": "",
+          "unresolved_reason": "vague_quantity"
+        }
+      ],
+      "affected_days": [
+        2
+      ],
+      "affected_meals": [
+        "lunch"
+      ]
+    },
+    {
+      "check_id": "allergens_absent",
+      "status": "block",
+      "severity": "block",
+      "message": "The candidate includes a declared allergen.",
+      "evidence": [
+        {
+          "day": 2,
+          "food": "peanut sauce",
+          "matched_allergen": "peanuts",
+          "meal": "lunch"
+        }
+      ],
+      "source_refs": [
+        "fda-food-allergies"
+      ],
+      "affected_days": [
+        2
+      ],
+      "affected_meals": [
+        "lunch"
+      ]
+    },
+    {
+      "check_id": "excluded_foods_absent",
+      "status": "pass",
+      "severity": "info",
+      "message": "No user-excluded food was found in resolved foods."
+    },
+    {
+      "check_id": "calories_within_tolerance",
+      "status": "warn",
+      "severity": "warn",
+      "message": "One or more days are outside the configured calorie tolerance.",
+      "evidence": [
+        {
+          "day": 1,
+          "energy_kcal": 1572.6,
+          "target_kcal": 2000,
+          "tolerance_pct": 15
+        },
+        {
+          "day": 3,
+          "energy_kcal": 1301,
+          "target_kcal": 2000,
+          "tolerance_pct": 15
+        }
+      ]
+    },
+    {
+      "check_id": "sodium_under_limit",
+      "status": "warn",
+      "severity": "warn",
+      "message": "One or more days exceed the configured sodium limit.",
+      "evidence": [
+        {
+          "day": 2,
+          "limit_mg": 2300,
+          "sodium_mg": 5558.2
+        }
+      ],
+      "source_refs": [
+        "dga-2025-2030"
+      ],
+      "affected_days": [
+        2
+      ]
+    },
+    {
+      "check_id": "added_sugar_under_limit",
+      "status": "pass",
+      "severity": "info",
+      "message": "Meal added sugar is within the configured limit."
+    },
+    {
+      "check_id": "saturated_fat_under_limit",
+      "status": "pass",
+      "severity": "info",
+      "message": "Daily saturated fat is within the configured limit."
+    },
+    {
+      "check_id": "protein_minimum_met",
+      "status": "pass",
+      "severity": "info",
+      "message": "Daily protein meets the configured minimum."
+    },
+    {
+      "check_id": "food_group_coverage",
+      "status": "pass",
+      "severity": "info",
+      "message": "Each day includes a resolved vegetable item."
+    },
+    {
+      "check_id": "prep_safety_mentions_present",
+      "status": "warn",
+      "severity": "warn",
+      "message": "Prep notes do not mention prompt refrigeration or leftover handling.",
+      "source_refs": [
+        "foodsafety-four-steps"
+      ]
+    }
+  ]
+}

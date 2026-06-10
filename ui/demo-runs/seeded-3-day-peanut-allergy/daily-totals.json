@@ -1,0 +1,69 @@
+[
+  {
+    "day": 1,
+    "nutrients": {
+      "energy_kcal": 1572.5810000000001,
+      "protein_g": 132.85000000000002,
+      "carbohydrate_g": 142.682,
+      "fat_g": 51.211600000000004,
+      "saturated_fat_g": 12.249500000000003,
+      "sodium_mg": 465.014,
+      "added_sugar_g": 0,
+      "fiber_g": 20.351999999999997
+    },
+    "saturated_fat_pct_calories": 7.010481495070843,
+    "food_groups": {
+      "dairy": true,
+      "fats": true,
+      "fruits": true,
+      "protein": true,
+      "vegetables": true,
+      "whole_grains": true
+    }
+  },
+  {
+    "day": 2,
+    "nutrients": {
+      "energy_kcal": 1746.5850000000003,
+      "protein_g": 101.561,
+      "carbohydrate_g": 210.668,
+      "fat_g": 55.6756,
+      "saturated_fat_g": 18.993000000000002,
+      "sodium_mg": 5558.214,
+      "added_sugar_g": 9.48,
+      "fiber_g": 23.991999999999997
+    },
+    "saturated_fat_pct_calories": 9.78692706052096,
+    "food_groups": {
+      "condiments": true,
+      "fats": true,
+      "fruits": true,
+      "protein": true,
+      "refined_grains": true,
+      "vegetables": true,
+      "whole_grains": true
+    }
+  },
+  {
+    "day": 3,
+    "nutrients": {
+      "energy_kcal": 1301.015,
+      "protein_g": 108.876,
+      "carbohydrate_g": 148.34599999999998,
+      "fat_g": 31.539599999999997,
+      "saturated_fat_g": 8.229000000000001,
+      "sodium_mg": 347.274,
+      "added_sugar_g": 0,
+      "fiber_g": 30.695999999999998
+    },
+    "saturated_fat_pct_calories": 5.6925554278774655,
+    "food_groups": {
+      "dairy": true,
+      "fats": true,
+      "fruits": true,
+      "protein": true,
+      "vegetables": true,
+      "whole_grains": true
+    }
+  }
+]
