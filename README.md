@@ -39,10 +39,10 @@ this workspace:
 - public seeded demos without maintainer-paid model calls
 - live generation or bounded repair only through bring-your-own-key execution
 
-The remaining MVP gaps are local CLI deployment polish and web deployment
-operations: documented CLI build/install, clean-checkout CLI smoke tests,
-Cloudflare Pages, Cloudflare Tunnel, MacBook process supervision,
-Postgres/runtime paths, public smoke tests, and runbook commands.
+The remaining MVP gaps are deployment packaging and web deployment operations:
+production environment templates, Cloudflare Pages, Cloudflare Tunnel, MacBook
+process supervision, Postgres/runtime paths, public smoke tests, and final
+runbook commands.
 
 ## What It Is Not
 
@@ -64,6 +64,7 @@ MealCheck is not:
 - [Nutritional Guidelines](docs/nutritional-guidelines.md)
 - [Privacy And Safety](docs/privacy-and-safety.md)
 - [Contracts](docs/contracts.md)
+- [API](docs/api.md)
 - [Architecture](docs/architecture.md)
 - [Backend Server](docs/backend_server.md)
 - [Implementation Plan](docs/implementation-plan.md)
@@ -77,6 +78,8 @@ CLI/artifact output, Milestone 3 seeded demo UI, Milestone 4 hosted wrapper,
 Milestone 5 BYOK generation and repair are implemented. Milestone 6 has a
 locally accepted Vite/React live frontend with TypeScript, runtime config,
 module-splitting, unit/component coverage, and mocked Playwright browser flows.
+Milestone 7 has local full-stack validation and security smoke coverage for the
+CLI, hosted API, frontend, CORS, deletion, fake-provider BYOK, and redaction.
 
 Validate fixtures with:
 
@@ -105,6 +108,12 @@ Run the Go test suite with:
 go test ./...
 ```
 
+Run the local full-stack/security smoke command with:
+
+```bash
+go run ./cmd/mealcheck-local-smoke
+```
+
 Preview the frontend with:
 
 ```bash
@@ -122,6 +131,7 @@ cd ui
 npm run typecheck
 npm test
 npm run test:e2e
+npm run test:e2e:local
 npm run build
 ```
 

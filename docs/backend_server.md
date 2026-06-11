@@ -207,8 +207,18 @@ Supported configuration:
 - `MEALCHECK_RETENTION`
 - `MEALCHECK_WORKER_POLL`
 - `MEALCHECK_CLEANUP_INTERVAL`
+- `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` for local smoke tests only
 
 The Postgres schema is applied at server startup by the Postgres store.
+
+When `MEALCHECK_ALLOWED_ORIGIN` is set, the server sends CORS response headers
+only for requests whose `Origin` exactly matches that value. Disallowed origins
+receive no `Access-Control-Allow-Origin` header. This can be verified locally
+with `go run ./cmd/mealcheck-local-smoke` or `cd ui && npm run test:e2e:local`.
+
+`MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` loads a local JSON response for
+deterministic BYOK smoke tests. It is not a production setting and should not be
+present in MacBook deployment environment files.
 
 ## Operating Requirements
 

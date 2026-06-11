@@ -818,6 +818,10 @@ Completed implementation notes:
 
 ## Milestone 7: Local Full-Stack Validation And Security
 
+Status: Implemented and locally accepted. MacBook service configuration,
+Cloudflare Pages/Tunnel setup, and public smoke tests remain in later
+milestones.
+
 Deliver:
 
 - local CLI deployment smoke test from a clean checkout or clean build
@@ -837,6 +841,7 @@ Deliver:
   expands to a small reviewed catalog
 - any local catalog expansion needed to support the first credible manual-entry
   UI
+- local-only fake provider response path for deterministic BYOK smoke tests
 
 Acceptance:
 
@@ -852,6 +857,32 @@ Acceptance:
   localStorage, runtime files, reports, artifacts, and test logs
 - the first public manual-entry food scope is decided and documented
 - all checks pass without MacBook server configuration or public web hosting
+
+Accepted local commands:
+
+- `go run ./cmd/mealcheck-local-smoke`
+- `cd ui && npm run test:e2e:local`
+
+Completed implementation notes:
+
+1. Added `cmd/mealcheck-local-smoke` to build the CLI into a temporary clean
+   build directory, run the seeded validation, inspect `decision.json`, verify
+   the expected `block` exit policy, exercise invite-gated manual and fake-BYOK
+   hosted runs, verify run events/report/artifact listing/deletion, check CORS,
+   and scan runtime files/artifacts/test logs for the fake provider key.
+2. Added `examples/local-smoke/` fixtures for local manual and BYOK smoke
+   payloads without real secrets.
+3. Added `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` as a local smoke-test-only
+   provider response source for `mealcheck-server`.
+4. Added `npm run test:e2e:local`, which starts the real Go backend with memory
+   storage and the Vite frontend, then verifies seeded viewing, manual live run
+   creation/deletion, BYOK fake-provider creation/redaction, and CORS headers.
+5. Tightened CORS so configured origins receive CORS headers only when the
+   request `Origin` matches `MEALCHECK_ALLOWED_ORIGIN`.
+6. Decided that the first public manual-entry UI stays limited to the existing
+   17-food seeded fixture catalog. No catalog expansion is needed for Milestone
+   7; expansion remains post-local-acceptance work if the public demo needs a
+   broader manually entered menu.
 
 ## Milestone 8: Deployment Package Prepared Locally
 

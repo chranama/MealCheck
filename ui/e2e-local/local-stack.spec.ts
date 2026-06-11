@@ -1,0 +1,108 @@
+import { expect, test } from "@playwright/test";
+
+const apiBase = "http://127.0.0.1:8081";
+const providerKey = "local-e2e-provider-key";
+
+test.describe.configure({ mode: "serial" });
+
+test("renders seeded report without an API base", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("heading", { level: 1, name: "MealCheck" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Three-day peanut allergy check/ })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Checks" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Nutrition" })).toBeVisible();
+});
+
+test("creates, renders, lists artifacts, and deletes a real local manual run", async ({ page }) => {
+  await page.goto(`/?api=${apiBase}`);
+
+  await page.getByRole("button", { name: /New MealCheck Run/ }).click();
+  await expect(page.getByRole("banner").getByText("Online")).toBeVisible();
+  await page.getByLabel("Invite Token").fill("invite-1");
+
+  const createResponsePromise = page.waitForResponse((response) => (
+    response.url() === `${apiBase}/api/runs` &&
+    response.request().method() === "POST"
+  ));
+  await page.getByRole("button", { name: "Create Run" }).click();
+  const created = await (await createResponsePromise).json() as { run_id: string };
+
+  await expect(page.getByText(created.run_id).first()).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Checks" })).toBeVisible();
+  await expect(page.getByText(/worker started run|Artifacts ready.|artifact bundle written/i).first()).toBeVisible();
+  await page.getByRole("tab", { name: "Artifacts" }).click();
+  await expect(page.getByRole("link", { name: "decision.json" }).first()).toBeVisible();
+
+  const artifactList = await page.request.get(`${apiBase}/api/runs/${created.run_id}/artifacts`);
+  expect(artifactList.ok()).toBeTruthy();
+  expect(await artifactList.text()).toContain("decision.json");
+
+  await page.getByRole("button", { name: "Delete Run" }).click();
+  await expect(page.getByText("Run deleted.").first()).toBeVisible();
+  const deleted = await page.request.get(`${apiBase}/api/runs/${created.run_id}`);
+  expect(deleted.status()).toBe(404);
+});
+
+test("creates a real local BYOK run through the fake provider and redacts secrets", async ({ page }) => {
+  await page.goto(`/?api=${apiBase}`);
+
+  await page.getByRole("button", { name: /New MealCheck Run/ }).click();
+  await page.getByRole("button", { name: "Profile" }).click();
+  await expect(page.getByText("BYOK provider disclosure")).toBeVisible();
+  await page.getByLabel("Invite Token").fill("invite-1");
+  await page.getByLabel("Model").fill("fake-meal-plan");
+  await page.getByLabel("API key").fill(providerKey);
+
+  const createResponsePromise = page.waitForResponse((response) => (
+    response.url() === `${apiBase}/api/runs` &&
+    response.request().method() === "POST"
+  ));
+  await page.getByRole("button", { name: "Create Run" }).click();
+  const created = await (await createResponsePromise).json() as { run_id: string };
+
+  await expect(page.getByText(created.run_id).first()).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Checks" })).toBeVisible();
+  await expect(page.getByLabel("API key")).toHaveValue("");
+  expect(await page.evaluate(() => document.body.textContent || "")).not.toContain(providerKey);
+  expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(providerKey);
+
+  const artifactsResp = await page.request.get(`${apiBase}/api/runs/${created.run_id}/artifacts`);
+  expect(artifactsResp.ok()).toBeTruthy();
+  const artifacts = await artifactsResp.json() as { artifacts: Array<{ path: string; url: string }> };
+  expect(artifacts.artifacts.map((artifact) => artifact.path)).toContain("configs/redacted-provider.json");
+  expect(artifacts.artifacts.map((artifact) => artifact.path)).toContain("optional/llm-output.json");
+
+  for (const artifact of artifacts.artifacts) {
+    const artifactResp = await page.request.get(`${apiBase}${artifact.url}`);
+    expect(artifactResp.ok()).toBeTruthy();
+    expect(await artifactResp.text()).not.toContain(providerKey);
+  }
+
+  const redactedResp = await page.request.get(`${apiBase}/api/runs/${created.run_id}/artifacts/configs/redacted-provider.json`);
+  expect(await redactedResp.json()).toMatchObject({ api_key: "redacted" });
+
+  await page.request.delete(`${apiBase}/api/runs/${created.run_id}`);
+});
+
+test("allows only the configured local frontend origin through CORS", async ({ request }) => {
+  const allowed = await request.fetch(`${apiBase}/api/runs`, {
+    method: "OPTIONS",
+    headers: {
+      Origin: "http://127.0.0.1:4173",
+      "Access-Control-Request-Method": "POST",
+    },
+  });
+  expect(allowed.status()).toBe(204);
+  expect(allowed.headers()["access-control-allow-origin"]).toBe("http://127.0.0.1:4173");
+
+  const disallowed = await request.fetch(`${apiBase}/api/runs`, {
+    method: "OPTIONS",
+    headers: {
+      Origin: "https://example.invalid",
+      "Access-Control-Request-Method": "POST",
+    },
+  });
+  expect(disallowed.status()).toBe(204);
+  expect(disallowed.headers()["access-control-allow-origin"]).toBeUndefined();
+});

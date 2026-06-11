@@ -71,9 +71,11 @@ export async function requestJSON<T>(base: string, path: string, options: Reques
   const bodyText = await response.text();
   const preview = bodyText.slice(0, 4000);
   let bodyJson: unknown = null;
+  let parsedJSON = false;
   if (bodyText.trim()) {
     try {
       bodyJson = JSON.parse(bodyText);
+      parsedJSON = true;
     } catch {
       bodyJson = null;
     }
@@ -82,7 +84,7 @@ export async function requestJSON<T>(base: string, path: string, options: Reques
     throw new ApiError(response.status, preview, bodyJson);
   }
   if (!bodyText.trim()) return {} as T;
-  if (bodyJson !== null) return bodyJson as T;
+  if (parsedJSON) return bodyJson as T;
   throw new ApiError(response.status, `Non-JSON response: ${preview}`, null);
 }
 

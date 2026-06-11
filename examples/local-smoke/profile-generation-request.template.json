@@ -1,0 +1,33 @@
+{
+  "input_mode": "profile_generation",
+  "profile": {
+    "age": 35,
+    "sex": "male",
+    "height_cm": 178,
+    "weight_kg": 82,
+    "activity_level": "moderate",
+    "goal": "maintain_weight",
+    "calorie_target_kcal": 2000,
+    "protein_target_g": 98
+  },
+  "constraints": {
+    "days": 3,
+    "meals_per_day": 3,
+    "allergies": ["peanuts"],
+    "excluded_foods": ["shellfish"],
+    "diet_pattern": "general",
+    "max_sodium_mg_per_day": 2300,
+    "max_added_sugar_g_per_meal": 10,
+    "max_saturated_fat_pct_calories": 10,
+    "calorie_tolerance_pct": 15,
+    "requires_shopping_list": true,
+    "requires_prep_safety_notes": true
+  },
+  "provider": {
+    "type": "openai_compatible",
+    "base_url": "https://fake-provider.local/v1",
+    "model": "fake-meal-plan",
+    "api_key": "replace-with-local-key"
+  },
+  "repair_json": true
+}

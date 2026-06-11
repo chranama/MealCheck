@@ -475,7 +475,10 @@ func (s *Server) withMiddleware(next http.Handler) http.Handler {
 		}
 		w.Header().Set("X-Request-ID", requestID)
 		if s.Config.AllowedOrigin != "" {
-			w.Header().Set("Access-Control-Allow-Origin", s.Config.AllowedOrigin)
+			w.Header().Add("Vary", "Origin")
+		}
+		if origin := r.Header.Get("Origin"); origin != "" && origin == s.Config.AllowedOrigin {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-MealCheck-Invite-Token, X-Request-ID")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
 		}

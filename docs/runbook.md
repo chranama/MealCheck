@@ -216,6 +216,53 @@ npm run dev
 
 Then open `http://localhost:4173`.
 
+## Milestone 7 Local Acceptance
+
+Run the local smoke command from the repository root:
+
+```bash
+go run ./cmd/mealcheck-local-smoke
+```
+
+This command:
+
+- builds `mealcheck` into a temporary clean build directory
+- runs the seeded CLI validation and verifies the expected `block` exit policy
+- inspects the generated `decision.json`
+- starts an in-memory hosted API harness
+- verifies invite-token gating
+- verifies allowed and disallowed CORS behavior
+- creates and processes one manual structured run
+- creates and processes one BYOK run with a fake provider response
+- checks run events, reports, artifact listing, and deletion
+- verifies the fake provider key is absent from runtime files, reports,
+  artifacts, and smoke-test logs
+
+Run the real local browser/full-stack smoke suite:
+
+```bash
+cd ui
+npm run test:e2e:local
+```
+
+This starts the real Go backend on `127.0.0.1:8081` with memory storage and the
+Vite frontend on `127.0.0.1:4173`. The backend uses:
+
+```bash
+MEALCHECK_STORE=memory
+MEALCHECK_INVITE_TOKEN=invite-1
+MEALCHECK_ALLOWED_ORIGIN=http://127.0.0.1:4173
+MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH=../examples/seeded-3-day-peanut-allergy/plans/candidate.json
+```
+
+`MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` is for local smoke testing only. Do not
+set it in the deployed MacBook service.
+
+The first public manual-entry scope is intentionally limited to the existing
+17-food fixture catalog used by the seeded proof. This keeps the first public
+live path honest about its narrow food resolver. Broader manually entered meals
+should wait for a reviewed catalog expansion or FoodData Central strategy.
+
 ## Public Access Policy
 
 Public visitors should be able to:

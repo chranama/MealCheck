@@ -718,3 +718,68 @@ Consequences:
 - The production frontend shape remains static Cloudflare Pages output.
 - The Go backend and CLI remain the runtime source of truth for validation and
   artifact generation.
+
+## 2026-06-11: Milestone 7 Local Acceptance Uses Deterministic Smoke Harnesses
+
+Status: Accepted
+
+Decision:
+
+Milestone 7 is accepted for local development/prototyping scope. Local
+acceptance is demonstrated by:
+
+- `go run ./cmd/mealcheck-local-smoke`
+- `cd ui && npm run test:e2e:local`
+
+The Go smoke command builds the CLI in a temporary clean build directory,
+verifies the seeded `block` exit policy, exercises invite-gated manual and
+fake-BYOK hosted runs, checks run events/report/artifact listing/deletion,
+verifies allowed and disallowed CORS behavior, and scans runtime outputs for the
+fake provider key.
+
+The local Playwright suite starts the real Go backend with memory storage and
+the Vite frontend. It verifies seeded report viewing without an API base,
+manual run creation/deletion against the real backend, BYOK generation through a
+fake provider response, provider-key non-persistence, artifact redaction, and
+CORS headers.
+
+Reason:
+
+Milestone 7 needed repeatable local proof that the full stack works before
+MacBook service configuration or public hosting begins. Deterministic smoke
+harnesses keep that proof fixed-cost, offline-friendly, and independent of a
+real model provider key.
+
+Consequences:
+
+- `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` exists only for local smoke tests and
+  must not be set in the deployed MacBook service.
+- CORS now returns allow headers only when the request `Origin` exactly matches
+  `MEALCHECK_ALLOWED_ORIGIN`.
+- Deployment packaging, process supervision, Cloudflare Pages/Tunnel setup, and
+  public smoke tests remain later milestones.
+
+## 2026-06-11: Public Manual Entry Stays Seed-Catalog Scoped For Now
+
+Status: Accepted
+
+Decision:
+
+The first public manual-entry UI remains limited to the existing 17-food fixture
+catalog used by the seeded proof. Milestone 7 does not expand the nutrient
+catalog.
+
+Reason:
+
+The existing catalog is enough to prove the manual live-run path, CORS,
+redaction, deletion, and report rendering. Expanding the catalog before a
+reviewed food-source strategy would imply broader nutrition coverage than the
+system can honestly support.
+
+Consequences:
+
+- The frontend manual food picker remains narrow and explicit.
+- Broader manual entry requires a later reviewed catalog expansion or FoodData
+  Central strategy.
+- The public product should describe unresolved foods and catalog scope clearly
+  rather than presenting MealCheck as a broad nutrition database.

@@ -357,6 +357,50 @@ func TestInviteTokenGate(t *testing.T) {
 	}
 }
 
+func TestCORSAllowsOnlyConfiguredOrigin(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.AllowedOrigin = "http://127.0.0.1:4173"
+	server := NewServer(config, NewMemoryStore())
+
+	allowed := httptest.NewRequest(http.MethodOptions, "/api/runs", nil)
+	allowed.Header.Set("Origin", config.AllowedOrigin)
+	allowed.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	allowedRecorder := httptest.NewRecorder()
+	server.Handler().ServeHTTP(allowedRecorder, allowed)
+	if allowedRecorder.Code != http.StatusNoContent {
+		t.Fatalf("allowed preflight status = %d, want 204", allowedRecorder.Code)
+	}
+	if got := allowedRecorder.Header().Get("Access-Control-Allow-Origin"); got != config.AllowedOrigin {
+		t.Fatalf("allowed origin header = %q, want %q", got, config.AllowedOrigin)
+	}
+	if got := allowedRecorder.Header().Get("Access-Control-Allow-Headers"); !strings.Contains(got, "X-MealCheck-Invite-Token") {
+		t.Fatalf("allowed headers missing invite token header: %q", got)
+	}
+
+	disallowed := httptest.NewRequest(http.MethodOptions, "/api/runs", nil)
+	disallowed.Header.Set("Origin", "https://example.invalid")
+	disallowed.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	disallowedRecorder := httptest.NewRecorder()
+	server.Handler().ServeHTTP(disallowedRecorder, disallowed)
+	if disallowedRecorder.Code != http.StatusNoContent {
+		t.Fatalf("disallowed preflight status = %d, want 204", disallowedRecorder.Code)
+	}
+	if got := disallowedRecorder.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Fatalf("disallowed origin header = %q, want empty", got)
+	}
+	if got := disallowedRecorder.Header().Values("Vary"); len(got) == 0 {
+		t.Fatal("expected Vary: Origin for configured CORS")
+	}
+
+	noOrigin := httptest.NewRequest(http.MethodGet, "/api/health", nil)
+	noOriginRecorder := httptest.NewRecorder()
+	server.Handler().ServeHTTP(noOriginRecorder, noOrigin)
+	if got := noOriginRecorder.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Fatalf("no-origin CORS header = %q, want empty", got)
+	}
+}
+
 func TestDemoEndpoints(t *testing.T) {
 	root := repoRoot(t)
 	server := NewServer(testConfig(t, root), NewMemoryStore())

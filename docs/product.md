@@ -74,13 +74,19 @@ backend behavior should be reached through the MacBook-hosted API.
 Live LLM generation or repair should require bring-your-own-key execution and
 strict resource limits.
 
+The first public manual-entry surface is intentionally limited to the existing
+17-food fixture catalog used by the seeded proof. MealCheck should treat foods
+outside that reviewed scope as unresolved until a later catalog expansion or
+FoodData Central strategy is accepted.
+
 ## In Scope
 
 - Healthy-adult seeded scenarios.
 - Manual structured entry, profile-only generation, and prompt-based generation
   as the first input modes.
 - Strict meal-plan schema.
-- Small fixture nutrient catalog for the first proof.
+- Small fixture nutrient catalog for the first proof and first public manual
+  live-run path.
 - Versioned guideline packs derived from public sources.
 - Deterministic checks for structure, allergens, exclusions, nutrient limits,
   food-group coverage, meal-prep safety, and regression against baseline.

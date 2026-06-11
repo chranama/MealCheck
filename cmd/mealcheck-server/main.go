@@ -66,7 +66,15 @@ func run(args []string) error {
 	defer store.Close()
 
 	pendingInputs := hosted.NewPendingInputs()
-	worker := hosted.NewWorker(config, store, pendingInputs, hosted.DefaultProviderFactory)
+	providerFactory := hosted.DefaultProviderFactory
+	if path := os.Getenv("MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH"); path != "" {
+		factory, err := hosted.StaticResponseProviderFactoryFromFile(path)
+		if err != nil {
+			return fmt.Errorf("load fake provider response: %w", err)
+		}
+		providerFactory = factory
+	}
+	worker := hosted.NewWorker(config, store, pendingInputs, providerFactory)
 	cleanup := hosted.CleanupJob{Config: config, Store: store, Pending: pendingInputs}
 	go worker.Run(ctx)
 	go cleanup.Run(ctx)

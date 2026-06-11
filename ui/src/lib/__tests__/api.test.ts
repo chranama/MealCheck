@@ -51,6 +51,12 @@ describe("api", () => {
     });
   });
 
+  it("accepts JSON null as a parsed response body", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("null", { status: 200 })));
+
+    await expect(requestJSON<null>("", "/demo-runs/null.json")).resolves.toBeNull();
+  });
+
   it("creates runs with the invite token header", async () => {
     const fetchMock = vi.fn(async () => new Response(
       JSON.stringify({ run_id: "run-1", status: "queued" }),

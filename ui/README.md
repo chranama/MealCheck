@@ -32,11 +32,16 @@ Verification:
 npm run typecheck
 npm test
 npm run test:e2e
+npm run test:e2e:local
 npm run build
 ```
 
-The Playwright suite targets the installed Chrome channel and mocks backend
-routes, so it does not require a running Go backend or model provider.
+The default Playwright suite targets the installed Chrome channel and mocks
+backend routes, so it does not require a running Go backend or model provider.
+
+The local full-stack Playwright suite starts the real Go backend with memory
+storage and a fake provider response path. It verifies seeded viewing, manual
+run creation/deletion, BYOK fake-provider creation/redaction, and CORS headers.
 
 Seeded artifacts live under `public/demo-runs/`. Refresh the current demo
 bundle from the repository root with:
