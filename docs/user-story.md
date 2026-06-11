@@ -267,18 +267,36 @@ exceeds the configured sodium limit. The plan should be revised before use.
 
 The MVP user story is supported when:
 
+- a public Cloudflare Pages frontend loads from a stable URL
+- the seeded report is inspectable from the public frontend without login,
+  network calls to the MacBook backend, model API keys, or paid inference
+- a reviewer can build or install the local CLI from a fresh checkout and run
+  the seeded proof without network access, provider keys, or hosted services
+- the frontend can show backend health from the tunneled MacBook API when the
+  API is online
 - a seeded example runs without network access or model API keys
 - manual structured entry can produce the same normalized meal-plan JSON without
-  an LLM
+  an LLM through an invite-gated live run
 - optional BYOK profile-only generation can create a plan without storing the
   user's provider key
 - optional BYOK prompt-based generation can create a plan without storing the
   user's provider key
+- invite-gated live runs can be created, monitored, viewed, and deleted through
+  the web surface or documented API commands
+- the MacBook backend can run as a long-standing service behind Cloudflare
+  Tunnel with one worker, Postgres metadata storage, bounded queue/runtime
+  limits, and 7-day retention
+- production CORS allows the frontend origin and does not turn the API into an
+  unrestricted public write surface
+- BYOK flows disclose that profile, constraints, prompt text, and generated
+  meal-plan content are sent to the user's selected provider
 - every input mode produces auditable JSON before verification
 - MealCheck calculates nutrition totals from resolver data
 - failed checks include evidence and source references
 - unresolved foods are visible rather than silently ignored
 - the final decision is reproducible from artifacts
+- persisted reports, artifacts, metadata, and logs do not include model provider
+  API keys
 - the report avoids medical diagnosis, treatment, or outcome claims
 
 ## Out Of Scope

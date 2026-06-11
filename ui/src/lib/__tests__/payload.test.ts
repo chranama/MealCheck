@@ -1,0 +1,96 @@
+import { describe, expect, it } from "vitest";
+import {
+  DEFAULT_CONSTRAINTS,
+  DEFAULT_GENERATION_PROMPT,
+  DEFAULT_PREP_NOTES,
+  DEFAULT_PROFILE,
+  DEFAULT_PROVIDER,
+  INITIAL_MANUAL_ITEMS,
+} from "../../constants";
+import {
+  buildManualPlan,
+  buildRunPayload,
+  normalizeConstraints,
+  normalizeProfile,
+} from "../payload";
+import type { ConstraintsDraft } from "../../types";
+
+const draftConstraints: ConstraintsDraft = {
+  ...DEFAULT_CONSTRAINTS,
+  allergies: "peanuts, shellfish",
+  excluded_foods: "grapefruit",
+};
+
+describe("payload", () => {
+  it("normalizes profile and CSV constraint fields", () => {
+    expect(normalizeProfile({ ...DEFAULT_PROFILE, age: 35.6 })).toEqual({
+      ...DEFAULT_PROFILE,
+      age: 36,
+    });
+    expect(normalizeConstraints(draftConstraints)).toMatchObject({
+      allergies: ["peanuts", "shellfish"],
+      excluded_foods: ["grapefruit"],
+    });
+  });
+
+  it("builds a deterministic structured meal plan from manual rows", () => {
+    const plan = buildManualPlan(INITIAL_MANUAL_ITEMS, DEFAULT_PREP_NOTES, 123);
+
+    expect(plan.plan_id).toBe("manual-123");
+    expect(plan.days).toHaveLength(1);
+    expect(plan.days[0].meals.map((meal) => meal.name)).toEqual(["breakfast", "lunch", "dinner"]);
+    expect(plan.shopping_list).toHaveLength(3);
+    expect(plan.prep_notes).toEqual([
+      "Refrigerate cooked foods within 2 hours.",
+      "Reheat leftovers until steaming.",
+    ]);
+  });
+
+  it("rejects empty manual plans", () => {
+    expect(() => buildManualPlan([], "")).toThrow("At least one manual food item is required.");
+  });
+
+  it("builds a prompt-generation BYOK payload", () => {
+    const payload = buildRunPayload({
+      mode: "prompt_generation",
+      profile: DEFAULT_PROFILE,
+      constraints: draftConstraints,
+      manualItems: INITIAL_MANUAL_ITEMS,
+      prepNotes: DEFAULT_PREP_NOTES,
+      provider: {
+        ...DEFAULT_PROVIDER,
+        model: "gpt-test",
+        api_key: "secret",
+      },
+      generationPrompt: DEFAULT_GENERATION_PROMPT,
+      repairJSON: true,
+    });
+
+    expect(payload).toMatchObject({
+      input_mode: "prompt_generation",
+      repair_json: true,
+      generation_prompt: DEFAULT_GENERATION_PROMPT,
+      provider: {
+        base_url: DEFAULT_PROVIDER.base_url,
+        model: "gpt-test",
+        api_key: "secret",
+      },
+      constraints: {
+        allergies: ["peanuts", "shellfish"],
+      },
+    });
+  });
+
+  it("requires provider model and API key for BYOK modes", () => {
+    expect(() => buildRunPayload({
+      mode: "profile_generation",
+      profile: DEFAULT_PROFILE,
+      constraints: draftConstraints,
+      manualItems: INITIAL_MANUAL_ITEMS,
+      prepNotes: DEFAULT_PREP_NOTES,
+      provider: DEFAULT_PROVIDER,
+      generationPrompt: DEFAULT_GENERATION_PROMPT,
+      repairJSON: true,
+    })).toThrow("Provider model is required.");
+  });
+});

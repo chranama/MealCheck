@@ -43,8 +43,8 @@ func run(root string) error {
 		{"schemas/guideline-pack.schema.json", "data/guidelines/dga-2025-2030-us-adult-general-v1/guideline-pack.json"},
 		{"schemas/nutrient-catalog.schema.json", "data/nutrients/fixture-catalog-v1.json"},
 		{"schemas/decision.schema.json", "examples/seeded-3-day-peanut-allergy/expected-decision.json"},
-		{"schemas/decision.schema.json", "ui/demo-runs/seeded-3-day-peanut-allergy/decision.json"},
-		{"schemas/report.schema.json", "ui/demo-runs/seeded-3-day-peanut-allergy/report.json"},
+		{"schemas/decision.schema.json", "ui/public/demo-runs/seeded-3-day-peanut-allergy/decision.json"},
+		{"schemas/report.schema.json", "ui/public/demo-runs/seeded-3-day-peanut-allergy/report.json"},
 	}
 
 	for _, target := range targets {
@@ -232,7 +232,7 @@ func validateExpectedDecision(root string) error {
 }
 
 func validateStaticDemo(root string) error {
-	index, err := readObject(filepath.Join(root, "ui/demo-runs/index.json"))
+	index, err := readObject(filepath.Join(root, "ui/public/demo-runs/index.json"))
 	if err != nil {
 		return err
 	}
@@ -246,7 +246,7 @@ func validateStaticDemo(root string) error {
 		return fmt.Errorf("unexpected UI demo id %q", id)
 	}
 	basePath := mustString(demo, "base_path")
-	repoBasePath := filepath.Join("ui", basePath)
+	repoBasePath := filepath.Join("ui", "public", basePath)
 	requiredFiles := []string{
 		"decision.json",
 		"report.json",

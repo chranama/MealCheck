@@ -24,10 +24,11 @@ regressions.
 
 ## Current Shape
 
-The project is through Milestone 4 for the seeded proof path. It has seeded
-fixtures, JSON Schemas, a small local nutrient catalog, a checker core, a local
-CLI that writes the artifact bundle, a static public demo frontend, and a
-hosted API/worker wrapper before live provider calls.
+The project has a functional Milestone 6 Vite/React frontend in code. It has
+seeded fixtures, JSON Schemas, a small local nutrient catalog, a checker core, a
+local CLI that writes the artifact bundle, a Vite/React static frontend with
+seeded and live-run workflows, a hosted API/worker wrapper, and invite-gated
+bring-your-own-key generation and repair.
 
 The intended deployment shape mirrors the MacBook server idea already scoped in
 this workspace:
@@ -37,6 +38,11 @@ this workspace:
 - no local LLM inference
 - public seeded demos without maintainer-paid model calls
 - live generation or bounded repair only through bring-your-own-key execution
+
+The remaining MVP gaps are local CLI deployment polish and web deployment
+operations: documented CLI build/install, clean-checkout CLI smoke tests,
+Cloudflare Pages, Cloudflare Tunnel, MacBook process supervision,
+Postgres/runtime paths, public smoke tests, and runbook commands.
 
 ## What It Is Not
 
@@ -67,8 +73,10 @@ MealCheck is not:
 ## Status
 
 Milestone 0 contracts and fixtures, Milestone 1 checker core, Milestone 2
-CLI/artifact output, Milestone 3 static demo UI, and Milestone 4 hosted wrapper
-are complete for the seeded proof case.
+CLI/artifact output, Milestone 3 seeded demo UI, Milestone 4 hosted wrapper,
+Milestone 5 BYOK generation and repair are implemented. Milestone 6 has a
+locally accepted Vite/React live frontend with TypeScript, runtime config,
+module-splitting, unit/component coverage, and mocked Playwright browser flows.
 
 Validate fixtures with:
 
@@ -97,13 +105,25 @@ Run the Go test suite with:
 go test ./...
 ```
 
-Preview the static seeded demo with:
+Preview the frontend with:
 
 ```bash
-python3 -m http.server 4173 --directory ui
+cd ui
+npm install
+npm run dev
 ```
 
 Then open `http://localhost:4173`.
+
+Verify the frontend with:
+
+```bash
+cd ui
+npm run typecheck
+npm test
+npm run test:e2e
+npm run build
+```
 
 Run the hosted API locally with an in-memory store for development:
 

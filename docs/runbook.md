@@ -1,7 +1,8 @@
 # Runbook
 
-This runbook describes the intended development and hosted deployment shape. It
-will become command-specific as implementation lands.
+This runbook describes the development and hosted deployment shape. It becomes
+fully accepted for the MVP when the MacBook deployment has exact service,
+tunnel, log, and smoke-test commands recorded.
 
 ## Local Development Target
 
@@ -190,14 +191,14 @@ Avoid initially:
 
 ## Frontend Hosting
 
-The first production frontend can deploy `ui/` to Cloudflare Pages from Git with
-no build command.
+The first production frontend deploys the Vite/React app in `ui/` to
+Cloudflare Pages as static files.
 
 Suggested Cloudflare Pages settings:
 
 - root directory: `ui`
-- build command: none
-- build output directory: `/`
+- build command: `npm ci && npm run build`
+- build output directory: `dist`
 
 The frontend should use only public build-time configuration, such as the
 backend API base URL.
@@ -205,10 +206,12 @@ backend API base URL.
 The MacBook should not serve the production frontend. It should remain focused
 on backend API, worker, database, artifacts, source packs, and cleanup.
 
-Local static preview:
+Local development preview:
 
 ```bash
-python3 -m http.server 4173 --directory ui
+cd ui
+npm install
+npm run dev
 ```
 
 Then open `http://localhost:4173`.
@@ -243,21 +246,53 @@ Initial defaults:
 
 These defaults should be enforced in code, not only documented.
 
-## Operations To Add After Hosted Implementation
+## Web MVP Operations Required
 
-Once hosted code exists, this file should include:
+The MVP is not accepted until MealCheck is running as a long-standing web
+deployment, not just as local code.
 
-- Cloudflare Pages project setup
-- frontend build command and output directory
-- frontend environment variables
-- Cloudflare Tunnel hostname routing
-- start commands
-- stop commands
-- health checks
-- tunnel setup
-- backup and cleanup commands
-- log locations
-- common failure modes
-- smoke test commands
+Required deployment records:
+
+- Cloudflare Pages project name, production URL, branch, root directory, build
+  command, output directory, and public frontend configuration.
+- Cloudflare Tunnel name, tunnel ID, credentials location, public API hostname,
+  and hostname route to the local API address.
+- MacBook runtime user, repository path, runtime data path, artifact path,
+  Postgres database name, and log path.
+- Environment variables used by the backend service, including
+  `DATABASE_URL`, `MEALCHECK_ALLOWED_ORIGIN`, `MEALCHECK_INVITE_TOKEN`,
+  `MEALCHECK_DATA_DIR`, and `MEALCHECK_ARTIFACT_DIR`.
+- Process supervision setup, expected restart behavior, and commands to start,
+  stop, restart, and inspect the backend and tunnel.
+- Backup scope for Postgres metadata and retained artifacts.
+
+Required operational commands:
+
+- deploy or pull the latest repo revision on the MacBook
+- start, stop, and restart the backend service
+- start, stop, and restart the Cloudflare Tunnel
+- check Postgres health
+- check backend health locally
+- check backend health through the public API hostname
+- inspect frontend deployment status
+- inspect backend and tunnel logs
+- trigger cleanup or verify retention behavior
+- delete a live run and confirm artifact removal
+
+Required web smoke tests:
+
+- open the production frontend URL from outside the home network
+- inspect the seeded report without logging in or using a provider key
+- verify the frontend shows backend health when the API is online
+- create one invite-gated live run through the web UI or documented API command
+- observe run events through completion or failure
+- fetch the report and artifact list for the live run
+- verify persisted artifacts contain `redacted` provider config only
+- delete the live run and verify the report/artifacts are no longer available
+
+Operational topics still to document with exact local commands after the
+MacBook is configured:
+
 - source-pack update process
 - nutrient catalog update process
+- common failure modes and recovery steps

@@ -1,13 +1,23 @@
 # MealCheck UI
 
-This directory is a static frontend for the seeded public demo.
+This directory is the Vite/React frontend for MealCheck.
 
-It has no build step. Deploy `ui/` as the Cloudflare Pages static root.
+It builds to static assets. Deploy `ui/dist` from Cloudflare Pages after running
+the Vite build.
 
-Local preview:
+The frontend is TypeScript-based and uses runtime public config for the backend
+API origin. During local development, `?api=` can override the API base URL, for
+example:
+
+```text
+http://localhost:4173/?api=http://127.0.0.1:8080
+```
+
+Local development:
 
 ```bash
-python3 -m http.server 4173 --directory ui
+npm install
+npm run dev
 ```
 
 Then open:
@@ -16,13 +26,25 @@ Then open:
 http://localhost:4173
 ```
 
-Seeded artifacts live under `demo-runs/`. Refresh the current demo bundle from
-the repository root with:
+Verification:
+
+```bash
+npm run typecheck
+npm test
+npm run test:e2e
+npm run build
+```
+
+The Playwright suite targets the installed Chrome channel and mocks backend
+routes, so it does not require a running Go backend or model provider.
+
+Seeded artifacts live under `public/demo-runs/`. Refresh the current demo
+bundle from the repository root with:
 
 ```bash
 go run ./cmd/mealcheck validate \
   --case examples/seeded-3-day-peanut-allergy/case.json \
-  --out ui/demo-runs/seeded-3-day-peanut-allergy
+  --out ui/public/demo-runs/seeded-3-day-peanut-allergy
 ```
 
 The refresh command exits `1` because the seeded plan intentionally produces a

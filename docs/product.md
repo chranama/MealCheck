@@ -110,3 +110,8 @@ MealCheck is useful when:
 - source-pack versions are visible in reports
 - generated artifacts are stable enough for the hosted UI and local CLI
 - the hosted public surface is inspectable without secrets or live paid calls
+- the Cloudflare Pages frontend remains useful when the MacBook backend is
+  offline
+- the MacBook backend can run behind Cloudflare Tunnel as a bounded,
+  invite-gated live-run service
+- a reviewer can reach the deployed frontend and API without local setup

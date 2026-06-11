@@ -4,50 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="mealcheck-api-base" content="">
-    <title>MealCheck Demo</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>MealCheck</title>
   </head>
   <body>
-    <div class="app-shell">
-      <header class="topbar">
-        <div class="brand-block">
-          <p class="eyebrow">Seeded public demo</p>
-          <h1>MealCheck</h1>
-          <p class="brand-subtitle">Evidence-backed meal plan verification</p>
-        </div>
-        <div class="backend-status" aria-live="polite">
-          <span class="status-dot status-dot--idle" id="backend-dot"></span>
-          <div>
-            <span class="status-label">Backend</span>
-            <strong id="backend-label">Static demo</strong>
-          </div>
-        </div>
-      </header>
-
-      <main class="main-layout">
-        <aside class="sidebar" aria-label="Demo runs">
-          <div class="sidebar-heading">
-            <span>Demo Runs</span>
-          </div>
-          <div id="demo-list" class="demo-list"></div>
-        </aside>
-
-        <section class="workspace" aria-live="polite">
-          <section class="summary-band" id="summary-band"></section>
-
-          <nav class="tabbar" aria-label="Report views" role="tablist">
-            <button class="tab-button is-active" type="button" role="tab" aria-selected="true" data-tab="checks">Checks</button>
-            <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="nutrition">Nutrition</button>
-            <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="foods">Foods</button>
-            <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="sources">Sources</button>
-            <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="artifacts">Artifacts</button>
-          </nav>
-
-          <section class="panel" id="tab-panel" tabindex="-1"></section>
-        </section>
-      </main>
-    </div>
-
-    <script src="app.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

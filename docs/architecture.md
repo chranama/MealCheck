@@ -83,12 +83,41 @@ The CLI proves the artifact contract before service mode grows.
 
 ### Static Frontend
 
-The first frontend is a no-build static app under `ui/`. It reads checked-in
-seeded artifact bundles from `ui/demo-runs/`, renders decision details, daily
-nutrition totals, food resolution, source references, and artifact links, and
-shows backend health when an API base URL is configured.
+The first live frontend is a small Vite/React app under `ui/`. It builds to
+static assets for Cloudflare Pages, reads checked-in seeded artifact bundles
+from `ui/public/demo-runs/`, renders decision details, daily nutrition totals,
+food resolution, source references, and artifact links, and shows backend
+health when an API base URL is configured.
 
 The seeded frontend must remain useful when the hosted backend is offline.
+
+The Milestone 6 frontend follows the useful parts of the
+`llm-extraction-platform` UI architecture:
+
+- TypeScript for UI-facing contracts, component props, API payloads, and report
+  artifact shapes.
+- `src/lib/api.ts` as the only place that joins API URLs, performs JSON
+  requests, formats backend errors, and exposes endpoint functions.
+- `src/lib/runtime_config.ts` for public runtime configuration loaded from
+  `/config.json`, with query-string override support for local development.
+- Feature-oriented components instead of one large entrypoint:
+  `components/common`, `components/live-run`, `components/report`, and
+  `components/shell`.
+- Pure utility modules for payload construction, manual-plan normalization,
+  SSE parsing, artifact href construction, and report formatting.
+- Test factories for seeded reports, run states, events, and API responses.
+- Vitest coverage for API/config/payload/SSE boundaries and Playwright
+  mocked-backend coverage for seeded, manual, BYOK profile, BYOK prompt,
+  deletion, and provider-key non-persistence flows.
+
+TypeScript is a build-time reliability tool only. It does not replace backend
+JSON Schema validation, and it does not add a hosted frontend runtime. The
+deployed output remains static Cloudflare Pages assets.
+
+Runtime config may expose only public values, such as the backend API base URL
+or feature flags. Invite tokens, provider keys, admin credentials, database
+URLs, and tunnel credentials must never appear in runtime config, Vite env
+values, frontend source, build output, reports, or artifacts.
 
 ### Hosted API
 
@@ -186,8 +215,8 @@ database URLs, and tunnel credentials must never be embedded in the frontend.
 If the backend is offline, the static frontend should still load and show seeded
 demo reports, cached examples, or a clear backend-unavailable state.
 
-For the first demo, Cloudflare Pages can deploy `ui/` directly with no build
-command.
+For the first live demo, Cloudflare Pages should use `ui` as the project root,
+run the Vite build, and publish `ui/dist`.
 
 ## MacBook Air Deployment Target
 

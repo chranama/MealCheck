@@ -541,8 +541,8 @@ func testConfig(t *testing.T, root string) Config {
 		Retention:        7 * 24 * time.Hour,
 		WorkerPoll:       time.Millisecond,
 		CleanupInterval:  time.Hour,
-		DemoIndexPath:    filepath.Join(root, "ui", "demo-runs", "index.json"),
-		DemoArtifactRoot: filepath.Join(root, "ui"),
+		DemoIndexPath:    filepath.Join(root, "ui", "public", "demo-runs", "index.json"),
+		DemoArtifactRoot: filepath.Join(root, "ui", "public"),
 	}
 }
 

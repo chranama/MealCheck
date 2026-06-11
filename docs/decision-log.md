@@ -462,7 +462,7 @@ Consequences:
 
 ## 2026-06-10: Milestone 3 Uses A No-Build Static Frontend
 
-Status: Accepted
+Status: Superseded by `2026-06-11: Milestone 6 Moves Live Frontend To Vite/React`
 
 Decision:
 
@@ -563,3 +563,158 @@ Consequences:
   unresolved.
 - Optional artifacts can include provider output and normalization events, but
   API keys must not appear in artifact bundles.
+
+## 2026-06-11: MVP Requires Long-Standing Web Deployment
+
+Status: Accepted
+
+Decision:
+
+MealCheck's MVP acceptance criteria include web deployment, not only local code
+or local backend behavior. The accepted MVP must have a public Cloudflare Pages
+frontend, a MacBook-hosted API exposed through Cloudflare Tunnel, process
+supervision for the backend and tunnel, Postgres-backed metadata, filesystem
+artifact storage outside the Git checkout, and documented operational commands.
+
+The public frontend must remain useful when the backend is offline by showing
+seeded reports without login, provider keys, or paid inference. Live manual and
+BYOK runs must be invite-gated, bounded, deletable, and private by default.
+
+Reason:
+
+The portfolio value is not just the checker engine. It is the full-stack shape:
+a low-cost static frontend, a constrained personal backend, evidence artifacts,
+and a fixed-cost-friendly BYOK model that can be inspected by someone outside
+the development machine.
+
+Consequences:
+
+- MVP acceptance now requires public smoke tests from outside the home network.
+- The runbook must include concrete deployment, service, tunnel, health, log,
+  cleanup, backup, and deletion commands before the MVP is accepted.
+- The frontend must grow beyond seeded report viewing if the first public live
+  path is expected to be usable without hand-written API calls.
+- CORS, invite-token configuration, retention, and secret redaction become
+  deployment acceptance criteria, not only implementation details.
+
+## 2026-06-11: Milestone 6 Moves Live Frontend To Vite/React
+
+Status: Accepted
+
+Decision:
+
+MealCheck's live frontend will use a small Vite/React app under `ui/` beginning
+in Milestone 6. The app still builds to static assets for Cloudflare Pages and
+does not add server-side rendering, frontend server runtime, or serverless
+functions.
+
+The React UI owns browser state for the app shell, seeded report viewer,
+profile and constraints forms, manual/profile/prompt input modes, BYOK
+disclosure, run status, report tabs, and artifact links. The backend API
+contract, artifact contract, BYOK cost model, and MacBook-hosted backend shape
+remain unchanged.
+
+Reason:
+
+The live-run workflow now has enough state that hand-written DOM mutation is
+becoming a credibility and maintainability risk. Vite/React gives the frontend
+clear component boundaries for the workflow without undermining the fixed-cost
+hosting goal, because production output is still static.
+
+Consequences:
+
+- `ui/` now has an npm build step for the frontend.
+- Cloudflare Pages should run the Vite build and publish `ui/dist`.
+- Seeded artifacts move under `ui/public/demo-runs` so Vite copies them into
+  the deployed static site.
+- The public API base URL is safe to expose through static config or a Vite
+  public environment variable; secrets still must never be embedded in frontend
+  code or build output.
+- A larger frontend framework, router, component library, SSR layer, or account
+  dashboard remains out of scope until real workflow complexity justifies it.
+
+## 2026-06-11: Frontend Hardening Uses LLMEP UI Patterns
+
+Status: Accepted
+
+Decision:
+
+MealCheck will reuse selected architectural patterns from
+`llm-extraction-platform`'s UI as part of Milestone 6 frontend hardening:
+
+- TypeScript with strict checking for UI contracts and component props.
+- A central API client for URL joining, typed endpoint wrappers, and consistent
+  backend error formatting.
+- Runtime public config loaded from `/config.json`, with `?api=` retained for
+  local development overrides.
+- Feature-oriented React modules instead of a single large entrypoint.
+- Test factories plus Vitest and Playwright coverage for UI contracts, payload
+  builders, report rendering, and live-run flows.
+
+MealCheck will not copy LLMEP's admin-console shape, playground-first product
+model, embedded `VITE_API_KEY` pattern, or broader endpoint surface. MealCheck
+provider keys and invite tokens remain user-entered runtime secrets and must not
+be placed in frontend config or build output.
+
+Reason:
+
+The current React frontend proves the local live workflow, but the single-file
+implementation is already carrying API calls, form state, report rendering,
+artifact URL construction, polling, deletion, and BYOK secret handling. LLMEP's
+UI demonstrates a more maintainable boundary: typed API contracts, runtime
+config, feature modules, and reusable frontend tests.
+
+These patterns improve credibility by making the UI testable and easier to
+audit without changing the fixed-cost hosting shape.
+
+Consequences:
+
+- Milestone 6 is not fully closed until the frontend is converted to
+  TypeScript, split into feature modules, and covered by basic unit/component
+  and mocked e2e tests.
+- `npm run typecheck`, `npm test`, `npm run test:e2e`, and `npm run build`
+  become frontend acceptance commands once the hardening work is implemented.
+- The deployed frontend remains static Cloudflare Pages output.
+- Backend JSON Schemas remain the runtime source of truth; TypeScript types are
+  guardrails for frontend development and API wiring.
+- Runtime config can expose public API origin and feature flags only; secrets
+  remain excluded from frontend source, config, storage, reports, artifacts, and
+  build output.
+
+## 2026-06-11: Milestone 6 Frontend Hardening Is Locally Accepted
+
+Status: Accepted
+
+Decision:
+
+Milestone 6 is accepted for local development/prototyping scope. The Vite UI is
+now TypeScript-based, split into feature modules, backed by a central API
+client and runtime config loader, and covered by unit/component tests plus
+mocked Playwright flows.
+
+The accepted browser flows are:
+
+- seeded report loading without a backend
+- manual structured run creation
+- live run deletion
+- BYOK profile-generation run creation
+- BYOK prompt-generation run creation
+- provider-key non-persistence in rendered page text, localStorage, and post-run
+  form state
+
+Reason:
+
+The remaining frontend credibility risk in Milestone 6 was not visual styling;
+it was maintainability and verification. The implementation now has typed UI
+contracts, isolated API/payload/config boundaries, and repeatable frontend tests
+that do not require a live Go backend or a model provider.
+
+Consequences:
+
+- Deployment-server configuration, public hosting, Cloudflare Pages/Tunnel
+  wiring, process supervision, and public smoke tests move to later milestones.
+- Frontend acceptance commands are `npm run typecheck`, `npm test`,
+  `npm run test:e2e`, and `npm run build`.
+- The production frontend shape remains static Cloudflare Pages output.
+- The Go backend and CLI remain the runtime source of truth for validation and
+  artifact generation.

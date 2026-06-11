@@ -12,6 +12,8 @@ The MVP should include:
 
 - Cloudflare Pages frontend.
 - MacBook-hosted backend through Cloudflare Tunnel.
+- Local CLI deployment for reviewers who want to run the seeded proof without
+  the hosted backend.
 - Seeded public demo that requires no credentials and no live model calls.
 - One healthy-adult meal-plan scenario.
 - Versioned guideline pack snapshot.
@@ -46,6 +48,40 @@ The MVP is complete when a reviewer can inspect a seeded report and understand:
 - which foods were resolved or unresolved
 - which checks passed, warned, or blocked
 - why the final decision was reached
+
+The web-deployed MVP is complete only when the above is available as a
+long-standing public web deployment:
+
+- Cloudflare Pages serves the frontend from `ui/` at a stable public URL.
+- The seeded public report loads from that URL without login, provider keys, or
+  a running backend.
+- The frontend can call a public API hostname exposed through Cloudflare Tunnel
+  and show backend health.
+- The MacBook backend runs under process supervision, restarts after reboot, and
+  uses Postgres plus filesystem artifact storage outside the Git checkout.
+- The public API exposes only the intended HTTP surface and uses CORS limited to
+  the production frontend origin.
+- Live manual and BYOK runs are invite-gated, bounded by the configured queue,
+  upload, timeout, and retention limits, and can be deleted by the user.
+- The runbook documents deployment, start, stop, restart, health check, logs,
+  tunnel status, smoke tests, backup, and cleanup commands.
+- A smoke test from outside the home network can inspect the seeded report,
+  check backend health, create an invite-gated live run, observe completion, and
+  verify no provider keys appear in persisted artifacts.
+
+The local CLI-deployed MVP is complete when a reviewer can install or build a
+local `mealcheck` command and run the seeded proof without network access,
+provider keys, the MacBook backend, or Cloudflare:
+
+- the README and runbook document the supported local CLI install/build path
+- `mealcheck validate` writes the full artifact bundle for the seeded case
+- `mealcheck compare` is documented for the current seeded comparison behavior
+- `mealcheck decision` applies the documented exit-code policy to an existing
+  `decision.json`
+- the CLI deployment has a smoke test that starts from a fresh checkout or
+  clean build directory
+- local CLI artifacts match the shared contract used by the hosted backend and
+  frontend
 
 ## Local CLI User Story
 
@@ -498,15 +534,16 @@ Acceptance:
 
 Current status:
 
-- `ui/` contains a no-build static frontend
+- Milestone 3 originally shipped as a no-build static frontend and is now
+  superseded by the Milestone 6 Vite/React frontend
 - seeded artifact bundle exists under
-  `ui/demo-runs/seeded-3-day-peanut-allergy/`
+  `ui/public/demo-runs/seeded-3-day-peanut-allergy/`
 - the frontend renders the seeded decision, check details, evidence, daily
   nutrition totals, resolved and unresolved foods, source references, and
   artifact links
 - backend health state is shown as static-demo by default and can call
   `/api/health` when an API base URL is configured
-- local preview works by serving `ui/` over HTTP
+- local preview now uses the Vite development server
 - no frontend secrets, model calls, or backend dependency are required for the
   seeded report
 
@@ -602,8 +639,344 @@ Seeded candidate failures:
 
 ## Remaining Decisions
 
-These decisions remain after Milestone 4:
+These decisions remain after Milestone 5:
 
 - final runtime data and artifact paths on the MacBook server
 - whether the public demo needs the nutrient catalog expanded beyond the seeded
   fixture set
+- whether the first public live frontend includes all three input modes or only
+  a narrower invite-gated path
+- final production domain names for the Pages frontend and tunneled API
+- process supervision shape on macOS, likely `launchd`
+- backup policy for Postgres metadata and retained artifacts
+
+## MVP Gap Assessment After Milestone 5
+
+Milestones 0 through 5 prove the core product and hosted backend behavior, but
+they do not finish MVP web acceptance. The remaining gaps are:
+
+- The frontend is still a seeded report viewer. It does not yet let an
+  invite-gated user create, monitor, view, and delete live runs.
+- BYOK disclosure and provider-key handling need to exist in the web surface,
+  not only in backend tests and docs.
+- The MacBook deployment is not yet packaged as a supervised long-running
+  service with final runtime paths, logs, environment files, and restart
+  behavior.
+- Cloudflare Pages and Cloudflare Tunnel are documented as the intended shape,
+  but the production project, hostnames, CORS origin, and external smoke tests
+  are not recorded.
+- Operational commands for deploy, start, stop, restart, logs, health checks,
+  cleanup, backup, and live-run deletion still need exact MacBook-specific
+  instructions.
+- The current fixture nutrient catalog is enough for the seeded proof, but the
+  public live-run UI may need either a narrow food list or a small catalog
+  expansion to keep manual entry credible.
+- The local CLI exists and is tested through `go run`, but MVP acceptance now
+  requires treating it as a local deployment surface: documented build/install
+  commands, a stable binary path or install command, a clean-checkout smoke
+  test, and explicit confirmation that CLI artifacts match the hosted artifact
+  contract.
+
+Local CLI status:
+
+- Done: `validate`, `compare`, and `decision` commands exist under
+  `cmd/mealcheck`.
+- Done: seeded CLI runs write the shared artifact bundle.
+- Done: tests cover seeded block exit behavior, compare manifest mode, decision
+  command exit behavior, invalid usage, and required artifact files.
+- Remaining: document a supported local CLI build/install path, such as
+  `go build -o bin/mealcheck ./cmd/mealcheck` or `go install`.
+- Remaining: add a clean local CLI smoke-test procedure to the runbook.
+- Remaining: decide whether MVP acceptance needs a checked release binary or
+  whether source build from a fresh checkout is sufficient.
+- Remaining: update README status once local CLI deployment is accepted.
+
+## Milestone 6: Local Vite/React Live Frontend Prototype
+
+Status: Implemented and locally accepted. Deployment-server and public-hosting
+validation remain in later milestones.
+
+Deliver:
+
+- small Vite/React frontend under `ui/` that still builds to static files for
+  Cloudflare Pages
+- React component structure for the app shell, seeded report viewer, live-run
+  workflow, run status, report tabs, and artifact list
+- configurable API base URL, including `localhost` during development and a
+  public API origin in deployed static output
+- seeded artifacts served from the Vite public directory so the public demo
+  works without backend uptime
+- backend health display from the configured API base URL
+- invite token entry that is kept out of committed config and frontend build
+  output
+- BYOK third-party disclosure before generation or repair runs
+- manual structured meal-plan entry for the local MVP food/unit scope
+- profile-only generation form
+- prompt-based generation form
+- run creation against `POST /api/runs`
+- run progress through SSE or polling
+- live report rendering from the run artifact endpoints
+- artifact listing and download links
+- live-run deletion control
+- visible backend-offline state that still leaves the seeded report usable
+- no frontend server, server-side rendering, serverless function, or new hosted
+  runtime in the production shape
+- TypeScript conversion for the frontend, with strict UI contracts for reports,
+  runs, artifacts, forms, and API payloads
+- LLMEP-derived frontend architecture:
+  - `src/App.tsx` as the app shell
+  - `src/types.ts` for UI-facing domain and API contracts
+  - `src/lib/api.ts` for API base handling, request wrappers, typed endpoint
+    functions, and consistent error formatting
+  - `src/lib/runtime_config.ts` for public runtime config loaded from
+    `/config.json`, with `?api=` kept as the local override path
+  - `src/components/shell/` for the app frame, backend status, seeded report
+    selection, and summary bands
+  - `src/components/common/` for shared form and metric controls
+  - `src/components/live-run/` for profile, constraints, input mode, BYOK, run
+    status, and deletion controls
+  - `src/components/report/` for summary, tabs, checks, nutrition, foods,
+    sources, and artifact rendering
+  - `src/test/factories/` for reusable report/run/API test fixtures
+- frontend tests modeled after LLMEP:
+  - Vitest tests for runtime config, API URL joining, full-body JSON parsing,
+    error formatting, payload builders, manual-plan normalization, SSE parsing,
+    and live-run mode behavior
+  - React Testing Library tests for live-run form behavior and payload
+    submission boundaries
+  - Playwright e2e tests with mocked backend routes for seeded report loading,
+    manual run, BYOK profile run, BYOK prompt run, deletion, and provider-key
+    non-persistence
+- frontend commands for the hardened UI:
+  - `npm run typecheck`
+  - `npm test`
+  - `npm run test:e2e`
+  - `npm run build`
+
+Acceptance:
+
+- acceptance can be run entirely on the development/prototyping computer
+- `npm run build` produces static frontend assets only
+- `npm run typecheck` passes with strict TypeScript settings
+- `npm test` passes the frontend unit/integration suite
+- `npm run test:e2e` passes mocked-browser flows without requiring a live Go
+  backend or model provider
+- a user can inspect the seeded report without a backend
+- a user with an invite token can create one manual structured run from the
+  frontend against a local backend
+- a user with an invite token and BYOK provider key can create one
+  profile-generation run and one prompt-generation run from the frontend
+  against a local backend
+- the frontend can observe run completion or failure and then render the report
+- the frontend can delete a live run and the deleted report/artifacts are no
+  longer available
+- provider keys are not stored in committed files, frontend build output,
+  localStorage, reports, or artifacts
+- BYOK runs clearly disclose that profile, constraints, prompt text, and
+  generated meal-plan content are sent to the user's selected provider
+- seeded report viewing remains usable when the backend is offline
+
+Completed implementation notes:
+
+1. Converted the Vite app to TypeScript:
+   - rename `vite.config.js` to `vite.config.ts`
+   - rename `src/main.jsx` to `src/main.tsx`
+   - add `typescript`, `@types/react`, and `@types/react-dom`
+   - add `tsconfig.json` and `tsconfig.app.json` with `strict: true`,
+     `noEmit: true`, `moduleResolution: "bundler"`, and `jsx: "react-jsx"`
+2. Extracted frontend contracts:
+   - define `InputMode`, `RunStatus`, `DemoRun`, `Decision`, `Report`,
+     `DailyTotal`, `ResolvedFood`, `UnresolvedFood`, `ArtifactItem`,
+     `Profile`, `Constraints`, `ProviderConfig`, and run payload types
+   - keep backend JSON Schemas as the source of truth; TypeScript types are a
+     UI guardrail, not a replacement for runtime validation
+3. Split the previous single React file into feature modules:
+   - app shell and backend status
+   - seeded demo selector
+   - live-run workflow
+   - report summary/tabs/panels
+   - pure payload and formatting utilities
+4. Added runtime config:
+   - load optional `/config.json` before rendering
+   - use precedence: query-string `?api=`, runtime config, Vite public env,
+     meta tag, then static-demo mode
+   - allow only public values such as API base URL in runtime/build config
+5. Added a central API client:
+   - normalize API base URLs
+   - join endpoint paths in one place
+   - return typed endpoint responses
+   - format backend errors with status, code, message, and request ID when
+     available
+6. Added tests:
+   - unit-test pure builders and URL/error helpers
+   - component-test live-run mode behavior and payload submission boundaries
+   - e2e-test mocked flows for seeded, manual, BYOK profile, BYOK prompt,
+     deletion, and secret non-persistence
+7. Re-ran local verification with `npm run typecheck`, `npm test`,
+   `npm run test:e2e`, `npm run build`, `go test ./...`, and
+   `go run ./cmd/mealcheck-fixture-check`.
+
+## Milestone 7: Local Full-Stack Validation And Security
+
+Deliver:
+
+- local CLI deployment smoke test from a clean checkout or clean build
+  directory
+- local full-stack smoke test commands for static frontend plus local backend
+- local test fixture for invite-gated manual run creation
+- local test fixture for BYOK generation using either a fake provider or a
+  user-supplied key
+- browser-level verification that seeded report viewing works without the
+  backend
+- browser-level verification that live run creation, progress, report viewing,
+  artifact listing, and deletion work against the local backend
+- local CORS verification for allowed and disallowed origins
+- redaction verification for reports, artifacts, runtime files, and any logs
+  produced during local runs
+- decision on whether the public live UI stays limited to the seeded catalog or
+  expands to a small reviewed catalog
+- any local catalog expansion needed to support the first credible manual-entry
+  UI
+
+Acceptance:
+
+- acceptance can be run entirely on the development/prototyping computer
+- local CLI deployment can build or install `mealcheck`, run the seeded
+  validation, inspect `decision.json`, and verify the expected `block` exit
+  policy
+- local smoke tests cover seeded report viewing, health, manual run creation,
+  BYOK run creation, run events, report rendering, artifact listing, and
+  deletion
+- CORS behavior can be demonstrated locally before Cloudflare is introduced
+- provider keys are absent from committed files, frontend build output,
+  localStorage, runtime files, reports, artifacts, and test logs
+- the first public manual-entry food scope is decided and documented
+- all checks pass without MacBook server configuration or public web hosting
+
+## Milestone 8: Deployment Package Prepared Locally
+
+Deliver:
+
+- documented local CLI build/install command and binary path
+- README and runbook instructions for local CLI deployment
+- decision on whether source-build CLI deployment is enough for MVP or whether
+  release binaries are needed
+- final proposed MacBook runtime user, repository path, data path, artifact
+  path, log path, and Postgres database name
+- production `.env` template with secret placeholders only
+- `launchd` service template or equivalent process-supervision template for
+  `mealcheck-server`
+- Cloudflare Tunnel configuration template with placeholders only
+- Cloudflare Pages settings documented with placeholder production hostnames
+- Postgres setup commands and verification commands drafted
+- backend start command using production-style Postgres storage drafted
+- runbook sections for deploy, pull, start, stop, restart, status, logs, local
+  health, public health, tunnel status, cleanup, backup, and deletion drafted
+- public smoke-test checklist drafted with placeholder URLs
+- backup policy drafted for Postgres metadata and retained artifacts
+- common failure modes and recovery steps drafted
+
+Acceptance:
+
+- acceptance can be completed on the development/prototyping computer without
+  configuring the MacBook server or Cloudflare
+- local CLI deployment instructions have been run successfully from a clean
+  checkout or clean build directory
+- README, runbook, and implementation plan describe the same local CLI
+  deployment path
+- deployment templates contain no real secrets
+- all paths, service labels, environment variable names, and placeholder
+  hostnames are internally consistent across README, runbook, backend server
+  doc, and implementation plan
+- the package is ready to copy or apply on the MacBook when deployment starts
+- remaining unknowns are explicit placeholders, not hidden assumptions
+
+## Milestone 9: MacBook Service Configuration
+
+Deliver:
+
+- Go, Postgres, `jq`, and any required server packages installed on the MacBook
+- repository checkout under the selected runtime user
+- final runtime data, artifact, and log paths created outside the Git checkout
+- Postgres database and user created
+- production environment file created with real server values
+- `mealcheck-server` running under process supervision
+- backend logs written to the documented location
+- local MacBook health, seeded run, live run, deletion, and cleanup smoke tests
+- backup command tested or dry-run output recorded
+
+Acceptance:
+
+- the backend runs on the MacBook with Postgres metadata storage
+- runtime data and artifact storage are outside the Git checkout
+- the service starts after reboot or manual service restart
+- `GET /api/health` works locally against the supervised service
+- a local seeded run can be queued, completed, viewed, and deleted on the
+  MacBook
+- cleanup enforces the 7-day retention policy or has a documented verification
+  command
+- service logs do not contain provider API keys during tested BYOK runs
+- this milestone does not require public Cloudflare Pages or Tunnel routing
+
+## Milestone 10: Cloudflare Pages And Tunnel Deployment
+
+Deliver:
+
+- Cloudflare Pages project connected to the repository
+- production frontend URL and branch documented
+- Pages settings for root directory, build command, and output directory
+- public frontend configuration for the backend API base URL
+- Cloudflare Tunnel configured on the MacBook
+- public API hostname routed to the local backend service
+- `MEALCHECK_ALLOWED_ORIGIN` set to the production frontend origin
+- DNS/hostname records documented
+- tunnel status and restart commands documented
+
+Acceptance:
+
+- the production frontend URL loads from outside the home network
+- the seeded report loads from the production frontend without backend access
+- the production frontend shows backend health when the tunneled API is online
+- the public API hostname serves `GET /api/health`
+- live run creation is not available without the invite token
+- production CORS allows the Pages origin and does not allow arbitrary browser
+  origins to use the write API
+- no router port forwarding is required
+
+## Milestone 11: Public Operations And MVP Acceptance Review
+
+Deliver:
+
+- final runbook commands for deploy or pull, start, stop, restart, status, logs,
+  local health, public health, tunnel status, cleanup, backup, and deletion
+- public smoke-test results from outside the home network
+- source-pack update process
+- nutrient catalog update process
+- final MVP acceptance checklist with links to the production frontend and API
+- confirmation that seeded public demo, live manual run, and live BYOK run work
+  through the accepted production path
+- confirmation that reports avoid medical claims and display source-pack
+  versions
+- confirmation that provider keys are absent from database fields, logs,
+  reports, and artifact bundles checked during acceptance
+- updated README status that the MVP is web-deployed
+
+Acceptance:
+
+- a public smoke test can inspect the seeded report, check backend health,
+  create an invite-gated live run, observe completion, fetch report/artifacts,
+  verify redacted provider config, delete the run, and confirm deletion
+- backup commands have been run at least once against the deployed MacBook
+  service or dry-run output is recorded
+- cleanup or retention verification has been run against deployed artifacts
+- documented recovery steps cover backend down, tunnel down, Postgres down,
+  bad frontend API config, queue full, and provider failure
+- README, runbook, backend server doc, and implementation plan all point to the
+  same production URLs, paths, and service names
+- the MVP acceptance checklist passes without local-only steps
+- a reviewer can use the public frontend to understand the product without
+  maintainer explanation
+- an invite-gated reviewer can exercise the live path without maintainer-paid
+  inference
+- all operational commands required to keep the deployment running are present
+  in `docs/runbook.md`

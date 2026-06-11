@@ -1,2 +1,7 @@
 .mealcheck-data/
 artifacts/
+ui/dist/
+ui/node_modules/
+ui/playwright-report/
+ui/test-results/
+ui/*.tsbuildinfo

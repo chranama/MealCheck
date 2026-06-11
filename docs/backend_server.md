@@ -229,7 +229,7 @@ Proposed future local paths:
 - Artifact storage: `/Users/chranama-server/MealCheck-data/artifacts`
 - Logs: `/Users/chranama-server/MealCheck-data/logs`
 
-These paths are provisional until the implementation lands.
+These paths are provisional until the MacBook deployment is configured.
 
 ## Server Readiness Checklist
 
@@ -248,6 +248,25 @@ The server is ready for the first hosted proof when:
 - a tunnel exposes only the intended HTTP surface
 - start, stop, health check, and cleanup commands are documented in `runbook.md`
 
+The server is ready for MVP web acceptance when:
+
+- the backend runs under macOS process supervision and restarts after reboot
+- Postgres and artifact storage use final paths outside the Git checkout
+- `MEALCHECK_ALLOWED_ORIGIN` is set to the production frontend origin
+- `MEALCHECK_INVITE_TOKEN` is configured for live run creation
+- Cloudflare Tunnel maps the public API hostname to the local API service
+- Cloudflare Pages can call the public API hostname and display health
+- live manual/BYOK run creation, status polling or SSE, report retrieval,
+  artifact listing, and deletion work through the public path
+- cleanup enforces the 7-day retention policy
+- public smoke tests verify that provider keys are not present in database
+  fields, logs, reports, or artifact bundles
+- runbook commands cover deployment, start, stop, restart, logs, health,
+  tunnel status, backup, cleanup, and live-run deletion
+
 ## Open Decisions
 
 - Decide final runtime data and artifact paths.
+- Decide final production frontend and API hostnames.
+- Decide exact process supervision files and ownership.
+- Decide backup cadence for Postgres metadata and retained artifacts.
