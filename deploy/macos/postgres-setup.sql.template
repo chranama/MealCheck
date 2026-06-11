@@ -1,0 +1,7 @@
+-- MealCheck Postgres setup template.
+-- Replace <POSTGRES_PASSWORD> before running locally on the MacBook.
+-- Example:
+--   psql postgres -f deploy/macos/postgres-setup.sql.template
+
+create role mealcheck with login password '<POSTGRES_PASSWORD>';
+create database mealcheck owner mealcheck;

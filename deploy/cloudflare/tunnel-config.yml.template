@@ -1,0 +1,11 @@
+# Cloudflare Tunnel config template for MealCheck API.
+# Copy to a MacBook-local cloudflared config path after creating the tunnel.
+# Replace placeholders locally. Do not commit real tunnel credentials.
+
+tunnel: <CLOUDFLARE_TUNNEL_ID>
+credentials-file: <ABSOLUTE_CLOUDFLARE_CREDENTIALS_JSON>
+
+ingress:
+  - hostname: api.mealcheck.example.com
+    service: http://127.0.0.1:8080
+  - service: http_status:404

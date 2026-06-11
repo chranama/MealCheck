@@ -1,5 +1,6 @@
 .mealcheck-data/
 artifacts/
+bin/
 ui/dist/
 ui/node_modules/
 ui/playwright-report/

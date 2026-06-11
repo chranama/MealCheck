@@ -886,6 +886,10 @@ Completed implementation notes:
 
 ## Milestone 8: Deployment Package Prepared Locally
 
+Status: Implemented locally. Milestone 8 prepares templates and commands on the
+development/prototyping computer; it intentionally does not configure the
+MacBook, Cloudflare Pages, or Cloudflare Tunnel with real values.
+
 Deliver:
 
 - documented local CLI build/install command and binary path
@@ -907,6 +911,47 @@ Deliver:
 - backup policy drafted for Postgres metadata and retained artifacts
 - common failure modes and recovery steps drafted
 
+Implemented:
+
+1. Added deployment package templates:
+   - `deploy/README.md`
+   - `deploy/macos/mealcheck-server.env.example`
+   - `deploy/macos/com.mealcheck.server.plist.template`
+   - `deploy/macos/postgres-setup.sql.template`
+   - `deploy/cloudflare/tunnel-config.yml.template`
+   - `deploy/cloudflare/pages-settings.md`
+   - `deploy/cloudflare/config.json.template`
+2. Selected internally consistent placeholder deployment values:
+   - runtime user: `chranama-server`
+   - repository: `/Users/chranama-server/MealCheck`
+   - data path: `/Users/chranama-server/MealCheck-data`
+   - artifact path: `/Users/chranama-server/MealCheck-data/artifacts`
+   - log path: `/Users/chranama-server/MealCheck-data/logs`
+   - Postgres database and role: `mealcheck`
+   - backend launchd label: `com.mealcheck.server`
+   - Cloudflare Tunnel name: `mealcheck-api`
+   - placeholder frontend URL: `https://mealcheck.example.com`
+   - placeholder API URL: `https://api.mealcheck.example.com`
+3. Decided source-build deployment is enough for MVP:
+   - `go build -o bin/mealcheck ./cmd/mealcheck`
+   - `go build -o bin/mealcheck-server ./cmd/mealcheck-server`
+4. Updated README, runbook, backend server doc, and decision log to reference
+   the same deployment package, paths, service label, environment names, and
+   placeholder hostnames.
+5. Added runbook sections for:
+   - local CLI deployment
+   - MacBook first-time preparation
+   - Postgres setup and verification
+   - backend deploy or pull
+   - backend `launchd` lifecycle
+   - logs and local health
+   - Cloudflare Pages and Tunnel draft settings
+   - public health
+   - deletion and retention
+   - backup policy
+   - public smoke-test checklist
+   - common failure modes and recovery steps
+
 Acceptance:
 
 - acceptance can be completed on the development/prototyping computer without
@@ -921,6 +966,18 @@ Acceptance:
   doc, and implementation plan
 - the package is ready to copy or apply on the MacBook when deployment starts
 - remaining unknowns are explicit placeholders, not hidden assumptions
+
+Milestone 8 verification:
+
+- `go build -o /private/tmp/mealcheck-m8-bin/mealcheck ./cmd/mealcheck`
+- `go build -o /private/tmp/mealcheck-m8-bin/mealcheck-server ./cmd/mealcheck-server`
+- `/private/tmp/mealcheck-m8-bin/mealcheck help`
+- `/private/tmp/mealcheck-m8-bin/mealcheck validate --case
+  examples/seeded-3-day-peanut-allergy/case.json --out
+  /private/tmp/mealcheck-m8-artifacts/seeded` returned the expected `block`
+  policy exit after writing artifacts
+- `go test ./...`
+- `git diff --check`
 
 ## Milestone 9: MacBook Service Configuration
 

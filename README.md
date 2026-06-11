@@ -39,10 +39,10 @@ this workspace:
 - public seeded demos without maintainer-paid model calls
 - live generation or bounded repair only through bring-your-own-key execution
 
-The remaining MVP gaps are deployment packaging and web deployment operations:
-production environment templates, Cloudflare Pages, Cloudflare Tunnel, MacBook
-process supervision, Postgres/runtime paths, public smoke tests, and final
-runbook commands.
+The remaining MVP gaps are MacBook service configuration and web deployment
+operations: applying the prepared deployment package, configuring Cloudflare
+Pages and Cloudflare Tunnel with real values, running public smoke tests, and
+recording final MVP acceptance.
 
 ## What It Is Not
 
@@ -70,6 +70,7 @@ MealCheck is not:
 - [Implementation Plan](docs/implementation-plan.md)
 - [Runbook](docs/runbook.md)
 - [Decision Log](docs/decision-log.md)
+- [Deployment Package](deploy/README.md)
 
 ## Status
 
@@ -80,6 +81,9 @@ locally accepted Vite/React live frontend with TypeScript, runtime config,
 module-splitting, unit/component coverage, and mocked Playwright browser flows.
 Milestone 7 has local full-stack validation and security smoke coverage for the
 CLI, hosted API, frontend, CORS, deletion, fake-provider BYOK, and redaction.
+Milestone 8 has a local deployment package with source-build CLI/server
+commands, macOS environment and `launchd` templates, Cloudflare Pages/Tunnel
+templates, Postgres setup, backup policy, and public smoke-test checklist.
 
 Validate fixtures with:
 
@@ -112,6 +116,14 @@ Run the local full-stack/security smoke command with:
 
 ```bash
 go run ./cmd/mealcheck-local-smoke
+```
+
+Build local deployment binaries with:
+
+```bash
+mkdir -p bin
+go build -o bin/mealcheck ./cmd/mealcheck
+go build -o bin/mealcheck-server ./cmd/mealcheck-server
 ```
 
 Preview the frontend with:

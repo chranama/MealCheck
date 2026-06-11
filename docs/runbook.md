@@ -129,7 +129,7 @@ go run ./cmd/mealcheck-server
 Production-style Postgres mode requires:
 
 ```bash
-export DATABASE_URL='postgres://mealcheck:mealcheck@localhost:5432/mealcheck?sslmode=disable'
+export DATABASE_URL='postgres://mealcheck:<POSTGRES_PASSWORD>@localhost:5432/mealcheck?sslmode=disable'
 ```
 
 Local development without Postgres:
@@ -215,6 +215,369 @@ npm run dev
 ```
 
 Then open `http://localhost:4173`.
+
+## Milestone 8 Deployment Package
+
+The local deployment package lives in `deploy/`.
+
+Source-build deployment is enough for the MVP. MealCheck is targeting one known
+MacBook Air, so the first deployment should build binaries from the checked-out
+repository instead of producing separate release binaries.
+
+Selected deployment values:
+
+| Value | Setting |
+|---|---|
+| Runtime user | `chranama-server` |
+| Repository path | `/Users/chranama-server/MealCheck` |
+| Data path | `/Users/chranama-server/MealCheck-data` |
+| Artifact path | `/Users/chranama-server/MealCheck-data/artifacts` |
+| Log path | `/Users/chranama-server/MealCheck-data/logs` |
+| Backend binary | `/Users/chranama-server/MealCheck/bin/mealcheck-server` |
+| CLI binary | `/Users/chranama-server/MealCheck/bin/mealcheck` |
+| Environment file | `/Users/chranama-server/MealCheck-data/mealcheck-server.env` |
+| Postgres database | `mealcheck` |
+| Postgres role | `mealcheck` |
+| Backend listen address | `127.0.0.1:8080` |
+| Backend launchd label | `com.mealcheck.server` |
+| Cloudflare Tunnel name | `mealcheck-api` |
+| Frontend placeholder URL | `https://mealcheck.example.com` |
+| API placeholder URL | `https://api.mealcheck.example.com` |
+
+Templates:
+
+- `deploy/macos/mealcheck-server.env.example`
+- `deploy/macos/com.mealcheck.server.plist.template`
+- `deploy/macos/postgres-setup.sql.template`
+- `deploy/cloudflare/tunnel-config.yml.template`
+- `deploy/cloudflare/pages-settings.md`
+- `deploy/cloudflare/config.json.template`
+
+## Local CLI Deployment
+
+Build the CLI binary from a clean checkout or clean build directory:
+
+```bash
+cd /Users/chranama-server/MealCheck
+mkdir -p bin
+go build -o bin/mealcheck ./cmd/mealcheck
+```
+
+Verify the installed binary:
+
+```bash
+/Users/chranama-server/MealCheck/bin/mealcheck help
+```
+
+Run the seeded validation:
+
+```bash
+/Users/chranama-server/MealCheck/bin/mealcheck validate \
+  --root /Users/chranama-server/MealCheck \
+  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --out /Users/chranama-server/MealCheck-data/artifacts/cli-smoke
+```
+
+The seeded candidate intentionally returns `block`, so the command exits `1`
+after writing artifacts. Inspect the decision:
+
+```bash
+/Users/chranama-server/MealCheck/bin/mealcheck decision \
+  /Users/chranama-server/MealCheck-data/artifacts/cli-smoke/decision.json
+```
+
+## MacBook First-Time Preparation
+
+Install required tools:
+
+```bash
+brew install go postgresql@17 jq cloudflared
+brew services start postgresql@17
+```
+
+Create runtime directories:
+
+```bash
+mkdir -p /Users/chranama-server/MealCheck-data/artifacts
+mkdir -p /Users/chranama-server/MealCheck-data/logs
+```
+
+Create the Postgres role and database from the template:
+
+```bash
+cp deploy/macos/postgres-setup.sql.template /tmp/mealcheck-postgres-setup.sql
+```
+
+Edit `/tmp/mealcheck-postgres-setup.sql`, replace `<POSTGRES_PASSWORD>`, then
+run:
+
+```bash
+psql postgres -f /tmp/mealcheck-postgres-setup.sql
+```
+
+Verify Postgres access:
+
+```bash
+psql 'postgres://mealcheck:<POSTGRES_PASSWORD>@localhost:5432/mealcheck?sslmode=disable' \
+  -c 'select 1 as mealcheck_db_ok;'
+```
+
+Create the production environment file:
+
+```bash
+cp deploy/macos/mealcheck-server.env.example \
+  /Users/chranama-server/MealCheck-data/mealcheck-server.env
+```
+
+Edit `/Users/chranama-server/MealCheck-data/mealcheck-server.env` and replace:
+
+- `<POSTGRES_PASSWORD>`
+- `<MEALCHECK_INVITE_TOKEN>`
+- `https://mealcheck.example.com`
+
+Do not set `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` in the deployed service.
+
+## Backend Deploy Or Pull
+
+First checkout:
+
+```bash
+git clone git@github.com:chranama/MealCheck.git /Users/chranama-server/MealCheck
+```
+
+Update an existing checkout:
+
+```bash
+cd /Users/chranama-server/MealCheck
+git pull --ff-only origin main
+```
+
+Build backend binaries:
+
+```bash
+cd /Users/chranama-server/MealCheck
+mkdir -p bin
+go build -o bin/mealcheck ./cmd/mealcheck
+go build -o bin/mealcheck-server ./cmd/mealcheck-server
+```
+
+Run the production-style backend manually before installing `launchd`:
+
+```bash
+set -a
+source /Users/chranama-server/MealCheck-data/mealcheck-server.env
+set +a
+/Users/chranama-server/MealCheck/bin/mealcheck-server \
+  -root /Users/chranama-server/MealCheck \
+  -addr 127.0.0.1:8080 \
+  -data-dir /Users/chranama-server/MealCheck-data \
+  -artifact-dir /Users/chranama-server/MealCheck-data/artifacts \
+  -store postgres
+```
+
+## Backend launchd Service
+
+Install the template:
+
+```bash
+cp deploy/macos/com.mealcheck.server.plist.template \
+  /Users/chranama-server/Library/LaunchAgents/com.mealcheck.server.plist
+```
+
+Start:
+
+```bash
+launchctl bootstrap gui/$(id -u chranama-server) \
+  /Users/chranama-server/Library/LaunchAgents/com.mealcheck.server.plist
+```
+
+Stop:
+
+```bash
+launchctl bootout gui/$(id -u chranama-server) \
+  /Users/chranama-server/Library/LaunchAgents/com.mealcheck.server.plist
+```
+
+Restart:
+
+```bash
+launchctl kickstart -k gui/$(id -u chranama-server)/com.mealcheck.server
+```
+
+Status:
+
+```bash
+launchctl print gui/$(id -u chranama-server)/com.mealcheck.server
+```
+
+Logs:
+
+```bash
+tail -n 200 /Users/chranama-server/MealCheck-data/logs/mealcheck-server.out.log
+tail -n 200 /Users/chranama-server/MealCheck-data/logs/mealcheck-server.err.log
+```
+
+Local health:
+
+```bash
+curl -fsS http://127.0.0.1:8080/api/health | jq .
+```
+
+## Cloudflare Pages And Tunnel Draft
+
+Pages settings are in `deploy/cloudflare/pages-settings.md`.
+
+Expected Pages values:
+
+- project name: `mealcheck`
+- production branch: `main`
+- root directory: `ui`
+- build command: `npm ci && npm run build`
+- output directory: `dist`
+- public frontend config:
+  `VITE_MEALCHECK_API_BASE_URL=https://api.mealcheck.example.com`
+
+Tunnel config template:
+
+```bash
+deploy/cloudflare/tunnel-config.yml.template
+```
+
+After creating the tunnel, copy the config to the MacBook-local cloudflared
+config path and replace:
+
+- `<CLOUDFLARE_TUNNEL_ID>`
+- `<ABSOLUTE_CLOUDFLARE_CREDENTIALS_JSON>`
+- `api.mealcheck.example.com`
+
+Manual tunnel start:
+
+```bash
+cloudflared tunnel --config /Users/chranama-server/.cloudflared/mealcheck-api.yml run mealcheck-api
+```
+
+Tunnel status:
+
+```bash
+cloudflared tunnel info mealcheck-api
+```
+
+Public API health:
+
+```bash
+curl -fsS https://api.mealcheck.example.com/api/health | jq .
+```
+
+## Cleanup, Deletion, And Retention
+
+Live runs default to 7-day retention. Cleanup runs inside `mealcheck-server` on
+`MEALCHECK_CLEANUP_INTERVAL`.
+
+Delete a live run:
+
+```bash
+curl -fsS -X DELETE https://api.mealcheck.example.com/api/runs/<RUN_ID> | jq .
+```
+
+Confirm deletion:
+
+```bash
+curl -i https://api.mealcheck.example.com/api/runs/<RUN_ID>
+curl -i https://api.mealcheck.example.com/api/runs/<RUN_ID>/report
+```
+
+## Backup Policy Draft
+
+Back up Postgres metadata and retained artifacts. The MVP backup target is a
+local timestamped directory; move or sync that directory off-machine after the
+first real deployment policy is chosen.
+
+Create a backup directory:
+
+```bash
+export MEALCHECK_BACKUP_DIR="/Users/chranama-server/MealCheck-data/backups/$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$MEALCHECK_BACKUP_DIR"
+```
+
+Dump Postgres:
+
+```bash
+pg_dump 'postgres://mealcheck:<POSTGRES_PASSWORD>@localhost:5432/mealcheck?sslmode=disable' \
+  > "$MEALCHECK_BACKUP_DIR/mealcheck.sql"
+```
+
+Copy retained artifacts:
+
+```bash
+rsync -a /Users/chranama-server/MealCheck-data/artifacts/ \
+  "$MEALCHECK_BACKUP_DIR/artifacts/"
+```
+
+Retention note: live artifacts are intentionally short-lived. Backups should
+not become indefinite retention for user profile data unless that policy is
+explicitly accepted later.
+
+## Public Smoke-Test Checklist
+
+Use placeholder URLs until Milestone 10 records the real production URLs.
+
+- Open `https://mealcheck.example.com` from outside the home network.
+- Confirm the seeded report loads without login, provider keys, or backend
+  access.
+- Confirm the frontend shows backend health when
+  `https://api.mealcheck.example.com/api/health` is online.
+- Create an invite-gated live manual run through the UI or API.
+- Observe status/events until `completed` or `failed`.
+- Fetch `GET /api/runs/<RUN_ID>/report`.
+- Fetch `GET /api/runs/<RUN_ID>/artifacts`.
+- Verify `configs/redacted-provider.json` contains `api_key: "redacted"` for
+  BYOK runs.
+- Verify provider keys do not appear in service logs or artifact files.
+- Delete the run and confirm report/artifact URLs no longer work.
+- Verify a disallowed browser origin does not receive
+  `Access-Control-Allow-Origin`.
+
+## Failure Modes And Recovery Draft
+
+Backend down:
+
+- check `launchctl print gui/$(id -u chranama-server)/com.mealcheck.server`
+- inspect `MealCheck-data/logs/mealcheck-server.err.log`
+- run local health against `127.0.0.1:8080`
+- restart with `launchctl kickstart -k`
+
+Postgres down:
+
+- run `brew services list`
+- start with `brew services start postgresql@17`
+- verify with the `psql ... select 1` command above
+- restart the backend after Postgres recovers
+
+Tunnel down:
+
+- run `cloudflared tunnel info mealcheck-api`
+- verify local backend health first
+- restart the tunnel process or service
+- verify public API health
+
+Bad frontend API config:
+
+- inspect the built frontend config source:
+  `VITE_MEALCHECK_API_BASE_URL` or `/config.json`
+- verify the API hostname independently with `curl`
+- verify backend `MEALCHECK_ALLOWED_ORIGIN` matches the production Pages origin
+
+Queue full:
+
+- inspect `/api/health` for queued and running counts
+- wait for the active run to finish
+- restart the backend only if a run appears stuck beyond `MEALCHECK_RUN_TIMEOUT`
+
+Provider failure:
+
+- check the run `error` field
+- verify the user-supplied provider base URL, model, and key
+- do not log or ask users to send raw API keys
 
 ## Milestone 7 Local Acceptance
 

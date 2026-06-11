@@ -502,7 +502,7 @@ Rules:
 The production frontend should be a static site deployed to Cloudflare Pages.
 It may receive public build-time configuration such as:
 
-- `VITE_API_BASE_URL=https://api.mealcheck.<domain>`
+- `VITE_MEALCHECK_API_BASE_URL=https://api.mealcheck.example.com`
 - display environment labels
 - links to seeded public reports
 

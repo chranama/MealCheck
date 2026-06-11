@@ -19,6 +19,7 @@ spreading across separate ADR, RFC, and planning documents.
 - [Implementation Plan](implementation-plan.md): milestones, first proof path, and acceptance criteria.
 - [Runbook](runbook.md): development and MacBook-hosted deployment operations.
 - [Decision Log](decision-log.md): accepted decisions and tradeoffs.
+- [Deployment Package](../deploy/README.md): local MacBook, Cloudflare, Postgres, and process-supervision templates.
 
 ## Documentation Rule
 

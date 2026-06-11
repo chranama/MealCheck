@@ -70,7 +70,10 @@ The MacBook server owns only backend responsibilities:
 - optional BYOK provider calls
 
 The frontend should call the backend at a public API subdomain exposed through
-Cloudflare Tunnel, such as `api.mealcheck.<domain>`.
+Cloudflare Tunnel. Milestone 8 templates use placeholder hostnames:
+
+- frontend: `https://mealcheck.example.com`
+- API: `https://api.mealcheck.example.com`
 
 ## Resource Requirements
 
@@ -144,9 +147,7 @@ belong in the project dependency file once implementation starts.
 
 ## Initial Install Commands
 
-No project-specific install commands have been run yet.
-
-Likely first install path for the Go implementation:
+Install the expected server tools:
 
 ```bash
 brew install go postgresql@17 jq cloudflared
@@ -158,12 +159,17 @@ Start Postgres when the backend implementation needs the database:
 brew services start postgresql@17
 ```
 
-The exact database name, user, migrations, and environment variables should be
-added after the backend implementation defines them.
+The deployment package assumes:
+
+- Postgres database: `mealcheck`
+- Postgres role: `mealcheck`
+- Postgres password: local secret placeholder `<POSTGRES_PASSWORD>`
+
+Use `deploy/macos/postgres-setup.sql.template` as the setup template.
 
 ## Backend Environment
 
-The first hosted command is:
+The development hosted command is:
 
 ```bash
 go run ./cmd/mealcheck-server
@@ -183,7 +189,40 @@ Default behavior:
 Required for Postgres-backed mode:
 
 ```bash
-export DATABASE_URL='postgres://mealcheck:mealcheck@localhost:5432/mealcheck?sslmode=disable'
+export DATABASE_URL='postgres://mealcheck:<POSTGRES_PASSWORD>@localhost:5432/mealcheck?sslmode=disable'
+```
+
+The proposed deployed runtime values are:
+
+- runtime user: `chranama-server`
+- repository: `/Users/chranama-server/MealCheck`
+- runtime data: `/Users/chranama-server/MealCheck-data`
+- artifacts: `/Users/chranama-server/MealCheck-data/artifacts`
+- logs: `/Users/chranama-server/MealCheck-data/logs`
+- environment file:
+  `/Users/chranama-server/MealCheck-data/mealcheck-server.env`
+- CLI binary: `/Users/chranama-server/MealCheck/bin/mealcheck`
+- server binary: `/Users/chranama-server/MealCheck/bin/mealcheck-server`
+- launchd label: `com.mealcheck.server`
+
+The deployed source-build commands are:
+
+```bash
+cd /Users/chranama-server/MealCheck
+mkdir -p bin
+go build -o bin/mealcheck ./cmd/mealcheck
+go build -o bin/mealcheck-server ./cmd/mealcheck-server
+```
+
+The production-style server command is:
+
+```bash
+/Users/chranama-server/MealCheck/bin/mealcheck-server \
+  -root /Users/chranama-server/MealCheck \
+  -addr 127.0.0.1:8080 \
+  -data-dir /Users/chranama-server/MealCheck-data \
+  -artifact-dir /Users/chranama-server/MealCheck-data/artifacts \
+  -store postgres
 ```
 
 Useful local development mode without Postgres:
@@ -230,16 +269,19 @@ The MacBook should be configured as a server:
 - keep macOS security updates current
 - enable automatic restart after power failure if available
 - keep the `MealCheck` checkout under `/Users/chranama-server/MealCheck`
-- keep generated artifacts outside the Git checkout once service mode exists
+- keep runtime data under `/Users/chranama-server/MealCheck-data`
+- keep generated artifacts under
+  `/Users/chranama-server/MealCheck-data/artifacts`
+- keep logs under `/Users/chranama-server/MealCheck-data/logs`
 
-Proposed future local paths:
+Milestone 8 deployment templates:
 
-- Repository: `/Users/chranama-server/MealCheck`
-- Runtime data: `/Users/chranama-server/MealCheck-data`
-- Artifact storage: `/Users/chranama-server/MealCheck-data/artifacts`
-- Logs: `/Users/chranama-server/MealCheck-data/logs`
-
-These paths are provisional until the MacBook deployment is configured.
+- `deploy/macos/mealcheck-server.env.example`
+- `deploy/macos/com.mealcheck.server.plist.template`
+- `deploy/macos/postgres-setup.sql.template`
+- `deploy/cloudflare/tunnel-config.yml.template`
+- `deploy/cloudflare/pages-settings.md`
+- `deploy/cloudflare/config.json.template`
 
 ## Server Readiness Checklist
 
@@ -276,7 +318,11 @@ The server is ready for MVP web acceptance when:
 
 ## Open Decisions
 
-- Decide final runtime data and artifact paths.
-- Decide final production frontend and API hostnames.
-- Decide exact process supervision files and ownership.
-- Decide backup cadence for Postgres metadata and retained artifacts.
+- Replace placeholder production frontend and API hostnames with the accepted
+  domain values.
+- Replace placeholder Postgres, invite-token, and tunnel credentials on the
+  MacBook.
+- Decide whether the Cloudflare Tunnel should run manually for first proof or
+  under a second `launchd` service.
+- Confirm backup cadence after the MacBook storage and expected usage are
+  observed.

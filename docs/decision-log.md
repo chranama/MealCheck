@@ -783,3 +783,52 @@ Consequences:
   Central strategy.
 - The public product should describe unresolved foods and catalog scope clearly
   rather than presenting MealCheck as a broad nutrition database.
+
+## 2026-06-11: Milestone 8 Uses Source-Build Deployment Templates
+
+Status: Accepted
+
+Decision:
+
+MealCheck's MVP deployment package uses source-build deployment for the CLI and
+backend server instead of release binaries. The accepted build commands are:
+
+```bash
+go build -o bin/mealcheck ./cmd/mealcheck
+go build -o bin/mealcheck-server ./cmd/mealcheck-server
+```
+
+The proposed MacBook runtime layout is:
+
+- runtime user: `chranama-server`
+- repository: `/Users/chranama-server/MealCheck`
+- data path: `/Users/chranama-server/MealCheck-data`
+- artifact path: `/Users/chranama-server/MealCheck-data/artifacts`
+- log path: `/Users/chranama-server/MealCheck-data/logs`
+- environment file:
+  `/Users/chranama-server/MealCheck-data/mealcheck-server.env`
+- Postgres database and role: `mealcheck`
+- backend launchd label: `com.mealcheck.server`
+- Cloudflare Tunnel name: `mealcheck-api`
+- placeholder frontend URL: `https://mealcheck.example.com`
+- placeholder API URL: `https://api.mealcheck.example.com`
+
+The deployment package lives under `deploy/` and contains placeholder-only
+templates for the MacBook environment file, `launchd`, Postgres setup,
+Cloudflare Tunnel, Cloudflare Pages settings, and frontend runtime config.
+
+Reason:
+
+The MVP targets one known MacBook Air and is still early. Source builds keep
+the operational path understandable, avoid release-binary ceremony, and allow
+the deployment package to be verified locally before real server setup begins.
+
+Consequences:
+
+- Release binaries are deferred until there are multiple deployment targets or
+  a public download story.
+- Real secrets, tunnel credentials, and final hostnames must be supplied only
+  during MacBook and Cloudflare configuration.
+- Milestone 9 applies these templates on the MacBook.
+- Milestone 10 replaces placeholder hostnames with real Cloudflare Pages and
+  Tunnel values.
