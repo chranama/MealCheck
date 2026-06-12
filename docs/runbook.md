@@ -16,6 +16,81 @@ Initial development should work on a normal laptop with:
 
 Live model calls should be optional.
 
+## Quick Command Reference
+
+Run commands from the repository root unless a command explicitly changes into
+`ui/`.
+
+Validate fixtures:
+
+```bash
+go run ./cmd/mealcheck-fixture-check
+```
+
+Run the Go test suite:
+
+```bash
+go test ./...
+```
+
+Run the seeded checker and artifact bundle:
+
+```bash
+go run ./cmd/mealcheck validate \
+  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --out artifacts/latest
+```
+
+The seeded candidate intentionally returns a `block` decision, so the validation
+command exits `1` after writing the bundle. Inspect the decision:
+
+```bash
+go run ./cmd/mealcheck decision artifacts/latest/decision.json
+```
+
+Run the local full-stack/security smoke command:
+
+```bash
+go run ./cmd/mealcheck-local-smoke
+```
+
+Build local deployment binaries:
+
+```bash
+mkdir -p bin
+go build -o bin/mealcheck ./cmd/mealcheck
+go build -o bin/mealcheck-server ./cmd/mealcheck-server
+```
+
+Run the hosted API locally with in-memory storage:
+
+```bash
+go run ./cmd/mealcheck-server -store memory
+```
+
+Production-style metadata storage uses Postgres through `DATABASE_URL`.
+
+Preview the frontend:
+
+```bash
+cd ui
+npm install
+npm run dev
+```
+
+Then open `http://localhost:4173`.
+
+Verify the frontend:
+
+```bash
+cd ui
+npm run typecheck
+npm test
+npm run test:e2e
+npm run test:e2e:local
+npm run build
+```
+
 ## Fixture Validation
 
 Milestone 0 fixtures should validate locally with:
