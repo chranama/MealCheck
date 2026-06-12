@@ -73,22 +73,6 @@ MealCheck is not:
 - [Decision Log](docs/decision-log.md)
 - [Deployment Package](deploy/README.md)
 
-## Status
-
-Milestone 0 contracts and fixtures, Milestone 1 checker core, Milestone 2
-CLI/artifact output, Milestone 3 seeded demo UI, Milestone 4 hosted wrapper,
-Milestone 5 BYOK generation and repair are implemented. Milestone 6 has a
-locally accepted Vite/React live frontend with TypeScript, runtime config,
-module-splitting, unit/component coverage, and mocked Playwright browser flows.
-Milestone 7 has local full-stack validation and security smoke coverage for the
-CLI, hosted API, frontend, CORS, deletion, fake-provider BYOK, and redaction.
-Milestone 8 has a local deployment package with source-build CLI/server
-commands, macOS environment and `launchd` templates, Cloudflare Pages/Tunnel
-templates, Postgres setup, backup policy, and public smoke-test checklist.
-Milestone 9 has static-web design hardening with a live-run homepage,
-live-first navigation, responsive form/status layout, and a documented design
-contract.
-
 Validate fixtures with:
 
 ```bash
