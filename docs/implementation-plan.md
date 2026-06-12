@@ -979,7 +979,146 @@ Milestone 8 verification:
 - `go test ./...`
 - `git diff --check`
 
-## Milestone 9: MacBook Service Configuration
+## Milestone 9: Web Design Hardening
+
+Status: Extended locally. Milestone 9 hardens the static frontend's visual
+design, interaction hierarchy, and live-run user experience without changing the
+backend API contract.
+
+Deliver:
+
+- static-web design contract in `docs/web-design.md`
+- live-run workflow as the default homepage surface
+- live-first navigation with seeded demos retained as secondary proof artifacts
+- compact top bar without the separate service-status box
+- clearer live-check summary, form grouping, and results hierarchy
+- resource-derived UX principles captured in `docs/web-design.md`
+- visual identity guidance for MealCheck's mark, color roles, graphic language,
+  and product voice captured in `docs/web-design.md`
+- distinctive static-safe typesetting guidance for the wordmark, operational UI,
+  and audit metadata captured in `docs/web-design.md`
+- code-native MealCheck brand mark that works in the static top bar without
+  external assets
+- evidence/audit visual language applied to source references and generated
+  artifact rows
+- progressive-disclosure objectives for live-check access, profile,
+  constraints, meal-plan entry, and report review
+- service availability kept out of standalone client-facing cards while still
+  blocking unavailable report creation
+- immediate validation and state feedback before report creation
+- deliberate confirmation before destructive report deletion
+- client-facing results panel that hides run IDs, event counts, pipeline stages,
+  and raw artifact links from the default live-check viewport
+- live-check access form that relies on configured API state instead of exposing
+  a Service URL field
+- Report tab that exposes one downloadable report PDF instead of a raw artifact
+  browser
+- compact first-viewport layout with the primary report action visible before
+  the full form
+- advanced constraints moved behind progressive disclosure
+- decorative navigation, segmented-control, and action glyphs removed from the
+  client-facing live-check path
+- activity details available behind disclosure after report creation starts
+- mobile manual-entry rows rendered as labeled card-like controls
+- desktop manual-entry rows constrained to the form panel without overflow
+- desktop layout that separates form entry from results
+- mobile layout that collapses navigation, form, manual rows, and status panels
+  cleanly
+- disabled destructive action state when no live run exists
+- browser tests updated to assert the live-run homepage and demo navigation
+- production static build verified after the hardening pass
+
+Acceptance:
+
+- `docs/web-design.md` codifies the static frontend design direction and
+  acceptance rules, including the resource-derived UX principles and visual
+  identity rules
+- the top bar includes a compact MealCheck brand mark that does not depend on
+  image assets
+- the wordmark, headings, status labels, chips, and metadata use a distinctive
+  static-safe type hierarchy without remote font dependencies
+- brand/evidence color is distinct from pass, warn, and block status colors
+- source, evidence, and artifact graphics reinforce the audit-console identity
+  without decorative imagery
+- the homepage opens on the live-run workflow without loading a demo report
+  first
+- seeded demos remain available from navigation and can still render without a
+  backend API base
+- live-run form, results status, and report tabs remain functional
+- the UI is usable when the service is unavailable or no service is configured
+- unavailable or missing service states are communicated through disabled
+  actions or error feedback without hiding seeded demos
+- invalid report submission is prevented or reported immediately
+- report deletion requires an explicit confirmation after a report exists
+- the primary report action is available near the top of the workspace on
+  desktop and mobile
+- advanced threshold and policy constraints are hidden behind an expandable
+  section by default
+- the default live-check viewport does not expose pipeline graphics, run-event
+  counts, raw artifact links, visible Service URL fields, or decorative selector
+  symbols
+- the top bar does not show a standalone service-status card
+- the live-check workspace does not show a standalone service-readiness card
+- the Report tab exposes one PDF report download
+- manual food entry remains contained on desktop and readable on mobile without
+  relying on table headers
+- provider-key and invite-token handling remains non-persistent
+- form labels, focus states, status pills, and disabled states are visible
+- desktop and mobile layouts avoid text overlap and preserve readable controls
+- typecheck, unit tests, browser tests, local full-stack browser tests, and
+  production build pass
+
+Implemented:
+
+1. Added `docs/web-design.md` with the static frontend constraint, visual
+   system, page anatomy, component rules, accessibility rules, and Milestone 9
+   acceptance checklist.
+2. Added guiding UX principles from Laws of UX, Material Design 3, shadcn/ui,
+   Mobbin, and the Quibbble static-site reference: live-check priority,
+   progressive disclosure, visible system state, outcome-before-evidence
+   hierarchy, flow-first design, a compact component system, operational visual
+   tone, static-deployment resilience, immediate feedback, and deliberate
+   destructive actions.
+3. Kept the homepage in live-run mode and retained seeded demos as explicit
+   navigation choices.
+4. Hardened the live-run UI with a more product-facing visual system, live-first
+   sidebar, compact top bar, two-column desktop live workspace, companion
+   results panel, manual-entry column headers, clearer disabled action states,
+   and responsive form/manual-row behavior.
+5. Kept service readiness out of standalone client-facing cards, retained
+   immediate submit validation and report-ready status affordances, and added a
+   confirmation dialog before deleting a report.
+6. Compacting the live-run first viewport with a shared action/status strip,
+   progressive disclosure for advanced constraints, simplified results, hidden
+   activity details, removed decorative selector/control glyphs, and
+   mobile-labeled manual entry rows.
+7. Updated mocked and local Playwright flows to assert the live-run homepage
+   and seeded-demo navigation path.
+8. Added MealCheck visual identity guidance, a code-native brand mark, dedicated
+   brand/evidence tokens, and audit-style source and artifact graphics.
+9. Reworked the mark into an authored inline SVG seal and applied static-safe
+   typesetting across the wordmark, summary titles, status labels, chips, and
+   audit metadata.
+10. Streamlined the brand seal around the `M` and check mark, switched the UI
+    sans stack to IBM Plex Sans with static-safe fallbacks, and applied the
+    Scientific Ledger palette across brand, evidence, and neutral UI tokens.
+11. Simplified the live-check surface to read less like an internal dashboard:
+    renamed access and report actions in client-facing language, removed exposed
+    workflow/pipeline graphics from the default view, moved events behind
+    Activity details, and constrained manual food entry so it does not exceed
+    the form bounds.
+
+Milestone 9 verification:
+
+- `cd ui && npm run typecheck`
+- `cd ui && npm test`
+- `cd ui && npm run test:e2e`
+- local full-stack Playwright spec against the rebuilt frontend and temporary
+  memory backend
+- `cd ui && npm run build`
+- in-app browser verification against `http://127.0.0.1:4173`
+
+## Milestone 10: MacBook Service Configuration
 
 Deliver:
 
@@ -1006,7 +1145,7 @@ Acceptance:
 - service logs do not contain provider API keys during tested BYOK runs
 - this milestone does not require public Cloudflare Pages or Tunnel routing
 
-## Milestone 10: Cloudflare Pages And Tunnel Deployment
+## Milestone 11: Cloudflare Pages And Tunnel Deployment
 
 Deliver:
 
@@ -1031,7 +1170,7 @@ Acceptance:
   origins to use the write API
 - no router port forwarding is required
 
-## Milestone 11: Public Operations And MVP Acceptance Review
+## Milestone 12: Public Operations And MVP Acceptance Review
 
 Deliver:
 

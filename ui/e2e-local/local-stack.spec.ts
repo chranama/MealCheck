@@ -5,41 +5,63 @@ const providerKey = "local-e2e-provider-key";
 
 test.describe.configure({ mode: "serial" });
 
-test("renders seeded report without an API base", async ({ page }) => {
+test("renders the live run homepage without an API base and can open a seeded report", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("heading", { level: 1, name: "MealCheck" })).toBeVisible();
+  await expect(page.locator(".brand-mark")).toBeVisible();
+  await expect(page.locator("#live-workspace")).toBeVisible();
+  await expect(page.locator(".live-action-strip")).toBeVisible();
+  await expect(page.locator(".mode-icon")).toHaveCount(0);
+  await expect(page.locator(".nav-icon")).toHaveCount(0);
+  await expect(page.locator(".pipeline-graphic")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /New meal check/ })).toHaveClass(/is-active/);
+  await expect(page.getByLabel("Service URL")).toHaveCount(0);
+  await expect(page.locator("#backend-guidance")).toHaveCount(0);
+  await expect(page.getByText("Service ready")).toHaveCount(0);
+  await expect(page.getByLabel("Invite code")).toBeVisible();
+  await expect(page.getByText("Advanced constraints")).toBeVisible();
   await expect(page.getByRole("button", { name: /Three-day peanut allergy check/ })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Checks" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Three-day peanut allergy check/ }).click();
   await expect(page.getByRole("tab", { name: "Checks" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Nutrition" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Report" })).toBeVisible();
 });
 
 test("creates, renders, lists artifacts, and deletes a real local manual run", async ({ page }) => {
   await page.goto(`/?api=${apiBase}`);
 
-  await page.getByRole("button", { name: /New MealCheck Run/ }).click();
-  await expect(page.getByRole("banner").getByText("Online")).toBeVisible();
-  await page.getByLabel("Invite Token").fill("invite-1");
+  await expect(page.locator(".backend-status")).toHaveCount(0);
+  await expect(page.locator("#backend-guidance")).toHaveCount(0);
+  await expect(page.getByText("Service ready")).toHaveCount(0);
+  await page.getByLabel("Invite code").fill("invite-1");
 
   const createResponsePromise = page.waitForResponse((response) => (
     response.url() === `${apiBase}/api/runs` &&
     response.request().method() === "POST"
   ));
-  await page.getByRole("button", { name: "Create Run" }).click();
+  await page.getByRole("button", { name: "Create Report" }).click();
   const created = await (await createResponsePromise).json() as { run_id: string };
 
   await expect(page.getByText(created.run_id).first()).toBeVisible();
   await expect(page.getByRole("tab", { name: "Checks" })).toBeVisible();
+  await page.getByText("Activity details").click();
   await expect(page.getByText(/worker started run|Artifacts ready.|artifact bundle written/i).first()).toBeVisible();
-  await page.getByRole("tab", { name: "Artifacts" }).click();
-  await expect(page.getByRole("link", { name: "decision.json" }).first()).toBeVisible();
+  await page.getByRole("tab", { name: "Report" }).click();
+  await expect(page.getByRole("link", { name: "Download report PDF" })).toBeVisible();
 
   const artifactList = await page.request.get(`${apiBase}/api/runs/${created.run_id}/artifacts`);
   expect(artifactList.ok()).toBeTruthy();
-  expect(await artifactList.text()).toContain("decision.json");
+  const artifactListText = await artifactList.text();
+  expect(artifactListText).toContain("decision.json");
+  expect(artifactListText).toContain("report.pdf");
 
-  await page.getByRole("button", { name: "Delete Run" }).click();
-  await expect(page.getByText("Run deleted.").first()).toBeVisible();
+  await page.getByRole("button", { name: "Delete Report" }).click();
+  await expect(page.getByRole("dialog", { name: "Delete report?" })).toBeVisible();
+  await page.getByRole("dialog", { name: "Delete report?" }).getByRole("button", { name: "Delete Report" }).click();
+  await expect(page.getByText("Report deleted.").first()).toBeVisible();
   const deleted = await page.request.get(`${apiBase}/api/runs/${created.run_id}`);
   expect(deleted.status()).toBe(404);
 });
@@ -47,10 +69,9 @@ test("creates, renders, lists artifacts, and deletes a real local manual run", a
 test("creates a real local BYOK run through the fake provider and redacts secrets", async ({ page }) => {
   await page.goto(`/?api=${apiBase}`);
 
-  await page.getByRole("button", { name: /New MealCheck Run/ }).click();
   await page.getByRole("button", { name: "Profile" }).click();
   await expect(page.getByText("BYOK provider disclosure")).toBeVisible();
-  await page.getByLabel("Invite Token").fill("invite-1");
+  await page.getByLabel("Invite code").fill("invite-1");
   await page.getByLabel("Model").fill("fake-meal-plan");
   await page.getByLabel("API key").fill(providerKey);
 
@@ -58,7 +79,7 @@ test("creates a real local BYOK run through the fake provider and redacts secret
     response.url() === `${apiBase}/api/runs` &&
     response.request().method() === "POST"
   ));
-  await page.getByRole("button", { name: "Create Run" }).click();
+  await page.getByRole("button", { name: "Create Report" }).click();
   const created = await (await createResponsePromise).json() as { run_id: string };
 
   await expect(page.getByText(created.run_id).first()).toBeVisible();

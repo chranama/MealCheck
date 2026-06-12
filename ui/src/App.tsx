@@ -13,8 +13,8 @@ import {
 import { configuredApiBase } from "./lib/runtime_config";
 import { LiveWorkspace } from "./components/live-run/LiveWorkspace";
 import { ReportSurface } from "./components/report/ReportSurface";
+import { BrandMark } from "./components/brand/BrandMark";
 import {
-  BackendStatus,
   EmptySummary,
   LiveSummary,
   ReportSummary,
@@ -47,7 +47,7 @@ const INITIAL_LIVE: LiveState = {
 
 export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig }) {
   const [activeTab, setActiveTab] = useState<ReportTab>("checks");
-  const [view, setView] = useState<ViewMode>("demo");
+  const [view, setView] = useState<ViewMode>("live");
   const [apiBase, setApiBase] = useState(() => configuredApiBase(runtimeConfig));
   const [backend, setBackend] = useState<BackendState>(INITIAL_BACKEND);
   const [demos, setDemos] = useState<DemoRun[]>([]);
@@ -68,9 +68,6 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
 
       const demoRuns = index.demo_runs || [];
       setDemos(demoRuns);
-      if (demoRuns.length > 0) {
-        await loadDemo(demoRuns[0]);
-      }
     }
 
     boot().catch(showError);
@@ -110,16 +107,17 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     setError("");
     setView("live");
     setSelectedDemoID("");
-    setReportTitle(live.runID ? `Live Run ${live.runID}` : "Live Run");
+    setArtifacts(null);
+    setReportTitle(live.runID ? `MealCheck Report ${live.runID}` : "MealCheck Report");
   }
 
   async function createLiveRun(base: string, inviteToken: string, payload: RunPayload) {
     const cleanBase = cleanApiBase(base);
     if (!cleanBase) {
-      throw new Error("API base URL is required for live runs.");
+      throw new Error("A configured MealCheck service is required to create a report.");
     }
     if (!inviteToken.trim()) {
-      throw new Error("Invite token is required for live runs.");
+      throw new Error("Invite code is required to create a report.");
     }
 
     stopLivePolling();
@@ -130,7 +128,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     setLive({
       runID: "",
       status: "queued",
-      message: "Submitting run.",
+      message: "Creating report.",
       events: [],
       artifactItems: [],
     });
@@ -140,7 +138,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
       ...current,
       runID: created.run_id,
       status: created.status,
-      message: "Run queued.",
+      message: "Report queued.",
     }));
     startLivePolling(cleanBase, created.run_id);
   }
@@ -170,7 +168,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
       ...current,
       runID,
       status: run.status,
-      message: run.error || run.summary || `Run ${run.status}.`,
+      message: run.error || run.summary || `Report ${run.status}.`,
       events,
     }));
     if (run.status === "completed") {
@@ -184,14 +182,14 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
   async function loadLiveArtifacts(base: string, runID: string) {
     const nextArtifacts = await loadLiveArtifactsForRun(base, runID);
     const artifactItems = nextArtifacts.artifactItems || [];
-    setReportTitle(`Live Run ${runID}`);
+    setReportTitle(`MealCheck Report ${runID}`);
     setLive((current) => ({ ...current, artifactItems }));
     setArtifacts(nextArtifacts);
   }
 
   async function deleteLiveRun() {
     if (!live.runID) {
-      showError(new Error("No live run is selected."));
+      showError(new Error("No report is selected."));
       return;
     }
 
@@ -201,7 +199,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     setLive((current) => ({
       ...current,
       status: "deleted",
-      message: "Run deleted.",
+      message: "Report deleted.",
       artifactItems: [],
     }));
   }
@@ -217,12 +215,14 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="brand-block">
-          <p className="eyebrow">Seeded public demo</p>
-          <h1>MealCheck</h1>
-          <p className="brand-subtitle">Evidence-backed meal plan verification</p>
+        <div className="brand-cluster">
+          <BrandMark />
+          <div className="brand-block">
+            <p className="eyebrow">Live verification</p>
+            <h1>MealCheck</h1>
+            <p className="brand-subtitle">Evidence-backed meal plan verification</p>
+          </div>
         </div>
-        <BackendStatus backend={backend} />
       </header>
 
       <main className="main-layout">
@@ -246,17 +246,15 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
           {view === "live" ? (
             <LiveWorkspace
               apiBase={apiBase}
-              setApiBase={setApiBase}
               backend={backend}
               live={live}
-              onHealthCheck={updateBackendHealth}
               onCreateRun={createLiveRun}
               onDeleteRun={deleteLiveRun}
               onError={showError}
             />
           ) : null}
 
-          {error ? <section className="panel error-state">{error}</section> : null}
+          {error ? <section className="panel error-state" role="alert">{error}</section> : null}
 
           {artifacts ? (
             <ReportSurface

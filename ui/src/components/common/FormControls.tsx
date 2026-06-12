@@ -10,6 +10,7 @@ export function Field({ label, children }: FieldProps) {
 }
 
 export function NumberInput({
+  ariaLabel,
   className = "",
   value,
   min,
@@ -17,6 +18,7 @@ export function NumberInput({
   step,
   onChange,
 }: {
+  ariaLabel?: string;
   className?: string;
   value: number;
   min: number;
@@ -26,6 +28,7 @@ export function NumberInput({
 }) {
   return (
     <input
+      aria-label={ariaLabel}
       className={className}
       max={max}
       min={min}

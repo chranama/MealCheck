@@ -829,6 +829,36 @@ Consequences:
   a public download story.
 - Real secrets, tunnel credentials, and final hostnames must be supplied only
   during MacBook and Cloudflare configuration.
-- Milestone 9 applies these templates on the MacBook.
-- Milestone 10 replaces placeholder hostnames with real Cloudflare Pages and
+- Milestone 10 applies these templates on the MacBook.
+- Milestone 11 replaces placeholder hostnames with real Cloudflare Pages and
   Tunnel values.
+
+## 2026-06-11: Milestone 9 Hardens The Static Web Design
+
+Status: Accepted
+
+Decision:
+
+MealCheck adds a dedicated Web Design Hardening milestone before MacBook and
+Cloudflare deployment. The frontend remains a static Vite/React build, but the
+homepage is now designed as a live-run verification console rather than a
+seeded-demo report page.
+
+The design contract lives in `docs/web-design.md` and sets the static frontend
+constraints, visual system, page anatomy, component rules, accessibility rules,
+and acceptance criteria.
+
+Reason:
+
+The functional frontend proved the workflows, but MVP web acceptance also
+requires a reviewer to understand the product without maintainer explanation.
+Design hardening before public deployment reduces the risk of shipping a
+technically working page that feels unclear, demo-first, or visually unfinished.
+
+Consequences:
+
+- The live-run workflow is the homepage.
+- Seeded demos remain public proof artifacts reachable from navigation.
+- MacBook service configuration moves to Milestone 10.
+- Cloudflare Pages and Tunnel deployment moves to Milestone 11.
+- Public operations and MVP acceptance review moves to Milestone 12.

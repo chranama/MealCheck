@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import type { Dispatch, FormEvent, SetStateAction } from "react";
+import { useState } from "react";
+import type { Dispatch, FormEvent, ReactNode, SetStateAction } from "react";
 import {
   DEFAULT_CONSTRAINTS,
   DEFAULT_GENERATION_PROMPT,
@@ -12,7 +12,7 @@ import {
   UNITS,
 } from "../../constants";
 import { cleanApiBase } from "../../lib/api";
-import { modeLabel, readableID } from "../../lib/format";
+import { readableID } from "../../lib/format";
 import { buildRunPayload } from "../../lib/payload";
 import type {
   BackendState,
@@ -28,24 +28,19 @@ import { Field, NumberInput } from "../common/FormControls";
 
 export function LiveWorkspace({
   apiBase,
-  setApiBase,
   backend,
   live,
-  onHealthCheck,
   onCreateRun,
   onDeleteRun,
   onError,
 }: {
   apiBase: string;
-  setApiBase: (value: string) => void;
   backend: BackendState;
   live: LiveState;
-  onHealthCheck: (base: string) => Promise<void>;
   onCreateRun: (base: string, inviteToken: string, payload: RunPayload) => Promise<void>;
   onDeleteRun: () => Promise<void>;
   onError: (error: unknown) => void;
 }) {
-  const [apiDraft, setApiDraft] = useState(apiBase);
   const [inviteToken, setInviteToken] = useState("");
   const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
   const [constraints, setConstraints] = useState<ConstraintsDraft>({
@@ -59,16 +54,19 @@ export function LiveWorkspace({
   const [provider, setProvider] = useState<ProviderConfig>(DEFAULT_PROVIDER);
   const [generationPrompt, setGenerationPrompt] = useState(DEFAULT_GENERATION_PROMPT);
   const [repairJSON, setRepairJSON] = useState(true);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  useEffect(() => {
-    setApiDraft(apiBase);
-  }, [apiBase]);
-
-  async function handleHealthCheck() {
-    const cleanBase = cleanApiBase(apiDraft);
-    setApiBase(cleanBase);
-    await onHealthCheck(cleanBase);
-  }
+  const cleanBase = cleanApiBase(apiBase);
+  const isSubmitting = live.status === "queued" || live.status === "running";
+  const healthBlocksSubmit = backend.kind === "offline" && Boolean(cleanBase);
+  const canDeleteRun = Boolean(live.runID && live.status !== "deleted");
+  const canCreateRun = Boolean(cleanBase && inviteToken.trim()) && !isSubmitting && !healthBlocksSubmit;
+  const createFeedback = createRunFeedback({
+    apiBase: cleanBase,
+    hasInviteToken: Boolean(inviteToken.trim()),
+    healthBlocksSubmit,
+    isSubmitting,
+  });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -83,7 +81,7 @@ export function LiveWorkspace({
         generationPrompt,
         repairJSON,
       });
-      await onCreateRun(cleanApiBase(apiDraft), inviteToken, payload);
+      await onCreateRun(cleanBase, inviteToken, payload);
       if (mode !== "manual_structured") {
         setProvider((current) => ({ ...current, api_key: "" }));
       }
@@ -95,28 +93,21 @@ export function LiveWorkspace({
   return (
     <section className="live-workspace" id="live-workspace">
       <section className="panel live-panel">
-        <ol className="flow-steps" aria-label="Run workflow">
-          <FlowStep active label="Connection" value={backend.label} />
-          <FlowStep active label="Profile" value={`${profile.age}, ${readableID(profile.sex)}`} />
-          <FlowStep active label="Plan" value={modeLabel(mode)} />
-          <FlowStep active={live.status === "completed"} label="Report" value={readableID(live.status)} />
-        </ol>
+        <RunActionStrip
+          canCreateRun={canCreateRun}
+          canDeleteRun={canDeleteRun}
+          createFeedback={createFeedback}
+          live={live}
+          onDelete={() => setConfirmDelete(true)}
+        />
 
         <form id="live-run-form" onSubmit={handleSubmit}>
           <fieldset>
-            <legend>Connection</legend>
+            <legend>Access</legend>
             <div className="form-grid">
-              <Field label="API Base URL">
-                <input value={apiDraft} onChange={(event) => setApiDraft(event.target.value)} placeholder="http://127.0.0.1:8080" type="text" />
-              </Field>
-              <Field label="Invite Token">
+              <Field label="Invite code">
                 <input autoComplete="off" value={inviteToken} onChange={(event) => setInviteToken(event.target.value)} type="password" />
               </Field>
-            </div>
-            <div className="form-actions form-actions--compact">
-              <button className="action-button action-button--secondary" type="button" onClick={handleHealthCheck}>
-                Check Health
-              </button>
             </div>
           </fieldset>
 
@@ -124,7 +115,7 @@ export function LiveWorkspace({
           <ConstraintsForm constraints={constraints} setConstraints={setConstraints} />
 
           <fieldset>
-            <legend>Input Mode</legend>
+            <legend>Meal Plan Entry</legend>
             <div className="segmented" role="group" aria-label="Input mode">
               <ModeButton mode="manual_structured" activeMode={mode} setMode={setMode} label="Manual" />
               <ModeButton mode="profile_generation" activeMode={mode} setMode={setMode} label="Profile" />
@@ -146,27 +137,92 @@ export function LiveWorkspace({
             )}
           </fieldset>
 
-          <div className="form-actions">
-            <button className="action-button action-button--primary" id="create-run-button" type="submit">Create Run</button>
-            <button className="action-button action-button--danger" id="delete-run-button" type="button" onClick={() => onDeleteRun().catch(onError)}>
-              Delete Run
-            </button>
-          </div>
         </form>
       </section>
 
-      <RunStatusPanel live={live} apiBase={apiBase} />
+      <RunStatusPanel live={live} />
+
+      {confirmDelete ? (
+        <ConfirmDeleteDialog
+          runID={live.runID}
+          onCancel={() => setConfirmDelete(false)}
+          onConfirm={() => {
+            setConfirmDelete(false);
+            onDeleteRun().catch(onError);
+          }}
+        />
+      ) : null}
     </section>
   );
 }
 
-function FlowStep({ active, label, value }: { active: boolean; label: string; value: string }) {
+function RunActionStrip({
+  canCreateRun,
+  canDeleteRun,
+  createFeedback,
+  live,
+  onDelete,
+}: {
+  canCreateRun: boolean;
+  canDeleteRun: boolean;
+  createFeedback: string;
+  live: LiveState;
+  onDelete: () => void;
+}) {
   return (
-    <li className={`flow-step${active ? " is-active" : ""}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </li>
+    <section className="live-action-strip" aria-label="Report action status">
+      <div className="action-strip-state">
+        <span className={`status-pill status-pill--${runPillTone(live.status)}`}>{live.status === "idle" ? "Ready" : readableID(live.status)}</span>
+        <p className="submit-feedback" id="create-run-feedback" role="status">{createFeedback}</p>
+      </div>
+      <div className="action-strip-actions">
+        <button
+          aria-describedby="create-run-feedback"
+          className="action-button action-button--primary"
+          disabled={!canCreateRun}
+          form="live-run-form"
+          id="create-run-button"
+          type="submit"
+        >
+          Create Report
+        </button>
+        <button
+          className="action-button action-button--danger"
+          disabled={!canDeleteRun}
+          id="delete-run-button"
+          type="button"
+          onClick={onDelete}
+        >
+          Delete Report
+        </button>
+      </div>
+    </section>
   );
+}
+
+function createRunFeedback({
+  apiBase,
+  hasInviteToken,
+  healthBlocksSubmit,
+  isSubmitting,
+}: {
+  apiBase: string;
+  hasInviteToken: boolean;
+  healthBlocksSubmit: boolean;
+  isSubmitting: boolean;
+}) {
+  if (isSubmitting) return "Creating your report.";
+  if (!apiBase) return "Report creation needs a configured MealCheck service.";
+  if (!hasInviteToken) return "Enter your invite code to start.";
+  if (healthBlocksSubmit) return "Service is unavailable right now.";
+  return "Ready to create a MealCheck report.";
+}
+
+function runPillTone(status: LiveState["status"]): string {
+  if (status === "completed") return "pass";
+  if (status === "failed" || status === "deleted") return "block";
+  if (status === "queued" || status === "running") return "warn";
+  return "info";
 }
 
 function ProfileForm({ profile, setProfile }: { profile: Profile; setProfile: Dispatch<SetStateAction<Profile>> }) {
@@ -218,15 +274,23 @@ function ConstraintsForm({ constraints, setConstraints }: { constraints: Constra
         <Field label="Allergies"><input value={constraints.allergies} onChange={(event) => update("allergies", event.target.value)} type="text" /></Field>
         <Field label="Excluded foods"><input value={constraints.excluded_foods} onChange={(event) => update("excluded_foods", event.target.value)} type="text" /></Field>
         <Field label="Diet pattern"><input value={constraints.diet_pattern} onChange={(event) => update("diet_pattern", event.target.value)} type="text" /></Field>
-        <Field label="Sodium mg/day"><NumberInput value={constraints.max_sodium_mg_per_day} min={1} max={10000} step={1} onChange={(value) => update("max_sodium_mg_per_day", value)} /></Field>
-        <Field label="Added sugar g/meal"><NumberInput value={constraints.max_added_sugar_g_per_meal} min={0} max={200} step={0.1} onChange={(value) => update("max_added_sugar_g_per_meal", value)} /></Field>
-        <Field label="Sat fat % kcal"><NumberInput value={constraints.max_saturated_fat_pct_calories} min={0} max={100} step={0.1} onChange={(value) => update("max_saturated_fat_pct_calories", value)} /></Field>
-        <Field label="Calorie tolerance %"><NumberInput value={constraints.calorie_tolerance_pct} min={0} max={100} step={0.1} onChange={(value) => update("calorie_tolerance_pct", value)} /></Field>
       </div>
-      <div className="check-row">
-        <label><input checked={constraints.requires_shopping_list} onChange={(event) => update("requires_shopping_list", event.target.checked)} type="checkbox" />Shopping list required</label>
-        <label><input checked={constraints.requires_prep_safety_notes} onChange={(event) => update("requires_prep_safety_notes", event.target.checked)} type="checkbox" />Prep safety notes required</label>
-      </div>
+      <details className="advanced-section">
+        <summary>
+          <span>Advanced constraints</span>
+          <small>Thresholds and policy checks</small>
+        </summary>
+        <div className="form-grid">
+          <Field label="Sodium mg/day"><NumberInput value={constraints.max_sodium_mg_per_day} min={1} max={10000} step={1} onChange={(value) => update("max_sodium_mg_per_day", value)} /></Field>
+          <Field label="Added sugar g/meal"><NumberInput value={constraints.max_added_sugar_g_per_meal} min={0} max={200} step={0.1} onChange={(value) => update("max_added_sugar_g_per_meal", value)} /></Field>
+          <Field label="Sat fat % kcal"><NumberInput value={constraints.max_saturated_fat_pct_calories} min={0} max={100} step={0.1} onChange={(value) => update("max_saturated_fat_pct_calories", value)} /></Field>
+          <Field label="Calorie tolerance %"><NumberInput value={constraints.calorie_tolerance_pct} min={0} max={100} step={0.1} onChange={(value) => update("calorie_tolerance_pct", value)} /></Field>
+        </div>
+        <div className="check-row">
+          <label><input checked={constraints.requires_shopping_list} onChange={(event) => update("requires_shopping_list", event.target.checked)} type="checkbox" />Shopping list required</label>
+          <label><input checked={constraints.requires_prep_safety_notes} onChange={(event) => update("requires_prep_safety_notes", event.target.checked)} type="checkbox" />Prep safety notes required</label>
+        </div>
+      </details>
     </fieldset>
   );
 }
@@ -262,31 +326,65 @@ function ManualPlanForm({
 
   return (
     <section className="mode-section" id="manual-section">
+      <div className="manual-header" aria-hidden="true">
+        <span>Day</span>
+        <span>Meal</span>
+        <span>Food</span>
+        <span>Qty</span>
+        <span>Unit</span>
+        <span>Action</span>
+      </div>
       <div className="manual-table" id="manual-items">
         {manualItems.map((item) => (
           <div className="manual-row" key={item.id}>
-            <NumberInput className="item-day" value={item.day} min={1} max={7} step={1} onChange={(value) => updateItem(item.id, "day", value)} />
-            <select className="item-meal" value={item.meal} onChange={(event) => updateItem(item.id, "meal", event.target.value)}>
-              {MEALS.map((meal) => <option key={meal} value={meal}>{readableID(meal)}</option>)}
-            </select>
-            <select className="item-food" value={item.food} onChange={(event) => updateItem(item.id, "food", event.target.value)}>
-              {MVP_FOODS.map((food) => <option key={food} value={food}>{food}</option>)}
-            </select>
-            <NumberInput className="item-quantity" value={item.quantity} min={0.1} max={10000} step={0.1} onChange={(value) => updateItem(item.id, "quantity", value)} />
-            <select className="item-unit" value={item.unit} onChange={(event) => updateItem(item.id, "unit", event.target.value)}>
-              {UNITS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
-            </select>
-            <button className="action-button action-button--ghost" type="button" onClick={() => removeFood(item.id)}>Remove</button>
+            <ManualCell label="Day">
+              <NumberInput className="item-day" value={item.day} min={1} max={7} step={1} onChange={(value) => updateItem(item.id, "day", value)} />
+            </ManualCell>
+            <ManualCell label="Meal">
+              <select className="item-meal" value={item.meal} onChange={(event) => updateItem(item.id, "meal", event.target.value)}>
+                {MEALS.map((meal) => <option key={meal} value={meal}>{readableID(meal)}</option>)}
+              </select>
+            </ManualCell>
+            <ManualCell label="Food">
+              <select className="item-food" value={item.food} onChange={(event) => updateItem(item.id, "food", event.target.value)}>
+                {MVP_FOODS.map((food) => <option key={food} value={food}>{food}</option>)}
+              </select>
+            </ManualCell>
+            <ManualCell label="Qty">
+              <NumberInput className="item-quantity" value={item.quantity} min={0.1} max={10000} step={0.1} onChange={(value) => updateItem(item.id, "quantity", value)} />
+            </ManualCell>
+            <ManualCell label="Unit">
+              <select className="item-unit" value={item.unit} onChange={(event) => updateItem(item.id, "unit", event.target.value)}>
+                {UNITS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+              </select>
+            </ManualCell>
+            <div className="manual-cell manual-cell--action">
+              <span className="manual-cell-label">Action</span>
+              <button className="action-button action-button--ghost" disabled={manualItems.length <= 1} type="button" onClick={() => removeFood(item.id)}>
+                Remove
+              </button>
+            </div>
           </div>
         ))}
       </div>
       <div className="form-actions form-actions--compact">
-        <button className="action-button action-button--secondary" type="button" onClick={addFood}>Add Food</button>
+        <button className="action-button action-button--secondary" type="button" onClick={addFood}>
+          Add Food
+        </button>
       </div>
       <Field label="Prep notes">
         <textarea value={prepNotes} rows={4} onChange={(event) => setPrepNotes(event.target.value)} />
       </Field>
     </section>
+  );
+}
+
+function ManualCell({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="manual-cell">
+      <span className="manual-cell-label">{label}</span>
+      {children}
+    </label>
   );
 }
 
@@ -334,39 +432,60 @@ function ProviderForm({
   );
 }
 
-function RunStatusPanel({ live, apiBase }: { live: LiveState; apiBase: string }) {
+function RunStatusPanel({ live }: { live: LiveState }) {
+  const hasEvents = live.events.length > 0;
+  const hasReport = live.status !== "deleted" && live.artifactItems.length > 0;
   return (
-    <section className="panel live-panel" id="live-status-panel">
-      <h2>Run Status</h2>
-      <div className="status-stack">
-        <div className="status-line">
-          <span id="live-run-state" className={`status-pill status-pill--${live.status === "completed" ? "pass" : live.status === "failed" || live.status === "deleted" ? "block" : live.status === "queued" || live.status === "running" ? "warn" : "info"}`}>
-            {readableID(live.status)}
-          </span>
-          {live.runID ? <span className="chip">{live.runID}</span> : null}
-        </div>
-        <p className="summary-text">{live.message || "No live run has been created."}</p>
+    <section className="panel live-panel results-panel" id="live-status-panel">
+      <div className="panel-heading">
+        <h2>Results</h2>
+        <span className={`status-pill status-pill--${runPillTone(live.status)}`}>{live.status === "idle" ? "Not started" : readableID(live.status)}</span>
       </div>
-      {live.events.length > 0 ? (
-        <div className="event-list">
-          {live.events.map((event, index) => (
-            <div className="event-row" key={`${event.type}-${index}`}>
-              <strong>{readableID(event.type)}</strong>
-              <span>{event.message}</span>
-            </div>
-          ))}
-        </div>
-      ) : null}
-      {live.status !== "deleted" && live.artifactItems.length > 0 ? (
-        <div className="artifact-list live-artifact-list">
-          {live.artifactItems.map((item) => (
-            <div className="artifact-row" key={item.path}>
-              <a href={`${apiBase}${item.url}`} target="_blank" rel="noreferrer">{item.path}</a>
-              <p className="artifact-meta">{item.type}</p>
-            </div>
-          ))}
-        </div>
+      <div className="status-stack">
+        <p className="summary-text">{live.message || "Your report will appear here after you create a check."}</p>
+        {hasReport ? (
+          <div className="notice notice--pass live-report-ready" role="status">
+            <strong>Report ready</strong>
+            <p>Decision details are available below.</p>
+          </div>
+        ) : null}
+      </div>
+      {hasEvents ? (
+        <details className="activity-details">
+          <summary>Activity details</summary>
+          <div className="event-list">
+            {live.events.map((event, index) => (
+              <div className="event-row" key={`${event.type}-${index}`}>
+                <strong>{readableID(event.type)}</strong>
+                <span>{event.message}</span>
+              </div>
+            ))}
+          </div>
+        </details>
       ) : null}
     </section>
+  );
+}
+
+function ConfirmDeleteDialog({
+  runID,
+  onCancel,
+  onConfirm,
+}: {
+  runID: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="dialog-backdrop" role="presentation">
+      <section aria-labelledby="delete-dialog-title" aria-modal="true" className="confirm-dialog" role="dialog">
+        <h2 id="delete-dialog-title">Delete report?</h2>
+        <p>This removes the report and its files for {runID}.</p>
+        <div className="form-actions">
+          <button className="action-button action-button--ghost" type="button" onClick={onCancel}>Cancel</button>
+          <button className="action-button action-button--danger" type="button" onClick={onConfirm}>Delete Report</button>
+        </div>
+      </section>
+    </div>
   );
 }

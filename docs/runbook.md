@@ -519,7 +519,7 @@ explicitly accepted later.
 
 ## Public Smoke-Test Checklist
 
-Use placeholder URLs until Milestone 10 records the real production URLs.
+Use placeholder URLs until Milestone 11 records the real production URLs.
 
 - Open `https://mealcheck.example.com` from outside the home network.
 - Confirm the seeded report loads without login, provider keys, or backend

@@ -15,6 +15,7 @@ spreading across separate ADR, RFC, and planning documents.
 - [Contracts](contracts.md): meal-plan, guideline-pack, API, decision, report, and artifact contracts.
 - [API](api.md): hosted API endpoints, request modes, response shapes, lifecycle, and runtime limits.
 - [Architecture](architecture.md): checker engine, guideline sources, hosted wrapper, BYOK execution, and server shape.
+- [Web Design](web-design.md): static frontend design posture, layout, component rules, and hardening criteria.
 - [Backend Server](backend_server.md): MacBook server requirements, required programs, and setup checklist.
 - [Implementation Plan](implementation-plan.md): milestones, first proof path, and acceptance criteria.
 - [Runbook](runbook.md): development and MacBook-hosted deployment operations.

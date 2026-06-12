@@ -24,10 +24,10 @@ regressions.
 
 ## Current Shape
 
-The project has a functional Milestone 6 Vite/React frontend in code. It has
+The project has a Milestone 9 hardened Vite/React frontend in code. It has
 seeded fixtures, JSON Schemas, a small local nutrient catalog, a checker core, a
-local CLI that writes the artifact bundle, a Vite/React static frontend with
-seeded and live-run workflows, a hosted API/worker wrapper, and invite-gated
+local CLI that writes the artifact bundle, a static frontend with seeded and
+live-run workflows, a hosted API/worker wrapper, and invite-gated
 bring-your-own-key generation and repair.
 
 The intended deployment shape mirrors the MacBook server idea already scoped in
@@ -66,6 +66,7 @@ MealCheck is not:
 - [Contracts](docs/contracts.md)
 - [API](docs/api.md)
 - [Architecture](docs/architecture.md)
+- [Web Design](docs/web-design.md)
 - [Backend Server](docs/backend_server.md)
 - [Implementation Plan](docs/implementation-plan.md)
 - [Runbook](docs/runbook.md)
@@ -84,6 +85,9 @@ CLI, hosted API, frontend, CORS, deletion, fake-provider BYOK, and redaction.
 Milestone 8 has a local deployment package with source-build CLI/server
 commands, macOS environment and `launchd` templates, Cloudflare Pages/Tunnel
 templates, Postgres setup, backup policy, and public smoke-test checklist.
+Milestone 9 has static-web design hardening with a live-run homepage,
+live-first navigation, responsive form/status layout, and a documented design
+contract.
 
 Validate fixtures with:
 

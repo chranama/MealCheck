@@ -123,6 +123,7 @@ func requiredArtifactPaths() []string {
 		"decision.json",
 		"report.json",
 		"report.html",
+		"report.pdf",
 		"report.md",
 		"failures.jsonl",
 		"daily-totals.json",

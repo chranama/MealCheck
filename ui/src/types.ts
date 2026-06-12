@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export type InputMode = "manual_structured" | "profile_generation" | "prompt_generation";
 export type ViewMode = "demo" | "live";
-export type ReportTab = "checks" | "nutrition" | "foods" | "sources" | "artifacts";
+export type ReportTab = "checks" | "nutrition" | "foods" | "sources" | "report";
 export type RunStatus = "idle" | "queued" | "running" | "completed" | "failed" | "deleted" | string;
 export type CheckStatus = "pass" | "warn" | "block" | string;
 
@@ -96,6 +96,8 @@ export type UnresolvedFood = {
 
 export type SourceClaim = {
   claim_id: string;
+  summary?: string;
+  source_locator?: string;
 };
 
 export type CitationSource = {

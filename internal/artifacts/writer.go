@@ -147,6 +147,9 @@ func WriteBundle(opts BundleOptions) (BundleResult, error) {
 	if err := writeHTML(filepath.Join(outDir, "report.html"), report, evaluation); err != nil {
 		return BundleResult{}, err
 	}
+	if err := writePDF(filepath.Join(outDir, "report.pdf"), report, evaluation); err != nil {
+		return BundleResult{}, err
+	}
 	if err := copyFile(filepath.Join(root, c.GuidelinePackPath), filepath.Join(outDir, "guideline-pack", "pack.json")); err != nil {
 		return BundleResult{}, err
 	}
@@ -183,6 +186,7 @@ func WriteBundle(opts BundleOptions) (BundleResult, error) {
 			"decision.json",
 			"report.json",
 			"report.html",
+			"report.pdf",
 			"report.md",
 			"failures.jsonl",
 			"daily-totals.json",
@@ -393,6 +397,116 @@ func writeHTML(path string, report reportDocument, e checker.Evaluation) error {
 	}
 	fmt.Fprintf(&md, "</ul><h2>Disclaimer</h2><p>%s</p></body></html>\n", html.EscapeString(report.Disclaimer))
 	return os.WriteFile(path, md.Bytes(), 0o644)
+}
+
+func writePDF(path string, report reportDocument, e checker.Evaluation) error {
+	lines := []string{
+		"MealCheck Report",
+		"Decision: " + report.Decision,
+		"Guideline: " + report.GuidelinePackID,
+		"",
+		"Summary",
+		report.Sections[0].Body,
+		"",
+		"Checks Requiring Attention",
+	}
+	failures := failedChecks(e.Checks)
+	if len(failures) == 0 {
+		lines = append(lines, "None.")
+	} else {
+		for _, check := range failures {
+			lines = append(lines, fmt.Sprintf("%s: %s", strings.ToUpper(check.Status), check.Message))
+		}
+	}
+	lines = append(lines, "", "Unresolved Foods")
+	if len(e.UnresolvedItems) == 0 {
+		lines = append(lines, "None.")
+	} else {
+		for _, item := range e.UnresolvedItems {
+			lines = append(lines, fmt.Sprintf("Day %d %s: %s (%s)", item.Day, item.Meal, item.Food, item.UnresolvedReason))
+		}
+	}
+	lines = append(lines, "", "Daily Totals")
+	for _, total := range e.DailyTotals {
+		lines = append(lines, fmt.Sprintf("Day %d: %.1f kcal, %.1f g protein, %.1f mg sodium", total.Day, total.Nutrients.EnergyKcal, total.Nutrients.ProteinG, total.Nutrients.SodiumMG))
+	}
+	lines = append(lines, "", "Disclaimer", report.Disclaimer)
+	return os.WriteFile(path, simplePDF(lines), 0o644)
+}
+
+func simplePDF(lines []string) []byte {
+	var stream bytes.Buffer
+	stream.WriteString("BT\n/F1 12 Tf\n72 760 Td\n14 TL\n")
+	for _, line := range lines {
+		for _, wrappedLine := range wrapPDFLine(line, 84) {
+			fmt.Fprintf(&stream, "(%s) Tj\nT*\n", escapePDFText(wrappedLine))
+		}
+	}
+	stream.WriteString("ET\n")
+	content := stream.String()
+
+	objects := []string{
+		"<< /Type /Catalog /Pages 2 0 R >>",
+		"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+		"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+		"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+		fmt.Sprintf("<< /Length %d >>\nstream\n%sendstream", len(content), content),
+	}
+
+	var out bytes.Buffer
+	out.WriteString("%PDF-1.4\n")
+	offsets := make([]int, 0, len(objects)+1)
+	offsets = append(offsets, 0)
+	for index, object := range objects {
+		offsets = append(offsets, out.Len())
+		fmt.Fprintf(&out, "%d 0 obj\n%s\nendobj\n", index+1, object)
+	}
+	xrefOffset := out.Len()
+	fmt.Fprintf(&out, "xref\n0 %d\n", len(objects)+1)
+	out.WriteString("0000000000 65535 f \n")
+	for _, offset := range offsets[1:] {
+		fmt.Fprintf(&out, "%010d 00000 n \n", offset)
+	}
+	fmt.Fprintf(&out, "trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n", len(objects)+1, xrefOffset)
+	return out.Bytes()
+}
+
+func wrapPDFLine(line string, limit int) []string {
+	if line == "" {
+		return []string{""}
+	}
+	var wrapped []string
+	words := strings.Fields(line)
+	current := ""
+	for _, word := range words {
+		if current == "" {
+			current = word
+			continue
+		}
+		if len(current)+1+len(word) > limit {
+			wrapped = append(wrapped, current)
+			current = word
+			continue
+		}
+		current += " " + word
+	}
+	if current != "" {
+		wrapped = append(wrapped, current)
+	}
+	return wrapped
+}
+
+func escapePDFText(text string) string {
+	replacer := strings.NewReplacer("\\", "\\\\", "(", "\\(", ")", "\\)")
+	return replacer.Replace(strings.Map(func(r rune) rune {
+		if r == '\t' {
+			return ' '
+		}
+		if r < 32 || r > 126 {
+			return '?'
+		}
+		return r
+	}, text))
 }
 
 func copyFile(src, dst string) error {

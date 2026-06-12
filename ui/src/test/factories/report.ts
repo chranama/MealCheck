@@ -73,6 +73,7 @@ export function manifest(): Manifest {
     artifacts: [
       "decision.json",
       "report.json",
+      "report.pdf",
       "daily-totals.json",
       "resolved-foods.json",
       "unresolved-foods.json",
@@ -119,9 +120,9 @@ export function reportArtifacts(overrides: Partial<ReportArtifacts> = {}): Repor
     citations: citations(),
     artifactItems: [
       {
-        path: "decision.json",
-        type: "application/json",
-        url: "/api/runs/run-1/artifacts/decision.json",
+        path: "report.pdf",
+        type: "application/pdf",
+        url: "/api/runs/run-1/artifacts/report.pdf",
       },
     ],
     ...overrides,

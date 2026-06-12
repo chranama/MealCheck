@@ -1,6 +1,16 @@
 import type { ReportArtifacts, ReportTab } from "../../types";
 import { TABS } from "../../constants";
-import { artifactType, readableID, round, sourceChip, valueText } from "../../lib/format";
+import {
+  checkLabel,
+  guidelineLabel,
+  isMealPlanCheckID,
+  readableID,
+  reasonLabel,
+  round,
+  sourceChip,
+  sourceClaimLabel,
+  valueText,
+} from "../../lib/format";
 
 export function ReportSurface({
   activeTab,
@@ -33,7 +43,7 @@ export function ReportSurface({
         {activeTab === "nutrition" ? <NutritionPanel artifacts={artifacts} /> : null}
         {activeTab === "foods" ? <FoodsPanel artifacts={artifacts} /> : null}
         {activeTab === "sources" ? <SourcesPanel artifacts={artifacts} /> : null}
-        {activeTab === "artifacts" ? <ArtifactsPanel artifacts={artifacts} /> : null}
+        {activeTab === "report" ? <ReportDownloadPanel artifacts={artifacts} /> : null}
       </section>
     </>
   );
@@ -41,20 +51,21 @@ export function ReportSurface({
 
 function ChecksPanel({ artifacts }: { artifacts: ReportArtifacts }) {
   const { decision, citations } = artifacts;
+  const mealPlanChecks = (decision.checks || []).filter((check) => isMealPlanCheckID(check.check_id));
   return (
     <>
-      <h2>Check Details</h2>
+      <h2>Meal Plan Checks</h2>
       <div className="check-list">
-        {(decision.checks || []).map((check) => {
+        {mealPlanChecks.map((check) => {
           const sourceChips = (check.source_refs || []).map((sourceID) => sourceChip(citations, sourceID));
           const affected = [
             ...(check.affected_days || []).map((day) => `Day ${day}`),
-            ...(check.affected_meals || []),
+            ...(check.affected_meals || []).map((meal) => readableID(meal)),
           ];
           return (
             <article className="check-card" key={check.check_id}>
               <header>
-                <h3 className="check-title">{readableID(check.check_id)}</h3>
+                <h3 className="check-title">{checkLabel(check.check_id)}</h3>
                 <span className={`status-pill status-pill--${check.status}`}>{check.status}</span>
               </header>
               <p className="check-message">{check.message}</p>
@@ -149,23 +160,32 @@ function SourcesPanel({ artifacts }: { artifacts: ReportArtifacts }) {
   const sources = artifacts.citations?.sources || [];
   return (
     <>
-      <h2>Source References</h2>
+      <h2>Guidelines And Sources</h2>
       {sources.length === 0 ? <p className="empty-state">No citations available.</p> : null}
       <div className="source-list">
         {sources.map((source) => (
           <article className="source-card" key={source.source_id}>
             <header>
-              <div>
-                <h3 className="source-title">{source.title}</h3>
-                <p className="source-meta">{source.publisher || source.source_id}</p>
+              <div className="source-heading">
+                <span className="source-identity-mark" aria-hidden="true" />
+                <div>
+                  <h3 className="source-title">{source.title}</h3>
+                  <p className="source-meta">{source.publisher || source.source_id}</p>
+                </div>
               </div>
               <a href={source.url} target="_blank" rel="noreferrer">Open source</a>
             </header>
-            <div className="chip-row">
-              {(source.claims_used || []).map((claim) => (
-                <span className="chip" key={claim.claim_id}>{claim.claim_id}</span>
-              ))}
-            </div>
+            {source.claims_used?.length ? (
+              <ul className="source-claim-list">
+                {source.claims_used.map((claim) => (
+                  <li key={claim.claim_id}>
+                    <strong>{sourceClaimLabel(claim.claim_id)}</strong>
+                    {claim.summary ? <span>{claim.summary}</span> : null}
+                    {claim.source_locator ? <small>{claim.source_locator}</small> : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </article>
         ))}
       </div>
@@ -173,24 +193,43 @@ function SourcesPanel({ artifacts }: { artifacts: ReportArtifacts }) {
   );
 }
 
-function ArtifactsPanel({ artifacts }: { artifacts: ReportArtifacts }) {
-  const { manifest, base, artifactItems } = artifacts;
-  const items = artifactItems?.length
-    ? artifactItems.map((item) => ({ href: `${artifacts.apiBase}${item.url}`, path: item.path, type: item.type }))
-    : manifest.artifacts.map((artifactPath) => ({ href: `${base}/${artifactPath}`, path: artifactPath, type: artifactType(artifactPath) }));
+function ReportDownloadPanel({ artifacts }: { artifacts: ReportArtifacts }) {
+  const report = reportDownload(artifacts);
   return (
     <>
-      <h2>Artifact Bundle</h2>
-      <div className="artifact-list">
-        {items.map((item) => (
-          <div className="artifact-row" key={item.path}>
-            <a href={item.href} target="_blank" rel="noreferrer">{item.path}</a>
-            <p className="artifact-meta">{item.type}</p>
-          </div>
-        ))}
-      </div>
+      <h2>Report</h2>
+      <article className="report-download-card">
+        <div>
+          <h3>MealCheck report PDF</h3>
+          <p>Download one shareable report with the decision, checks requiring attention, unresolved foods, daily totals, and disclaimer.</p>
+          <p className="artifact-meta">{guidelineLabel(artifacts.report.guideline_pack_id)}</p>
+        </div>
+        {report ? (
+          <a className="action-button action-button--primary report-download-link" download={report.downloadName} href={report.href} target={report.target} rel={report.rel}>
+            {report.label}
+          </a>
+        ) : (
+          <p className="empty-state">No report download is available for this run yet.</p>
+        )}
+      </article>
     </>
   );
+}
+
+function reportDownload(artifacts: ReportArtifacts) {
+  const items = artifacts.artifactItems?.length
+    ? artifacts.artifactItems.map((item) => ({ href: `${artifacts.apiBase}${item.url}`, path: item.path }))
+    : artifacts.manifest.artifacts.map((path) => ({ href: `${artifacts.base}/${path}`, path }));
+  const item = items.find((candidate) => candidate.path === "report.pdf")
+    || items.find((candidate) => candidate.path === "report.html");
+  if (!item) return null;
+  return {
+    href: item.href,
+    label: item.path.endsWith(".pdf") ? "Download report PDF" : "Open printable report",
+    downloadName: item.path.endsWith(".pdf") ? "mealcheck-report.pdf" : undefined,
+    target: item.path.endsWith(".pdf") ? undefined : "_blank",
+    rel: item.path.endsWith(".pdf") ? undefined : "noreferrer",
+  };
 }
 
 function NutrientBar({
@@ -243,10 +282,43 @@ function EvidenceBlock({ evidence }: { evidence?: unknown[] }) {
   if (!evidence || evidence.length === 0) return null;
   return (
     <details className="evidence">
-      <summary>Evidence</summary>
-      <pre>{JSON.stringify(evidence, null, 2)}</pre>
+      <summary>Why this was flagged</summary>
+      <ul className="evidence-list">
+        {evidence.map((entry, index) => <li key={index}>{evidenceText(entry)}</li>)}
+      </ul>
     </details>
   );
+}
+
+function evidenceText(entry: unknown): string {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    return valueText(entry);
+  }
+  const record = entry as Record<string, unknown>;
+  const dayMeal = [record.day ? `Day ${record.day}` : "", record.meal ? readableID(record.meal) : ""].filter(Boolean).join(" ");
+  const food = record.food ? String(record.food) : "";
+  if (record.matched_allergen) {
+    return `${prefixEvidence(dayMeal, food)}matches the declared ${record.matched_allergen} allergy.`;
+  }
+  if (record.unresolved_reason) {
+    const quantity = record.quantity_text ? ` (${record.quantity_text})` : "";
+    return `${prefixEvidence(dayMeal, food)}has ${reasonLabel(record.unresolved_reason)}${quantity}.`;
+  }
+  if (record.sodium_mg != null && record.limit_mg != null) {
+    return `${prefixEvidence(dayMeal, food)}sodium is ${round(record.sodium_mg)} mg, above the ${round(record.limit_mg)} mg daily limit.`;
+  }
+  if (record.energy_kcal != null && record.target_kcal != null) {
+    const tolerance = record.tolerance_pct != null ? ` with a ${round(record.tolerance_pct)}% tolerance` : "";
+    return `${prefixEvidence(dayMeal, food)}calories are ${round(record.energy_kcal)} kcal against the ${round(record.target_kcal)} kcal target${tolerance}.`;
+  }
+  return Object.entries(record)
+    .map(([key, value]) => `${readableID(key)}: ${valueText(value)}`)
+    .join("; ");
+}
+
+function prefixEvidence(dayMeal: string, food: string): string {
+  const location = [dayMeal, food].filter(Boolean).join(": ");
+  return location ? `${location} ` : "";
 }
 
 function ChipRow({ values }: { values: string[] }) {
