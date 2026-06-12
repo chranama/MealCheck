@@ -862,3 +862,46 @@ Consequences:
 - MacBook service configuration moves to Milestone 10.
 - Cloudflare Pages and Tunnel deployment moves to Milestone 11.
 - Public operations and MVP acceptance review moves to Milestone 12.
+
+## 2026-06-12: Frontend Defaults To Client-Facing Report Language
+
+Status: Accepted
+
+Decision:
+
+MealCheck's public static frontend should hide internal system detail from the
+default client-facing path. The live-check surface should not expose standalone
+service-status cards, service URL fields, run IDs, event counts, pipeline
+graphics, or raw artifact browsers unless those details are deliberately placed
+behind troubleshooting or activity disclosures.
+
+The report surface should prioritize meal-plan verification results over
+internal contract validation. Checks shown by default are meal-plan checks, not
+schema, manifest, or artifact contract checks. Evidence should be rendered in
+natural language. Guideline packs, source claims, and field names should use
+human-readable labels instead of raw identifiers. The report download surface is
+one `Report` tab with one shareable PDF, not a list of implementation artifacts.
+
+MealCheck's visual identity should remain static-safe and code-native for the
+MVP: a streamlined `M` plus check mark brand mark, static-safe type choices, and
+brand/evidence colors that are distinct from pass, warn, and block status
+colors.
+
+Reason:
+
+The product is a verifier for people evaluating a meal plan, not an internal
+pipeline dashboard. Exposing service plumbing, contract checks, raw JSON
+evidence, or artifact bundles makes the MVP harder to understand and weakens
+trust in the report. Static-safe visual identity rules keep the Cloudflare Pages
+deployment simple while giving the product a recognizable first impression.
+
+Consequences:
+
+- Internal workflow state belongs in activity details, logs, tests, and
+  developer documentation, not in the first client-facing viewport.
+- Reports should use outcome-first language, natural evidence, and
+  human-readable source labels.
+- Raw artifacts remain available through the backend/API contract, but the
+  primary web UI presents a single report PDF.
+- Future UI changes should preserve the separation between brand/evidence color
+  and semantic status colors.
