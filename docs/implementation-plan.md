@@ -1234,6 +1234,10 @@ Milestone 10 verification:
 
 ## Milestone 11: Cloudflare Pages And Tunnel Deployment
 
+Status: Implemented on Cloudflare using a direct-upload Pages project. The
+Cloudflare Tunnel, API DNS route, tunnel LaunchDaemon, Pages project, direct
+Pages deployment, Pages custom domain, and production CORS pairing are active.
+
 Deliver:
 
 - Cloudflare Pages project connected to the repository
@@ -1245,6 +1249,57 @@ Deliver:
 - `MEALCHECK_ALLOWED_ORIGIN` set to the production frontend origin
 - DNS/hostname records documented
 - tunnel status and restart commands documented
+
+Implemented:
+
+1. Created Cloudflare Tunnel `mealcheck-api`.
+   - tunnel ID: `e8cbd8da-735a-4053-9503-880f636670f6`
+   - public API hostname: `api.mealcheck.dev`
+   - local service: `http://127.0.0.1:8080`
+2. Created MacBook-local cloudflared config at
+   `/Users/chranama-server/.cloudflared/mealcheck-api.yml` and stored tunnel
+   credentials outside the repository.
+3. Added `deploy/macos/dev.mealcheck.tunnel.plist.template`, installed it as
+   `/Library/LaunchDaemons/dev.mealcheck.tunnel.plist`, and verified
+   `system/dev.mealcheck.tunnel` is running as `chranama-server`.
+4. Verified `cloudflared tunnel info mealcheck-api` shows an active connector
+   from the MacBook.
+5. Verified the tunneled API serves `GET /api/health` through Cloudflare when
+   resolving `api.mealcheck.dev` to the observed Cloudflare edge address.
+6. Built the frontend with
+   `VITE_MEALCHECK_API_BASE_URL=https://api.mealcheck.dev`.
+7. Created Cloudflare Pages project `mealcheck`.
+   - account ID: `0f5ac9230ddfc332774b414898e9f59f`
+   - production branch: `main`
+   - Pages URL: `https://mealcheck.pages.dev`
+   - Git provider: `No`
+8. Deployed `ui/dist` to Cloudflare Pages.
+   - deployment ID: `80e4ae36-17cb-4128-8a1a-d09e97fc6818`
+   - branch: `main`
+   - commit: `e990d207d6d431be50bf5c4519186ae361b6ebe9`
+9. Attached `mealcheck.dev` as a Pages custom domain. Cloudflare returned
+   `status: active`, `validation_data.status: active`, and
+   `verification_data.status: active` after the apex DNS record was added.
+10. Updated the MacBook backend runtime environment so
+    `MEALCHECK_ALLOWED_ORIGIN='https://mealcheck.dev'`.
+11. Restarted `dev.mealcheck.server` and verified production CORS behavior
+    through the tunneled API:
+    - `Origin: https://mealcheck.dev` receives
+      `Access-Control-Allow-Origin: https://mealcheck.dev`
+    - `Origin: https://not-mealcheck.example` does not receive an
+      `Access-Control-Allow-Origin` header
+12. Verified `https://mealcheck.pages.dev/demo-runs/index.json` serves the
+    checked-in seeded demo index.
+13. Verified public live run creation without
+    `X-MealCheck-Invite-Token` returns `401` with `invite token required`.
+
+Milestone 11 note:
+
+- The original deliverable said the Pages project should be connected to the
+  repository. The implemented project is a direct-upload Pages project because
+  Wrangler exposed project creation and deployment but not repository
+  connection. Push-to-deploy remains optional follow-up work unless the MVP
+  explicitly requires Cloudflare's Git integration.
 
 Acceptance:
 

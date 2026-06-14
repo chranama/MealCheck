@@ -553,7 +553,7 @@ curl -fsS http://127.0.0.1:8080/api/health | jq .
 
 Pages settings are in `deploy/cloudflare/pages-settings.md`.
 
-Expected Pages values:
+Live Pages values:
 
 - project name: `mealcheck`
 - production branch: `main`
@@ -562,6 +562,61 @@ Expected Pages values:
 - output directory: `dist`
 - public frontend config:
   `VITE_MEALCHECK_API_BASE_URL=https://api.mealcheck.dev`
+- Pages URL: `https://mealcheck.pages.dev`
+- custom domain: `https://mealcheck.dev`, active
+
+The current Pages project was created by direct Wrangler upload. Cloudflare
+reported `Git Provider: No` after creation. If push-to-deploy is required,
+connect the existing Pages project to the GitHub repository in the Cloudflare
+dashboard.
+
+Build and deploy direct-upload Pages:
+
+```bash
+cd /Users/chranama-server/MealCheck/ui
+npm ci
+VITE_MEALCHECK_API_BASE_URL=https://api.mealcheck.dev npm run build
+
+cd /Users/chranama-server/MealCheck
+wrangler pages deploy ui/dist \
+  --project-name mealcheck \
+  --branch main \
+  --commit-hash "$(git rev-parse HEAD)" \
+  --commit-message "$(git log -1 --pretty=%s)" \
+  --commit-dirty=true
+```
+
+Pages deployment status:
+
+```bash
+wrangler pages deployment list --project-name mealcheck
+```
+
+Attach and inspect the Pages custom domain through the API, using Wrangler's
+local OAuth config without printing the token:
+
+```bash
+TOKEN=$(awk -F' = ' '/^oauth_token/ { gsub(/"/, "", $2); print $2 }' \
+  /Users/chranama-server/Library/Preferences/.wrangler/config/default.toml)
+
+curl -fsS -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"name":"mealcheck.dev"}' \
+  "https://api.cloudflare.com/client/v4/accounts/0f5ac9230ddfc332774b414898e9f59f/pages/projects/mealcheck/domains" \
+  | jq .
+
+curl -fsS \
+  -H "Authorization: Bearer $TOKEN" \
+  "https://api.cloudflare.com/client/v4/accounts/0f5ac9230ddfc332774b414898e9f59f/pages/projects/mealcheck/domains/mealcheck.dev" \
+  | jq .
+```
+
+Cloudflare DNS record for `https://mealcheck.dev`:
+
+| Type | Name | Target | Proxy |
+|---|---|---|---|
+| `CNAME` | `@` | `mealcheck.pages.dev` | Proxied |
 
 Tunnel config template:
 
@@ -582,10 +637,28 @@ Manual tunnel start:
 cloudflared tunnel --config /Users/chranama-server/.cloudflared/mealcheck-api.yml run mealcheck-api
 ```
 
+Install the tunnel as a system `LaunchDaemon`:
+
+```bash
+cd /Users/chranama-server/MealCheck
+sudo launchctl bootout system/dev.mealcheck.tunnel 2>/dev/null || true
+sudo rm -f /Library/LaunchDaemons/dev.mealcheck.tunnel.plist
+sudo cp deploy/macos/dev.mealcheck.tunnel.plist.template \
+  /Library/LaunchDaemons/dev.mealcheck.tunnel.plist
+sudo chown root:wheel /Library/LaunchDaemons/dev.mealcheck.tunnel.plist
+sudo chmod 644 /Library/LaunchDaemons/dev.mealcheck.tunnel.plist
+sudo plutil -lint /Library/LaunchDaemons/dev.mealcheck.tunnel.plist
+sudo launchctl bootstrap system /Library/LaunchDaemons/dev.mealcheck.tunnel.plist
+sudo launchctl kickstart -k system/dev.mealcheck.tunnel
+sudo launchctl print system/dev.mealcheck.tunnel
+```
+
 Tunnel status:
 
 ```bash
 cloudflared tunnel info mealcheck-api
+cloudflared tunnel list
+sudo launchctl print system/dev.mealcheck.tunnel
 ```
 
 Public API health:
@@ -693,6 +766,9 @@ Bad frontend API config:
   `VITE_MEALCHECK_API_BASE_URL` or `/config.json`
 - verify the API hostname independently with `curl`
 - verify backend `MEALCHECK_ALLOWED_ORIGIN` matches the production Pages origin
+- restart the backend daemon after changing
+  `/Users/chranama-server/MealCheck-data/mealcheck-server.env`:
+  `sudo launchctl kickstart -k system/dev.mealcheck.server`
 
 Queue full:
 

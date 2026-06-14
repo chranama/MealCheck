@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dev.mealcheck.tunnel</string>
+
+  <key>UserName</key>
+  <string>chranama-server</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/cloudflared</string>
+    <string>tunnel</string>
+    <string>--config</string>
+    <string>/Users/chranama-server/.cloudflared/mealcheck-api.yml</string>
+    <string>run</string>
+    <string>mealcheck-api</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/chranama-server/MealCheck</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/chranama-server/MealCheck-data/logs/cloudflared.out.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/chranama-server/MealCheck-data/logs/cloudflared.err.log</string>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

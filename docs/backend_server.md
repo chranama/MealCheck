@@ -142,7 +142,7 @@ belong in the project dependency file once implementation starts.
 | Cloudflare Tunnel | Safe public API exposure without router port forwarding | Preferred exposure path. |
 | `jq` | Inspecting JSON artifacts, API responses, and smoke test output | Helpful for operations and debugging. |
 | Node.js | Frontend build/runtime only if the hosted UI needs it | Not a backend requirement until a frontend package exists. |
-| `launchd` | Process supervision | Use the accepted system LaunchDaemons for Postgres and the backend. |
+| `launchd` | Process supervision | Use the accepted system LaunchDaemons for Postgres, the backend, and the Cloudflare Tunnel connector. |
 | `brew services` | Manage local services such as Postgres | Useful for Postgres. |
 
 ## Initial Install Commands
@@ -316,6 +316,8 @@ The server is ready for MVP web acceptance when:
 - `MEALCHECK_INVITE_TOKEN` is configured for live run creation
 - the `LaunchDaemon` mode is verified after reboot or manual restart
 - Cloudflare Tunnel maps the public API hostname to the local API service
+- `dev.mealcheck.tunnel` keeps the Cloudflare Tunnel connector running after
+  reboot
 - Cloudflare Pages can call the public API hostname and display health
 - live manual/BYOK run creation, status polling or SSE, report retrieval,
   artifact listing, and deletion work through the public path
@@ -329,7 +331,7 @@ The server is ready for MVP web acceptance when:
 
 - Replace placeholder Postgres, invite-token, and tunnel credentials on the
   MacBook.
-- Decide whether the Cloudflare Tunnel should run manually for first proof or
-  under a second `launchd` service.
+- Confirm `mealcheck.dev` apex DNS after Cloudflare Pages custom-domain
+  validation is active.
 - Confirm backup cadence after the MacBook storage and expected usage are
   observed.

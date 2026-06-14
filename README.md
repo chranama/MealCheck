@@ -24,25 +24,24 @@ regressions.
 
 ## Current Shape
 
-The project has a Milestone 9 hardened Vite/React frontend in code. It has
+The project has a Milestone 11 deployed Vite/React frontend. It has
 seeded fixtures, JSON Schemas, a small local nutrient catalog, a checker core, a
 local CLI that writes the artifact bundle, a static frontend with seeded and
 live-run workflows, a hosted API/worker wrapper, and invite-gated
 bring-your-own-key generation and repair.
 
-The intended deployment shape mirrors the MacBook server idea already scoped in
-this workspace:
+The accepted MVP deployment shape is:
 
-- static frontend on Cloudflare Pages
-- MacBook-hosted backend exposed through Cloudflare Tunnel
+- static frontend on Cloudflare Pages at `https://mealcheck.dev`
+- MacBook-hosted backend exposed through Cloudflare Tunnel at
+  `https://api.mealcheck.dev`
 - no local LLM inference
 - public seeded demos without maintainer-paid model calls
 - live generation or bounded repair only through bring-your-own-key execution
 
-The remaining MVP gaps are MacBook service configuration and web deployment
-operations: applying the prepared deployment package, configuring Cloudflare
-Pages and Cloudflare Tunnel with real values, running public smoke tests, and
-recording final MVP acceptance.
+The remaining MVP gap is the Milestone 12 public operations and acceptance
+review: final public smoke tests, backup/cleanup verification, and recording
+the final acceptance evidence.
 
 ## What It Is Not
 

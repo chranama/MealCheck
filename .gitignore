@@ -1,5 +1,6 @@
 .mealcheck-data/
 .DS_Store
+.wrangler/
 artifacts/
 bin/
 ui/dist/

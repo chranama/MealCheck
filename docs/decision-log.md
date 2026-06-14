@@ -963,6 +963,46 @@ Consequences:
 - Future launchd-managed services for MealCheck should use the same
   `dev.mealcheck.*` prefix.
 
+## 2026-06-14: Milestone 11 Uses A Tunnel LaunchDaemon And Direct Pages Upload
+
+Status: Accepted
+
+Decision:
+
+The Cloudflare Tunnel connector should run under a third system
+`LaunchDaemon`, `dev.mealcheck.tunnel`, using the MacBook-local config
+`/Users/chranama-server/.cloudflared/mealcheck-api.yml`. This keeps the public
+API route alive after restart without router port forwarding.
+
+The first Cloudflare Pages deployment was created as a direct-upload project
+named `mealcheck` and deployed from `ui/dist` with Wrangler. The project is not
+Git-connected; Cloudflare reported `Git Provider: No`. Direct upload is
+accepted for the MVP because it produces the required public frontend without
+adding GitHub dashboard coupling to the deployment path.
+
+Reason:
+
+The tunnel is now production infrastructure, not a foreground proof command, so
+it needs the same before-login supervision model as Postgres and the backend.
+Wrangler can create and deploy a Pages project directly, which was enough to
+make the frontend live. Wrangler does not expose repository connection or
+custom-domain DNS management commands in the installed version, so those steps
+must be completed through the Cloudflare dashboard or API.
+
+Consequences:
+
+- The accepted launchd labels are now `dev.mealcheck.postgres`,
+  `dev.mealcheck.server`, and `dev.mealcheck.tunnel`.
+- The public API hostname `api.mealcheck.dev` routes through tunnel
+  `mealcheck-api`
+  (`e8cbd8da-735a-4053-9503-880f636670f6`) to `127.0.0.1:8080`.
+- `mealcheck.pages.dev` and `mealcheck.dev` serve the uploaded production
+  frontend bundle.
+- The apex DNS record `CNAME @ -> mealcheck.pages.dev` is active through
+  Cloudflare.
+- Push-to-deploy through Cloudflare's Git integration can be added later, but
+  it is not required for MVP acceptance.
+
 ## 2026-06-12: Frontend Defaults To Client-Facing Report Language
 
 Status: Accepted
