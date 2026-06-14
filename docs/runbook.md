@@ -367,8 +367,49 @@ Install required tools:
 
 ```bash
 brew install go postgresql@17 jq cloudflared
-brew services start postgresql@17
 ```
+
+Install the project Postgres `LaunchDaemon` instead of using
+`sudo brew services start postgresql@17`. Homebrew's generated system daemon
+tries to run Postgres as root on this machine, but Postgres must run as an
+unprivileged user.
+
+```bash
+brew services stop postgresql@17 2>/dev/null || true
+sudo launchctl bootout system/homebrew.mxcl.postgresql@17 2>/dev/null || true
+sudo rm -f /Library/LaunchDaemons/homebrew.mxcl.postgresql@17.plist
+
+sudo cp deploy/macos/com.mealcheck.postgres.plist.template \
+  /Library/LaunchDaemons/com.mealcheck.postgres.plist
+sudo chown root:wheel /Library/LaunchDaemons/com.mealcheck.postgres.plist
+sudo chmod 644 /Library/LaunchDaemons/com.mealcheck.postgres.plist
+sudo plutil -lint /Library/LaunchDaemons/com.mealcheck.postgres.plist
+sudo launchctl bootstrap system /Library/LaunchDaemons/com.mealcheck.postgres.plist
+```
+
+Verify Postgres:
+
+```bash
+pg_isready -h localhost -p 5432
+```
+
+Configure the MacBook for long-running backend use while plugged into power:
+
+```bash
+sudo pmset -c sleep 0 disksleep 0 displaysleep 10 powernap 0 standby 0 \
+  ttyskeepawake 1 tcpkeepalive 1 womp 1 autorestart 1
+```
+
+Verify the AC-power profile:
+
+```bash
+pmset -g custom
+pmset -g assertions
+```
+
+`pmset -g custom` should show `sleep 0` under `AC Power`. Keep the MacBook
+plugged in and leave the lid open unless it is intentionally running in a
+supported clamshell setup. Closing a laptop lid can still sleep the machine.
 
 Create runtime directories:
 
@@ -402,6 +443,7 @@ Create the production environment file:
 ```bash
 cp deploy/macos/mealcheck-server.env.example \
   /Users/chranama-server/MealCheck-data/mealcheck-server.env
+chmod 600 /Users/chranama-server/MealCheck-data/mealcheck-server.env
 ```
 
 Edit `/Users/chranama-server/MealCheck-data/mealcheck-server.env` and replace:
@@ -452,37 +494,50 @@ set +a
 
 ## Backend launchd Service
 
+Milestone 10 uses a system `LaunchDaemon` so the backend can start before a
+GUI login after reboot while still running as `chranama-server`. The daemon
+waits for local Postgres to accept connections before starting
+`mealcheck-server`.
+
+Before installing the daemon, remove any old user `LaunchAgent` so the two
+launchd domains do not both try to bind `127.0.0.1:8080`:
+
+```bash
+launchctl bootout gui/$(id -u chranama-server)/com.mealcheck.server 2>/dev/null || true
+rm -f /Users/chranama-server/Library/LaunchAgents/com.mealcheck.server.plist
+```
+
 Install the template:
 
 ```bash
-cp deploy/macos/com.mealcheck.server.plist.template \
-  /Users/chranama-server/Library/LaunchAgents/com.mealcheck.server.plist
+sudo cp deploy/macos/com.mealcheck.server.daemon.plist.template \
+  /Library/LaunchDaemons/com.mealcheck.server.plist
+sudo chown root:wheel /Library/LaunchDaemons/com.mealcheck.server.plist
+sudo chmod 644 /Library/LaunchDaemons/com.mealcheck.server.plist
 ```
 
 Start:
 
 ```bash
-launchctl bootstrap gui/$(id -u chranama-server) \
-  /Users/chranama-server/Library/LaunchAgents/com.mealcheck.server.plist
+sudo launchctl bootstrap system /Library/LaunchDaemons/com.mealcheck.server.plist
 ```
 
 Stop:
 
 ```bash
-launchctl bootout gui/$(id -u chranama-server) \
-  /Users/chranama-server/Library/LaunchAgents/com.mealcheck.server.plist
+sudo launchctl bootout system/com.mealcheck.server
 ```
 
 Restart:
 
 ```bash
-launchctl kickstart -k gui/$(id -u chranama-server)/com.mealcheck.server
+sudo launchctl kickstart -k system/com.mealcheck.server
 ```
 
 Status:
 
 ```bash
-launchctl print gui/$(id -u chranama-server)/com.mealcheck.server
+sudo launchctl print system/com.mealcheck.server
 ```
 
 Logs:
@@ -495,6 +550,7 @@ tail -n 200 /Users/chranama-server/MealCheck-data/logs/mealcheck-server.err.log
 Local health:
 
 ```bash
+deploy/macos/wait-for-mealcheck-ready.sh
 curl -fsS http://127.0.0.1:8080/api/health | jq .
 ```
 

@@ -29,7 +29,15 @@ values are intentionally public.
 
 - `macos/mealcheck-server.env.example`: production environment template.
 - `macos/com.mealcheck.server.plist.template`: `launchd` template for the
-  backend API, worker, and cleanup process.
+  backend API, worker, and cleanup process as a user `LaunchAgent`.
+- `macos/com.mealcheck.server.daemon.plist.template`: `launchd` template for
+  the backend API, worker, and cleanup process as a system `LaunchDaemon`
+  running as `chranama-server`.
+- `macos/com.mealcheck.postgres.plist.template`: system `LaunchDaemon`
+  template for Postgres `17`, started at boot but running as
+  `chranama-server`.
+- `macos/wait-for-mealcheck-ready.sh`: reboot-friendly readiness check that
+  waits for Postgres and then the MealCheck health endpoint.
 - `macos/postgres-setup.sql.template`: first-time Postgres database and role
   template.
 - `cloudflare/tunnel-config.yml.template`: Cloudflare Tunnel ingress template.

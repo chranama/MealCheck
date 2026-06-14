@@ -241,6 +241,7 @@ Supported configuration:
 - `MEALCHECK_ALLOWED_ORIGIN`
 - `MEALCHECK_INVITE_TOKEN`
 - `MEALCHECK_QUEUE_SIZE`
+- `MEALCHECK_MAX_CASES_PER_RUN`
 - `MEALCHECK_MAX_UPLOAD_BYTES`
 - `MEALCHECK_RUN_TIMEOUT`
 - `MEALCHECK_RETENTION`
@@ -265,7 +266,11 @@ The MacBook should be configured as a server:
 
 - keep it plugged into power
 - prefer wired Ethernet through USB-C if available
-- disable sleep while plugged in
+- disable idle system sleep while plugged into AC power with:
+  `sudo pmset -c sleep 0 disksleep 0 displaysleep 10 powernap 0 standby 0 ttyskeepawake 1 tcpkeepalive 1 womp 1 autorestart 1`
+- verify `pmset -g custom` shows `sleep 0` under `AC Power`
+- keep the lid open unless the MacBook is intentionally running in a supported
+  clamshell setup
 - keep macOS security updates current
 - enable automatic restart after power failure if available
 - keep the `MealCheck` checkout under `/Users/chranama-server/MealCheck`
@@ -273,6 +278,8 @@ The MacBook should be configured as a server:
 - keep generated artifacts under
   `/Users/chranama-server/MealCheck-data/artifacts`
 - keep logs under `/Users/chranama-server/MealCheck-data/logs`
+- run `mealcheck-server` as a system `LaunchDaemon` with `UserName` set to
+  `chranama-server` for before-login startup after reboot
 
 Milestone 8 deployment templates:
 
@@ -306,6 +313,7 @@ The server is ready for MVP web acceptance when:
 - Postgres and artifact storage use final paths outside the Git checkout
 - `MEALCHECK_ALLOWED_ORIGIN` is set to the production frontend origin
 - `MEALCHECK_INVITE_TOKEN` is configured for live run creation
+- the `LaunchDaemon` mode is verified after reboot or manual restart
 - Cloudflare Tunnel maps the public API hostname to the local API service
 - Cloudflare Pages can call the public API hostname and display health
 - live manual/BYOK run creation, status polling or SSE, report retrieval,

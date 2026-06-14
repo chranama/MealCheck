@@ -1120,14 +1120,22 @@ Milestone 9 verification:
 
 ## Milestone 10: MacBook Service Configuration
 
+Status: Implemented on the MacBook. The backend is installed as a system
+`LaunchDaemon` and verified locally against Postgres-backed storage.
+
 Deliver:
 
 - Go, Postgres, `jq`, and any required server packages installed on the MacBook
 - repository checkout under the selected runtime user
+- MacBook AC-power profile configured for long-running server use with system
+  sleep disabled and verification output recorded
 - final runtime data, artifact, and log paths created outside the Git checkout
 - Postgres database and user created
 - production environment file created with real server values
+- production environment file permissions restricted to the runtime user
 - `mealcheck-server` running under process supervision
+- system `LaunchDaemon` mode chosen and documented for before-login startup
+  after unattended reboot
 - backend logs written to the documented location
 - local MacBook health, seeded run, live run, deletion, and cleanup smoke tests
 - backup command tested or dry-run output recorded
@@ -1135,8 +1143,10 @@ Deliver:
 Acceptance:
 
 - the backend runs on the MacBook with Postgres metadata storage
+- the MacBook does not enter idle system sleep while plugged into AC power
 - runtime data and artifact storage are outside the Git checkout
-- the service starts after reboot or manual service restart
+- the service starts after reboot once the documented launchd conditions are
+  met, or after manual service restart
 - `GET /api/health` works locally against the supervised service
 - a local seeded run can be queued, completed, viewed, and deleted on the
   MacBook
@@ -1144,6 +1154,82 @@ Acceptance:
   command
 - service logs do not contain provider API keys during tested BYOK runs
 - this milestone does not require public Cloudflare Pages or Tunnel routing
+
+Implemented:
+
+1. Verified MacBook backend dependencies and power profile:
+   - Go `1.26.4`
+   - Postgres `17.10`
+   - `jq`, `cloudflared`, Git, GitHub CLI, SSH, Homebrew, and Xcode Command
+     Line Tools available
+   - AC-power `pmset` profile has `sleep 0`, `disksleep 0`, `standby 0`, and
+     `powernap 0`
+2. Created runtime paths outside the Git checkout:
+   - `/Users/chranama-server/MealCheck-data`
+   - `/Users/chranama-server/MealCheck-data/artifacts`
+   - `/Users/chranama-server/MealCheck-data/logs`
+   - `/Users/chranama-server/MealCheck-data/backups`
+3. Created the `mealcheck` Postgres role and database.
+   - For true before-login recovery, Postgres should be managed by
+     `/Library/LaunchDaemons/com.mealcheck.postgres.plist`, which starts at
+     boot but runs the Postgres process as `chranama-server`.
+   - The Postgres daemon sets `LC_ALL=en_US.UTF-8` and `LANG=en_US.UTF-8`
+     because Postgres failed under launchd without an explicit valid locale.
+4. Created `/Users/chranama-server/MealCheck-data/mealcheck-server.env` with
+   real local values and `0600` permissions.
+5. Built:
+   - `/Users/chranama-server/MealCheck/bin/mealcheck`
+   - `/Users/chranama-server/MealCheck/bin/mealcheck-server`
+6. Added and installed
+   `deploy/macos/com.mealcheck.server.daemon.plist.template` as
+   `/Library/LaunchDaemons/com.mealcheck.server.plist` with `root:wheel`
+   ownership and `0644` permissions. The daemon waits for local Postgres to
+   accept connections before starting `mealcheck-server`.
+7. Removed the temporary user `LaunchAgent` from
+   `/Users/chranama-server/Library/LaunchAgents/com.mealcheck.server.plist` so
+   only the system `LaunchDaemon` manages port `8080` after login.
+8. Verified `GET /api/health` against the supervised daemon:
+   - `status: ok`
+   - `store: postgres`
+   - `queue_size: 3`
+   - `retention_days: 7`
+9. Ran local seeded API smoke:
+   - queued checked-in seeded case
+   - observed completion
+   - fetched report and artifacts
+   - deleted run and confirmed `404`
+10. Ran local manual structured live-run smoke:
+   - queued invite-gated manual request
+   - observed completion
+   - fetched report and artifacts
+   - deleted run and confirmed `404`
+11. Ran BYOK redaction smoke with a fake sentinel provider key:
+    - request failed as expected against a dead local provider URL
+    - sentinel key was absent from logs, artifacts, and run metadata
+    - deleted run and confirmed `404`
+12. Ran retention cleanup verification:
+    - completed a run
+    - expired it in Postgres
+    - ran the production cleanup job against the same data paths
+    - confirmed API returned `404` and the artifact directory was removed
+13. Ran backup command:
+    - wrote a non-empty Postgres dump
+    - copied retained artifacts to a timestamped local backup directory
+14. Reboot-verified the final daemon chain:
+    - `com.mealcheck.postgres` starts as a system `LaunchDaemon`
+    - `com.mealcheck.server` starts as a system `LaunchDaemon`
+    - after boot settling, `GET /api/health` returns `status: ok` and
+      `store: postgres`
+15. Added `deploy/macos/wait-for-mealcheck-ready.sh` so operators can wait for
+    Postgres and then the backend health endpoint after reboot.
+    - Observed reboot check on the MacBook: Postgres became ready after about
+      48 seconds; MealCheck health became ready about 20 seconds later.
+
+Milestone 10 verification:
+
+- `plutil -lint deploy/macos/com.mealcheck.server.daemon.plist.template`
+- `git diff --check`
+- `go test ./...`
 
 ## Milestone 11: Cloudflare Pages And Tunnel Deployment
 

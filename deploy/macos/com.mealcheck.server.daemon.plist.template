@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.mealcheck.server</string>
+
+  <key>UserName</key>
+  <string>chranama-server</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>until /usr/local/bin/pg_isready -h localhost -p 5432 >/dev/null 2>&amp;1; do sleep 2; done; set -a; source /Users/chranama-server/MealCheck-data/mealcheck-server.env; set +a; exec /Users/chranama-server/MealCheck/bin/mealcheck-server -root /Users/chranama-server/MealCheck -addr 127.0.0.1:8080 -data-dir /Users/chranama-server/MealCheck-data -artifact-dir /Users/chranama-server/MealCheck-data/artifacts -store postgres</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/chranama-server/MealCheck</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/chranama-server/MealCheck-data/logs/mealcheck-server.out.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/chranama-server/MealCheck-data/logs/mealcheck-server.err.log</string>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>
