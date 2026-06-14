@@ -314,15 +314,16 @@ Selected deployment values:
 | Postgres database | `mealcheck` |
 | Postgres role | `mealcheck` |
 | Backend listen address | `127.0.0.1:8080` |
-| Backend launchd label | `com.mealcheck.server` |
+| Backend launchd label | `dev.mealcheck.server` |
+| Postgres launchd label | `dev.mealcheck.postgres` |
 | Cloudflare Tunnel name | `mealcheck-api` |
-| Frontend placeholder URL | `https://mealcheck.example.com` |
-| API placeholder URL | `https://api.mealcheck.example.com` |
+| Frontend production URL | `https://mealcheck.dev` |
+| API production URL | `https://api.mealcheck.dev` |
 
 Templates:
 
 - `deploy/macos/mealcheck-server.env.example`
-- `deploy/macos/com.mealcheck.server.plist.template`
+- `deploy/macos/dev.mealcheck.server.plist.template`
 - `deploy/macos/postgres-setup.sql.template`
 - `deploy/cloudflare/tunnel-config.yml.template`
 - `deploy/cloudflare/pages-settings.md`
@@ -379,12 +380,13 @@ brew services stop postgresql@17 2>/dev/null || true
 sudo launchctl bootout system/homebrew.mxcl.postgresql@17 2>/dev/null || true
 sudo rm -f /Library/LaunchDaemons/homebrew.mxcl.postgresql@17.plist
 
-sudo cp deploy/macos/com.mealcheck.postgres.plist.template \
-  /Library/LaunchDaemons/com.mealcheck.postgres.plist
-sudo chown root:wheel /Library/LaunchDaemons/com.mealcheck.postgres.plist
-sudo chmod 644 /Library/LaunchDaemons/com.mealcheck.postgres.plist
-sudo plutil -lint /Library/LaunchDaemons/com.mealcheck.postgres.plist
-sudo launchctl bootstrap system /Library/LaunchDaemons/com.mealcheck.postgres.plist
+sudo cp deploy/macos/dev.mealcheck.postgres.plist.template \
+  /Library/LaunchDaemons/dev.mealcheck.postgres.plist
+sudo chown root:wheel /Library/LaunchDaemons/dev.mealcheck.postgres.plist
+sudo chmod 644 /Library/LaunchDaemons/dev.mealcheck.postgres.plist
+sudo plutil -lint /Library/LaunchDaemons/dev.mealcheck.postgres.plist
+sudo launchctl bootstrap system /Library/LaunchDaemons/dev.mealcheck.postgres.plist
+sudo launchctl kickstart -k system/dev.mealcheck.postgres
 ```
 
 Verify Postgres:
@@ -450,7 +452,7 @@ Edit `/Users/chranama-server/MealCheck-data/mealcheck-server.env` and replace:
 
 - `<POSTGRES_PASSWORD>`
 - `<MEALCHECK_INVITE_TOKEN>`
-- `https://mealcheck.example.com`
+- `https://mealcheck.dev`
 
 Do not set `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` in the deployed service.
 
@@ -499,45 +501,38 @@ GUI login after reboot while still running as `chranama-server`. The daemon
 waits for local Postgres to accept connections before starting
 `mealcheck-server`.
 
-Before installing the daemon, remove any old user `LaunchAgent` so the two
-launchd domains do not both try to bind `127.0.0.1:8080`:
-
-```bash
-launchctl bootout gui/$(id -u chranama-server)/com.mealcheck.server 2>/dev/null || true
-rm -f /Users/chranama-server/Library/LaunchAgents/com.mealcheck.server.plist
-```
-
 Install the template:
 
 ```bash
-sudo cp deploy/macos/com.mealcheck.server.daemon.plist.template \
-  /Library/LaunchDaemons/com.mealcheck.server.plist
-sudo chown root:wheel /Library/LaunchDaemons/com.mealcheck.server.plist
-sudo chmod 644 /Library/LaunchDaemons/com.mealcheck.server.plist
+sudo cp deploy/macos/dev.mealcheck.server.plist.template \
+  /Library/LaunchDaemons/dev.mealcheck.server.plist
+sudo chown root:wheel /Library/LaunchDaemons/dev.mealcheck.server.plist
+sudo chmod 644 /Library/LaunchDaemons/dev.mealcheck.server.plist
+sudo plutil -lint /Library/LaunchDaemons/dev.mealcheck.server.plist
 ```
 
 Start:
 
 ```bash
-sudo launchctl bootstrap system /Library/LaunchDaemons/com.mealcheck.server.plist
+sudo launchctl bootstrap system /Library/LaunchDaemons/dev.mealcheck.server.plist
 ```
 
 Stop:
 
 ```bash
-sudo launchctl bootout system/com.mealcheck.server
+sudo launchctl bootout system/dev.mealcheck.server
 ```
 
 Restart:
 
 ```bash
-sudo launchctl kickstart -k system/com.mealcheck.server
+sudo launchctl kickstart -k system/dev.mealcheck.server
 ```
 
 Status:
 
 ```bash
-sudo launchctl print system/com.mealcheck.server
+sudo launchctl print system/dev.mealcheck.server
 ```
 
 Logs:
@@ -566,7 +561,7 @@ Expected Pages values:
 - build command: `npm ci && npm run build`
 - output directory: `dist`
 - public frontend config:
-  `VITE_MEALCHECK_API_BASE_URL=https://api.mealcheck.example.com`
+  `VITE_MEALCHECK_API_BASE_URL=https://api.mealcheck.dev`
 
 Tunnel config template:
 
@@ -579,7 +574,7 @@ config path and replace:
 
 - `<CLOUDFLARE_TUNNEL_ID>`
 - `<ABSOLUTE_CLOUDFLARE_CREDENTIALS_JSON>`
-- `api.mealcheck.example.com`
+- `api.mealcheck.dev`
 
 Manual tunnel start:
 
@@ -596,7 +591,7 @@ cloudflared tunnel info mealcheck-api
 Public API health:
 
 ```bash
-curl -fsS https://api.mealcheck.example.com/api/health | jq .
+curl -fsS https://api.mealcheck.dev/api/health | jq .
 ```
 
 ## Cleanup, Deletion, And Retention
@@ -607,14 +602,14 @@ Live runs default to 7-day retention. Cleanup runs inside `mealcheck-server` on
 Delete a live run:
 
 ```bash
-curl -fsS -X DELETE https://api.mealcheck.example.com/api/runs/<RUN_ID> | jq .
+curl -fsS -X DELETE https://api.mealcheck.dev/api/runs/<RUN_ID> | jq .
 ```
 
 Confirm deletion:
 
 ```bash
-curl -i https://api.mealcheck.example.com/api/runs/<RUN_ID>
-curl -i https://api.mealcheck.example.com/api/runs/<RUN_ID>/report
+curl -i https://api.mealcheck.dev/api/runs/<RUN_ID>
+curl -i https://api.mealcheck.dev/api/runs/<RUN_ID>/report
 ```
 
 ## Backup Policy Draft
@@ -650,13 +645,14 @@ explicitly accepted later.
 
 ## Public Smoke-Test Checklist
 
-Use placeholder URLs until Milestone 11 records the real production URLs.
+Use the accepted production URLs once Milestone 11 Cloudflare routing is in
+place.
 
-- Open `https://mealcheck.example.com` from outside the home network.
+- Open `https://mealcheck.dev` from outside the home network.
 - Confirm the seeded report loads without login, provider keys, or backend
   access.
 - Confirm the frontend shows backend health when
-  `https://api.mealcheck.example.com/api/health` is online.
+  `https://api.mealcheck.dev/api/health` is online.
 - Create an invite-gated live manual run through the UI or API.
 - Observe status/events until `completed` or `failed`.
 - Fetch `GET /api/runs/<RUN_ID>/report`.
@@ -672,15 +668,15 @@ Use placeholder URLs until Milestone 11 records the real production URLs.
 
 Backend down:
 
-- check `launchctl print gui/$(id -u chranama-server)/com.mealcheck.server`
+- check `sudo launchctl print system/dev.mealcheck.server`
 - inspect `MealCheck-data/logs/mealcheck-server.err.log`
 - run local health against `127.0.0.1:8080`
-- restart with `launchctl kickstart -k`
+- restart with `sudo launchctl kickstart -k system/dev.mealcheck.server`
 
 Postgres down:
 
-- run `brew services list`
-- start with `brew services start postgresql@17`
+- check `sudo launchctl print system/dev.mealcheck.postgres`
+- restart with `sudo launchctl kickstart -k system/dev.mealcheck.postgres`
 - verify with the `psql ... select 1` command above
 - restart the backend after Postgres recovers
 

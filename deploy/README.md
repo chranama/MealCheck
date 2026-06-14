@@ -1,9 +1,8 @@
 # Deployment Package
 
 This directory contains the local deployment package prepared for the MacBook
-Air backend and Cloudflare-hosted frontend. The files use placeholders only;
-do not commit copied files with real secrets or production hostnames unless the
-values are intentionally public.
+Air backend and Cloudflare-hosted frontend. The files use placeholder secret
+values only; public production hostnames are intentionally committed.
 
 ## Selected MVP Paths
 
@@ -20,20 +19,19 @@ values are intentionally public.
 | Postgres database | `mealcheck` |
 | Postgres role | `mealcheck` |
 | Backend listen address | `127.0.0.1:8080` |
-| Frontend placeholder URL | `https://mealcheck.example.com` |
-| API placeholder URL | `https://api.mealcheck.example.com` |
-| Backend launchd label | `com.mealcheck.server` |
+| Frontend production URL | `https://mealcheck.dev` |
+| API production URL | `https://api.mealcheck.dev` |
+| Backend launchd label | `dev.mealcheck.server` |
+| Postgres launchd label | `dev.mealcheck.postgres` |
 | Cloudflare Tunnel name | `mealcheck-api` |
 
 ## Files
 
 - `macos/mealcheck-server.env.example`: production environment template.
-- `macos/com.mealcheck.server.plist.template`: `launchd` template for the
-  backend API, worker, and cleanup process as a user `LaunchAgent`.
-- `macos/com.mealcheck.server.daemon.plist.template`: `launchd` template for
+- `macos/dev.mealcheck.server.plist.template`: `launchd` template for
   the backend API, worker, and cleanup process as a system `LaunchDaemon`
   running as `chranama-server`.
-- `macos/com.mealcheck.postgres.plist.template`: system `LaunchDaemon`
+- `macos/dev.mealcheck.postgres.plist.template`: system `LaunchDaemon`
   template for Postgres `17`, started at boot but running as
   `chranama-server`.
 - `macos/wait-for-mealcheck-ready.sh`: reboot-friendly readiness check that
@@ -65,15 +63,13 @@ public download story.
 ## Secret Handling
 
 Before deployment, copy templates to their runtime locations and replace only
-the placeholder values:
+the secret or machine-local placeholder values:
 
 - `<POSTGRES_PASSWORD>`
 - `<MEALCHECK_INVITE_TOKEN>`
 - `<CLOUDFLARE_TUNNEL_ID>`
 - `<CLOUDFLARE_ACCOUNT_TAG>`
 - `<ABSOLUTE_CLOUDFLARE_CREDENTIALS_JSON>`
-- `https://mealcheck.example.com`
-- `https://api.mealcheck.example.com`
 
 Never commit copied production files containing real tokens, passwords, tunnel
 credentials, or private hostnames.

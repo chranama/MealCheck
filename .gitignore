@@ -1,4 +1,5 @@
 .mealcheck-data/
+.DS_Store
 artifacts/
 bin/
 ui/dist/

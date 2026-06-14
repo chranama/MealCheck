@@ -6,6 +6,6 @@ tunnel: <CLOUDFLARE_TUNNEL_ID>
 credentials-file: <ABSOLUTE_CLOUDFLARE_CREDENTIALS_JSON>
 
 ingress:
-  - hostname: api.mealcheck.example.com
+  - hostname: api.mealcheck.dev
     service: http://127.0.0.1:8080
   - service: http_status:404

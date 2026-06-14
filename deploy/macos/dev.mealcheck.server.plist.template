@@ -4,7 +4,7 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.mealcheck.server</string>
+  <string>dev.mealcheck.server</string>
 
   <key>UserName</key>
   <string>chranama-server</string>

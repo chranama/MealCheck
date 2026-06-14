@@ -808,14 +808,16 @@ The proposed MacBook runtime layout is:
 - environment file:
   `/Users/chranama-server/MealCheck-data/mealcheck-server.env`
 - Postgres database and role: `mealcheck`
-- backend launchd label: `com.mealcheck.server`
+- backend launchd label: `dev.mealcheck.server`
+- Postgres launchd label: `dev.mealcheck.postgres`
 - Cloudflare Tunnel name: `mealcheck-api`
-- placeholder frontend URL: `https://mealcheck.example.com`
-- placeholder API URL: `https://api.mealcheck.example.com`
+- production frontend URL: `https://mealcheck.dev`
+- production API URL: `https://api.mealcheck.dev`
 
 The deployment package lives under `deploy/` and contains placeholder-only
-templates for the MacBook environment file, `launchd`, Postgres setup,
-Cloudflare Tunnel, Cloudflare Pages settings, and frontend runtime config.
+secrets and machine-local values for the MacBook environment file, `launchd`,
+Postgres setup, Cloudflare Tunnel, Cloudflare Pages settings, and frontend
+runtime config.
 
 Reason:
 
@@ -827,11 +829,11 @@ Consequences:
 
 - Release binaries are deferred until there are multiple deployment targets or
   a public download story.
-- Real secrets, tunnel credentials, and final hostnames must be supplied only
-  during MacBook and Cloudflare configuration.
+- Real secrets and tunnel credentials must be supplied only during MacBook and
+  Cloudflare configuration.
 - Milestone 10 applies these templates on the MacBook.
-- Milestone 11 replaces placeholder hostnames with real Cloudflare Pages and
-  Tunnel values.
+- Milestone 11 configures Cloudflare Pages and Tunnel for the accepted
+  production hostnames.
 
 ## 2026-06-11: Milestone 9 Hardens The Static Web Design
 
@@ -870,38 +872,32 @@ Status: Accepted
 Decision:
 
 MealCheck's MacBook backend should run as a system `LaunchDaemon` with
-`UserName` set to `chranama-server`, label `com.mealcheck.server`, localhost
+`UserName` set to `chranama-server`, label `dev.mealcheck.server`, localhost
 binding on `127.0.0.1:8080`, and logs under
 `/Users/chranama-server/MealCheck-data/logs`.
 
-The repository keeps both launchd templates:
+The repository keeps only the accepted backend server launchd template:
 
-- `deploy/macos/com.mealcheck.server.daemon.plist.template` for the accepted
-  Milestone 10 server mode.
-- `deploy/macos/com.mealcheck.server.plist.template` as a user `LaunchAgent`
-  fallback for logged-in-session testing.
+- `deploy/macos/dev.mealcheck.server.plist.template` for the Milestone
+  10 server mode.
 
-During interactive setup, Codex can install and start the user `LaunchAgent`
-without an admin password. Installing the accepted system `LaunchDaemon` under
-`/Library/LaunchDaemons` requires the operator to run the documented `sudo`
-commands locally.
+The earlier user `LaunchAgent` template was removed because it had the same
+label as the production daemon, did not model before-login startup, and could
+lead to two launchd domains competing for `127.0.0.1:8080`.
 
 Reason:
 
-This MacBook is the long-running backend server. A user `LaunchAgent` is useful
-for local validation, but it starts only when the `chranama-server` GUI session
-is available. A system `LaunchDaemon` is the correct production supervision
-mode for unattended reboot recovery while still running the service as the
-least-privileged runtime user.
+This MacBook is the long-running backend server. A user `LaunchAgent` was
+useful during early local validation, but it starts only when the
+`chranama-server` GUI session is available. A system `LaunchDaemon` is the
+correct production supervision mode for unattended reboot recovery while still
+running the service as the least-privileged runtime user.
 
 Consequences:
 
-- Milestone 10 acceptance should distinguish temporary logged-in-session
-  supervision from the final before-login `LaunchDaemon` mode.
-- The backend can be smoke-tested under the user `LaunchAgent`, but final
-  server acceptance needs the `LaunchDaemon` installed and verified after
+- Server acceptance uses the `LaunchDaemon` installed and verified after
   restart or reboot.
-- Any temporary user `LaunchAgent` must be unloaded and removed before final
+- Any leftover user `LaunchAgent` must be unloaded and removed before final
   daemon acceptance, or both launchd domains may compete for `127.0.0.1:8080`
   after the next login.
 - The MacBook must keep idle system sleep disabled on AC power so launchd
@@ -915,8 +911,8 @@ Decision:
 
 The MacBook deployment should not use Homebrew's generated system
 `homebrew.mxcl.postgresql@17` daemon for the MVP Postgres service. Instead,
-MealCheck installs `deploy/macos/com.mealcheck.postgres.plist.template` as
-`/Library/LaunchDaemons/com.mealcheck.postgres.plist`. The daemon starts at
+MealCheck installs `deploy/macos/dev.mealcheck.postgres.plist.template` as
+`/Library/LaunchDaemons/dev.mealcheck.postgres.plist`. The daemon starts at
 boot but uses `UserName` set to `chranama-server`, with the data directory at
 `/usr/local/var/postgresql@17` and logs at
 `/usr/local/var/log/postgresql@17.log`. It also sets `LC_ALL` and `LANG` to
@@ -935,11 +931,37 @@ until the daemon provided an explicit valid locale.
 Consequences:
 
 - The broken Homebrew system Postgres daemon must be unloaded and removed from
-  `/Library/LaunchDaemons` before installing `com.mealcheck.postgres`.
-- The backend `com.mealcheck.server` daemon depends on local Postgres being
+  `/Library/LaunchDaemons` before installing `dev.mealcheck.postgres`.
+- The backend `dev.mealcheck.server` daemon depends on local Postgres being
   available; after changing Postgres supervision, restart the backend daemon.
 - Future Postgres upgrades may require checking the binary path in
-  `com.mealcheck.postgres.plist.template`.
+  `dev.mealcheck.postgres.plist.template`.
+
+## 2026-06-14: Launchd Labels Use The `mealcheck.dev` Reverse DNS Namespace
+
+Status: Accepted
+
+Decision:
+
+MealCheck launchd labels and deployment plist template filenames should use
+the reverse-DNS namespace for the accepted production domain:
+
+- backend: `dev.mealcheck.server`
+- Postgres: `dev.mealcheck.postgres`
+
+Reason:
+
+Launchd labels conventionally use reverse-DNS ownership. MealCheck uses
+`mealcheck.dev` as the accepted production domain, so `dev.mealcheck.*` is the
+correct namespace. Earlier labels worked technically but implied a different
+domain namespace and made the deployment identity less clear.
+
+Consequences:
+
+- The readiness script and runbook inspect `system/dev.mealcheck.postgres` and
+  `system/dev.mealcheck.server`.
+- Future launchd-managed services for MealCheck should use the same
+  `dev.mealcheck.*` prefix.
 
 ## 2026-06-12: Frontend Defaults To Client-Facing Report Language
 

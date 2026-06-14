@@ -30,10 +30,10 @@ timed_out() {
 
 print_diagnostics() {
   log "diagnostics: Postgres launchd state"
-  launchctl print system/com.mealcheck.postgres 2>/dev/null | sed -n '1,80p' || true
+  launchctl print system/dev.mealcheck.postgres 2>/dev/null | sed -n '1,80p' || true
 
   log "diagnostics: MealCheck launchd state"
-  launchctl print system/com.mealcheck.server 2>/dev/null | sed -n '1,80p' || true
+  launchctl print system/dev.mealcheck.server 2>/dev/null | sed -n '1,80p' || true
 
   log "diagnostics: Postgres log tail"
   tail -n 40 /usr/local/var/log/postgresql@17.log 2>/dev/null || true

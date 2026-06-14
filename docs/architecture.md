@@ -205,8 +205,8 @@ MealCheck should use split frontend/backend hosting:
 
 Preferred domain shape:
 
-- `mealcheck.<domain>` for the frontend
-- `https://api.mealcheck.example.com` as the placeholder backend API URL
+- `https://mealcheck.dev` for the frontend
+- `https://api.mealcheck.dev` for the backend API
 
 The production frontend should call the backend through a public API base URL.
 That value is safe to expose in frontend build output. Secrets, provider keys,

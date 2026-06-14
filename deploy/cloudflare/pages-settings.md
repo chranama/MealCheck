@@ -9,21 +9,21 @@ Use these settings for the first public MealCheck frontend deployment.
 | Root directory | `ui` |
 | Build command | `npm ci && npm run build` |
 | Build output directory | `dist` |
-| Production frontend URL | `https://mealcheck.example.com` |
-| Production API URL | `https://api.mealcheck.example.com` |
+| Production frontend URL | `https://mealcheck.dev` |
+| Production API URL | `https://api.mealcheck.dev` |
 
 ## Public Environment
 
 Preferred configuration:
 
 ```text
-VITE_MEALCHECK_API_BASE_URL=https://api.mealcheck.example.com
+VITE_MEALCHECK_API_BASE_URL=https://api.mealcheck.dev
 ```
 
 Alternative runtime configuration:
 
 1. Copy `deploy/cloudflare/config.json.template` to `ui/public/config.json`.
-2. Replace the placeholder API URL.
+2. Confirm the API URL is `https://api.mealcheck.dev`.
 3. Build and deploy the frontend.
 
 Only public values belong in Cloudflare Pages environment variables or
@@ -35,7 +35,7 @@ credentials, or server-only paths in frontend configuration.
 The backend environment must set:
 
 ```text
-MEALCHECK_ALLOWED_ORIGIN=https://mealcheck.example.com
+MEALCHECK_ALLOWED_ORIGIN=https://mealcheck.dev
 ```
 
 The API hostname should route through Cloudflare Tunnel to:

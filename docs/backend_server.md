@@ -70,10 +70,10 @@ The MacBook server owns only backend responsibilities:
 - optional BYOK provider calls
 
 The frontend should call the backend at a public API subdomain exposed through
-Cloudflare Tunnel. Milestone 8 templates use placeholder hostnames:
+Cloudflare Tunnel. The accepted production hostnames are:
 
-- frontend: `https://mealcheck.example.com`
-- API: `https://api.mealcheck.example.com`
+- frontend: `https://mealcheck.dev`
+- API: `https://api.mealcheck.dev`
 
 ## Resource Requirements
 
@@ -142,7 +142,7 @@ belong in the project dependency file once implementation starts.
 | Cloudflare Tunnel | Safe public API exposure without router port forwarding | Preferred exposure path. |
 | `jq` | Inspecting JSON artifacts, API responses, and smoke test output | Helpful for operations and debugging. |
 | Node.js | Frontend build/runtime only if the hosted UI needs it | Not a backend requirement until a frontend package exists. |
-| `launchd` | Process supervision | Use LaunchAgents or LaunchDaemons after start commands exist. |
+| `launchd` | Process supervision | Use the accepted system LaunchDaemons for Postgres and the backend. |
 | `brew services` | Manage local services such as Postgres | Useful for Postgres. |
 
 ## Initial Install Commands
@@ -203,7 +203,8 @@ The proposed deployed runtime values are:
   `/Users/chranama-server/MealCheck-data/mealcheck-server.env`
 - CLI binary: `/Users/chranama-server/MealCheck/bin/mealcheck`
 - server binary: `/Users/chranama-server/MealCheck/bin/mealcheck-server`
-- launchd label: `com.mealcheck.server`
+- launchd label: `dev.mealcheck.server`
+- Postgres launchd label: `dev.mealcheck.postgres`
 
 The deployed source-build commands are:
 
@@ -284,7 +285,7 @@ The MacBook should be configured as a server:
 Milestone 8 deployment templates:
 
 - `deploy/macos/mealcheck-server.env.example`
-- `deploy/macos/com.mealcheck.server.plist.template`
+- `deploy/macos/dev.mealcheck.server.plist.template`
 - `deploy/macos/postgres-setup.sql.template`
 - `deploy/cloudflare/tunnel-config.yml.template`
 - `deploy/cloudflare/pages-settings.md`
@@ -326,8 +327,6 @@ The server is ready for MVP web acceptance when:
 
 ## Open Decisions
 
-- Replace placeholder production frontend and API hostnames with the accepted
-  domain values.
 - Replace placeholder Postgres, invite-token, and tunnel credentials on the
   MacBook.
 - Decide whether the Cloudflare Tunnel should run manually for first proof or

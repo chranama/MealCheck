@@ -1,5 +1,5 @@
 {
   "api": {
-    "base_url": "https://api.mealcheck.example.com"
+    "base_url": "https://api.mealcheck.dev"
   }
 }

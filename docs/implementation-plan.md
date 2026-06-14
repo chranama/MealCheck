@@ -901,13 +901,13 @@ Deliver:
 - production `.env` template with secret placeholders only
 - `launchd` service template or equivalent process-supervision template for
   `mealcheck-server`
-- Cloudflare Tunnel configuration template with placeholders only
-- Cloudflare Pages settings documented with placeholder production hostnames
+- Cloudflare Tunnel configuration template with placeholder tunnel credentials
+- Cloudflare Pages settings documented with production hostnames
 - Postgres setup commands and verification commands drafted
 - backend start command using production-style Postgres storage drafted
 - runbook sections for deploy, pull, start, stop, restart, status, logs, local
   health, public health, tunnel status, cleanup, backup, and deletion drafted
-- public smoke-test checklist drafted with placeholder URLs
+- public smoke-test checklist drafted with production URLs
 - backup policy drafted for Postgres metadata and retained artifacts
 - common failure modes and recovery steps drafted
 
@@ -916,28 +916,29 @@ Implemented:
 1. Added deployment package templates:
    - `deploy/README.md`
    - `deploy/macos/mealcheck-server.env.example`
-   - `deploy/macos/com.mealcheck.server.plist.template`
+   - `deploy/macos/dev.mealcheck.server.plist.template`
    - `deploy/macos/postgres-setup.sql.template`
    - `deploy/cloudflare/tunnel-config.yml.template`
    - `deploy/cloudflare/pages-settings.md`
    - `deploy/cloudflare/config.json.template`
-2. Selected internally consistent placeholder deployment values:
+2. Selected internally consistent deployment values:
    - runtime user: `chranama-server`
    - repository: `/Users/chranama-server/MealCheck`
    - data path: `/Users/chranama-server/MealCheck-data`
    - artifact path: `/Users/chranama-server/MealCheck-data/artifacts`
    - log path: `/Users/chranama-server/MealCheck-data/logs`
    - Postgres database and role: `mealcheck`
-   - backend launchd label: `com.mealcheck.server`
+   - backend launchd label: `dev.mealcheck.server`
+   - Postgres launchd label: `dev.mealcheck.postgres`
    - Cloudflare Tunnel name: `mealcheck-api`
-   - placeholder frontend URL: `https://mealcheck.example.com`
-   - placeholder API URL: `https://api.mealcheck.example.com`
+   - production frontend URL: `https://mealcheck.dev`
+   - production API URL: `https://api.mealcheck.dev`
 3. Decided source-build deployment is enough for MVP:
    - `go build -o bin/mealcheck ./cmd/mealcheck`
    - `go build -o bin/mealcheck-server ./cmd/mealcheck-server`
 4. Updated README, runbook, backend server doc, and decision log to reference
    the same deployment package, paths, service label, environment names, and
-   placeholder hostnames.
+   production hostnames.
 5. Added runbook sections for:
    - local CLI deployment
    - MacBook first-time preparation
@@ -961,7 +962,7 @@ Acceptance:
 - README, runbook, and implementation plan describe the same local CLI
   deployment path
 - deployment templates contain no real secrets
-- all paths, service labels, environment variable names, and placeholder
+- all paths, service labels, environment variable names, and production
   hostnames are internally consistent across README, runbook, backend server
   doc, and implementation plan
 - the package is ready to copy or apply on the MacBook when deployment starts
@@ -1171,7 +1172,7 @@ Implemented:
    - `/Users/chranama-server/MealCheck-data/backups`
 3. Created the `mealcheck` Postgres role and database.
    - For true before-login recovery, Postgres should be managed by
-     `/Library/LaunchDaemons/com.mealcheck.postgres.plist`, which starts at
+     `/Library/LaunchDaemons/dev.mealcheck.postgres.plist`, which starts at
      boot but runs the Postgres process as `chranama-server`.
    - The Postgres daemon sets `LC_ALL=en_US.UTF-8` and `LANG=en_US.UTF-8`
      because Postgres failed under launchd without an explicit valid locale.
@@ -1181,13 +1182,12 @@ Implemented:
    - `/Users/chranama-server/MealCheck/bin/mealcheck`
    - `/Users/chranama-server/MealCheck/bin/mealcheck-server`
 6. Added and installed
-   `deploy/macos/com.mealcheck.server.daemon.plist.template` as
-   `/Library/LaunchDaemons/com.mealcheck.server.plist` with `root:wheel`
+   `deploy/macos/dev.mealcheck.server.plist.template` as
+   `/Library/LaunchDaemons/dev.mealcheck.server.plist` with `root:wheel`
    ownership and `0644` permissions. The daemon waits for local Postgres to
    accept connections before starting `mealcheck-server`.
-7. Removed the temporary user `LaunchAgent` from
-   `/Users/chranama-server/Library/LaunchAgents/com.mealcheck.server.plist` so
-   only the system `LaunchDaemon` manages port `8080` after login.
+7. Removed the temporary user `LaunchAgent` so only the system `LaunchDaemon`
+   manages port `8080` after login.
 8. Verified `GET /api/health` against the supervised daemon:
    - `status: ok`
    - `store: postgres`
@@ -1216,8 +1216,8 @@ Implemented:
     - wrote a non-empty Postgres dump
     - copied retained artifacts to a timestamped local backup directory
 14. Reboot-verified the final daemon chain:
-    - `com.mealcheck.postgres` starts as a system `LaunchDaemon`
-    - `com.mealcheck.server` starts as a system `LaunchDaemon`
+    - `dev.mealcheck.postgres` starts as a system `LaunchDaemon`
+    - `dev.mealcheck.server` starts as a system `LaunchDaemon`
     - after boot settling, `GET /api/health` returns `status: ok` and
       `store: postgres`
 15. Added `deploy/macos/wait-for-mealcheck-ready.sh` so operators can wait for
@@ -1227,7 +1227,8 @@ Implemented:
 
 Milestone 10 verification:
 
-- `plutil -lint deploy/macos/com.mealcheck.server.daemon.plist.template`
+- `plutil -lint deploy/macos/dev.mealcheck.server.plist.template`
+- `plutil -lint deploy/macos/dev.mealcheck.postgres.plist.template`
 - `git diff --check`
 - `go test ./...`
 

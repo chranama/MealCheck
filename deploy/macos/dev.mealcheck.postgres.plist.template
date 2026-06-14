@@ -4,7 +4,7 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.mealcheck.postgres</string>
+  <string>dev.mealcheck.postgres</string>
 
   <key>UserName</key>
   <string>chranama-server</string>
