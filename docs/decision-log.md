@@ -1082,3 +1082,49 @@ Consequences:
   remains the wire header for backward compatibility.
 - If MealCheck later needs identity, sharing, billing, or persistent user
   history, this access-code model should be replaced with a real auth model.
+
+## 2026-06-15: MVP Web Acceptance Keeps Direct Upload Until A Deliberate Git Cutover
+
+Status: Accepted
+
+Decision:
+
+MealCheck is accepted for first invite-gated public review on the deployed
+Cloudflare Pages and Cloudflare Tunnel shape:
+
+- frontend: `https://mealcheck.dev`
+- API: `https://api.mealcheck.dev`
+- latest Pages deployment: `4615be28-52b7-40c2-8140-f5e12666b573`
+- source commit: `d30ae3d5e0d94b229748dcda937dadc500267d65`
+
+Production live runs require per-user access codes, with the legacy shared
+invite token disabled in production config. Public smoke testing verified
+health, access-code enforcement, manual live-run completion, report/artifact
+retrieval, deletion, backup capture, retention posture, CORS behavior, and
+fake-key BYOK redaction.
+
+The existing Cloudflare Pages project remains Direct Upload. A 2026-06-15
+Cloudflare API attempt to attach `chranama/MealCheck` as the project source was
+rejected with `You cannot update the source object in a Direct Uploads
+project`. Cloudflare Git integration therefore requires a new Git-integrated
+Pages project and a deliberate `mealcheck.dev` custom-domain cutover.
+
+Reason:
+
+The deployed product now satisfies the MVP web acceptance goals without
+maintainer-paid inference or router port forwarding. Replacing the Pages
+project only to gain push-to-deploy would introduce avoidable cutover risk after
+the public URL is already active. Keeping Direct Upload preserves the working
+production path while leaving a clear migration plan if automatic Git builds
+become operationally important.
+
+Consequences:
+
+- `docs/runbook.md` is the operational source of truth for deploy, health,
+  smoke, backup, retention, and failure recovery commands.
+- Future frontend production deploys use Wrangler Direct Upload until a new
+  Git-integrated Pages project is created.
+- A GitHub-connected Pages migration must be treated as a deployment cutover,
+  not as an in-place project setting change.
+- Access codes remain the MVP public live-run gate; full user accounts remain
+  out of scope until product needs justify them.

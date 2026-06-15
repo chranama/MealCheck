@@ -330,11 +330,19 @@ The server is ready for MVP web acceptance when:
 - runbook commands cover deployment, start, stop, restart, logs, health,
   tunnel status, backup, cleanup, and live-run deletion
 
+Production acceptance was recorded on 2026-06-15:
+
+- `https://mealcheck.dev` serves the accepted static frontend.
+- `https://api.mealcheck.dev/api/health` returns `status: ok` with Postgres
+  storage, queue limits, and `retention_days: 7`.
+- live run creation requires a valid per-user access code.
+- public manual live run creation, report retrieval, artifact listing, deletion,
+  backup capture, retention verification, CORS verification, and fake-key BYOK
+  redaction checks were completed.
+
 ## Open Decisions
 
-- Replace placeholder Postgres and tunnel credentials on the
-  MacBook.
-- Confirm `mealcheck.dev` apex DNS after Cloudflare Pages custom-domain
-  validation is active.
 - Confirm backup cadence after the MacBook storage and expected usage are
   observed.
+- Decide whether push-to-deploy is worth replacing the current Direct Upload
+  Pages project with a new Git-integrated Pages project.

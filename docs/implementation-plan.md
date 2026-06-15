@@ -1237,6 +1237,8 @@ Milestone 10 verification:
 Status: Implemented on Cloudflare using a direct-upload Pages project. The
 Cloudflare Tunnel, API DNS route, tunnel LaunchDaemon, Pages project, direct
 Pages deployment, Pages custom domain, and production CORS pairing are active.
+Cloudflare does not allow the existing Direct Upload project to be converted to
+Git integration in place.
 
 Deliver:
 
@@ -1274,9 +1276,9 @@ Implemented:
    - Pages URL: `https://mealcheck.pages.dev`
    - Git provider: `No`
 8. Deployed `ui/dist` to Cloudflare Pages.
-   - deployment ID: `80e4ae36-17cb-4128-8a1a-d09e97fc6818`
+   - latest deployment ID: `4615be28-52b7-40c2-8140-f5e12666b573`
    - branch: `main`
-   - commit: `e990d207d6d431be50bf5c4519186ae361b6ebe9`
+   - commit: `d30ae3d5e0d94b229748dcda937dadc500267d65`
 9. Attached `mealcheck.dev` as a Pages custom domain. Cloudflare returned
    `status: active`, `validation_data.status: active`, and
    `verification_data.status: active` after the apex DNS record was added.
@@ -1297,10 +1299,12 @@ Implemented:
 Milestone 11 note:
 
 - The original deliverable said the Pages project should be connected to the
-  repository. The implemented project is a direct-upload Pages project because
-  Wrangler exposed project creation and deployment but not repository
-  connection. Push-to-deploy remains optional follow-up work unless the MVP
-  explicitly requires Cloudflare's Git integration.
+  repository. The implemented project is a direct-upload Pages project.
+  Cloudflare's API returned `You cannot update the source object in a Direct
+  Uploads project` when asked to attach the repository, matching Cloudflare's
+  Direct Upload rule that automatic Git deployments require a new
+  Git-integrated project. Push-to-deploy therefore requires a deliberate
+  replacement Pages project and custom-domain cutover.
 
 Acceptance:
 
@@ -1314,6 +1318,9 @@ Acceptance:
 - no router port forwarding is required
 
 ## Milestone 12: Public Operations And MVP Acceptance Review
+
+Status: Implemented on 2026-06-15 against the production URLs
+`https://mealcheck.dev` and `https://api.mealcheck.dev`.
 
 Deliver:
 
@@ -1330,6 +1337,47 @@ Deliver:
 - confirmation that provider keys are absent from database fields, logs,
   reports, and artifact bundles checked during acceptance
 - updated README status that the MVP is web-deployed
+
+Implemented:
+
+1. Redeployed the production frontend from commit
+   `d30ae3d5e0d94b229748dcda937dadc500267d65`.
+   - Pages deployment ID: `4615be28-52b7-40c2-8140-f5e12666b573`
+   - production asset observed on `https://mealcheck.dev`:
+     `index-ANuw1idr.js`
+2. Switched production live-run gating to per-user access codes by setting
+   `MEALCHECK_INVITE_REQUIRED='true'` and leaving the legacy
+   `MEALCHECK_INVITE_TOKEN` commented out.
+3. Created an MVP smoke-test access code with public ID `wE-QP3n1pww`, expiry
+   `2026-07-31T00:00:00Z`, and max-run limit `20`. The full access code was
+   stored outside the repository.
+4. Verified missing access code rejection through the public API returns `401`
+   with `valid access code required`.
+5. Ran a public invite-gated manual smoke run:
+   - run ID: `run_4b5dbb4b5cf67e81faf990cb`
+   - status: `completed`
+   - decision: `block`
+   - risk: `high`
+   - report PDF and artifact list were available before deletion
+   - run deletion was verified with subsequent `404` responses
+6. Ran a fake-key BYOK privacy probe:
+   - run ID: `run_2ee368a4048b694b49c2b81a`
+   - status: `failed` as expected because the provider URL was intentionally
+     unreachable
+   - fake provider key was absent from service logs, artifact files, and
+     `pg_dump` output
+   - run deletion was verified with a subsequent `404`
+7. Ran a production backup capture at
+   `/Users/chranama-server/MealCheck-data/backups/20260615-150158`.
+   - Postgres dump size: `10335` bytes
+   - retained live artifact files at capture time: `0`
+8. Verified retention/cleanup posture:
+   - public health reports `retention_days: 7`
+   - live artifact directory count after smoke-run deletion: `0`
+9. Verified production CORS:
+   - `Origin: https://mealcheck.dev` receives
+     `Access-Control-Allow-Origin: https://mealcheck.dev`
+   - `Origin: https://not-mealcheck.example` receives no allow-origin header
 
 Acceptance:
 

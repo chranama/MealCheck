@@ -14,14 +14,14 @@ Use these settings for the first public MealCheck frontend deployment.
 
 ## Live Cloudflare State
 
-Observed on 2026-06-14:
+Observed on 2026-06-15:
 
 | Value | State |
 |---|---|
 | Account ID | `0f5ac9230ddfc332774b414898e9f59f` |
 | Pages project | `mealcheck` |
 | Git provider | `No` |
-| Production deployment | `80e4ae36-17cb-4128-8a1a-d09e97fc6818` |
+| Production deployment | `4615be28-52b7-40c2-8140-f5e12666b573` |
 | Production branch | `main` |
 | Pages URL | `https://mealcheck.pages.dev` |
 | Custom domain | `https://mealcheck.dev`, active |
@@ -44,10 +44,13 @@ wrangler pages deploy ui/dist \
 ```
 
 The original Milestone 11 plan called for a Git-connected Pages project. The
-current project is a direct-upload project because Wrangler exposes project
-creation and deployment commands but not repository connection. If automated
-push-to-deploy becomes required, connect the existing `mealcheck` Pages project
-to the GitHub repository in the Cloudflare dashboard.
+current project is a direct-upload project. Cloudflare rejected an API attempt
+to attach `chranama/MealCheck` to this project with `You cannot update the
+source object in a Direct Uploads project`. Cloudflare's Direct Upload
+documentation states that Direct Upload projects cannot switch to Git
+integration later. If automated push-to-deploy becomes required, create a new
+Git-integrated Pages project and cut the `mealcheck.dev` custom domain over
+after validating the replacement deployment.
 
 ## Custom Domain DNS
 

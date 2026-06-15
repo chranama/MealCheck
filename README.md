@@ -24,7 +24,7 @@ regressions.
 
 ## Current Shape
 
-The project has a Milestone 11 deployed Vite/React frontend. It has
+The project has a Milestone 12 accepted Vite/React frontend and hosted API. It has
 seeded fixtures, JSON Schemas, a small local nutrient catalog, a checker core, a
 local CLI that writes the artifact bundle, a static frontend with seeded and
 live-run workflows, a hosted API/worker wrapper, and invite-gated
@@ -39,9 +39,10 @@ The accepted MVP deployment shape is:
 - public seeded demos without maintainer-paid model calls
 - live generation or bounded repair only through bring-your-own-key execution
 
-The remaining MVP gap is the Milestone 12 public operations and acceptance
-review: final public smoke tests, backup/cleanup verification, and recording
-the final acceptance evidence.
+The MVP is web-deployed for first invite-gated public review. Production live
+runs require per-user access codes. The current Cloudflare Pages project is a
+Direct Upload project; Cloudflare Git integration requires creating a new
+Git-connected Pages project before any future push-to-deploy cutover.
 
 ## What It Is Not
 

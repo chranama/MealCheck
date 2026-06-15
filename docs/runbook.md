@@ -589,9 +589,17 @@ Live Pages values:
 - custom domain: `https://mealcheck.dev`, active
 
 The current Pages project was created by direct Wrangler upload. Cloudflare
-reported `Git Provider: No` after creation. If push-to-deploy is required,
-connect the existing Pages project to the GitHub repository in the Cloudflare
-dashboard.
+reported `Git Provider: No` after creation. On 2026-06-15, the Cloudflare API
+rejected an attempt to attach `chranama/MealCheck` to the existing project with
+`You cannot update the source object in a Direct Uploads project`. If
+push-to-deploy is required, create a new Git-integrated Pages project and cut
+the custom domain over deliberately.
+
+Latest accepted production deployment:
+
+- deployment ID: `4615be28-52b7-40c2-8140-f5e12666b573`
+- commit: `d30ae3d5e0d94b229748dcda937dadc500267d65`
+- production asset observed on `https://mealcheck.dev`: `index-ANuw1idr.js`
 
 Build and deploy direct-upload Pages:
 
@@ -759,6 +767,27 @@ place.
 - Delete the run and confirm report/artifact URLs no longer work.
 - Verify a disallowed browser origin does not receive
   `Access-Control-Allow-Origin`.
+
+Last accepted production smoke, 2026-06-15:
+
+- `https://api.mealcheck.dev/api/health` returned `status: ok`, `store:
+  postgres`, `active_run_limit: 1`, `queue_size: 3`, and `retention_days: 7`.
+- Missing access code on `POST /api/runs` returned `401` with `valid access code
+  required`.
+- Access code ID `wE-QP3n1pww` was created for smoke testing with expiry
+  `2026-07-31T00:00:00Z` and max-run limit `20`; the full code is stored
+  outside the repository.
+- Manual run `run_4b5dbb4b5cf67e81faf990cb` completed with decision `block`,
+  exposed `decision.json` and `report.pdf`, then was deleted and verified with
+  `404` responses.
+- Fake-key BYOK run `run_2ee368a4048b694b49c2b81a` failed as expected against
+  an unreachable provider URL; the fake key was absent from logs, artifact
+  files, and `pg_dump`, then the run was deleted and verified with `404`.
+- Backup directory
+  `/Users/chranama-server/MealCheck-data/backups/20260615-150158` contains a
+  `10335` byte Postgres dump and no retained live artifact files.
+- CORS allowed `https://mealcheck.dev` and did not allow
+  `https://not-mealcheck.example`.
 
 ## Failure Modes And Recovery Draft
 
@@ -930,9 +959,61 @@ Required web smoke tests:
 - verify persisted artifacts contain `redacted` provider config only
 - delete the live run and verify the report/artifacts are no longer available
 
-Operational topics still to document with exact local commands after the
-MacBook is configured:
+## Source-Pack Update Process
 
-- source-pack update process
-- nutrient catalog update process
-- common failure modes and recovery steps
+Guideline source-pack changes should be reviewed as data changes, not ad hoc
+runtime edits.
+
+1. Update the checked-in files under
+   `data/guidelines/dga-2025-2030-us-adult-general-v1/` or add a new versioned
+   guideline-pack directory.
+2. If a new guideline-pack ID is introduced, update cases and seeded demo
+   fixtures that intentionally use the new pack.
+3. Validate fixture cross-references:
+
+```bash
+go run ./cmd/mealcheck-fixture-check
+```
+
+4. Regenerate and inspect the seeded artifact bundle:
+
+```bash
+go run ./cmd/mealcheck validate \
+  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --out artifacts/latest
+```
+
+5. Run the full Go test suite:
+
+```bash
+go test ./...
+```
+
+6. Rebuild the frontend if the seeded public demo artifacts are updated.
+
+## Nutrient Catalog Update Process
+
+The current catalog is a fixture-scale catalog for the seeded proof and first
+manual-input scope. Treat catalog expansion as product-scope work because it
+changes what public live runs can honestly verify.
+
+1. Update `data/nutrients/fixture-catalog-v1.json` or add a new versioned
+   catalog file.
+2. Keep food IDs, portion units, and nutrient fields aligned with
+   `schemas/nutrient-catalog.schema.json`.
+3. Update any examples or tests that intentionally depend on new foods or
+   portions.
+4. Validate fixtures:
+
+```bash
+go run ./cmd/mealcheck-fixture-check
+```
+
+5. Run the full Go test suite:
+
+```bash
+go test ./...
+```
+
+6. Run one local or production smoke path using representative foods before
+   advertising the expanded catalog in the UI.
