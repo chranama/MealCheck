@@ -1085,7 +1085,7 @@ Consequences:
 
 ## 2026-06-15: MVP Web Acceptance Keeps Direct Upload Until A Deliberate Git Cutover
 
-Status: Accepted
+Status: Superseded by the 2026-06-15 GitHub-integrated Pages cutover.
 
 Decision:
 
@@ -1122,9 +1122,44 @@ Consequences:
 
 - `docs/runbook.md` is the operational source of truth for deploy, health,
   smoke, backup, retention, and failure recovery commands.
-- Future frontend production deploys use Wrangler Direct Upload until a new
-  Git-integrated Pages project is created.
+- This decision described the Direct Upload interim state. Frontend production
+  deploys now use GitHub-integrated Pages.
 - A GitHub-connected Pages migration must be treated as a deployment cutover,
   not as an in-place project setting change.
 - Access codes remain the MVP public live-run gate; full user accounts remain
   out of scope until product needs justify them.
+
+## 2026-06-15: Replace Direct Upload Pages With GitHub-Integrated Pages
+
+Status: Accepted
+
+Decision:
+
+Replace the Direct Upload `mealcheck` Pages project with a new Cloudflare Pages
+project of the same name connected to `chranama/MealCheck`. The active
+production deployment now builds automatically from GitHub:
+
+- project: `mealcheck`
+- repository: `chranama/MealCheck`
+- production branch: `main`
+- root directory: `ui`
+- build command: `npm ci && npm run build`
+- build output: `dist`
+- deployment ID: `dd76ce42-4a09-4482-b38e-0ba0a8d3b0f4`
+- source commit: `94271e5901938d1ced9dd675c264cf095fbbbac6`
+- domains: `mealcheck.pages.dev`, `mealcheck.dev`
+
+Reason:
+
+The Direct Upload project could not be converted to Git integration in place.
+Using the same project name after deletion preserves the familiar
+`mealcheck.pages.dev` hostname while adding automatic deployments from GitHub.
+
+Consequences:
+
+- Pushing to `main` is now the production frontend deployment path.
+- Wrangler Direct Upload is no longer the normal deployment path for the
+  frontend.
+- The custom domain `mealcheck.dev` is bound to the Git-integrated Pages
+  project.
+- Production backend and tunnel deployment remain unchanged.

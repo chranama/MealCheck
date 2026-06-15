@@ -344,5 +344,3 @@ Production acceptance was recorded on 2026-06-15:
 
 - Confirm backup cadence after the MacBook storage and expected usage are
   observed.
-- Decide whether push-to-deploy is worth replacing the current Direct Upload
-  Pages project with a new Git-integrated Pages project.

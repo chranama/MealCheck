@@ -40,9 +40,8 @@ The accepted MVP deployment shape is:
 - live generation or bounded repair only through bring-your-own-key execution
 
 The MVP is web-deployed for first invite-gated public review. Production live
-runs require per-user access codes. The current Cloudflare Pages project is a
-Direct Upload project; Cloudflare Git integration requires creating a new
-Git-connected Pages project before any future push-to-deploy cutover.
+runs require per-user access codes. The Cloudflare Pages frontend is connected
+to the GitHub repository and automatically deploys from `main`.
 
 ## What It Is Not
 

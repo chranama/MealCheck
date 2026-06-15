@@ -588,33 +588,19 @@ Live Pages values:
 - Pages URL: `https://mealcheck.pages.dev`
 - custom domain: `https://mealcheck.dev`, active
 
-The current Pages project was created by direct Wrangler upload. Cloudflare
-reported `Git Provider: No` after creation. On 2026-06-15, the Cloudflare API
-rejected an attempt to attach `chranama/MealCheck` to the existing project with
-`You cannot update the source object in a Direct Uploads project`. If
-push-to-deploy is required, create a new Git-integrated Pages project and cut
-the custom domain over deliberately.
+The current Pages project is Git-integrated with `chranama/MealCheck`.
+Cloudflare deploys automatically from the `main` branch.
 
 Latest accepted production deployment:
 
-- deployment ID: `4615be28-52b7-40c2-8140-f5e12666b573`
-- commit: `d30ae3d5e0d94b229748dcda937dadc500267d65`
+- deployment ID: `dd76ce42-4a09-4482-b38e-0ba0a8d3b0f4`
+- commit: `94271e5901938d1ced9dd675c264cf095fbbbac6`
 - production asset observed on `https://mealcheck.dev`: `index-ANuw1idr.js`
 
-Build and deploy direct-upload Pages:
+Deploy Pages from GitHub:
 
 ```bash
-cd /Users/chranama-server/MealCheck/ui
-npm ci
-VITE_MEALCHECK_API_BASE_URL=https://api.mealcheck.dev npm run build
-
-cd /Users/chranama-server/MealCheck
-wrangler pages deploy ui/dist \
-  --project-name mealcheck \
-  --branch main \
-  --commit-hash "$(git rev-parse HEAD)" \
-  --commit-message "$(git log -1 --pretty=%s)" \
-  --commit-dirty=true
+git push origin main
 ```
 
 Pages deployment status:
@@ -623,19 +609,16 @@ Pages deployment status:
 wrangler pages deployment list --project-name mealcheck
 ```
 
-Attach and inspect the Pages custom domain through the API, using Wrangler's
-local OAuth config without printing the token:
+The old Direct Upload project cannot be converted to Git integration in place.
+If the Pages project ever has to be rebuilt from scratch again, create a new
+Git-integrated Pages project and then reattach `mealcheck.dev`.
+
+Inspect the Pages custom domain through the API, using Wrangler's local OAuth
+config without printing the token:
 
 ```bash
 TOKEN=$(awk -F' = ' '/^oauth_token/ { gsub(/"/, "", $2); print $2 }' \
   /Users/chranama-server/Library/Preferences/.wrangler/config/default.toml)
-
-curl -fsS -X POST \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  --data '{"name":"mealcheck.dev"}' \
-  "https://api.cloudflare.com/client/v4/accounts/0f5ac9230ddfc332774b414898e9f59f/pages/projects/mealcheck/domains" \
-  | jq .
 
 curl -fsS \
   -H "Authorization: Bearer $TOKEN" \

@@ -20,49 +20,47 @@ Observed on 2026-06-15:
 |---|---|
 | Account ID | `0f5ac9230ddfc332774b414898e9f59f` |
 | Pages project | `mealcheck` |
-| Git provider | `No` |
-| Production deployment | `4615be28-52b7-40c2-8140-f5e12666b573` |
+| Git provider | `Yes` |
+| Production deployment | `dd76ce42-4a09-4482-b38e-0ba0a8d3b0f4` |
+| Source commit | `94271e5901938d1ced9dd675c264cf095fbbbac6` |
 | Production branch | `main` |
 | Pages URL | `https://mealcheck.pages.dev` |
 | Custom domain | `https://mealcheck.dev`, active |
 
-The first deployment was uploaded directly with Wrangler:
+The active project is Git-integrated with GitHub repository
+`chranama/MealCheck`. Cloudflare builds from the repository with:
 
-```bash
-cd /Users/chranama-server/MealCheck
-cd ui
-npm ci
-VITE_MEALCHECK_API_BASE_URL=https://api.mealcheck.dev npm run build
-cd ..
-wrangler pages project create mealcheck --production-branch main
-wrangler pages deploy ui/dist \
-  --project-name mealcheck \
-  --branch main \
-  --commit-hash <GIT_COMMIT> \
-  --commit-message "<GIT_COMMIT_MESSAGE>" \
-  --commit-dirty=true
+```text
+Root directory: ui
+Build command: npm ci && npm run build
+Build output directory: dist
 ```
 
-The original Milestone 11 plan called for a Git-connected Pages project. The
-current project is a direct-upload project. Cloudflare rejected an API attempt
-to attach `chranama/MealCheck` to this project with `You cannot update the
-source object in a Direct Uploads project`. Cloudflare's Direct Upload
-documentation states that Direct Upload projects cannot switch to Git
-integration later. If automated push-to-deploy becomes required, create a new
-Git-integrated Pages project and cut the `mealcheck.dev` custom domain over
-after validating the replacement deployment.
+Production and preview environment variables:
+
+```text
+NODE_VERSION=22
+VITE_MEALCHECK_API_BASE_URL=https://api.mealcheck.dev
+```
+
+Historical note: the first Milestone 11 deployment used a Wrangler Direct
+Upload Pages project. Cloudflare rejected an API attempt to attach the
+repository in place with `You cannot update the source object in a Direct
+Uploads project`, so the project was replaced with a new Git-integrated Pages
+project and the `mealcheck.dev` custom domain was rebound.
 
 ## Custom Domain DNS
 
-Cloudflare Pages reports `mealcheck.dev` as active after adding the apex DNS
-record in the `mealcheck.dev` zone:
+Cloudflare Pages reports `mealcheck.dev` as active after binding the custom
+domain to the Git-integrated Pages project. The `mealcheck.dev` zone keeps the
+apex record:
 
 | Type | Name | Target | Proxy |
 |---|---|---|---|
 | `CNAME` | `@` | `mealcheck.pages.dev` | Proxied |
 
-Cloudflare flattens the apex CNAME. Observed Pages domain validation moved to
-`active` on 2026-06-14.
+Cloudflare flattens the apex CNAME. Observed Pages domain validation was active
+after the Git-integrated cutover on 2026-06-15.
 
 ## Public Environment
 

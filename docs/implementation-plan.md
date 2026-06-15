@@ -1234,11 +1234,9 @@ Milestone 10 verification:
 
 ## Milestone 11: Cloudflare Pages And Tunnel Deployment
 
-Status: Implemented on Cloudflare using a direct-upload Pages project. The
-Cloudflare Tunnel, API DNS route, tunnel LaunchDaemon, Pages project, direct
-Pages deployment, Pages custom domain, and production CORS pairing are active.
-Cloudflare does not allow the existing Direct Upload project to be converted to
-Git integration in place.
+Status: Implemented on Cloudflare using a Git-integrated Pages project. The
+Cloudflare Tunnel, API DNS route, tunnel LaunchDaemon, Pages project, GitHub
+build integration, Pages custom domain, and production CORS pairing are active.
 
 Deliver:
 
@@ -1274,14 +1272,20 @@ Implemented:
    - account ID: `0f5ac9230ddfc332774b414898e9f59f`
    - production branch: `main`
    - Pages URL: `https://mealcheck.pages.dev`
-   - Git provider: `No`
-8. Deployed `ui/dist` to Cloudflare Pages.
-   - latest deployment ID: `4615be28-52b7-40c2-8140-f5e12666b573`
+   - Git provider: `Yes`
+   - repository: `chranama/MealCheck`
+8. Deployed the frontend through Cloudflare's GitHub integration.
+   - latest deployment ID: `dd76ce42-4a09-4482-b38e-0ba0a8d3b0f4`
    - branch: `main`
-   - commit: `d30ae3d5e0d94b229748dcda937dadc500267d65`
+   - commit: `94271e5901938d1ced9dd675c264cf095fbbbac6`
+   - root directory: `ui`
+   - build command: `npm ci && npm run build`
+   - build output: `dist`
+   - public environment:
+     `VITE_MEALCHECK_API_BASE_URL=https://api.mealcheck.dev`
 9. Attached `mealcheck.dev` as a Pages custom domain. Cloudflare returned
-   `status: active`, `validation_data.status: active`, and
-   `verification_data.status: active` after the apex DNS record was added.
+   the frontend from the Git-integrated Pages project after the custom domain
+   was rebound.
 10. Updated the MacBook backend runtime environment so
     `MEALCHECK_ALLOWED_ORIGIN='https://mealcheck.dev'`.
 11. Restarted `dev.mealcheck.server` and verified production CORS behavior
@@ -1299,12 +1303,12 @@ Implemented:
 Milestone 11 note:
 
 - The original deliverable said the Pages project should be connected to the
-  repository. The implemented project is a direct-upload Pages project.
+  repository. The first hosted Pages project was a Direct Upload project.
   Cloudflare's API returned `You cannot update the source object in a Direct
   Uploads project` when asked to attach the repository, matching Cloudflare's
-  Direct Upload rule that automatic Git deployments require a new
-  Git-integrated project. Push-to-deploy therefore requires a deliberate
-  replacement Pages project and custom-domain cutover.
+  Direct Upload rule that automatic Git deployments require a Git-integrated
+  project. The Direct Upload project was deleted and recreated as a
+  Git-integrated Pages project, then `mealcheck.dev` was rebound.
 
 Acceptance:
 
@@ -1341,8 +1345,8 @@ Deliver:
 Implemented:
 
 1. Redeployed the production frontend from commit
-   `d30ae3d5e0d94b229748dcda937dadc500267d65`.
-   - Pages deployment ID: `4615be28-52b7-40c2-8140-f5e12666b573`
+   `94271e5901938d1ced9dd675c264cf095fbbbac6`.
+   - Pages deployment ID: `dd76ce42-4a09-4482-b38e-0ba0a8d3b0f4`
    - production asset observed on `https://mealcheck.dev`:
      `index-ANuw1idr.js`
 2. Switched production live-run gating to per-user access codes by setting
