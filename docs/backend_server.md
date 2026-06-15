@@ -240,6 +240,7 @@ Supported configuration:
 - `MEALCHECK_STORE`
 - `DATABASE_URL`
 - `MEALCHECK_ALLOWED_ORIGIN`
+- `MEALCHECK_INVITE_REQUIRED`
 - `MEALCHECK_INVITE_TOKEN`
 - `MEALCHECK_QUEUE_SIZE`
 - `MEALCHECK_MAX_CASES_PER_RUN`
@@ -313,8 +314,10 @@ The server is ready for MVP web acceptance when:
 - the backend runs under macOS process supervision and restarts after reboot
 - Postgres and artifact storage use final paths outside the Git checkout
 - `MEALCHECK_ALLOWED_ORIGIN` is set to the production frontend origin
-- `MEALCHECK_INVITE_TOKEN` is configured for live run creation
 - the `LaunchDaemon` mode is verified after reboot or manual restart
+- `MEALCHECK_INVITE_REQUIRED=true` is configured for live run creation
+- at least one per-user access code has been created with `mealcheck invite
+  create`
 - Cloudflare Tunnel maps the public API hostname to the local API service
 - `dev.mealcheck.tunnel` keeps the Cloudflare Tunnel connector running after
   reboot
@@ -329,7 +332,7 @@ The server is ready for MVP web acceptance when:
 
 ## Open Decisions
 
-- Replace placeholder Postgres, invite-token, and tunnel credentials on the
+- Replace placeholder Postgres and tunnel credentials on the
   MacBook.
 - Confirm `mealcheck.dev` apex DNS after Cloudflare Pages custom-domain
   validation is active.

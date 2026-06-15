@@ -13,17 +13,19 @@ type MemoryStore struct {
 	mu          sync.Mutex
 	runs        map[string]Run
 	events      map[string][]RunEvent
+	invites     map[string]InviteToken
 	nextEventID int64
 }
 
 func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{
-		runs:   map[string]Run{},
-		events: map[string][]RunEvent{},
+		runs:    map[string]Run{},
+		events:  map[string][]RunEvent{},
+		invites: map[string]InviteToken{},
 	}
 }
 
-func (s *MemoryStore) CreateRun(_ context.Context, run Run, queueSize int) error {
+func (s *MemoryStore) CreateRun(_ context.Context, run Run, queueSize int, inviteTokenID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, exists := s.runs[run.ID]; exists {
@@ -37,6 +39,25 @@ func (s *MemoryStore) CreateRun(_ context.Context, run Run, queueSize int) error
 	}
 	if queued >= queueSize {
 		return ErrQueueFull
+	}
+	if inviteTokenID != "" {
+		invite, ok := s.invites[inviteTokenID]
+		if !ok {
+			return ErrInviteUnavailable
+		}
+		if invite.RevokedAt != nil {
+			return ErrInviteUnavailable
+		}
+		if invite.ExpiresAt != nil && !invite.ExpiresAt.After(run.CreatedAt) {
+			return ErrInviteUnavailable
+		}
+		if invite.MaxRuns != nil && invite.UsedRuns >= *invite.MaxRuns {
+			return ErrInviteRunLimit
+		}
+		invite.UsedRuns++
+		usedAt := run.CreatedAt
+		invite.LastUsedAt = &usedAt
+		s.invites[inviteTokenID] = invite
 	}
 	s.runs[run.ID] = run
 	return nil
@@ -177,6 +198,50 @@ func (s *MemoryStore) Stats(_ context.Context) (StoreStats, error) {
 		}
 	}
 	return stats, nil
+}
+
+func (s *MemoryStore) CreateInviteToken(_ context.Context, invite InviteToken) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, exists := s.invites[invite.ID]; exists {
+		return ErrConflict
+	}
+	s.invites[invite.ID] = invite
+	return nil
+}
+
+func (s *MemoryStore) GetInviteToken(_ context.Context, id string) (InviteToken, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	invite, ok := s.invites[id]
+	if !ok {
+		return InviteToken{}, ErrNotFound
+	}
+	return invite, nil
+}
+
+func (s *MemoryStore) ListInviteTokens(_ context.Context) ([]InviteToken, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	invites := make([]InviteToken, 0, len(s.invites))
+	for _, invite := range s.invites {
+		invites = append(invites, invite)
+	}
+	sort.Slice(invites, func(i, j int) bool { return invites[i].CreatedAt.Before(invites[j].CreatedAt) })
+	return invites, nil
+}
+
+func (s *MemoryStore) RevokeInviteToken(_ context.Context, id string, at time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	invite, ok := s.invites[id]
+	if !ok {
+		return ErrNotFound
+	}
+	revokedAt := at.UTC()
+	invite.RevokedAt = &revokedAt
+	s.invites[id] = invite
+	return nil
 }
 
 func (s *MemoryStore) Close() error {

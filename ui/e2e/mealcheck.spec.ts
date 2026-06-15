@@ -155,7 +155,7 @@ test("loads the live run homepage and can open a seeded demo", async ({ page }) 
   await expect(page.getByLabel("Service URL")).toHaveCount(0);
   await expect(page.locator("#backend-guidance")).toHaveCount(0);
   await expect(page.getByText("Service ready")).toHaveCount(0);
-  await expect(page.getByLabel("Invite code")).toBeVisible();
+  await expect(page.getByLabel("Access code")).toBeVisible();
   await expect(page.getByText("Advanced constraints")).toBeVisible();
   await expect(page.getByRole("button", { name: /Three-day peanut allergy check/ })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Nutrition" })).toHaveCount(0);
@@ -173,7 +173,7 @@ test("creates and deletes a mocked live manual run", async ({ page }) => {
   await expect(page.locator(".backend-status")).toHaveCount(0);
   await expect(page.locator("#backend-guidance")).toHaveCount(0);
   await expect(page.getByText("Service ready")).toHaveCount(0);
-  await page.getByLabel("Invite code").fill("invite-1");
+  await page.getByLabel("Access code").fill("invite-1");
   await page.getByRole("button", { name: "Create Report" }).click();
 
   await expect(page.getByText("run-1").first()).toBeVisible();
@@ -197,7 +197,7 @@ test("creates a mocked BYOK profile-generation run without persisting provider k
 
   await page.getByRole("button", { name: "Profile" }).click();
   await expect(page.getByText("BYOK provider disclosure")).toBeVisible();
-  await page.getByLabel("Invite code").fill("invite-1");
+  await page.getByLabel("Access code").fill("invite-1");
   await page.getByLabel("Model").fill("gpt-test");
   await page.getByLabel("API key").fill("secret-profile-key");
   await page.getByRole("button", { name: "Create Report" }).click();
@@ -220,7 +220,7 @@ test("creates a mocked BYOK prompt-generation run", async ({ page }) => {
   await page.goto("/?api=/mock-api");
 
   await page.getByRole("button", { name: "Prompt" }).click();
-  await page.getByLabel("Invite code").fill("invite-1");
+  await page.getByLabel("Access code").fill("invite-1");
   await page.getByLabel("Model").fill("gpt-test");
   await page.getByLabel("API key").fill("secret-prompt-key");
   await page.getByLabel("Prompt").fill("Create a two-day meal plan with salmon and oatmeal.");

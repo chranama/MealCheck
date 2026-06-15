@@ -105,7 +105,7 @@ export function LiveWorkspace({
           <fieldset>
             <legend>Access</legend>
             <div className="form-grid">
-              <Field label="Invite code">
+              <Field label="Access code">
                 <input autoComplete="off" value={inviteToken} onChange={(event) => setInviteToken(event.target.value)} type="password" />
               </Field>
             </div>
@@ -213,7 +213,7 @@ function createRunFeedback({
 }) {
   if (isSubmitting) return "Creating your report.";
   if (!apiBase) return "Report creation needs a configured MealCheck service.";
-  if (!hasInviteToken) return "Enter your invite code to start.";
+  if (!hasInviteToken) return "Enter your access code to start.";
   if (healthBlocksSubmit) return "Service is unavailable right now.";
   return "Ready to create a MealCheck report.";
 }

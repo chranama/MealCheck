@@ -13,12 +13,19 @@ supplies an OpenAI-compatible provider key in the request.
 
 `GET` endpoints are currently public. `DELETE /api/runs/{run_id}` is also
 public in the MVP API and treats the unguessable run id as the deletion
-capability. Live run creation is invite-token gated when
-`MEALCHECK_INVITE_TOKEN` is configured:
+capability. Live run creation can be access-code gated with
+`MEALCHECK_INVITE_REQUIRED=true`. Per-user access codes are created by an
+operator with `mealcheck invite create`; the full code is shown once, while the
+backend stores only the secret hash and usage metadata.
 
 ```http
-X-MealCheck-Invite-Token: <invite-token>
+X-MealCheck-Invite-Token: <access-code>
 ```
+
+The legacy `MEALCHECK_INVITE_TOKEN` environment variable is still supported as
+a shared access-code fallback during local migration. Production deployments
+should prefer per-user access codes so individual reviewers can have expiry,
+revocation, and run limits.
 
 The server always adds an `X-Request-ID` response header. A client may send its
 own `X-Request-ID`; otherwise, the server assigns one.
@@ -171,7 +178,7 @@ Validation rules:
 ```bash
 curl -fsS -X POST "http://127.0.0.1:8080/api/runs" \
   -H "Content-Type: application/json" \
-  -H "X-MealCheck-Invite-Token: ${MEALCHECK_INVITE_TOKEN}" \
+  -H "X-MealCheck-Invite-Token: ${MEALCHECK_ACCESS_CODE}" \
   --data '{
     "input_mode": "manual_structured",
     "profile": {
@@ -236,7 +243,7 @@ Manual plan validation rules:
 ```bash
 curl -fsS -X POST "http://127.0.0.1:8080/api/runs" \
   -H "Content-Type: application/json" \
-  -H "X-MealCheck-Invite-Token: ${MEALCHECK_INVITE_TOKEN}" \
+  -H "X-MealCheck-Invite-Token: ${MEALCHECK_ACCESS_CODE}" \
   --data '{
     "input_mode": "profile_generation",
     "profile": {
@@ -408,7 +415,7 @@ traversal are rejected.
 ## Demo Runs
 
 Demo endpoints serve prebuilt public artifacts from the static frontend bundle.
-They do not enqueue backend work and do not require an invite token.
+They do not enqueue backend work and do not require an access code.
 
 ```bash
 curl -fsS "http://127.0.0.1:8080/api/demo-runs"
@@ -492,7 +499,8 @@ Representative error codes:
 | Code | Typical Status | Cause |
 |---|---:|---|
 | `invalid_request` | `400` | Invalid JSON, unknown field, oversized body, invalid mode, bad profile, bad constraints, or invalid plan. |
-| `unauthorized` | `401` | Live run creation requires a configured invite token. |
+| `unauthorized` | `401` | Live run creation requires a valid access code. |
+| `invite_limit_reached` | `429` | The access code has reached its configured run limit. |
 | `not_found` | `404` | Run, demo run, report, or artifact does not exist. |
 | `method_not_allowed` | `405` | HTTP method is not supported on the route. |
 | `queue_full` | `429` | The live run queue is at capacity. |

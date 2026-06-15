@@ -226,13 +226,38 @@ curl -X POST http://127.0.0.1:8080/api/runs \
 The queued seeded run is expected to complete with a `block` decision because
 the fixture intentionally contains blocking findings.
 
-Invite-gated BYOK generation uses the same run endpoint. Use placeholders below
-and do not commit real provider keys:
+Invite-gated BYOK generation uses the same run endpoint. Create a per-user
+access code before sharing the live-check path:
+
+```bash
+/Users/chranama-server/MealCheck/bin/mealcheck invite create \
+  --label "reviewer-name" \
+  --expires 2026-07-31 \
+  --max-runs 20
+```
+
+The command prints the full access code once. MealCheck stores only its secret
+hash and usage metadata.
+
+List access codes:
+
+```bash
+/Users/chranama-server/MealCheck/bin/mealcheck invite list
+```
+
+Revoke one access code by its public ID:
+
+```bash
+/Users/chranama-server/MealCheck/bin/mealcheck invite revoke <INVITE_ID>
+```
+
+Use the access code in the header below. Do not commit real provider keys or
+access codes:
 
 ```bash
 curl -X POST http://127.0.0.1:8080/api/runs \
   -H 'Content-Type: application/json' \
-  -H "X-MealCheck-Invite-Token: $MEALCHECK_INVITE_TOKEN" \
+  -H "X-MealCheck-Invite-Token: $MEALCHECK_ACCESS_CODE" \
   -d '{
     "input_mode": "profile_generation",
     "profile": {
@@ -451,8 +476,6 @@ chmod 600 /Users/chranama-server/MealCheck-data/mealcheck-server.env
 Edit `/Users/chranama-server/MealCheck-data/mealcheck-server.env` and replace:
 
 - `<POSTGRES_PASSWORD>`
-- `<MEALCHECK_INVITE_TOKEN>`
-- `https://mealcheck.dev`
 
 Do not set `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` in the deployed service.
 
@@ -796,7 +819,7 @@ This command:
 - runs the seeded CLI validation and verifies the expected `block` exit policy
 - inspects the generated `decision.json`
 - starts an in-memory hosted API harness
-- verifies invite-token gating
+- verifies access-code gating
 - verifies allowed and disallowed CORS behavior
 - creates and processes one manual structured run
 - creates and processes one BYOK run with a fake provider response
@@ -820,6 +843,10 @@ MEALCHECK_INVITE_TOKEN=invite-1
 MEALCHECK_ALLOWED_ORIGIN=http://127.0.0.1:4173
 MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH=../examples/seeded-3-day-peanut-allergy/plans/candidate.json
 ```
+
+The local browser suite uses the legacy shared-token compatibility path. The
+production deployment should set `MEALCHECK_INVITE_REQUIRED=true` and create
+per-user access codes with `mealcheck invite create`.
 
 `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` is for local smoke testing only. Do not
 set it in the deployed MacBook service.
@@ -873,7 +900,7 @@ Required deployment records:
 - MacBook runtime user, repository path, runtime data path, artifact path,
   Postgres database name, and log path.
 - Environment variables used by the backend service, including
-  `DATABASE_URL`, `MEALCHECK_ALLOWED_ORIGIN`, `MEALCHECK_INVITE_TOKEN`,
+  `DATABASE_URL`, `MEALCHECK_ALLOWED_ORIGIN`, `MEALCHECK_INVITE_REQUIRED`,
   `MEALCHECK_DATA_DIR`, and `MEALCHECK_ARTIFACT_DIR`.
 - Process supervision setup, expected restart behavior, and commands to start,
   stop, restart, and inspect the backend and tunnel.

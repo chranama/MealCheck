@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/chranama/MealCheck/internal/checker"
@@ -40,7 +41,7 @@ func (s *PostgresStore) Migrate(ctx context.Context) error {
 	return err
 }
 
-func (s *PostgresStore) CreateRun(ctx context.Context, run Run, queueSize int) error {
+func (s *PostgresStore) CreateRun(ctx context.Context, run Run, queueSize int, inviteTokenID string) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -53,6 +54,37 @@ func (s *PostgresStore) CreateRun(ctx context.Context, run Run, queueSize int) e
 	}
 	if queued >= queueSize {
 		return ErrQueueFull
+	}
+	if inviteTokenID != "" {
+		result, err := tx.ExecContext(ctx, `
+			update invite_tokens
+			set used_runs = used_runs + 1,
+				last_used_at = $2
+			where id = $1
+				and revoked_at is null
+				and (expires_at is null or expires_at > $2)
+				and (max_runs is null or used_runs < max_runs)
+		`, inviteTokenID, run.CreatedAt)
+		if err != nil {
+			return err
+		}
+		count, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if count == 0 {
+			var usedRuns int
+			var maxRuns sql.NullInt64
+			statusErr := tx.QueryRowContext(ctx, `
+				select used_runs, max_runs
+				from invite_tokens
+				where id = $1
+			`, inviteTokenID).Scan(&usedRuns, &maxRuns)
+			if statusErr == nil && maxRuns.Valid && usedRuns >= int(maxRuns.Int64) {
+				return ErrInviteRunLimit
+			}
+			return ErrInviteUnavailable
+		}
 	}
 
 	_, err = tx.ExecContext(ctx, `
@@ -258,6 +290,63 @@ func (s *PostgresStore) Stats(ctx context.Context) (StoreStats, error) {
 	return stats, rows.Err()
 }
 
+func (s *PostgresStore) CreateInviteToken(ctx context.Context, invite InviteToken) error {
+	_, err := s.db.ExecContext(ctx, `
+		insert into invite_tokens (
+			id, secret_hash, label, created_at, expires_at, revoked_at,
+			max_runs, used_runs, last_used_at
+		)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`, invite.ID, invite.SecretHash, invite.Label, invite.CreatedAt, invite.ExpiresAt,
+		invite.RevokedAt, nullInt(invite.MaxRuns), invite.UsedRuns, invite.LastUsedAt)
+	if isUniqueViolation(err) {
+		return ErrConflict
+	}
+	return err
+}
+
+func (s *PostgresStore) GetInviteToken(ctx context.Context, id string) (InviteToken, error) {
+	row := s.db.QueryRowContext(ctx, `
+		select id, secret_hash, label, created_at, expires_at, revoked_at,
+			max_runs, used_runs, last_used_at
+		from invite_tokens
+		where id = $1
+	`, id)
+	return scanInviteToken(row)
+}
+
+func (s *PostgresStore) ListInviteTokens(ctx context.Context) ([]InviteToken, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		select id, secret_hash, label, created_at, expires_at, revoked_at,
+			max_runs, used_runs, last_used_at
+		from invite_tokens
+		order by created_at
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var invites []InviteToken
+	for rows.Next() {
+		invite, err := scanInviteToken(rows)
+		if err != nil {
+			return nil, err
+		}
+		invites = append(invites, invite)
+	}
+	return invites, rows.Err()
+}
+
+func (s *PostgresStore) RevokeInviteToken(ctx context.Context, id string, at time.Time) error {
+	result, err := s.db.ExecContext(ctx, `
+		update invite_tokens
+		set revoked_at = $2
+		where id = $1
+	`, id, at.UTC())
+	return checkRows(result, err)
+}
+
 func (s *PostgresStore) Close() error {
 	return s.db.Close()
 }
@@ -310,6 +399,56 @@ func nullString(value string) sql.NullString {
 	return sql.NullString{String: value, Valid: true}
 }
 
+func nullInt(value *int) sql.NullInt64 {
+	if value == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: int64(*value), Valid: true}
+}
+
+func scanInviteToken(scanner runScanner) (InviteToken, error) {
+	var invite InviteToken
+	var expiresAt sql.NullTime
+	var revokedAt sql.NullTime
+	var maxRuns sql.NullInt64
+	var lastUsedAt sql.NullTime
+	err := scanner.Scan(
+		&invite.ID,
+		&invite.SecretHash,
+		&invite.Label,
+		&invite.CreatedAt,
+		&expiresAt,
+		&revokedAt,
+		&maxRuns,
+		&invite.UsedRuns,
+		&lastUsedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return InviteToken{}, ErrNotFound
+	}
+	if err != nil {
+		return InviteToken{}, err
+	}
+	if expiresAt.Valid {
+		invite.ExpiresAt = &expiresAt.Time
+	}
+	if revokedAt.Valid {
+		invite.RevokedAt = &revokedAt.Time
+	}
+	if maxRuns.Valid {
+		value := int(maxRuns.Int64)
+		invite.MaxRuns = &value
+	}
+	if lastUsedAt.Valid {
+		invite.LastUsedAt = &lastUsedAt.Time
+	}
+	return invite, nil
+}
+
+func isUniqueViolation(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "SQLSTATE 23505")
+}
+
 const postgresSchema = `
 create table if not exists runs (
 	id text primary key,
@@ -341,4 +480,18 @@ create table if not exists run_events (
 );
 
 create index if not exists run_events_run_id_id_idx on run_events (run_id, id);
+
+create table if not exists invite_tokens (
+	id text primary key,
+	secret_hash text not null,
+	label text not null,
+	created_at timestamptz not null,
+	expires_at timestamptz,
+	revoked_at timestamptz,
+	max_runs integer,
+	used_runs integer not null default 0,
+	last_used_at timestamptz
+);
+
+create index if not exists invite_tokens_active_idx on invite_tokens (revoked_at, expires_at);
 `

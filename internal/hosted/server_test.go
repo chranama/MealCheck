@@ -357,6 +357,62 @@ func TestInviteTokenGate(t *testing.T) {
 	}
 }
 
+func TestPerUserInviteTokenGate(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.InviteRequired = true
+	store := NewMemoryStore()
+	maxRuns := 1
+	generated, err := GenerateInviteToken("reviewer-chris", nil, &maxRuns, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("generate invite token: %v", err)
+	}
+	if err := store.CreateInviteToken(context.Background(), generated.Invite); err != nil {
+		t.Fatalf("create invite token: %v", err)
+	}
+	server := NewServer(config, store)
+
+	body := `{"case_path":"examples/seeded-3-day-peanut-allergy/case.json"}`
+	missing := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if missing.Code != http.StatusUnauthorized {
+		t.Fatalf("missing invite status = %d, want 401 body=%s", missing.Code, missing.Body.String())
+	}
+
+	wrong := httptest.NewRequest(http.MethodPost, "/api/runs", bytes.NewReader([]byte(body)))
+	wrong.Header.Set("Content-Type", "application/json")
+	wrong.Header.Set("X-MealCheck-Invite-Token", InviteTokenPrefix+generated.Invite.ID+".wrong-secret")
+	wrongRecorder := httptest.NewRecorder()
+	server.Handler().ServeHTTP(wrongRecorder, wrong)
+	if wrongRecorder.Code != http.StatusUnauthorized {
+		t.Fatalf("wrong invite status = %d, want 401 body=%s", wrongRecorder.Code, wrongRecorder.Body.String())
+	}
+
+	allowed := httptest.NewRequest(http.MethodPost, "/api/runs", bytes.NewReader([]byte(body)))
+	allowed.Header.Set("Content-Type", "application/json")
+	allowed.Header.Set("X-MealCheck-Invite-Token", generated.Token)
+	allowedRecorder := httptest.NewRecorder()
+	server.Handler().ServeHTTP(allowedRecorder, allowed)
+	if allowedRecorder.Code != http.StatusAccepted {
+		t.Fatalf("per-user invite status = %d, want 202 body=%s", allowedRecorder.Code, allowedRecorder.Body.String())
+	}
+	invite, err := store.GetInviteToken(context.Background(), generated.Invite.ID)
+	if err != nil {
+		t.Fatalf("get invite token: %v", err)
+	}
+	if invite.UsedRuns != 1 || invite.LastUsedAt == nil {
+		t.Fatalf("invite usage = %d last_used=%v, want one recorded use", invite.UsedRuns, invite.LastUsedAt)
+	}
+
+	exhausted := httptest.NewRequest(http.MethodPost, "/api/runs", bytes.NewReader([]byte(body)))
+	exhausted.Header.Set("Content-Type", "application/json")
+	exhausted.Header.Set("X-MealCheck-Invite-Token", generated.Token)
+	exhaustedRecorder := httptest.NewRecorder()
+	server.Handler().ServeHTTP(exhaustedRecorder, exhausted)
+	if exhaustedRecorder.Code != http.StatusTooManyRequests {
+		t.Fatalf("exhausted invite status = %d, want 429 body=%s", exhaustedRecorder.Code, exhaustedRecorder.Body.String())
+	}
+}
+
 func TestCORSAllowsOnlyConfiguredOrigin(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
@@ -436,7 +492,7 @@ func TestCleanupDeletesExpiredArtifacts(t *testing.T) {
 	store := NewMemoryStore()
 
 	run := newRun(config, "examples/seeded-3-day-peanut-allergy/case.json")
-	if err := store.CreateRun(context.Background(), run, config.QueueSize); err != nil {
+	if err := store.CreateRun(context.Background(), run, config.QueueSize, ""); err != nil {
 		t.Fatalf("create run: %v", err)
 	}
 	if err := os.MkdirAll(run.ArtifactDir, 0o755); err != nil {

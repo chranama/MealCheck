@@ -19,6 +19,7 @@ func ConfigFromEnv(root string) Config {
 		StoreKind:        getenv("MEALCHECK_STORE", "postgres"),
 		AllowedOrigin:    os.Getenv("MEALCHECK_ALLOWED_ORIGIN"),
 		InviteToken:      os.Getenv("MEALCHECK_INVITE_TOKEN"),
+		InviteRequired:   getenvBool("MEALCHECK_INVITE_REQUIRED", false),
 		QueueSize:        getenvInt("MEALCHECK_QUEUE_SIZE", 3),
 		MaxCasesPerRun:   getenvInt("MEALCHECK_MAX_CASES_PER_RUN", 20),
 		MaxUploadBytes:   int64(getenvInt("MEALCHECK_MAX_UPLOAD_BYTES", 1_000_000)),
@@ -28,6 +29,21 @@ func ConfigFromEnv(root string) Config {
 		CleanupInterval:  getenvDuration("MEALCHECK_CLEANUP_INTERVAL", time.Hour),
 		DemoIndexPath:    filepath.Join(root, "ui", "public", "demo-runs", "index.json"),
 		DemoArtifactRoot: filepath.Join(root, "ui", "public"),
+	}
+}
+
+func getenvBool(key string, fallback bool) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	switch value {
+	case "1", "true", "TRUE", "yes", "YES", "on", "ON":
+		return true
+	case "0", "false", "FALSE", "no", "NO", "off", "OFF":
+		return false
+	default:
+		return fallback
 	}
 }
 

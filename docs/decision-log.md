@@ -1045,3 +1045,40 @@ Consequences:
   primary web UI presents a single report PDF.
 - Future UI changes should preserve the separation between brand/evidence color
   and semantic status colors.
+
+## 2026-06-13: Live Runs Use Per-User Access Codes
+
+Status: Accepted
+
+Decision:
+
+MealCheck's public seeded demos remain open, but live run creation should use
+per-user access codes for the MVP web deployment. Access codes are bearer
+credentials, not accounts. Operators create them with `mealcheck invite create`
+against the Postgres store, share the full code out of band, and can list or
+revoke them later. The backend stores only a hash of the secret portion plus a
+short label, usage count, expiry, revocation time, and optional max-run limit.
+
+The legacy `MEALCHECK_INVITE_TOKEN` shared-token path remains available for
+local tests and migration, but production should set `MEALCHECK_INVITE_REQUIRED`
+and use DB-backed per-user access codes.
+
+Reason:
+
+A single shared invite token is too coarse for a public beta because it cannot
+be revoked per reviewer and gives no useful usage limit. Full accounts are too
+heavy for the current static frontend and MacBook-hosted MVP. Per-user access
+codes provide a middle path: they limit live backend abuse and support expiry,
+revocation, and run caps without collecting email addresses or creating an
+identity system.
+
+Consequences:
+
+- Seeded reports remain usable without any access code.
+- Live manual and BYOK runs can be gated without adding accounts.
+- Access codes must never be logged, stored in plaintext, committed, or shown
+  in frontend config.
+- The UI should call the credential an "access code"; `X-MealCheck-Invite-Token`
+  remains the wire header for backward compatibility.
+- If MealCheck later needs identity, sharing, billing, or persistent user
+  history, this access-code model should be replaced with a real auth model.

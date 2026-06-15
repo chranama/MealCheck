@@ -2,7 +2,7 @@
 
 This document defines the first web design system for MealCheck. It is scoped to
 the static frontend in `ui/` and the current MVP product surface: public seeded
-reports plus invite-gated live runs through a backend API.
+reports plus access-code-gated live runs through a backend API.
 
 MealCheck is a client-facing verification product, not an internal operations
 dashboard. The homepage should help a reviewer answer one question quickly:
@@ -19,7 +19,7 @@ This keeps the first screen focused and limits choice overload.
 ### 2. Reduce Cognitive Load With Progressive Disclosure
 
 MealCheck has more state than the user should have to parse at once: service
-access, invite code, profile, constraints, meal-plan entry mode, provider
+access, access code, profile, constraints, meal-plan entry mode, provider
 settings, progress events, and report artifacts. Group related controls, reveal
 mode-specific controls only when needed, and hide operational detail behind
 plain-language disclosures.
@@ -62,7 +62,7 @@ Use accent color only to clarify status and primary action.
 The page must remain useful when hosted as static files. Runtime API
 configuration should be visible. Demos must work offline. Live-run controls must
 degrade clearly when no backend is configured or the backend is unavailable. No
-provider key or invite token may be persisted.
+provider key or access code may be persisted.
 
 ### 9. Give Immediate Feedback
 
@@ -72,7 +72,7 @@ artifact availability, and deletion. Avoid silent waits.
 
 ### 10. Make Risky Actions Deliberate
 
-Provider keys, invite codes, live-check content, and deletion need conservative
+Provider keys, access codes, live-check content, and deletion need conservative
 handling. Destructive actions should be disabled when impossible and confirmed
 when they affect a selected report.
 
@@ -205,7 +205,7 @@ The default path should expose only the controls most reviewers need to start a
 run:
 
 - API base URL
-- invite code
+- access code
 - profile basics
 - day and meal count
 - allergy and excluded-food constraints
@@ -220,7 +220,7 @@ requirements belong in an expandable advanced constraints section.
 Do not expose internal pipeline stages, event counts, run identifiers, API chips,
 or artifact lists in the default live-check viewport. Use product language:
 
-- Invite code
+- Access code
 - Create Report
 - Delete Report
 - Results
@@ -285,7 +285,7 @@ Design implications:
   API is healthy.
 - Public configuration belongs in `config.json`, build-time public environment
   variables, URL query parameters, or non-secret HTML metadata.
-- Provider keys, invite tokens, and live-run content must not be persisted in
+- Provider keys, access codes, and live-run content must not be persisted in
   static assets or browser storage.
 
 ## Product Posture

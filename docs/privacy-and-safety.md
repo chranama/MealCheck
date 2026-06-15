@@ -105,6 +105,18 @@ Provider API keys:
 FoodData Central API keys, if added later, are server credentials and must not
 be embedded in frontend code or user-visible artifacts.
 
+Access codes:
+
+- gate live run creation for invited reviewers or beta users
+- are bearer credentials, not user accounts or proof of identity
+- should be generated per reviewer with expiry and optional run limits
+- must be stored as hashes, not full codes
+- may keep a short operator label such as `reviewer-chris`, but should avoid
+  collecting email or other personal identifiers unless they become necessary
+- should be revocable without affecting other reviewers
+- must not be written to logs, reports, artifacts, frontend config, or
+  screenshots
+
 ## Logging
 
 Application logs should include:
@@ -125,6 +137,7 @@ Application logs should not include:
 - meal-plan contents
 - normalized-plan JSON
 - allergy lists
+- access codes
 - database URLs
 - tunnel credentials
 - admin tokens
@@ -176,8 +189,8 @@ Public visitors may not:
 - view user-provided API keys
 - access admin endpoints
 
-Live BYOK runs should require an invite token or stronger auth gate. Admin
-operations should require a separate admin credential.
+Live BYOK runs should require a per-user access code or stronger auth gate.
+Admin operations should require a separate admin credential.
 
 ## Legal And Compliance Notes
 

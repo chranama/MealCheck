@@ -71,10 +71,22 @@ Before deployment, copy templates to their runtime locations and replace only
 the secret or machine-local placeholder values:
 
 - `<POSTGRES_PASSWORD>`
-- `<MEALCHECK_INVITE_TOKEN>`
 - `<CLOUDFLARE_TUNNEL_ID>`
 - `<CLOUDFLARE_ACCOUNT_TAG>`
 - `<ABSOLUTE_CLOUDFLARE_CREDENTIALS_JSON>`
 
 Never commit copied production files containing real tokens, passwords, tunnel
 credentials, or private hostnames.
+
+Production live-run access should use per-user access codes created with:
+
+```bash
+/Users/chranama-server/MealCheck/bin/mealcheck invite create \
+  --label "reviewer-name" \
+  --expires 2026-07-31 \
+  --max-runs 20
+```
+
+Set `MEALCHECK_INVITE_REQUIRED=true` in the backend environment. The legacy
+`MEALCHECK_INVITE_TOKEN` variable is still supported as a shared fallback for
+local migration, but it should not be the production access model.

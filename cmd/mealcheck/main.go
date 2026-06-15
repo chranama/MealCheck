@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/chranama/MealCheck/internal/artifacts"
 	"github.com/chranama/MealCheck/internal/checker"
+	"github.com/chranama/MealCheck/internal/hosted"
 )
 
 func main() {
@@ -29,6 +32,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runBundleCommand("compare", args[1:], stdout, stderr)
 	case "decision":
 		return runDecisionCommand(args[1:], stdout, stderr)
+	case "invite":
+		return runInviteCommand(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		printUsage(stdout)
 		return 0
@@ -37,6 +42,183 @@ func run(args []string, stdout, stderr io.Writer) int {
 		printUsage(stderr)
 		return 2
 	}
+}
+
+func runInviteCommand(args []string, stdout, stderr io.Writer) int {
+	if len(args) == 0 {
+		printInviteUsage(stderr)
+		return 2
+	}
+	switch args[0] {
+	case "create":
+		return runInviteCreateCommand(args[1:], stdout, stderr)
+	case "list":
+		return runInviteListCommand(args[1:], stdout, stderr)
+	case "revoke":
+		return runInviteRevokeCommand(args[1:], stdout, stderr)
+	default:
+		fmt.Fprintf(stderr, "unknown invite command %q\n\n", args[0])
+		printInviteUsage(stderr)
+		return 2
+	}
+}
+
+func runInviteCreateCommand(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("invite create", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	databaseURL := flags.String("database-url", os.Getenv("DATABASE_URL"), "Postgres database URL")
+	label := flags.String("label", "", "reviewer label for the access code")
+	expires := flags.String("expires", "", "optional expiry date as YYYY-MM-DD or RFC3339")
+	expiresIn := flags.Duration("expires-in", 0, "optional expiry duration, such as 720h")
+	maxRuns := flags.Int("max-runs", 0, "optional maximum run count")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+	if flags.NArg() != 0 {
+		fmt.Fprintln(stderr, "invite create does not accept positional arguments")
+		return 2
+	}
+	if *label == "" {
+		fmt.Fprintln(stderr, "invite create requires --label")
+		return 2
+	}
+	if *expires != "" && *expiresIn != 0 {
+		fmt.Fprintln(stderr, "invite create accepts only one of --expires or --expires-in")
+		return 2
+	}
+	now := time.Now().UTC()
+	expiry, err := parseInviteExpiry(*expires, *expiresIn, now)
+	if err != nil {
+		fmt.Fprintf(stderr, "invite create failed: %v\n", err)
+		return 2
+	}
+	var max *int
+	if *maxRuns < 0 {
+		fmt.Fprintln(stderr, "invite create requires --max-runs to be non-negative")
+		return 2
+	}
+	if *maxRuns > 0 {
+		max = maxRuns
+	}
+	generated, err := hosted.GenerateInviteToken(*label, expiry, max, now)
+	if err != nil {
+		fmt.Fprintf(stderr, "invite create failed: %v\n", err)
+		return 2
+	}
+	store, err := openInviteStore(*databaseURL)
+	if err != nil {
+		fmt.Fprintf(stderr, "invite create failed: %v\n", err)
+		return 2
+	}
+	defer store.Close()
+	if err := store.CreateInviteToken(context.Background(), generated.Invite); err != nil {
+		fmt.Fprintf(stderr, "invite create failed: %v\n", err)
+		return 2
+	}
+	fmt.Fprintf(stdout, "id: %s\n", generated.Invite.ID)
+	fmt.Fprintf(stdout, "label: %s\n", generated.Invite.Label)
+	if generated.Invite.ExpiresAt != nil {
+		fmt.Fprintf(stdout, "expires_at: %s\n", generated.Invite.ExpiresAt.Format(time.RFC3339))
+	}
+	if generated.Invite.MaxRuns != nil {
+		fmt.Fprintf(stdout, "max_runs: %d\n", *generated.Invite.MaxRuns)
+	}
+	fmt.Fprintf(stdout, "access_code: %s\n", generated.Token)
+	fmt.Fprintln(stdout, "store this access code now; MealCheck stores only its hash.")
+	return 0
+}
+
+func runInviteListCommand(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("invite list", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	databaseURL := flags.String("database-url", os.Getenv("DATABASE_URL"), "Postgres database URL")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+	if flags.NArg() != 0 {
+		fmt.Fprintln(stderr, "invite list does not accept positional arguments")
+		return 2
+	}
+	store, err := openInviteStore(*databaseURL)
+	if err != nil {
+		fmt.Fprintf(stderr, "invite list failed: %v\n", err)
+		return 2
+	}
+	defer store.Close()
+	invites, err := store.ListInviteTokens(context.Background())
+	if err != nil {
+		fmt.Fprintf(stderr, "invite list failed: %v\n", err)
+		return 2
+	}
+	for _, invite := range invites {
+		fmt.Fprintf(stdout, "%s\t%s\tused=%d", invite.ID, invite.Label, invite.UsedRuns)
+		if invite.MaxRuns != nil {
+			fmt.Fprintf(stdout, "/%d", *invite.MaxRuns)
+		}
+		if invite.ExpiresAt != nil {
+			fmt.Fprintf(stdout, "\texpires=%s", invite.ExpiresAt.Format(time.RFC3339))
+		}
+		if invite.RevokedAt != nil {
+			fmt.Fprintf(stdout, "\trevoked=%s", invite.RevokedAt.Format(time.RFC3339))
+		}
+		if invite.LastUsedAt != nil {
+			fmt.Fprintf(stdout, "\tlast_used=%s", invite.LastUsedAt.Format(time.RFC3339))
+		}
+		fmt.Fprintln(stdout)
+	}
+	return 0
+}
+
+func runInviteRevokeCommand(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("invite revoke", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	databaseURL := flags.String("database-url", os.Getenv("DATABASE_URL"), "Postgres database URL")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+	if flags.NArg() != 1 {
+		fmt.Fprintln(stderr, "invite revoke requires exactly one access code id")
+		return 2
+	}
+	store, err := openInviteStore(*databaseURL)
+	if err != nil {
+		fmt.Fprintf(stderr, "invite revoke failed: %v\n", err)
+		return 2
+	}
+	defer store.Close()
+	id := flags.Arg(0)
+	if err := store.RevokeInviteToken(context.Background(), id, time.Now().UTC()); err != nil {
+		fmt.Fprintf(stderr, "invite revoke failed: %v\n", err)
+		return 2
+	}
+	fmt.Fprintf(stdout, "revoked: %s\n", id)
+	return 0
+}
+
+func openInviteStore(databaseURL string) (hosted.Store, error) {
+	return hosted.OpenPostgresStore(context.Background(), databaseURL)
+}
+
+func parseInviteExpiry(value string, duration time.Duration, now time.Time) (*time.Time, error) {
+	if duration != 0 {
+		if duration < 0 {
+			return nil, fmt.Errorf("--expires-in must be positive")
+		}
+		expiresAt := now.Add(duration).UTC()
+		return &expiresAt, nil
+	}
+	if value == "" {
+		return nil, nil
+	}
+	if parsed, err := time.Parse(time.RFC3339, value); err == nil {
+		parsed = parsed.UTC()
+		return &parsed, nil
+	}
+	if parsed, err := time.Parse("2006-01-02", value); err == nil {
+		parsed = parsed.UTC()
+		return &parsed, nil
+	}
+	return nil, fmt.Errorf("invalid --expires %q; use YYYY-MM-DD or RFC3339", value)
 }
 
 func runBundleCommand(mode string, args []string, stdout, stderr io.Writer) int {
@@ -140,4 +322,14 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  mealcheck validate --case <case.json> [--out artifacts/latest] [--strict]")
 	fmt.Fprintln(w, "  mealcheck compare --case <case.json> [--out artifacts/latest] [--strict]")
 	fmt.Fprintln(w, "  mealcheck decision [--strict] <decision.json>")
+	fmt.Fprintln(w, "  mealcheck invite create --label <label> [--expires YYYY-MM-DD] [--max-runs N]")
+	fmt.Fprintln(w, "  mealcheck invite list")
+	fmt.Fprintln(w, "  mealcheck invite revoke <access-code-id>")
+}
+
+func printInviteUsage(w io.Writer) {
+	fmt.Fprintln(w, "usage:")
+	fmt.Fprintln(w, "  mealcheck invite create --label <label> [--database-url URL] [--expires YYYY-MM-DD] [--expires-in 720h] [--max-runs N]")
+	fmt.Fprintln(w, "  mealcheck invite list [--database-url URL]")
+	fmt.Fprintln(w, "  mealcheck invite revoke [--database-url URL] <access-code-id>")
 }

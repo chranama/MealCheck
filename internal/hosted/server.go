@@ -177,8 +177,13 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) createRun(w http.ResponseWriter, r *http.Request) {
-	if !s.authorized(r) {
-		writeError(w, r, http.StatusUnauthorized, "unauthorized", "invite token required", nil)
+	inviteTokenID, err := s.authorizeRun(r)
+	if errors.Is(err, ErrInviteRunLimit) {
+		writeError(w, r, http.StatusTooManyRequests, "invite_limit_reached", "access code run limit reached", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusUnauthorized, "unauthorized", "valid access code required", nil)
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, s.Config.MaxUploadBytes)
@@ -201,12 +206,20 @@ func (s *Server) createRun(w http.ResponseWriter, r *http.Request) {
 		run.CasePath = runtimeCasePath(s.Config, run.ID)
 		s.Pending.Put(run.ID, pendingInput)
 	}
-	if err := s.Store.CreateRun(r.Context(), run, s.Config.QueueSize); err != nil {
+	if err := s.Store.CreateRun(r.Context(), run, s.Config.QueueSize, inviteTokenID); err != nil {
 		if hasPending {
 			s.Pending.Delete(run.ID)
 		}
 		if errors.Is(err, ErrQueueFull) {
 			writeError(w, r, http.StatusTooManyRequests, "queue_full", "run queue is full", map[string]any{"queue_size": s.Config.QueueSize})
+			return
+		}
+		if errors.Is(err, ErrInviteRunLimit) {
+			writeError(w, r, http.StatusTooManyRequests, "invite_limit_reached", "access code run limit reached", nil)
+			return
+		}
+		if errors.Is(err, ErrInviteUnavailable) {
+			writeError(w, r, http.StatusUnauthorized, "unauthorized", "valid access code required", nil)
 			return
 		}
 		writeError(w, r, http.StatusInternalServerError, "store_error", err.Error(), nil)
@@ -490,11 +503,29 @@ func (s *Server) withMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (s *Server) authorized(r *http.Request) bool {
-	if s.Config.InviteToken == "" {
-		return true
+func (s *Server) authorizeRun(r *http.Request) (string, error) {
+	value := strings.TrimSpace(r.Header.Get("X-MealCheck-Invite-Token"))
+	if s.Config.InviteToken != "" && value == s.Config.InviteToken {
+		return "", nil
 	}
-	return r.Header.Get("X-MealCheck-Invite-Token") == s.Config.InviteToken
+	if value != "" {
+		id, secret, ok := ParseInviteToken(value)
+		if !ok {
+			return "", ErrInviteUnavailable
+		}
+		invite, err := s.Store.GetInviteToken(r.Context(), id)
+		if err != nil {
+			return "", ErrInviteUnavailable
+		}
+		if err := ValidateInviteToken(invite, secret, time.Now().UTC()); err != nil {
+			return "", err
+		}
+		return invite.ID, nil
+	}
+	if s.Config.InviteToken == "" && !s.Config.InviteRequired {
+		return "", nil
+	}
+	return "", ErrInviteUnavailable
 }
 
 func linksForRun(runID string) RunLinks {

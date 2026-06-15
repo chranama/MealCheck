@@ -33,6 +33,7 @@ type Config struct {
 	StoreKind        string
 	AllowedOrigin    string
 	InviteToken      string
+	InviteRequired   bool
 	QueueSize        int
 	MaxCasesPerRun   int
 	MaxUploadBytes   int64
@@ -66,6 +67,18 @@ type RunEvent struct {
 	Type      string    `json:"type"`
 	Message   string    `json:"message"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type InviteToken struct {
+	ID         string     `json:"id"`
+	SecretHash string     `json:"-"`
+	Label      string     `json:"label"`
+	CreatedAt  time.Time  `json:"created_at"`
+	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
+	RevokedAt  *time.Time `json:"revoked_at,omitempty"`
+	MaxRuns    *int       `json:"max_runs,omitempty"`
+	UsedRuns   int        `json:"used_runs"`
+	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
 }
 
 type CreateRunRequest struct {

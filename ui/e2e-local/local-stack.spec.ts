@@ -19,7 +19,7 @@ test("renders the live run homepage without an API base and can open a seeded re
   await expect(page.getByLabel("Service URL")).toHaveCount(0);
   await expect(page.locator("#backend-guidance")).toHaveCount(0);
   await expect(page.getByText("Service ready")).toHaveCount(0);
-  await expect(page.getByLabel("Invite code")).toBeVisible();
+  await expect(page.getByLabel("Access code")).toBeVisible();
   await expect(page.getByText("Advanced constraints")).toBeVisible();
   await expect(page.getByRole("button", { name: /Three-day peanut allergy check/ })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Checks" })).toHaveCount(0);
@@ -36,7 +36,7 @@ test("creates, renders, lists artifacts, and deletes a real local manual run", a
   await expect(page.locator(".backend-status")).toHaveCount(0);
   await expect(page.locator("#backend-guidance")).toHaveCount(0);
   await expect(page.getByText("Service ready")).toHaveCount(0);
-  await page.getByLabel("Invite code").fill("invite-1");
+  await page.getByLabel("Access code").fill("invite-1");
 
   const createResponsePromise = page.waitForResponse((response) => (
     response.url() === `${apiBase}/api/runs` &&
@@ -71,7 +71,7 @@ test("creates a real local BYOK run through the fake provider and redacts secret
 
   await page.getByRole("button", { name: "Profile" }).click();
   await expect(page.getByText("BYOK provider disclosure")).toBeVisible();
-  await page.getByLabel("Invite code").fill("invite-1");
+  await page.getByLabel("Access code").fill("invite-1");
   await page.getByLabel("Model").fill("fake-meal-plan");
   await page.getByLabel("API key").fill(providerKey);
 

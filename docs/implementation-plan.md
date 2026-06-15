@@ -313,7 +313,7 @@ Public access:
 
 Live BYOK access:
 
-- require invite token
+- require per-user access code
 - apply upload, runtime, and queue limits
 - discard provider credentials after each run
 
@@ -372,7 +372,7 @@ The frontend should show:
 - manual structured entry form
 - profile-only generation form
 - prompt-based generation form
-- optional create-run form for invite-token BYOK users
+- optional create-run form for access-code-gated BYOK users
 - backend status
 
 The purpose of the project is not to prove frontend complexity.
@@ -589,7 +589,7 @@ Status: Implemented in the hosted backend.
 
 Deliver:
 
-- invite-token access gate
+- per-user access-code gate
 - OpenAI-compatible provider support
 - profile-only generate-plan flow
 - prompt-based generate-plan flow
@@ -707,7 +707,7 @@ Deliver:
 - seeded artifacts served from the Vite public directory so the public demo
   works without backend uptime
 - backend health display from the configured API base URL
-- invite token entry that is kept out of committed config and frontend build
+- access code entry that is kept out of committed config and frontend build
   output
 - BYOK third-party disclosure before generation or repair runs
 - manual structured meal-plan entry for the local MVP food/unit scope
@@ -762,9 +762,9 @@ Acceptance:
 - `npm run test:e2e` passes mocked-browser flows without requiring a live Go
   backend or model provider
 - a user can inspect the seeded report without a backend
-- a user with an invite token can create one manual structured run from the
+- a user with an access code can create one manual structured run from the
   frontend against a local backend
-- a user with an invite token and BYOK provider key can create one
+- a user with an access code and BYOK provider key can create one
   profile-generation run and one prompt-generation run from the frontend
   against a local backend
 - the frontend can observe run completion or failure and then render the report
@@ -1063,7 +1063,7 @@ Acceptance:
 - the Report tab exposes one PDF report download
 - manual food entry remains contained on desktop and readable on mobile without
   relying on table headers
-- provider-key and invite-token handling remains non-persistent
+- provider-key and access-code handling remains non-persistent
 - form labels, focus states, status pills, and disabled states are visible
 - desktop and mobile layouts avoid text overlap and preserve readable controls
 - typecheck, unit tests, browser tests, local full-stack browser tests, and
@@ -1291,7 +1291,8 @@ Implemented:
 12. Verified `https://mealcheck.pages.dev/demo-runs/index.json` serves the
     checked-in seeded demo index.
 13. Verified public live run creation without
-    `X-MealCheck-Invite-Token` returns `401` with `invite token required`.
+    `X-MealCheck-Invite-Token` returns `401` with an access-code-required
+    response.
 
 Milestone 11 note:
 
@@ -1307,7 +1308,7 @@ Acceptance:
 - the seeded report loads from the production frontend without backend access
 - the production frontend shows backend health when the tunneled API is online
 - the public API hostname serves `GET /api/health`
-- live run creation is not available without the invite token
+- live run creation is not available without a valid access code
 - production CORS allows the Pages origin and does not allow arbitrary browser
   origins to use the write API
 - no router port forwarding is required

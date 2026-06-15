@@ -117,7 +117,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
       throw new Error("A configured MealCheck service is required to create a report.");
     }
     if (!inviteToken.trim()) {
-      throw new Error("Invite code is required to create a report.");
+      throw new Error("Access code is required to create a report.");
     }
 
     stopLivePolling();

@@ -59,7 +59,7 @@ describe("LiveWorkspace", () => {
     const onCreateRun = vi.fn(async () => undefined);
     renderWorkspace({ onCreateRun });
 
-    await user.type(screen.getByLabelText("Invite code"), "invite-1");
+    await user.type(screen.getByLabelText("Access code"), "invite-1");
     await user.click(screen.getByRole("button", { name: "Create Report" }));
 
     expect(onCreateRun).toHaveBeenCalledWith(
@@ -121,7 +121,7 @@ describe("LiveWorkspace", () => {
     renderWorkspace({ onCreateRun });
 
     await user.click(screen.getByRole("button", { name: "Prompt" }));
-    await user.type(screen.getByLabelText("Invite code"), "invite-1");
+    await user.type(screen.getByLabelText("Access code"), "invite-1");
     await user.type(screen.getByLabelText("Model"), "gpt-test");
     await user.type(screen.getByLabelText("API key"), "secret");
     await user.click(screen.getByRole("button", { name: "Create Report" }));
