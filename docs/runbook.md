@@ -572,6 +572,62 @@ deploy/macos/wait-for-mealcheck-ready.sh
 curl -fsS http://127.0.0.1:8080/api/health | jq .
 ```
 
+## Backend Autodeploy Poller
+
+The backend autodeploy poller is optional but recommended after the GitHub Pages
+cutover. It runs as a root-owned system `LaunchDaemon` every five minutes. The
+script refuses dirty worktrees, fetches `origin/main`, requires a fast-forward,
+and runs Git and Go commands as `chranama-server`. If backend code changed
+under `cmd/`, `internal/`, `go.mod`, or `go.sum`, it runs `go test ./...`,
+builds `bin/mealcheck` and `bin/mealcheck-server`, restarts
+`system/dev.mealcheck.server`, and verifies local health. Documentation-only and
+frontend-only commits are pulled without rebuilding or restarting the backend.
+
+Install the template. These commands require the server account password
+because they write `/Library/LaunchDaemons` and bootstrap a system service:
+
+```bash
+cd /Users/chranama-server/MealCheck
+sudo cp deploy/macos/dev.mealcheck.autodeploy.plist.template \
+  /Library/LaunchDaemons/dev.mealcheck.autodeploy.plist
+sudo chown root:wheel /Library/LaunchDaemons/dev.mealcheck.autodeploy.plist
+sudo chmod 644 /Library/LaunchDaemons/dev.mealcheck.autodeploy.plist
+sudo plutil -lint /Library/LaunchDaemons/dev.mealcheck.autodeploy.plist
+sudo launchctl bootstrap system /Library/LaunchDaemons/dev.mealcheck.autodeploy.plist
+```
+
+Run once immediately:
+
+```bash
+sudo launchctl kickstart -k system/dev.mealcheck.autodeploy
+```
+
+Status:
+
+```bash
+sudo launchctl print system/dev.mealcheck.autodeploy
+```
+
+Logs:
+
+```bash
+sudo tail -n 200 /Users/chranama-server/MealCheck-data/logs/mealcheck-autodeploy.out.log
+sudo tail -n 200 /Users/chranama-server/MealCheck-data/logs/mealcheck-autodeploy.err.log
+```
+
+Uninstall:
+
+```bash
+sudo launchctl bootout system/dev.mealcheck.autodeploy
+sudo rm -f /Library/LaunchDaemons/dev.mealcheck.autodeploy.plist
+```
+
+Manual one-shot run for debugging:
+
+```bash
+sudo /Users/chranama-server/MealCheck/deploy/macos/mealcheck-autodeploy.sh
+```
+
 ## Cloudflare Pages And Tunnel Draft
 
 Pages settings are in `deploy/cloudflare/pages-settings.md`.

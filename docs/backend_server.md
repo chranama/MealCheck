@@ -287,6 +287,8 @@ Milestone 8 deployment templates:
 
 - `deploy/macos/mealcheck-server.env.example`
 - `deploy/macos/dev.mealcheck.server.plist.template`
+- `deploy/macos/dev.mealcheck.autodeploy.plist.template`
+- `deploy/macos/mealcheck-autodeploy.sh`
 - `deploy/macos/postgres-setup.sql.template`
 - `deploy/cloudflare/tunnel-config.yml.template`
 - `deploy/cloudflare/pages-settings.md`
@@ -321,6 +323,8 @@ The server is ready for MVP web acceptance when:
 - Cloudflare Tunnel maps the public API hostname to the local API service
 - `dev.mealcheck.tunnel` keeps the Cloudflare Tunnel connector running after
   reboot
+- `dev.mealcheck.autodeploy` can fast-forward the server checkout from GitHub
+  and restart the backend when backend code changes
 - Cloudflare Pages can call the public API hostname and display health
 - live manual/BYOK run creation, status polling or SSE, report retrieval,
   artifact listing, and deletion work through the public path

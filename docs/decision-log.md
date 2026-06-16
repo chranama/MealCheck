@@ -1163,3 +1163,32 @@ Consequences:
 - The custom domain `mealcheck.dev` is bound to the Git-integrated Pages
   project.
 - Production backend and tunnel deployment remain unchanged.
+
+## 2026-06-16: Backend Updates Use A Root Launchd Poller
+
+Status: Accepted
+
+Decision:
+
+Add `dev.mealcheck.autodeploy`, a root-owned system `LaunchDaemon`, to poll
+GitHub every five minutes and fast-forward the MacBook checkout from
+`origin/main`. The poller runs Git and Go commands as `chranama-server` so the
+checkout and binaries keep normal ownership. It restarts
+`system/dev.mealcheck.server` only when backend code changed.
+
+Reason:
+
+Cloudflare now deploys the static frontend automatically from GitHub, but the
+MacBook-hosted API still needs a safe backend update path. A launchd poller
+fits the existing MacBook deployment shape without exposing a public webhook or
+granting GitHub SSH access to the server.
+
+Consequences:
+
+- The poller refuses dirty worktrees and non-fast-forward updates.
+- Backend code changes run `go test ./...`, rebuild both binaries, restart the
+  backend service, and verify local health.
+- Documentation-only and frontend-only commits are pulled without backend
+  rebuild or restart.
+- Installing or removing the poller requires a password-protected `sudo` step
+  on the server because it manages `/Library/LaunchDaemons`.

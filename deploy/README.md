@@ -24,6 +24,7 @@ values only; public production hostnames are intentionally committed.
 | Backend launchd label | `dev.mealcheck.server` |
 | Postgres launchd label | `dev.mealcheck.postgres` |
 | Tunnel launchd label | `dev.mealcheck.tunnel` |
+| Autodeploy launchd label | `dev.mealcheck.autodeploy` |
 | Cloudflare Tunnel name | `mealcheck-api` |
 | Cloudflare Tunnel ID | `e8cbd8da-735a-4053-9503-880f636670f6` |
 
@@ -39,6 +40,11 @@ values only; public production hostnames are intentionally committed.
 - `macos/dev.mealcheck.tunnel.plist.template`: system `LaunchDaemon`
   template for `cloudflared`, using the MacBook-local tunnel config at
   `/Users/chranama-server/.cloudflared/mealcheck-api.yml`.
+- `macos/dev.mealcheck.autodeploy.plist.template`: system `LaunchDaemon`
+  template for polling GitHub and applying fast-forward backend updates.
+- `macos/mealcheck-autodeploy.sh`: root-run autodeploy script that executes
+  Git and Go commands as `chranama-server`, then restarts the backend service
+  only when backend code changed.
 - `macos/wait-for-mealcheck-ready.sh`: reboot-friendly readiness check that
   waits for Postgres and then the MealCheck health endpoint.
 - `macos/postgres-setup.sql.template`: first-time Postgres database and role
