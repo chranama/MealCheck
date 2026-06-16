@@ -140,7 +140,7 @@ main() {
   branch_q="$(quote "$BRANCH")"
   upstream_ref="$REMOTE/$BRANCH"
   upstream_q="$(quote "$upstream_ref")"
-  refspec_q="$(quote "$BRANCH:refs/remotes/$REMOTE/$BRANCH")"
+  refspec_q="$(quote "refs/heads/$BRANCH:refs/remotes/$REMOTE/$BRANCH")"
 
   user_shell "command -v git >/dev/null"
   user_shell "command -v go >/dev/null"
@@ -153,7 +153,7 @@ main() {
   fi
 
   log "fetching $REMOTE $BRANCH"
-  user_shell "cd $repo_q && git fetch --prune $remote_q $refspec_q"
+  user_shell "cd $repo_q && git fetch $remote_q $refspec_q"
 
   current="$(user_shell "cd $repo_q && git rev-parse HEAD")"
   target="$(user_shell "cd $repo_q && git rev-parse $upstream_q")"
