@@ -50,7 +50,9 @@ describe("LiveWorkspace", () => {
 
     expect(screen.getByRole("button", { name: "Prompt" })).toHaveClass("is-active");
     expect(screen.getByText("BYOK provider disclosure")).toBeInTheDocument();
+    expect(screen.getByLabelText("Provider")).toHaveValue("openai");
     expect(screen.getByLabelText("Prompt")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Base URL")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Prep notes")).not.toBeInTheDocument();
   });
 
@@ -132,11 +134,40 @@ describe("LiveWorkspace", () => {
       expect.objectContaining({
         input_mode: "prompt_generation",
         provider: expect.objectContaining({
+          type: "openai",
+          base_url: "",
           model: "gpt-test",
           api_key: "secret",
         }),
       }),
     );
     expect(screen.getByLabelText("API key")).toHaveValue("");
+  });
+
+  it("submits selected Gemini providers", async () => {
+    const user = userEvent.setup();
+    const onCreateRun = vi.fn(async () => undefined);
+    renderWorkspace({ onCreateRun });
+
+    await user.click(screen.getByRole("button", { name: "Profile" }));
+    await user.type(screen.getByLabelText("Access code"), "invite-1");
+    await user.selectOptions(screen.getByLabelText("Provider"), "gemini");
+    await user.type(screen.getByLabelText("Model"), "gemini-test");
+    await user.type(screen.getByLabelText("API key"), "secret");
+    await user.click(screen.getByRole("button", { name: "Create Report" }));
+
+    expect(onCreateRun).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080",
+      "invite-1",
+      expect.objectContaining({
+        input_mode: "profile_generation",
+        provider: expect.objectContaining({
+          type: "gemini",
+          base_url: "",
+          model: "gemini-test",
+          api_key: "secret",
+        }),
+      }),
+    );
   });
 });

@@ -292,11 +292,17 @@ threshold as hard.
 
 ### 8. Provider Scope
 
-Support two provider modes first:
+Support five provider modes first:
 
 - `none`: validation of manually entered or fixture normalized plans
+- `openai`: optional BYOK profile-generation, prompt-generation, and bounded
+  JSON repair through OpenAI's native endpoint
+- `anthropic`: optional BYOK profile-generation, prompt-generation, and bounded
+  JSON repair through Anthropic's native endpoint
+- `gemini`: optional BYOK profile-generation, prompt-generation, and bounded
+  JSON repair through Gemini's native endpoint
 - `openai_compatible`: optional BYOK profile-generation, prompt-generation, and
-  bounded JSON repair
+  bounded JSON repair through a custom OpenAI-compatible endpoint
 
 No provider is needed for the seeded public demo.
 
@@ -601,8 +607,9 @@ Implemented shape:
 - `POST /api/runs` accepts `manual_structured`, `profile_generation`, and
   `prompt_generation` request bodies in addition to checked-in `case_path`
   demo runs.
-- Generation modes require an `openai_compatible` BYOK provider with `model`
-  and `api_key`; `https://api.openai.com/v1` is the default base URL.
+- Generation modes require a BYOK provider with `model` and `api_key`.
+  Supported provider types are `openai`, `anthropic`, `gemini`, and
+  `openai_compatible`.
 - BYOK keys are stored only in a shared in-memory pending map until the worker
   claims the run.
 - Generated or manually submitted plans are written as runtime case files under

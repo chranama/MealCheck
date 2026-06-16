@@ -7,7 +7,7 @@ reports, and artifacts.
 
 The API is intended for a static frontend plus a small self-hosted backend. It
 does not run a local LLM. When a live generation run needs an LLM, the caller
-supplies an OpenAI-compatible provider key in the request.
+supplies a BYOK provider key in the request.
 
 ## Authentication
 
@@ -270,8 +270,7 @@ curl -fsS -X POST "http://127.0.0.1:8080/api/runs" \
       "requires_prep_safety_notes": true
     },
     "provider": {
-      "type": "openai_compatible",
-      "base_url": "https://api.openai.com/v1",
+      "type": "openai",
       "model": "gpt-example",
       "api_key": "user-supplied-key"
     },
@@ -281,11 +280,15 @@ curl -fsS -X POST "http://127.0.0.1:8080/api/runs" \
 
 Generation rules:
 
-- `provider.type` must be `openai_compatible`.
-- `provider.model` and `provider.api_key` are required.
-- `provider.base_url` is optional and defaults to `https://api.openai.com/v1`.
-- The backend calls `{base_url}/chat/completions` with
-  `response_format: { "type": "json_object" }`.
+- `provider.type` must be one of `openai`, `anthropic`, `gemini`, or
+  `openai_compatible`.
+- `provider.model` and `provider.api_key` are required for all BYOK providers.
+- Native provider types use official provider endpoints. `provider.base_url` is
+  accepted only for `openai_compatible` and defaults to
+  `https://api.openai.com/v1`.
+- OpenAI and OpenAI-compatible requests call `/chat/completions` with
+  `response_format: { "type": "json_object" }`; Anthropic requests call
+  `/v1/messages`; Gemini requests call `/v1beta/models/{model}:generateContent`.
 - `repair_json` defaults to `true` for generation modes and allows one bounded
   repair attempt when provider output is not valid normalized meal-plan JSON.
 
@@ -319,8 +322,8 @@ Generation rules:
   },
   "generation_prompt": "Create a simple 3 day high-protein meal plan.",
   "provider": {
-    "type": "openai_compatible",
-    "model": "gpt-example",
+    "type": "gemini",
+    "model": "gemini-example",
     "api_key": "user-supplied-key"
   },
   "repair_json": true

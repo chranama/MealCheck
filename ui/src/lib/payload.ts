@@ -121,8 +121,8 @@ export function buildRunPayload(args: {
   }
 
   const provider: ProviderConfig = {
-    type: "openai_compatible",
-    base_url: args.provider.base_url.trim(),
+    type: args.provider.type,
+    base_url: args.provider.type === "openai_compatible" ? args.provider.base_url.trim().replace(/\/+$/, "") : "",
     model: args.provider.model.trim(),
     api_key: args.provider.api_key,
   };

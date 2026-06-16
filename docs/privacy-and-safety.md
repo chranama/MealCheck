@@ -86,6 +86,9 @@ BYOK LLM modes send data to the user's selected provider:
 - bounded repair sends invalid model output, schema errors, and enough context
   to repair JSON shape
 
+The MVP provider choices are OpenAI, Anthropic, Gemini, and custom
+OpenAI-compatible endpoints.
+
 The UI must disclose this before a BYOK run starts.
 
 MealCheck should not send user profile, prompt, or meal-plan data to analytics,

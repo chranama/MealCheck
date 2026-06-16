@@ -71,12 +71,66 @@ describe("payload", () => {
       repair_json: true,
       generation_prompt: DEFAULT_GENERATION_PROMPT,
       provider: {
-        base_url: DEFAULT_PROVIDER.base_url,
+        type: "openai",
+        base_url: "",
         model: "gpt-test",
         api_key: "secret",
       },
       constraints: {
         allergies: ["peanuts", "shellfish"],
+      },
+    });
+  });
+
+  it("preserves OpenAI-compatible base URLs", () => {
+    const payload = buildRunPayload({
+      mode: "profile_generation",
+      profile: DEFAULT_PROFILE,
+      constraints: draftConstraints,
+      manualItems: INITIAL_MANUAL_ITEMS,
+      prepNotes: DEFAULT_PREP_NOTES,
+      provider: {
+        type: "openai_compatible",
+        base_url: "https://router.local/v1/",
+        model: "custom-model",
+        api_key: "secret",
+      },
+      generationPrompt: DEFAULT_GENERATION_PROMPT,
+      repairJSON: true,
+    });
+
+    expect(payload).toMatchObject({
+      input_mode: "profile_generation",
+      provider: {
+        type: "openai_compatible",
+        base_url: "https://router.local/v1",
+        model: "custom-model",
+      },
+    });
+  });
+
+  it("clears base URLs for native providers", () => {
+    const payload = buildRunPayload({
+      mode: "profile_generation",
+      profile: DEFAULT_PROFILE,
+      constraints: draftConstraints,
+      manualItems: INITIAL_MANUAL_ITEMS,
+      prepNotes: DEFAULT_PREP_NOTES,
+      provider: {
+        type: "gemini",
+        base_url: "https://example.invalid",
+        model: "gemini-test",
+        api_key: "secret",
+      },
+      generationPrompt: DEFAULT_GENERATION_PROMPT,
+      repairJSON: true,
+    });
+
+    expect(payload).toMatchObject({
+      provider: {
+        type: "gemini",
+        base_url: "",
+        model: "gemini-test",
       },
     });
   });

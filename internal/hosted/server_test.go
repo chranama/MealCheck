@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
@@ -317,6 +318,157 @@ func TestPromptGenerationFailsWithoutRepairAfterInvalidJSON(t *testing.T) {
 	}
 }
 
+func TestRequestRunInputAcceptsNativeProviderTypes(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	seeded := seededCase(t, root)
+
+	for _, providerType := range []string{ProviderTypeOpenAI, ProviderTypeAnthropic, ProviderTypeGemini, ProviderTypeOpenAICompatible} {
+		t.Run(providerType, func(t *testing.T) {
+			_, input, ok, err := requestRunInput(config, CreateRunRequest{
+				InputMode:   "profile_generation",
+				Profile:     seeded.Profile,
+				Constraints: seeded.Constraints,
+				Provider: ProviderConfig{
+					Type:    providerType,
+					BaseURL: "https://example.invalid/v1",
+					Model:   "test-model",
+					APIKey:  "test-key",
+				},
+			})
+			if err != nil {
+				t.Fatalf("requestRunInput error: %v", err)
+			}
+			if !ok {
+				t.Fatal("requestRunInput ok = false, want true")
+			}
+			if input.Provider.Type != providerType {
+				t.Fatalf("provider type = %q, want %q", input.Provider.Type, providerType)
+			}
+			if providerType == ProviderTypeOpenAICompatible {
+				if input.Provider.BaseURL == "" {
+					t.Fatal("openai_compatible base_url was unexpectedly cleared")
+				}
+			} else if input.Provider.BaseURL != "" {
+				t.Fatalf("native provider base_url = %q, want empty", input.Provider.BaseURL)
+			}
+		})
+	}
+}
+
+func TestOpenAIProviderRequestAndResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			t.Fatalf("path = %q, want /v1/chat/completions", r.URL.Path)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer sk-openai" {
+			t.Fatalf("authorization = %q", got)
+		}
+		var payload map[string]any
+		decodeJSON(t, readAll(t, r), &payload)
+		if payload["model"] != "gpt-test" {
+			t.Fatalf("model = %v", payload["model"])
+		}
+		format, ok := payload["response_format"].(map[string]any)
+		if !ok || format["type"] != "json_object" {
+			t.Fatalf("response_format = %#v", payload["response_format"])
+		}
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"{\"schema_version\":\"0.1\"}"}}]}`))
+	}))
+	defer server.Close()
+
+	provider := OpenAIProvider{Client: server.Client(), BaseURL: server.URL + "/v1"}
+	got, err := provider.Complete(context.Background(), ProviderConfig{
+		Type:   ProviderTypeOpenAI,
+		Model:  "gpt-test",
+		APIKey: "sk-openai",
+	}, []ProviderMessage{{Role: "system", Content: "Return JSON."}, {Role: "user", Content: "Plan."}})
+	if err != nil {
+		t.Fatalf("Complete error: %v", err)
+	}
+	if got != `{"schema_version":"0.1"}` {
+		t.Fatalf("content = %q", got)
+	}
+}
+
+func TestAnthropicProviderRequestAndResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/messages" {
+			t.Fatalf("path = %q, want /v1/messages", r.URL.Path)
+		}
+		if got := r.Header.Get("x-api-key"); got != "sk-anthropic" {
+			t.Fatalf("x-api-key = %q", got)
+		}
+		if got := r.Header.Get("anthropic-version"); got == "" {
+			t.Fatal("missing anthropic-version header")
+		}
+		var payload map[string]any
+		decodeJSON(t, readAll(t, r), &payload)
+		if payload["model"] != "claude-test" {
+			t.Fatalf("model = %v", payload["model"])
+		}
+		if !strings.Contains(fmt.Sprint(payload["system"]), "Return JSON") {
+			t.Fatalf("system = %v", payload["system"])
+		}
+		if _, ok := payload["messages"].([]any); !ok {
+			t.Fatalf("messages = %#v", payload["messages"])
+		}
+		_, _ = w.Write([]byte(`{"content":[{"type":"text","text":"{\"schema_version\":\"0.1\"}"}]}`))
+	}))
+	defer server.Close()
+
+	provider := AnthropicProvider{Client: server.Client(), BaseURL: server.URL}
+	got, err := provider.Complete(context.Background(), ProviderConfig{
+		Type:   ProviderTypeAnthropic,
+		Model:  "claude-test",
+		APIKey: "sk-anthropic",
+	}, []ProviderMessage{{Role: "system", Content: "Return JSON."}, {Role: "user", Content: "Plan."}})
+	if err != nil {
+		t.Fatalf("Complete error: %v", err)
+	}
+	if got != `{"schema_version":"0.1"}` {
+		t.Fatalf("content = %q", got)
+	}
+}
+
+func TestGeminiProviderRequestAndResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1beta/models/gemini-test:generateContent" {
+			t.Fatalf("path = %q, want Gemini generateContent path", r.URL.Path)
+		}
+		if got := r.Header.Get("x-goog-api-key"); got != "sk-gemini" {
+			t.Fatalf("x-goog-api-key = %q", got)
+		}
+		var payload map[string]any
+		decodeJSON(t, readAll(t, r), &payload)
+		if _, ok := payload["systemInstruction"].(map[string]any); !ok {
+			t.Fatalf("systemInstruction = %#v", payload["systemInstruction"])
+		}
+		config, ok := payload["generationConfig"].(map[string]any)
+		if !ok {
+			t.Fatalf("generationConfig = %#v", payload["generationConfig"])
+		}
+		if _, ok := config["responseFormat"].(map[string]any); !ok {
+			t.Fatalf("responseFormat = %#v", config["responseFormat"])
+		}
+		_, _ = w.Write([]byte(`{"candidates":[{"content":{"parts":[{"text":"{\"schema_version\":\"0.1\"}"}]}}]}`))
+	}))
+	defer server.Close()
+
+	provider := GeminiProvider{Client: server.Client(), BaseURL: server.URL}
+	got, err := provider.Complete(context.Background(), ProviderConfig{
+		Type:   ProviderTypeGemini,
+		Model:  "gemini-test",
+		APIKey: "sk-gemini",
+	}, []ProviderMessage{{Role: "system", Content: "Return JSON."}, {Role: "user", Content: "Plan."}})
+	if err != nil {
+		t.Fatalf("Complete error: %v", err)
+	}
+	if got != `{"schema_version":"0.1"}` {
+		t.Fatalf("content = %q", got)
+	}
+}
+
 func TestHostedQueueLimit(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
@@ -575,6 +727,15 @@ func hasNormalizationEvent(events []NormalizationEvent, eventType string) bool {
 		}
 	}
 	return false
+}
+
+func readAll(t *testing.T, r *http.Request) []byte {
+	t.Helper()
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }
 
 func assertFileTreeDoesNotContain(t *testing.T, root, secret string) {

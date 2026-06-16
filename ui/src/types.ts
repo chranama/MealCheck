@@ -197,8 +197,10 @@ export type ConstraintsDraft = Omit<Constraints, "allergies" | "excluded_foods">
   excluded_foods: string;
 };
 
+export type ProviderType = "openai" | "anthropic" | "gemini" | "openai_compatible";
+
 export type ProviderConfig = {
-  type: "openai_compatible";
+  type: ProviderType;
   base_url: string;
   model: string;
   api_key: string;

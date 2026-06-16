@@ -448,8 +448,7 @@ Profile-only BYOK generation:
     "meals_per_day": 3
   },
   "provider": {
-    "type": "openai_compatible",
-    "base_url": "https://api.openai.com/v1",
+    "type": "openai",
     "model": "gpt-example",
     "api_key": "user-supplied-key"
   },
@@ -475,8 +474,8 @@ Prompt-based BYOK generation:
   },
   "generation_prompt": "Create a simple 3 day high-protein meal plan.",
   "provider": {
-    "type": "openai_compatible",
-    "model": "gpt-example",
+    "type": "anthropic",
+    "model": "claude-example",
     "api_key": "user-supplied-key"
   },
   "repair_json": true
@@ -486,8 +485,12 @@ Prompt-based BYOK generation:
 Rules:
 
 - `case_path` cannot be combined with `input_mode`.
-- `profile_generation` and `prompt_generation` require an
-  `openai_compatible` BYOK provider with `model` and `api_key`.
+- `profile_generation` and `prompt_generation` require a BYOK provider with
+  `model` and `api_key`.
+- Supported `provider.type` values are `openai`, `anthropic`, `gemini`, and
+  `openai_compatible`.
+- Native providers use their official endpoints. `base_url` is honored only for
+  `openai_compatible` custom endpoints.
 - `repair_json` defaults to `true` for generation modes and allows one bounded
   repair attempt.
 - Provider API keys are held only in memory while the queued run is pending and

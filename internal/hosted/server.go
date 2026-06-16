@@ -311,18 +311,24 @@ func hasDynamicRunFields(request CreateRunRequest) bool {
 func normalizeProviderConfig(config ProviderConfig) ProviderConfig {
 	providerType := strings.TrimSpace(config.Type)
 	if providerType == "" {
-		providerType = "openai_compatible"
+		providerType = ProviderTypeOpenAICompatible
 	}
-	return ProviderConfig{
+	normalized := ProviderConfig{
 		Type:    providerType,
 		BaseURL: strings.TrimRight(strings.TrimSpace(config.BaseURL), "/"),
 		Model:   strings.TrimSpace(config.Model),
 		APIKey:  strings.TrimSpace(config.APIKey),
 	}
+	if providerType != ProviderTypeOpenAICompatible {
+		normalized.BaseURL = ""
+	}
+	return normalized
 }
 
 func validateProviderConfig(config ProviderConfig) error {
-	if config.Type != "openai_compatible" {
+	switch config.Type {
+	case ProviderTypeOpenAICompatible, ProviderTypeOpenAI, ProviderTypeAnthropic, ProviderTypeGemini:
+	default:
 		return fmt.Errorf("unsupported provider type %q", config.Type)
 	}
 	if config.Model == "" {

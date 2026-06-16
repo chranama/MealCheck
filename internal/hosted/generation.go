@@ -400,7 +400,7 @@ func normalizationEvent(eventType, message string) NormalizationEvent {
 func redactProvider(config ProviderConfig) RedactedProviderConfig {
 	providerType := config.Type
 	if providerType == "" {
-		providerType = "openai_compatible"
+		providerType = ProviderTypeOpenAICompatible
 	}
 	return RedactedProviderConfig{
 		Type:    providerType,

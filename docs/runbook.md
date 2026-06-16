@@ -272,7 +272,7 @@ curl -X POST http://127.0.0.1:8080/api/runs \
       "meals_per_day": 3
     },
     "provider": {
-      "type": "openai_compatible",
+      "type": "openai",
       "model": "gpt-example",
       "api_key": "replace-with-user-key"
     },
@@ -867,10 +867,15 @@ Queue full:
 - wait for the active run to finish
 - restart the backend only if a run appears stuck beyond `MEALCHECK_RUN_TIMEOUT`
 
+Supported BYOK provider types are `openai`, `anthropic`, `gemini`, and
+`openai_compatible`. Native providers use their official endpoints; set
+`base_url` only for OpenAI-compatible custom endpoints.
+
 Provider failure:
 
 - check the run `error` field
-- verify the user-supplied provider base URL, model, and key
+- verify the user-supplied provider type, model, key, and custom base URL when
+  `openai_compatible` is selected
 - do not log or ask users to send raw API keys
 
 ## Milestone 7 Local Acceptance

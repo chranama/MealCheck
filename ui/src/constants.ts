@@ -1,4 +1,4 @@
-import type { Constraints, ManualItem, Profile, ProviderConfig, ReportTab } from "./types";
+import type { Constraints, ManualItem, Profile, ProviderConfig, ProviderType, ReportTab } from "./types";
 
 export const DEFAULT_PROFILE: Profile = {
   age: 35,
@@ -26,11 +26,18 @@ export const DEFAULT_CONSTRAINTS: Constraints = {
 };
 
 export const DEFAULT_PROVIDER: ProviderConfig = {
-  type: "openai_compatible",
-  base_url: "https://api.openai.com/v1",
+  type: "openai",
+  base_url: "",
   model: "",
   api_key: "",
 };
+
+export const PROVIDER_OPTIONS: Array<{ type: ProviderType; label: string; modelHint: string }> = [
+  { type: "openai", label: "OpenAI", modelHint: "OpenAI model ID" },
+  { type: "anthropic", label: "Anthropic", modelHint: "Claude model ID" },
+  { type: "gemini", label: "Gemini", modelHint: "Gemini model ID" },
+  { type: "openai_compatible", label: "OpenAI-compatible", modelHint: "Provider model ID" },
+];
 
 export const MVP_FOODS = [
   "cooked oatmeal",

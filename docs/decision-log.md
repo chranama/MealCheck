@@ -6,6 +6,30 @@ public expectations.
 Use this log instead of separate ADR and RFC files until a decision becomes too
 large to keep readable here.
 
+## 2026-06-16: MVP BYOK Supports Native Model Providers
+
+Status: Accepted
+
+Decision:
+
+MealCheck's MVP BYOK generation path will support `openai`, `anthropic`,
+`gemini`, and `openai_compatible` provider types.
+
+Reason:
+
+The MVP needs to let testers use common new-user-credit providers directly
+without forcing them through an OpenAI-compatible router. Keeping
+`openai_compatible` preserves custom endpoint interoperability for later router
+or local-provider work.
+
+Consequences:
+
+- Native providers use official provider endpoints and ignore custom
+  `base_url` input.
+- `openai_compatible` is the only provider type that accepts `base_url`.
+- BYOK key handling, redaction, invite gating, artifact writing, and bounded
+  JSON repair remain the same across providers.
+
 ## 2026-06-10: Keep Documentation Focused
 
 Status: Accepted

@@ -9,6 +9,7 @@ import {
   INITIAL_MANUAL_ITEMS,
   MEALS,
   MVP_FOODS,
+  PROVIDER_OPTIONS,
   UNITS,
 } from "../../constants";
 import { cleanApiBase } from "../../lib/api";
@@ -22,6 +23,7 @@ import type {
   ManualItem,
   Profile,
   ProviderConfig,
+  ProviderType,
   RunPayload,
 } from "../../types";
 import { Field, NumberInput } from "../common/FormControls";
@@ -408,6 +410,15 @@ function ProviderForm({
   function update<K extends keyof ProviderConfig>(field: K, value: ProviderConfig[K]) {
     setProvider((current) => ({ ...current, [field]: value }));
   }
+  function updateProviderType(type: ProviderType) {
+    setProvider((current) => ({
+      ...current,
+      type,
+      base_url: type === "openai_compatible" ? current.base_url : "",
+    }));
+  }
+
+  const selectedProvider = PROVIDER_OPTIONS.find((option) => option.type === provider.type) ?? PROVIDER_OPTIONS[0];
 
   return (
     <section className="mode-section" id="provider-section">
@@ -416,8 +427,17 @@ function ProviderForm({
         <p>Profile, constraints, prompt text, and generated meal-plan content are sent to the selected provider. MealCheck does not persist the provider key.</p>
       </div>
       <div className="form-grid">
-        <Field label="Base URL"><input value={provider.base_url} onChange={(event) => update("base_url", event.target.value)} type="text" /></Field>
-        <Field label="Model"><input value={provider.model} onChange={(event) => update("model", event.target.value)} type="text" /></Field>
+        <Field label="Provider">
+          <select value={provider.type} onChange={(event) => updateProviderType(event.target.value as ProviderType)}>
+            {PROVIDER_OPTIONS.map((option) => (
+              <option key={option.type} value={option.type}>{option.label}</option>
+            ))}
+          </select>
+        </Field>
+        {provider.type === "openai_compatible" ? (
+          <Field label="Base URL"><input placeholder="https://api.openai.com/v1" value={provider.base_url} onChange={(event) => update("base_url", event.target.value)} type="text" /></Field>
+        ) : null}
+        <Field label="Model"><input placeholder={selectedProvider.modelHint} value={provider.model} onChange={(event) => update("model", event.target.value)} type="text" /></Field>
         <Field label="API key"><input autoComplete="off" value={provider.api_key} onChange={(event) => update("api_key", event.target.value)} type="password" /></Field>
       </div>
       {mode === "prompt_generation" ? (
