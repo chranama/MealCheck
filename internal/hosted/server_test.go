@@ -268,6 +268,72 @@ func TestPromptGenerationAllowsOneBoundedRepair(t *testing.T) {
 	}
 }
 
+func TestPromptGenerationRepairsGeneratedPlanCountMismatch(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	seeded := seededCase(t, root)
+	seeded.Constraints.Days = 1
+	seeded.Constraints.MealsPerDay = 3
+	provider := &fakeProvider{responses: []string{
+		`{"schema_version":"0.1","plan_id":"one-meal","days":[{"day":1,"meals":[{"name":"breakfast","items":[{"food":"cooked oatmeal","quantity":1,"unit":"cup"}]}]}]}`,
+		`{"schema_version":"0.1","plan_id":"three-meals","days":[{"day":1,"meals":[{"name":"breakfast","items":[{"food":"cooked oatmeal","quantity":1,"unit":"cup"}]},{"name":"lunch","items":[{"food":"chicken breast","quantity":4,"unit":"oz"}]},{"name":"dinner","items":[{"food":"salmon","quantity":4,"unit":"oz"}]}]}]}`,
+	}}
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:        "prompt_generation",
+		Profile:          seeded.Profile,
+		Constraints:      seeded.Constraints,
+		GenerationPrompt: "Create a simple 1 day meal plan.",
+		Provider: ProviderConfig{
+			Type:   "openai_compatible",
+			Model:  "fake-model",
+			APIKey: "sk-count-repair-secret",
+		},
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		return provider, nil
+	}).ProcessOne(context.Background())
+	if err != nil {
+		t.Fatalf("process run: %v", err)
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+	if provider.calls != 2 {
+		t.Fatalf("provider calls = %d, want initial response plus one repair", provider.calls)
+	}
+
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	if run.Status != StatusCompleted {
+		t.Fatalf("run status = %q, want completed", run.Status)
+	}
+	var events []NormalizationEvent
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "normalization-events.json")), &events)
+	for _, eventType := range []string{"plan_constraints_failed", "repair_attempted", "repair_succeeded"} {
+		if !hasNormalizationEvent(events, eventType) {
+			t.Fatalf("normalization events missing %q: %+v", eventType, events)
+		}
+	}
+	var plan checker.Plan
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "normalized-plan.json")), &plan)
+	if len(plan.Days) != 1 || len(plan.Days[0].Meals) != 3 {
+		t.Fatalf("normalized plan days/meals = %d/%d, want 1/3", len(plan.Days), len(plan.Days[0].Meals))
+	}
+}
+
 func TestPromptGenerationFailsWithoutRepairAfterInvalidJSON(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
@@ -525,6 +591,67 @@ func TestPromptGenerationWritesRedactedNormalizationDebugArtifact(t *testing.T) 
 	}
 }
 
+func TestPromptGenerationWritesRedactedDebugArtifactOnProviderError(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	seeded := seededCase(t, root)
+	secret := "sk-provider-error-secret"
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:        "prompt_generation",
+		Profile:          seeded.Profile,
+		Constraints:      seeded.Constraints,
+		GenerationPrompt: "Create a simple 3 day meal plan.",
+		Provider: ProviderConfig{
+			Type:   ProviderTypeGemini,
+			Model:  "gemini-test",
+			APIKey: secret,
+		},
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		return errorProvider{err: fmt.Errorf("Gemini provider returned HTTP 400 Bad Request: schema rejected for %s", config.APIKey)}, nil
+	}).ProcessOne(context.Background())
+	if err == nil {
+		t.Fatal("expected provider error")
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	if run.Status != StatusFailed {
+		t.Fatalf("run status = %q, want failed", run.Status)
+	}
+	debugBytes := readFile(t, filepath.Join(run.ArtifactDir, "debug", "normalization-failure.json"))
+	if bytes.Contains(debugBytes, []byte(secret)) {
+		t.Fatalf("provider error debug artifact contains provider secret:\n%s", string(debugBytes))
+	}
+	var debug normalizationFailureArtifact
+	decodeJSON(t, debugBytes, &debug)
+	if debug.Provider.APIKey != "redacted" {
+		t.Fatalf("debug provider api_key = %q, want redacted", debug.Provider.APIKey)
+	}
+	if !strings.Contains(debug.FinalError, "[redacted]") {
+		t.Fatalf("debug final error was not redacted: %+v", debug)
+	}
+	if !hasNormalizationEvent(debug.NormalizationEvents, "provider_request_failed") {
+		t.Fatalf("debug events missing provider_request_failed: %+v", debug.NormalizationEvents)
+	}
+}
+
 func TestRequestRunInputAcceptsNativeProviderTypes(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
@@ -587,6 +714,12 @@ func TestOpenAIProviderRequestAndResponse(t *testing.T) {
 		schema, ok := jsonSchema["schema"].(map[string]any)
 		if !ok || schema["additionalProperties"] != false {
 			t.Fatalf("schema = %#v", jsonSchema["schema"])
+		}
+		days := schema["properties"].(map[string]any)["days"].(map[string]any)
+		day := days["items"].(map[string]any)
+		dayValue := day["properties"].(map[string]any)["day"].(map[string]any)
+		if dayValue["minimum"] != float64(1) && dayValue["minimum"] != 1 {
+			t.Fatalf("strict schema day minimum = %#v", dayValue["minimum"])
 		}
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"{\"schema_version\":\"0.1\"}"}}]}`))
 	}))
@@ -673,6 +806,12 @@ func TestAnthropicProviderRequestAndResponse(t *testing.T) {
 		if !ok || schema["additionalProperties"] != false {
 			t.Fatalf("schema = %#v", format["schema"])
 		}
+		days := schema["properties"].(map[string]any)["days"].(map[string]any)
+		day := days["items"].(map[string]any)
+		dayValue := day["properties"].(map[string]any)["day"].(map[string]any)
+		if _, ok := dayValue["minimum"]; ok {
+			t.Fatalf("portable Anthropic schema included unsupported minimum: %#v", dayValue)
+		}
 		_, _ = w.Write([]byte(`{"content":[{"type":"text","text":"{\"schema_version\":\"0.1\"}"}]}`))
 	}))
 	defer server.Close()
@@ -708,17 +847,14 @@ func TestGeminiProviderRequestAndResponse(t *testing.T) {
 		if !ok {
 			t.Fatalf("generationConfig = %#v", payload["generationConfig"])
 		}
-		responseFormat, ok := config["responseFormat"].(map[string]any)
-		if !ok {
-			t.Fatalf("responseFormat = %#v", config["responseFormat"])
+		if config["responseMimeType"] != "application/json" {
+			t.Fatalf("responseMimeType = %#v", config["responseMimeType"])
 		}
-		text, ok := responseFormat["text"].(map[string]any)
-		if !ok || text["mimeType"] != "application/json" {
-			t.Fatalf("responseFormat.text = %#v", responseFormat["text"])
+		if _, ok := config["responseFormat"]; ok {
+			t.Fatalf("Gemini payload should not use responseFormat after live API rejection: %#v", config["responseFormat"])
 		}
-		schema, ok := text["schema"].(map[string]any)
-		if !ok || schema["additionalProperties"] != false {
-			t.Fatalf("responseFormat schema = %#v", text["schema"])
+		if _, ok := config["responseSchema"]; ok {
+			t.Fatalf("Gemini payload should not use responseSchema after live API rejection: %#v", config["responseSchema"])
 		}
 		_, _ = w.Write([]byte(`{"candidates":[{"content":{"parts":[{"text":"{\"schema_version\":\"0.1\"}"}]}}]}`))
 	}))
@@ -1185,6 +1321,14 @@ func (p *fakeProvider) Complete(_ context.Context, config ProviderConfig, messag
 	response := p.responses[p.calls]
 	p.calls++
 	return response, nil
+}
+
+type errorProvider struct {
+	err error
+}
+
+func (p errorProvider) Complete(context.Context, ProviderConfig, []ProviderMessage) (string, error) {
+	return "", p.err
 }
 
 type roundTripFunc func(*http.Request) (*http.Response, error)

@@ -36,46 +36,49 @@ func mealPlanAliasRules() []string {
 	}
 }
 
-func mealPlanExampleShape() map[string]any {
+func mealPlanShapeInstructions(constraints checker.Constraints) map[string]any {
 	return map[string]any{
 		"schema_version": "0.1",
 		"plan_id":        "provider-generated-plan",
 		"description":    "brief description",
-		"days": []map[string]any{
-			{
-				"day": 1,
-				"meals": []map[string]any{
-					{
-						"name": "breakfast",
-						"items": []map[string]any{
-							{
-								"food":     "plain oatmeal",
-								"quantity": 1,
-								"unit":     "cup",
-							},
-							{
-								"food":              "mixed fruit",
-								"quantity_text":     "one small bowl",
-								"resolution_status": "unresolved",
-								"unresolved_reason": "vague_quantity",
-							},
-						},
-					},
-				},
-			},
+		"days":           fmt.Sprintf("array with exactly %d day object(s); day numbers must run from 1 through %d", constraints.Days, constraints.Days),
+		"day": map[string]any{
+			"day":   "integer day number",
+			"meals": fmt.Sprintf("array with exactly %d meal object(s) per day", constraints.MealsPerDay),
 		},
-		"shopping_list": []map[string]any{
-			{
-				"food":     "plain oatmeal",
-				"quantity": 1,
-				"unit":     "cup",
-			},
+		"meal": map[string]any{
+			"name":  "meal name, such as breakfast, lunch, dinner, or snack",
+			"items": "array of food item objects",
 		},
-		"prep_notes": []string{"Keep cold foods refrigerated."},
+		"food_item_numeric_quantity": map[string]any{
+			"food":     "food name",
+			"quantity": "positive number",
+			"unit":     "g, oz, cup, tbsp, tsp, or serving",
+		},
+		"food_item_unresolved_quantity": map[string]any{
+			"food":              "food name",
+			"quantity_text":     "original vague quantity text",
+			"resolution_status": "unresolved",
+			"unresolved_reason": "vague_quantity, unknown_food, unsupported_unit, or missing_conversion",
+		},
+		"suggested_meal_names": suggestedMealNames(constraints.MealsPerDay),
+		"shopping_list":        "array of food item objects using the same food item fields",
+		"prep_notes":           []string{"Keep cold foods refrigerated."},
 	}
 }
 
-func mealPlanResponseSchema() map[string]any {
+func suggestedMealNames(mealsPerDay int) []string {
+	names := []string{"breakfast", "lunch", "dinner", "snack_1", "snack_2", "snack_3"}
+	if mealsPerDay < 1 {
+		return nil
+	}
+	if mealsPerDay > len(names) {
+		mealsPerDay = len(names)
+	}
+	return names[:mealsPerDay]
+}
+
+func strictMealPlanResponseSchema() map[string]any {
 	foodItem := func() map[string]any {
 		return map[string]any{
 			"type":                 "object",
@@ -183,6 +186,100 @@ func mealPlanResponseSchema() map[string]any {
 				"type":     "array",
 				"minItems": 1,
 				"items":    day,
+			},
+			"shopping_list": map[string]any{
+				"type":  "array",
+				"items": foodItem(),
+			},
+			"prep_notes": map[string]any{
+				"type": "array",
+				"items": map[string]any{
+					"type": "string",
+				},
+			},
+		},
+	}
+}
+
+func portableMealPlanResponseSchema() map[string]any {
+	foodItem := func() map[string]any {
+		return map[string]any{
+			"type":                 "object",
+			"additionalProperties": false,
+			"required":             []string{"food"},
+			"properties": map[string]any{
+				"food": map[string]any{
+					"type": "string",
+				},
+				"quantity": map[string]any{
+					"type": "number",
+				},
+				"quantity_text": map[string]any{
+					"type": "string",
+				},
+				"unit": map[string]any{
+					"type": "string",
+				},
+				"preparation": map[string]any{
+					"type": "string",
+				},
+				"brand": map[string]any{
+					"type": "string",
+				},
+				"resolution_status": map[string]any{
+					"type": "string",
+				},
+				"unresolved_reason": map[string]any{
+					"type": "string",
+				},
+			},
+		}
+	}
+	meal := map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"name", "items"},
+		"properties": map[string]any{
+			"name": map[string]any{
+				"type": "string",
+			},
+			"items": map[string]any{
+				"type":  "array",
+				"items": foodItem(),
+			},
+		},
+	}
+	day := map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"day", "meals"},
+		"properties": map[string]any{
+			"day": map[string]any{
+				"type": "integer",
+			},
+			"meals": map[string]any{
+				"type":  "array",
+				"items": meal,
+			},
+		},
+	}
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"schema_version", "plan_id", "days"},
+		"properties": map[string]any{
+			"schema_version": map[string]any{
+				"type": "string",
+			},
+			"plan_id": map[string]any{
+				"type": "string",
+			},
+			"description": map[string]any{
+				"type": "string",
+			},
+			"days": map[string]any{
+				"type":  "array",
+				"items": day,
 			},
 			"shopping_list": map[string]any{
 				"type":  "array",

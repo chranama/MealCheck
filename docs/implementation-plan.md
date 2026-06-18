@@ -1468,8 +1468,9 @@ Backend improvement plan:
 2. Prefer provider-native structured outputs.
    - OpenAI: use JSON Schema structured outputs with strict schema mode instead
      of plain JSON mode when compatible with the selected model.
-   - Gemini: send `generationConfig.responseFormat.text.mimeType` plus JSON
-     schema for supported models.
+   - Gemini: send `responseMimeType: "application/json"` and rely on
+     server-side validation/canonicalization; the live REST endpoint rejected
+     JSON-Schema-style `responseSchema` fields.
    - Anthropic: use JSON schema structured outputs through
      `output_config.format` for supported Claude models.
    - `openai_compatible`: retain current JSON mode as the compatibility
@@ -1516,20 +1517,25 @@ Implemented:
 
 1. Added a centralized backend meal-plan contract for provider schema payloads,
    generation prompts, repair prompts, alias rules, and decoder tests.
-2. Added native structured-output payloads for OpenAI, Anthropic, and Gemini
-   while preserving plain JSON mode for generic OpenAI-compatible providers.
+2. Added native structured-output payloads for OpenAI and Anthropic, Gemini JSON
+   mode, and plain JSON mode for generic OpenAI-compatible providers. OpenAI
+   uses the strict schema; Anthropic uses a portable schema subset because live
+   provider validators reject some JSON Schema keywords.
 3. Added deterministic canonicalization for the observed alias set before any
    LLM repair call.
 4. Kept strict `DisallowUnknownFields` decoding and final MealCheck plan
    validation after canonicalization.
-5. Redacted provider output and decode errors before sending them to the repair
+5. Added generated-plan count validation before artifact generation, so a
+   provider output that parses but has the wrong number of days or meals gets
+   the single bounded repair attempt before MealCheck writes the report.
+6. Redacted provider output and decode errors before sending them to the repair
    prompt, so a provider-echoed API key is not sent back to the provider.
-6. Added failed-normalization debug artifacts at
+7. Added failed-normalization debug artifacts at
    `debug/normalization-failure.json` for provider runs that fail before the
    normal artifact bundle exists.
-7. Added regression tests for provider aliases, unknown-field rejection,
-   provider schema request payloads, failed-normalization debug artifacts, and
-   secret redaction.
+8. Added regression tests for provider aliases, unknown-field rejection,
+   provider schema request payloads, generated-plan count repair,
+   failed-normalization debug artifacts, and secret redaction.
 
 Acceptance:
 

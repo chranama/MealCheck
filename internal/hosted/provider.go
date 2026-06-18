@@ -53,7 +53,7 @@ func DefaultProviderFactory(config ProviderConfig) (Provider, error) {
 	if providerType == "" {
 		providerType = ProviderTypeOpenAICompatible
 	}
-	client := &http.Client{Timeout: 45 * time.Second}
+	client := &http.Client{Timeout: 90 * time.Second}
 	switch providerType {
 	case ProviderTypeOpenAICompatible:
 		return OpenAICompatibleProvider{Client: client}, nil
@@ -140,7 +140,7 @@ func completeOpenAIChat(ctx context.Context, client *http.Client, config Provide
 			"json_schema": map[string]any{
 				"name":   "mealcheck_meal_plan",
 				"strict": true,
-				"schema": mealPlanResponseSchema(),
+				"schema": strictMealPlanResponseSchema(),
 			},
 		}
 	}
@@ -212,13 +212,13 @@ func (p AnthropicProvider) Complete(ctx context.Context, config ProviderConfig, 
 	system, anthropicMessages := anthropicMessagePayload(messages)
 	payload := map[string]any{
 		"model":       config.Model,
-		"max_tokens":  8192,
+		"max_tokens":  4096,
 		"temperature": 0,
 		"messages":    anthropicMessages,
 		"output_config": map[string]any{
 			"format": map[string]any{
 				"type":   "json_schema",
-				"schema": mealPlanResponseSchema(),
+				"schema": portableMealPlanResponseSchema(),
 			},
 		},
 	}
@@ -320,13 +320,8 @@ func (p GeminiProvider) Complete(ctx context.Context, config ProviderConfig, mes
 		"systemInstruction": geminiSystemInstruction(messages),
 		"contents":          geminiContents(messages),
 		"generationConfig": map[string]any{
-			"temperature": 0,
-			"responseFormat": map[string]any{
-				"text": map[string]any{
-					"mimeType": "application/json",
-					"schema":   mealPlanResponseSchema(),
-				},
-			},
+			"temperature":      0,
+			"responseMimeType": "application/json",
 		},
 	}
 	body, err := json.Marshal(payload)

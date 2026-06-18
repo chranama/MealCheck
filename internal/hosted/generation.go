@@ -48,9 +48,10 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 	var initialErr error
 	var repairOutput string
 	var repairErr error
-	var finalErr error
+	var repairAttempted bool
 	var events []NormalizationEvent
 	var providerRedacted RedactedProviderConfig
+	var provider Provider
 	usedProvider := false
 
 	switch input.Mode {
@@ -61,7 +62,8 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		plan = *input.CandidatePlan
 		events = append(events, normalizationEvent("manual_plan_received", "manual structured meal plan received"))
 	case "profile_generation", "prompt_generation":
-		provider, err := providerFactory(input.Provider)
+		var err error
+		provider, err = providerFactory(input.Provider)
 		if err != nil {
 			return PreparedRun{}, err
 		}
@@ -73,7 +75,10 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		}
 		llmOutput, err = provider.Complete(ctx, input.Provider, messages)
 		if err != nil {
-			return PreparedRun{}, err
+			events = append(events, normalizationEvent("provider_request_failed", "provider request failed before returning meal-plan JSON"))
+			return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+				FinalError: err,
+			})
 		}
 		initialOutput = llmOutput
 		events = append(events, normalizationEvent("llm_output_received", "provider returned candidate meal-plan JSON"))
@@ -89,6 +94,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 				})
 			}
 			repairDecodeErr := sanitizeRepairPromptError(err, input.Provider.APIKey)
+			repairAttempted = true
 			repairOutput, repairErr = provider.Complete(ctx, input.Provider, repairMessages(input, sanitizeDebugArtifactText(llmOutput, input.Provider.APIKey), repairDecodeErr))
 			if repairErr != nil {
 				return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
@@ -126,18 +132,13 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		return PreparedRun{}, fmt.Errorf("unsupported input_mode %q", input.Mode)
 	}
 
-	if err := validatePlan(plan); err != nil {
-		if usedProvider {
-			finalErr = err
-			events = append(events, normalizationEvent("plan_validation_failed", "decoded provider output failed MealCheck plan validation"))
-			return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
-				InitialOutput: initialOutput,
-				InitialError:  initialErr,
-				RepairOutput:  repairOutput,
-				RepairError:   repairErr,
-				FinalError:    finalErr,
-			})
+	if usedProvider {
+		var err error
+		plan, llmOutput, repairOutput, repairErr, repairAttempted, events, err = normalizeGeneratedPlanPostDecode(ctx, config, provider, run, input, plan, llmOutput, initialOutput, initialErr, repairOutput, repairErr, repairAttempted, events)
+		if err != nil {
+			return PreparedRun{}, err
 		}
+	} else if err := validatePlan(plan); err != nil {
 		return PreparedRun{}, err
 	}
 
@@ -154,6 +155,83 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 	}, nil
 }
 
+func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, plan checker.Plan, llmOutput string, initialOutput string, initialErr error, repairOutput string, repairErr error, repairAttempted bool, events []NormalizationEvent) (checker.Plan, string, string, error, bool, []NormalizationEvent, error) {
+	if err := validatePlan(plan); err != nil {
+		events = append(events, normalizationEvent("plan_validation_failed", "decoded provider output failed MealCheck plan validation"))
+		return checker.Plan{}, llmOutput, repairOutput, repairErr, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+			InitialOutput: initialOutput,
+			InitialError:  initialErr,
+			RepairOutput:  repairOutput,
+			RepairError:   repairErr,
+			FinalError:    err,
+		})
+	}
+
+	if err := validateGeneratedPlanAgainstConstraints(plan, input.Constraints); err != nil {
+		events = append(events, normalizationEvent("plan_constraints_failed", "decoded provider output did not satisfy requested day and meal counts"))
+		if !input.RepairJSON || repairAttempted {
+			return checker.Plan{}, llmOutput, repairOutput, repairErr, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+				InitialOutput: initialOutput,
+				InitialError:  initialErr,
+				RepairOutput:  repairOutput,
+				RepairError:   repairErr,
+				FinalError:    err,
+			})
+		}
+
+		repairAttempted = true
+		repairOutput, repairErr = provider.Complete(ctx, input.Provider, repairMessages(input, sanitizeDebugArtifactText(llmOutput, input.Provider.APIKey), sanitizeRepairPromptError(err, input.Provider.APIKey)))
+		if repairErr != nil {
+			return checker.Plan{}, llmOutput, repairOutput, repairErr, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+				InitialOutput: initialOutput,
+				InitialError:  initialErr,
+				RepairError:   repairErr,
+				FinalError:    repairErr,
+			})
+		}
+
+		events = append(events, normalizationEvent("repair_attempted", "one bounded JSON repair attempt was made"))
+		llmOutput = repairOutput
+		decodeResult, decodeErr := decodePlanTextDetailed(repairOutput)
+		if decodeErr != nil {
+			return checker.Plan{}, llmOutput, repairOutput, decodeErr, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+				InitialOutput: initialOutput,
+				InitialError:  initialErr,
+				RepairOutput:  repairOutput,
+				RepairError:   decodeErr,
+				FinalError:    decodeErr,
+			})
+		}
+		plan = decodeResult.Plan
+		if decodeResult.Canonicalized {
+			events = append(events, normalizationEvent("json_canonicalized", "repair output used bounded alias canonicalization before strict decode"))
+		}
+		events = append(events, normalizationEvent("repair_succeeded", "repair output decoded as normalized meal-plan JSON"))
+		if err := validatePlan(plan); err != nil {
+			events = append(events, normalizationEvent("plan_validation_failed", "repair output failed MealCheck plan validation"))
+			return checker.Plan{}, llmOutput, repairOutput, err, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+				InitialOutput: initialOutput,
+				InitialError:  initialErr,
+				RepairOutput:  repairOutput,
+				RepairError:   err,
+				FinalError:    err,
+			})
+		}
+		if err := validateGeneratedPlanAgainstConstraints(plan, input.Constraints); err != nil {
+			events = append(events, normalizationEvent("plan_constraints_failed", "repair output did not satisfy requested day and meal counts"))
+			return checker.Plan{}, llmOutput, repairOutput, err, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+				InitialOutput: initialOutput,
+				InitialError:  initialErr,
+				RepairOutput:  repairOutput,
+				RepairError:   err,
+				FinalError:    err,
+			})
+		}
+	}
+
+	return plan, llmOutput, repairOutput, repairErr, repairAttempted, events, nil
+}
+
 func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 	if input.Mode == "prompt_generation" && strings.TrimSpace(input.GenerationPrompt) == "" {
 		return nil, fmt.Errorf("generation_prompt is required for prompt_generation")
@@ -162,6 +240,8 @@ func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 		"You generate normalized MealCheck meal-plan JSON only.",
 		"Return one JSON object matching schema_version 0.1.",
 		mealPlanContractPromptBlock(),
+		fmt.Sprintf("Return exactly %d day object(s), and every day must contain exactly %d meal object(s).", input.Constraints.Days, input.Constraints.MealsPerDay),
+		"Do not copy the shape instructions as the answer; generate a complete meal plan that satisfies the requested counts.",
 		"Do not include nutrient totals, calories, or compliance judgments.",
 		"Every food item must include either quantity plus unit, or quantity_text with resolution_status unresolved and unresolved_reason.",
 		"Allowed units are g, oz, cup, tbsp, tsp, and serving.",
@@ -169,9 +249,13 @@ func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 		"Do not provide medical claims.",
 	}, " ")
 	payload := map[string]any{
-		"profile":        input.Profile,
-		"constraints":    input.Constraints,
-		"required_shape": mealPlanExampleShape(),
+		"profile":     input.Profile,
+		"constraints": input.Constraints,
+		"required_counts": map[string]int{
+			"days":          input.Constraints.Days,
+			"meals_per_day": input.Constraints.MealsPerDay,
+		},
+		"required_shape": mealPlanShapeInstructions(input.Constraints),
 		"alias_rules":    mealPlanAliasRules(),
 	}
 	if input.Mode == "prompt_generation" {
@@ -188,7 +272,9 @@ func repairMessages(input PendingRunInput, original string, decodeErr error) []P
 	system := strings.Join([]string{
 		"Repair MealCheck meal-plan JSON syntax or minor schema shape only.",
 		mealPlanContractPromptBlock(),
-		"Do not invent missing foods, quantities, units, nutrition totals, or compliance judgments.",
+		fmt.Sprintf("The repaired output must contain exactly %d day object(s), and every day must contain exactly %d meal object(s).", input.Constraints.Days, input.Constraints.MealsPerDay),
+		"Do not invent nutrition totals or compliance judgments.",
+		"If day or meal count is wrong, add or remove meal objects while preserving declared allergies, excluded foods, constraints, and any valid existing foods.",
 		"If a quantity is vague or missing, preserve it as quantity_text with resolution_status unresolved and unresolved_reason vague_quantity.",
 		"Remove invalid alias fields after mapping them to allowed MealCheck fields.",
 		"Return only one JSON object.",
@@ -197,7 +283,7 @@ func repairMessages(input PendingRunInput, original string, decodeErr error) []P
 		"profile":         input.Profile,
 		"constraints":     input.Constraints,
 		"decode_error":    decodeErr.Error(),
-		"required_shape":  mealPlanExampleShape(),
+		"required_shape":  mealPlanShapeInstructions(input.Constraints),
 		"alias_rules":     mealPlanAliasRules(),
 		"original_output": original,
 	}
@@ -290,6 +376,31 @@ func validatePlan(plan checker.Plan) error {
 					return fmt.Errorf("meal plan item %s must include quantity/unit or unresolved quantity fields", item.Food)
 				}
 			}
+		}
+	}
+	return nil
+}
+
+func validateGeneratedPlanAgainstConstraints(plan checker.Plan, constraints checker.Constraints) error {
+	if len(plan.Days) != constraints.Days {
+		return fmt.Errorf("meal plan must include exactly %d day(s); got %d", constraints.Days, len(plan.Days))
+	}
+	seenDays := make(map[int]bool, len(plan.Days))
+	for _, day := range plan.Days {
+		if day.Day < 1 || day.Day > constraints.Days {
+			return fmt.Errorf("meal plan day number %d is outside expected range 1..%d", day.Day, constraints.Days)
+		}
+		if seenDays[day.Day] {
+			return fmt.Errorf("meal plan includes duplicate day %d", day.Day)
+		}
+		seenDays[day.Day] = true
+		if len(day.Meals) != constraints.MealsPerDay {
+			return fmt.Errorf("meal plan day %d must include exactly %d meal(s); got %d", day.Day, constraints.MealsPerDay, len(day.Meals))
+		}
+	}
+	for day := 1; day <= constraints.Days; day++ {
+		if !seenDays[day] {
+			return fmt.Errorf("meal plan is missing day %d", day)
 		}
 	}
 	return nil
