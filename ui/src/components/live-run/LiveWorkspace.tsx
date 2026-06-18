@@ -424,7 +424,7 @@ function ProviderForm({
     <section className="mode-section" id="provider-section">
       <div className="notice">
         <strong>BYOK provider disclosure</strong>
-        <p>Profile, constraints, prompt text, and generated meal-plan content are sent to the selected provider. MealCheck does not persist the provider key.</p>
+        <p>MealCheck sends this key to the backend for this run, then to the selected provider. Use temporary, scoped, budget-limited keys; custom OpenAI-compatible endpoints receive the key too. For maximum control, run MealCheck locally from the repo.</p>
       </div>
       <div className="form-grid">
         <Field label="Provider">

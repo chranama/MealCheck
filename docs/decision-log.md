@@ -6,6 +6,37 @@ public expectations.
 Use this log instead of separate ADR and RFC files until a decision becomes too
 large to keep readable here.
 
+## 2026-06-18: BYOK Is A Technical Test Surface, Not Key Storage
+
+Status: Accepted
+
+Decision:
+
+Hosted BYOK should be positioned as a convenience test surface for technical
+users who can create temporary, scoped, budget-limited provider keys. The
+MealCheck backend may transiently handle a key for one run, but it must not
+persist provider keys to storage, artifacts, logs, metrics, browser storage, or
+runtime case files. Pending BYOK inputs have an expiry and fail closed if the
+worker does not claim them in time.
+
+Reason:
+
+API keys are bearer credentials. The hosted path is useful for MVP testing, but
+it is not zero-knowledge key handling because the key transits the MealCheck
+backend process. Users who need the strongest key-control posture should run
+MealCheck locally from the repository and submit BYOK requests to their local
+backend.
+
+Consequences:
+
+- UI and docs must disclose the backend trust boundary.
+- Custom OpenAI-compatible endpoints are explicit key recipients and must be
+  trusted by the user.
+- Successful provider output artifacts are redacted defensively, not only
+  failure/debug artifacts.
+- Hosted deployment must use HTTPS and avoid request-body or provider-header
+  logging.
+
 ## 2026-06-16: MVP BYOK Supports Native Model Providers
 
 Status: Accepted

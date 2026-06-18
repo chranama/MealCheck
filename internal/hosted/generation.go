@@ -148,7 +148,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 	}
 	return PreparedRun{
 		CasePath:            casePath,
-		LLMOutput:           llmOutput,
+		LLMOutput:           sanitizeDebugArtifactText(llmOutput, input.Provider.APIKey),
 		NormalizationEvents: events,
 		RedactedProvider:    providerRedacted,
 		UsedProvider:        usedProvider,

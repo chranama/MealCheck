@@ -10,6 +10,8 @@ import (
 func ConfigFromEnv(root string) Config {
 	dataDir := getenv("MEALCHECK_DATA_DIR", filepath.Join(root, ".mealcheck-data"))
 	artifactDir := getenv("MEALCHECK_ARTIFACT_DIR", filepath.Join(dataDir, "artifacts"))
+	queueSize := getenvInt("MEALCHECK_QUEUE_SIZE", 3)
+	runTimeout := getenvDuration("MEALCHECK_RUN_TIMEOUT", 10*time.Minute)
 	return Config{
 		Root:             root,
 		DataDir:          dataDir,
@@ -20,16 +22,31 @@ func ConfigFromEnv(root string) Config {
 		AllowedOrigin:    os.Getenv("MEALCHECK_ALLOWED_ORIGIN"),
 		InviteToken:      os.Getenv("MEALCHECK_INVITE_TOKEN"),
 		InviteRequired:   getenvBool("MEALCHECK_INVITE_REQUIRED", false),
-		QueueSize:        getenvInt("MEALCHECK_QUEUE_SIZE", 3),
+		QueueSize:        queueSize,
 		MaxCasesPerRun:   getenvInt("MEALCHECK_MAX_CASES_PER_RUN", 20),
 		MaxUploadBytes:   int64(getenvInt("MEALCHECK_MAX_UPLOAD_BYTES", 1_000_000)),
-		RunTimeout:       getenvDuration("MEALCHECK_RUN_TIMEOUT", 10*time.Minute),
+		RunTimeout:       runTimeout,
+		PendingInputTTL:  getenvDuration("MEALCHECK_PENDING_INPUT_TTL", defaultPendingInputTTL(queueSize, runTimeout)),
 		Retention:        getenvDuration("MEALCHECK_RETENTION", 7*24*time.Hour),
 		WorkerPoll:       getenvDuration("MEALCHECK_WORKER_POLL", time.Second),
 		CleanupInterval:  getenvDuration("MEALCHECK_CLEANUP_INTERVAL", time.Hour),
 		DemoIndexPath:    filepath.Join(root, "ui", "public", "demo-runs", "index.json"),
 		DemoArtifactRoot: filepath.Join(root, "ui", "public"),
 	}
+}
+
+func defaultPendingInputTTL(queueSize int, runTimeout time.Duration) time.Duration {
+	if queueSize < 1 {
+		queueSize = 1
+	}
+	if runTimeout <= 0 {
+		runTimeout = 10 * time.Minute
+	}
+	ttl := time.Duration(queueSize+1) * runTimeout
+	if ttl < 15*time.Minute {
+		return 15 * time.Minute
+	}
+	return ttl
 }
 
 func getenvBool(key string, fallback bool) bool {

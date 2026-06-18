@@ -99,11 +99,23 @@ advertising, or tracking services.
 Provider API keys:
 
 - accepted only for BYOK generation or bounded repair
-- held only in memory or short-lived encrypted job state if async execution
-  requires it
+- treated as one-run bearer secrets, not saved account settings
+- sent from the browser to the MealCheck backend and then to the selected
+  provider endpoint for that run
+- held only in short-lived backend memory while the run is queued or active
 - never written to Postgres, logs, reports, metrics, artifact bundles, or
   persisted configs
-- discarded when the run completes, fails, expires, or is cancelled
+- not persisted in browser `localStorage` or `sessionStorage`
+- discarded when the worker claims the run, the run is deleted, the pending
+  input expires, or cleanup removes expired state
+- expected to be temporary, scoped, budget-limited, and revocable
+
+Hosted BYOK requires trusting the MealCheck backend process and deployment
+operator because the key briefly exists in request memory and process memory.
+Users who want the strongest key-control posture should run MealCheck locally
+from the repository and submit BYOK requests to their local backend. Custom
+OpenAI-compatible endpoints receive the supplied key and should be used only
+when the endpoint operator is trusted.
 
 FoodData Central API keys, if added later, are server credentials and must not
 be embedded in frontend code or user-visible artifacts.

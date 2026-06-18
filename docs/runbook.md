@@ -959,6 +959,32 @@ Initial defaults:
 
 These defaults should be enforced in code, not only documented.
 
+## BYOK Operational Guardrails
+
+Hosted BYOK is a convenience test surface for technical users, not managed
+secret storage. Provider API keys are one-run bearer secrets. They transit the
+browser or API client, the MealCheck backend, and the selected provider
+endpoint; they may briefly exist in request memory and backend process memory.
+
+Deployment requirements:
+
+- Serve hosted BYOK only over HTTPS.
+- Do not log request bodies for `POST /api/runs`.
+- Do not log `Authorization`, `x-api-key`, `x-goog-api-key`, or provider
+  request headers.
+- Do not send BYOK request bodies or provider headers to analytics, tracing,
+  error-reporting, or replay tools.
+- Keep BYOK queue sizes small so pending keys stay short-lived.
+- Use `MEALCHECK_PENDING_INPUT_TTL` when a deployment needs a stricter
+  pending-key lifetime than the default derived from queue size and run timeout.
+- Tell users to create temporary, scoped, budget-limited, revocable provider
+  keys for MealCheck testing.
+- Treat `openai_compatible` custom endpoints as third-party recipients of the
+  supplied key; users should enter only endpoints they trust.
+
+For the strongest key-control posture, clone the repository and run MealCheck
+locally from the terminal, then submit BYOK requests to the local backend.
+
 ## Web MVP Operations Required
 
 The MVP is not accepted until MealCheck is running as a long-standing web

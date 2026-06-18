@@ -181,12 +181,17 @@ browser
 ```
 
 Keys are accepted only for live BYOK runs. Public demo runs should replay seeded
-or cached artifacts.
+or cached artifacts. Hosted BYOK requires trusting the MealCheck backend
+process because keys briefly exist in request and process memory before being
+sent to the selected provider.
 
 Milestone 5 implements this as an in-memory pending-input map shared by the API
 handler and the worker. The database stores only run metadata and the generated
 runtime case path. Provider API keys are removed from memory when the worker
-claims the run, the run is deleted, or cleanup expires the run.
+claims the run, the run is deleted, the pending input expires, or cleanup
+removes expired pending state. Expired pending inputs fail closed before
+provider invocation. Custom OpenAI-compatible endpoints receive the supplied
+key and must be trusted by the user.
 
 Generation and repair are normalization steps only. The remote provider may
 produce or repair a meal-plan JSON document, but nutrition compliance,

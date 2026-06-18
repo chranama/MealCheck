@@ -38,6 +38,7 @@ type Config struct {
 	MaxCasesPerRun   int
 	MaxUploadBytes   int64
 	RunTimeout       time.Duration
+	PendingInputTTL  time.Duration
 	Retention        time.Duration
 	WorkerPoll       time.Duration
 	CleanupInterval  time.Duration

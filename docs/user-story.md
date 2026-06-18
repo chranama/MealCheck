@@ -288,8 +288,9 @@ The MVP user story is supported when:
   limits, and 7-day retention
 - production CORS allows the frontend origin and does not turn the API into an
   unrestricted public write surface
-- BYOK flows disclose that profile, constraints, prompt text, and generated
-  meal-plan content are sent to the user's selected provider
+- BYOK flows disclose that provider keys transit the MealCheck backend, and
+  that profile, constraints, prompt text, and generated meal-plan content are
+  sent to the user's selected provider
 - every input mode produces auditable JSON before verification
 - MealCheck calculates nutrition totals from resolver data
 - failed checks include evidence and source references

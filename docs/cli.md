@@ -347,6 +347,19 @@ seeded validation, verifies the expected `block` exit behavior, reads the
 decision artifact, starts a local hosted stack with a fake provider response,
 and verifies BYOK redaction behavior.
 
+## BYOK Key Posture
+
+The `mealcheck` CLI commands do not accept provider API keys and do not call
+OpenAI, Anthropic, Gemini, or OpenAI-compatible endpoints. That is intentional:
+CLI validation is deterministic and works from existing case files.
+
+For the highest-control BYOK workflow, clone the repository and run the
+MealCheck backend locally from the terminal, then submit BYOK requests to
+`127.0.0.1` with temporary, scoped, budget-limited provider keys. In that
+configuration the key still transits the browser or local `curl` process and
+the local MealCheck backend process, but it is not sent to a hosted MealCheck
+operator. Avoid using long-lived personal account keys for MealCheck testing.
+
 ## Relationship To The API
 
 The CLI and hosted API share the checker engine and artifact writer:
@@ -358,6 +371,8 @@ The CLI and hosted API share the checker engine and artifact writer:
 - CLI commands do not accept provider API keys and do not call OpenAI,
   Anthropic, Gemini, or OpenAI-compatible model endpoints.
 - Hosted BYOK generation and repair are API/server features, not CLI features.
+- Hosted BYOK should be treated as a convenience test surface. Local backend
+  operation is the recommended path when provider-key control matters most.
 
 Use the CLI when you want a deterministic local check from an existing case
 file. Use the hosted API or web UI when you want invite-gated live manual input

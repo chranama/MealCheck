@@ -166,6 +166,64 @@ func TestProfileGenerationUsesBYOKProviderAndRedactsSecret(t *testing.T) {
 	}
 }
 
+func TestProfileGenerationRedactsSuccessfulLLMOutputArtifact(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	seeded := seededCase(t, root)
+	secret := "sk-success-output-secret"
+	candidate := string(readFile(t, filepath.Join(root, "examples/seeded-3-day-peanut-allergy/plans/candidate.json")))
+	provider := &fakeProvider{responses: []string{secret + "\n" + candidate}}
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:   "profile_generation",
+		Profile:     seeded.Profile,
+		Constraints: seeded.Constraints,
+		Provider: ProviderConfig{
+			Type:   ProviderTypeOpenAI,
+			Model:  "fake-model",
+			APIKey: secret,
+		},
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		return provider, nil
+	}).ProcessOne(context.Background())
+	if err != nil {
+		t.Fatalf("process run: %v", err)
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	if run.Status != StatusCompleted {
+		t.Fatalf("run status = %q, want completed", run.Status)
+	}
+	llmOutputBytes := readFile(t, filepath.Join(run.ArtifactDir, "optional", "llm-output.json"))
+	if bytes.Contains(llmOutputBytes, []byte(secret)) {
+		t.Fatalf("llm output artifact contains provider secret:\n%s", string(llmOutputBytes))
+	}
+	var llmOutput struct {
+		Output string `json:"output"`
+	}
+	decodeJSON(t, llmOutputBytes, &llmOutput)
+	if !strings.Contains(llmOutput.Output, "[redacted]") {
+		t.Fatalf("llm output artifact missing redaction marker: %s", llmOutput.Output)
+	}
+	assertFileTreeDoesNotContain(t, config.DataDir, secret)
+}
+
 func TestManualStructuredRunDoesNotRequireProvider(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
@@ -649,6 +707,65 @@ func TestPromptGenerationWritesRedactedDebugArtifactOnProviderError(t *testing.T
 	}
 	if !hasNormalizationEvent(debug.NormalizationEvents, "provider_request_failed") {
 		t.Fatalf("debug events missing provider_request_failed: %+v", debug.NormalizationEvents)
+	}
+}
+
+func TestBYOKRunFailsClosedWhenPendingInputExpiresBeforeWorkerClaim(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.PendingInputTTL = -time.Second
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	seeded := seededCase(t, root)
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:        "prompt_generation",
+		Profile:          seeded.Profile,
+		Constraints:      seeded.Constraints,
+		GenerationPrompt: "Create a simple 3 day meal plan.",
+		Provider: ProviderConfig{
+			Type:   ProviderTypeGemini,
+			Model:  "gemini-test",
+			APIKey: "sk-expiring-secret",
+		},
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	if pending.Count() != 1 {
+		t.Fatalf("pending count after create = %d, want 1", pending.Count())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	providerCalled := false
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		providerCalled = true
+		return nil, fmt.Errorf("provider should not be called")
+	}).ProcessOne(context.Background())
+	if err == nil {
+		t.Fatal("process run error = nil, want expired pending input error")
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+	if providerCalled {
+		t.Fatal("provider factory called after pending input expired")
+	}
+	if pending.Count() != 0 {
+		t.Fatalf("pending count after expired worker claim = %d, want 0", pending.Count())
+	}
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	if run.Status != StatusFailed {
+		t.Fatalf("run status = %q, want failed", run.Status)
+	}
+	if !strings.Contains(run.Error, "pending BYOK run input expired") {
+		t.Fatalf("run error = %q, want pending input expired message", run.Error)
 	}
 }
 
@@ -1350,6 +1467,7 @@ func testConfig(t *testing.T, root string) Config {
 		MaxCasesPerRun:   20,
 		MaxUploadBytes:   1_000_000,
 		RunTimeout:       10 * time.Minute,
+		PendingInputTTL:  30 * time.Minute,
 		Retention:        7 * 24 * time.Hour,
 		WorkerPoll:       time.Millisecond,
 		CleanupInterval:  time.Hour,

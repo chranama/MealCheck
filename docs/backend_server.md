@@ -95,15 +95,21 @@ Secrets:
 
 - User-provided model API keys must never be written to Postgres, logs, reports,
   metrics, persisted configs, or artifact bundles.
-- BYOK credentials should be held only in memory or short-lived encrypted job
-  state if async execution requires it.
+- BYOK credentials are one-run bearer secrets that transit the browser or API
+  client, the MealCheck backend, and the selected provider endpoint.
+- BYOK credentials should be held only in short-lived memory or short-lived
+  encrypted job state if async execution later requires durable jobs.
+- Pending BYOK credentials must carry expiry metadata and be discarded if a
+  worker does not claim them before expiry.
 - Persisted configs must redact secret material.
 - Secrets must be discarded when a run completes, fails, expires, or is
   cancelled.
 
 Milestone 5 uses the simpler in-memory option: the API stores BYOK input in a
 pending map keyed by run ID, and the worker removes it when it claims the run.
-This means queued BYOK jobs are not durable across server restarts by design.
+Milestone 14 adds a pending-input TTL so queued BYOK credentials cannot remain
+in process memory indefinitely. This means queued BYOK jobs are not durable
+across server restarts or pending-input expiry by design.
 
 Network exposure:
 

@@ -80,6 +80,9 @@ func (w *Worker) ProcessOne(ctx context.Context) (bool, error) {
 				return
 			}
 			casePath = prepared.CasePath
+		} else if run.CasePath == runtimeCasePath(w.Config, run.ID) {
+			done <- fmt.Errorf("pending BYOK run input expired before processing; resubmit with a fresh provider API key")
+			return
 		}
 		result, err = artifacts.WriteBundle(artifacts.BundleOptions{
 			Root:     w.Config.Root,
@@ -145,6 +148,9 @@ func (j CleanupJob) Run(ctx context.Context) {
 }
 
 func (j CleanupJob) RunOnce(ctx context.Context) error {
+	if j.Pending != nil {
+		j.Pending.DeleteExpired(time.Now().UTC())
+	}
 	runs, err := j.Store.ExpiredRuns(ctx, time.Now().UTC(), 50)
 	if err != nil {
 		return err

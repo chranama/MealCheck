@@ -30,9 +30,14 @@ revocation, and run limits.
 The server always adds an `X-Request-ID` response header. A client may send its
 own `X-Request-ID`; otherwise, the server assigns one.
 
-Provider API keys are supplied only on live generation requests. They are held
-in pending memory until the worker claims the run and are not written to run
-metadata, reports, logs, or artifact bundles.
+Provider API keys are supplied only on live generation requests. Treat them as
+one-run bearer secrets: the browser sends the key to the MealCheck backend, the
+backend holds it in pending memory until the worker claims the run, and the
+backend sends it to the selected provider endpoint. MealCheck does not persist
+provider keys to run metadata, reports, logs, metrics, runtime case files, or
+artifact bundles. Hosted BYOK users should use temporary, scoped,
+budget-limited, revocable keys; for maximum control, run MealCheck locally from
+the repository and submit requests to the local backend.
 
 ## Runtime Endpoints
 
@@ -286,6 +291,8 @@ Generation rules:
 - Native provider types use official provider endpoints. `provider.base_url` is
   accepted only for `openai_compatible` and defaults to
   `https://api.openai.com/v1`.
+- `openai_compatible` sends the supplied API key to `provider.base_url`; use
+  only endpoints you trust.
 - OpenAI and OpenAI-compatible requests call `/chat/completions` with
   `response_format: { "type": "json_object" }`; Anthropic requests call
   `/v1/messages`; Gemini requests call `/v1beta/models/{model}:generateContent`.

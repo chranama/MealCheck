@@ -1551,3 +1551,81 @@ Acceptance:
   readable to the frontend and do not create partial reports.
 - UI BYOK testing resumes only after at least one provider completes through
   the API-level backend path.
+
+## Milestone 14: BYOK Secret Handling Hardening
+
+Status: Implemented on 2026-06-18.
+
+Purpose:
+
+MealCheck's BYOK path is a technical test surface, not a managed key vault.
+The system should be explicit that provider API keys are one-run bearer
+secrets, that hosted BYOK requires trusting the MealCheck backend process, and
+that users who want the strongest trust posture should run MealCheck locally
+from the repository with temporary, scoped, budget-limited provider keys.
+
+Deliver:
+
+- explicit BYOK trust-boundary copy in the web UI
+- documentation that positions hosted BYOK as a convenience test surface and
+  local operation as the higher-control path
+- defensive redaction of successful provider output artifacts, not only
+  failure/debug artifacts
+- pending-input expiry metadata so queued BYOK keys cannot remain in process
+  memory indefinitely
+- cleanup-job deletion of expired pending BYOK inputs
+- actionable failure if a queued BYOK input expires before a worker claims it
+- tests that prove keys are absent from successful artifacts, debug artifacts,
+  runtime files, browser storage, and error paths covered by the backend
+- operational guidance requiring HTTPS and forbidding request-body/provider-
+  header logging for hosted BYOK deployments
+
+Implementation plan:
+
+1. Treat `provider.api_key` as a one-run bearer secret.
+   - Accept it only on BYOK generation requests.
+   - Hold it only in the pending in-memory input until the worker claims the
+     run.
+   - Delete it on worker claim, run deletion, store failure, expiry, or cleanup.
+
+2. Bound pending-key lifetime.
+   - Add pending-input creation and expiry metadata.
+   - Default the pending-input TTL from queue size and run timeout.
+   - Expose `MEALCHECK_PENDING_INPUT_TTL` for local or hosted tuning.
+   - Fail closed with a clear message if a BYOK run reaches the worker after
+     the pending input has expired.
+
+3. Redact every artifact path that can contain provider text.
+   - Keep `configs/redacted-provider.json` as the only provider config artifact.
+   - Redact exact API-key matches in failed-normalization debug artifacts.
+   - Also redact exact API-key matches in successful `optional/llm-output.json`.
+
+4. Make the trust model explicit.
+   - The key transits the browser, MealCheck backend, and selected provider.
+   - The key may briefly exist in browser state, request bodies, and Go process
+     memory.
+   - MealCheck does not persist keys to Postgres, runtime case files, reports,
+     artifact bundles, logs, metrics, or browser storage.
+   - Custom OpenAI-compatible `base_url` endpoints receive the key and must be
+     trusted by the user.
+   - Users should create temporary, project-scoped, budget-limited, revocable
+     keys for MealCheck testing.
+
+5. Document production guardrails.
+   - Hosted BYOK requires HTTPS.
+   - Reverse proxies, tunnels, observability tools, and application logs must
+     not record request bodies or provider authorization headers.
+   - Hosted queue sizes should stay small for BYOK test deployments.
+
+Acceptance:
+
+- `go test ./...` passes.
+- Frontend tests pass and verify that BYOK form submission clears the API key
+  without writing browser storage.
+- Fake-provider tests prove a provider key is redacted from successful
+  `optional/llm-output.json`.
+- Pending-input tests prove fresh inputs are consumed, expired inputs are
+  deleted, and cleanup removes expired pending entries.
+- An expired queued BYOK run fails closed before provider invocation.
+- API, CLI, privacy/safety, contracts, and runbook docs describe the same BYOK
+  trust model.

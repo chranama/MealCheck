@@ -204,7 +204,7 @@ func (s *Server) createRun(w http.ResponseWriter, r *http.Request) {
 	run := newRun(s.Config, casePath)
 	if hasPending {
 		run.CasePath = runtimeCasePath(s.Config, run.ID)
-		s.Pending.Put(run.ID, pendingInput)
+		s.Pending.Put(run.ID, pendingInput, pendingInputExpiresAt(s.Config, run))
 	}
 	if err := s.Store.CreateRun(r.Context(), run, s.Config.QueueSize, inviteTokenID); err != nil {
 		if hasPending {
@@ -296,6 +296,18 @@ func requestRunInput(config Config, request CreateRunRequest) (string, PendingRu
 		return "", PendingRunInput{}, false, fmt.Errorf("unsupported input_mode %q", inputMode)
 	}
 	return "", pendingInput, true, nil
+}
+
+func pendingInputExpiresAt(config Config, run Run) time.Time {
+	ttl := config.PendingInputTTL
+	if ttl == 0 {
+		ttl = defaultPendingInputTTL(config.QueueSize, config.RunTimeout)
+	}
+	expiresAt := run.CreatedAt.Add(ttl)
+	if !run.ExpiresAt.IsZero() && run.ExpiresAt.Before(expiresAt) {
+		return run.ExpiresAt
+	}
+	return expiresAt
 }
 
 func hasDynamicRunFields(request CreateRunRequest) bool {

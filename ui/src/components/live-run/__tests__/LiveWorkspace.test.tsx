@@ -50,6 +50,9 @@ describe("LiveWorkspace", () => {
 
     expect(screen.getByRole("button", { name: "Prompt" })).toHaveClass("is-active");
     expect(screen.getByText("BYOK provider disclosure")).toBeInTheDocument();
+    expect(screen.getByText(/Use temporary, scoped, budget-limited keys/)).toBeInTheDocument();
+    expect(screen.getByText(/custom OpenAI-compatible endpoints receive the key too/)).toBeInTheDocument();
+    expect(screen.getByText(/run MealCheck locally from the repo/)).toBeInTheDocument();
     expect(screen.getByLabelText("Provider")).toHaveValue("openai");
     expect(screen.getByLabelText("Prompt")).toBeInTheDocument();
     expect(screen.queryByLabelText("Base URL")).not.toBeInTheDocument();
@@ -120,6 +123,30 @@ describe("LiveWorkspace", () => {
   it("submits prompt-generation payloads and clears provider keys", async () => {
     const user = userEvent.setup();
     const onCreateRun = vi.fn(async () => undefined);
+    const localStorageSetItem = vi.fn();
+    const sessionStorageSetItem = vi.fn();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: {
+        clear: vi.fn(),
+        getItem: vi.fn(),
+        key: vi.fn(),
+        length: 0,
+        removeItem: vi.fn(),
+        setItem: localStorageSetItem,
+      },
+    });
+    Object.defineProperty(window, "sessionStorage", {
+      configurable: true,
+      value: {
+        clear: vi.fn(),
+        getItem: vi.fn(),
+        key: vi.fn(),
+        length: 0,
+        removeItem: vi.fn(),
+        setItem: sessionStorageSetItem,
+      },
+    });
     renderWorkspace({ onCreateRun });
 
     await user.click(screen.getByRole("button", { name: "Prompt" }));
@@ -142,6 +169,8 @@ describe("LiveWorkspace", () => {
       }),
     );
     expect(screen.getByLabelText("API key")).toHaveValue("");
+    expect(localStorageSetItem).not.toHaveBeenCalled();
+    expect(sessionStorageSetItem).not.toHaveBeenCalled();
   });
 
   it("submits selected Gemini providers", async () => {

@@ -495,10 +495,17 @@ Rules:
   repair attempt.
 - Provider API keys are held only in memory while the queued run is pending and
   are never written to run metadata, reports, or artifact bundles.
+- Pending BYOK inputs carry expiry metadata and may be discarded before worker
+  execution; an expired pending input fails the run closed before provider
+  invocation.
 - `configs/redacted-provider.json` records provider type, base URL, and model
   with `api_key` set to `redacted`.
 - `optional/llm-output.json` and `optional/normalization-events.json` are
   emitted only when a run used provider generation or normalization metadata.
+- `optional/llm-output.json` must redact exact provider-key matches before
+  persistence.
+- `openai_compatible` sends the supplied API key to `base_url`; users must
+  trust custom endpoint operators.
 
 ## Frontend Boundary Contract
 
