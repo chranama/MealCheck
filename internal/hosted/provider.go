@@ -30,6 +30,24 @@ type ProviderMessage struct {
 	Content string `json:"content"`
 }
 
+type ProviderHTTPError struct {
+	Provider   string
+	StatusCode int
+	Message    string
+}
+
+func (e ProviderHTTPError) Error() string {
+	statusText := http.StatusText(e.StatusCode)
+	status := fmt.Sprintf("HTTP %d", e.StatusCode)
+	if statusText != "" {
+		status = status + " " + statusText
+	}
+	if e.Message == "" {
+		return fmt.Sprintf("%s provider returned %s", e.Provider, status)
+	}
+	return fmt.Sprintf("%s provider returned %s: %s", e.Provider, status, e.Message)
+}
+
 func DefaultProviderFactory(config ProviderConfig) (Provider, error) {
 	providerType := config.Type
 	if providerType == "" {
@@ -94,6 +112,7 @@ type OpenAIProvider struct {
 
 func (p OpenAIProvider) Complete(ctx context.Context, config ProviderConfig, messages []ProviderMessage) (string, error) {
 	config.BaseURL = ""
+	config.Type = ProviderTypeOpenAI
 	return completeOpenAIChat(ctx, p.Client, config, messages, p.BaseURL)
 }
 
@@ -112,13 +131,24 @@ func completeOpenAIChat(ctx context.Context, client *http.Client, config Provide
 		client = http.DefaultClient
 	}
 
+	responseFormat := map[string]any{
+		"type": "json_object",
+	}
+	if config.Type == ProviderTypeOpenAI {
+		responseFormat = map[string]any{
+			"type": "json_schema",
+			"json_schema": map[string]any{
+				"name":   "mealcheck_meal_plan",
+				"strict": true,
+				"schema": mealPlanResponseSchema(),
+			},
+		}
+	}
 	payload := map[string]any{
-		"model":       config.Model,
-		"messages":    messages,
-		"temperature": 0,
-		"response_format": map[string]string{
-			"type": "json_object",
-		},
+		"model":           config.Model,
+		"messages":        messages,
+		"temperature":     0,
+		"response_format": responseFormat,
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -134,7 +164,7 @@ func completeOpenAIChat(ctx context.Context, client *http.Client, config Provide
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", providerRequestError(config.Type, err, config.APIKey)
 	}
 	defer resp.Body.Close()
 
@@ -143,7 +173,7 @@ func completeOpenAIChat(ctx context.Context, client *http.Client, config Provide
 		return "", err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("provider returned status %d", resp.StatusCode)
+		return "", providerHTTPError(config.Type, resp.StatusCode, responseBody, config.APIKey)
 	}
 
 	var parsed struct {
@@ -185,6 +215,12 @@ func (p AnthropicProvider) Complete(ctx context.Context, config ProviderConfig, 
 		"max_tokens":  8192,
 		"temperature": 0,
 		"messages":    anthropicMessages,
+		"output_config": map[string]any{
+			"format": map[string]any{
+				"type":   "json_schema",
+				"schema": mealPlanResponseSchema(),
+			},
+		},
 	}
 	if system != "" {
 		payload["system"] = system
@@ -208,7 +244,7 @@ func (p AnthropicProvider) Complete(ctx context.Context, config ProviderConfig, 
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", providerRequestError(config.Type, err, config.APIKey)
 	}
 	defer resp.Body.Close()
 
@@ -217,7 +253,7 @@ func (p AnthropicProvider) Complete(ctx context.Context, config ProviderConfig, 
 		return "", err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("provider returned status %d", resp.StatusCode)
+		return "", providerHTTPError(config.Type, resp.StatusCode, responseBody, config.APIKey)
 	}
 
 	var parsed struct {
@@ -284,8 +320,13 @@ func (p GeminiProvider) Complete(ctx context.Context, config ProviderConfig, mes
 		"systemInstruction": geminiSystemInstruction(messages),
 		"contents":          geminiContents(messages),
 		"generationConfig": map[string]any{
-			"temperature":    0,
-			"responseFormat": map[string]any{"text": map[string]string{"mimeType": "application/json"}},
+			"temperature": 0,
+			"responseFormat": map[string]any{
+				"text": map[string]any{
+					"mimeType": "application/json",
+					"schema":   mealPlanResponseSchema(),
+				},
+			},
 		},
 	}
 	body, err := json.Marshal(payload)
@@ -307,7 +348,7 @@ func (p GeminiProvider) Complete(ctx context.Context, config ProviderConfig, mes
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", providerRequestError(config.Type, err, config.APIKey)
 	}
 	defer resp.Body.Close()
 
@@ -316,7 +357,7 @@ func (p GeminiProvider) Complete(ctx context.Context, config ProviderConfig, mes
 		return "", err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("provider returned status %d", resp.StatusCode)
+		return "", providerHTTPError(config.Type, resp.StatusCode, responseBody, config.APIKey)
 	}
 
 	var parsed struct {
@@ -373,4 +414,147 @@ func geminiContents(messages []ProviderMessage) []map[string]any {
 		})
 	}
 	return result
+}
+
+func providerRequestError(providerType string, err error, apiKey string) error {
+	message := sanitizeProviderErrorText(err.Error(), apiKey)
+	if message == "" {
+		message = "request failed before the provider returned a response"
+	}
+	return fmt.Errorf("%s provider request failed: %s", providerLabel(providerType), message)
+}
+
+func providerHTTPError(providerType string, statusCode int, body []byte, apiKey string) error {
+	message := sanitizeProviderErrorText(extractProviderErrorMessage(body), apiKey)
+	if message == "" {
+		message = defaultProviderHTTPMessage(statusCode)
+	}
+	return ProviderHTTPError{
+		Provider:   providerLabel(providerType),
+		StatusCode: statusCode,
+		Message:    message,
+	}
+}
+
+func extractProviderErrorMessage(body []byte) string {
+	body = bytes.TrimSpace(body)
+	if len(body) == 0 {
+		return ""
+	}
+
+	var root map[string]any
+	if err := json.Unmarshal(body, &root); err == nil {
+		if message := errorMessageFromObject(root); message != "" {
+			return message
+		}
+	}
+	return string(body)
+}
+
+func errorMessageFromObject(root map[string]any) string {
+	if errValue, ok := root["error"]; ok {
+		switch errObj := errValue.(type) {
+		case string:
+			return errObj
+		case map[string]any:
+			return errorMessageFields(errObj)
+		}
+	}
+	if message, ok := stringField(root, "message"); ok {
+		return message
+	}
+	return ""
+}
+
+func errorMessageFields(errObj map[string]any) string {
+	message, _ := stringField(errObj, "message")
+	var labels []string
+	for _, key := range []string{"status", "type", "code"} {
+		if value, ok := stringLikeField(errObj, key); ok && value != "" {
+			labels = append(labels, value)
+		}
+	}
+	if message == "" {
+		return strings.Join(labels, ", ")
+	}
+	if len(labels) == 0 {
+		return message
+	}
+	return fmt.Sprintf("%s (%s)", message, strings.Join(labels, ", "))
+}
+
+func stringField(values map[string]any, key string) (string, bool) {
+	value, ok := values[key].(string)
+	if !ok || strings.TrimSpace(value) == "" {
+		return "", false
+	}
+	return value, true
+}
+
+func stringLikeField(values map[string]any, key string) (string, bool) {
+	value, ok := values[key]
+	if !ok {
+		return "", false
+	}
+	switch typed := value.(type) {
+	case string:
+		return strings.TrimSpace(typed), strings.TrimSpace(typed) != ""
+	case float64:
+		return fmt.Sprintf("%.0f", typed), true
+	default:
+		return "", false
+	}
+}
+
+func defaultProviderHTTPMessage(statusCode int) string {
+	switch statusCode {
+	case http.StatusUnauthorized:
+		return "authentication failed; check the provider API key"
+	case http.StatusForbidden:
+		return "request was forbidden; check key permissions, project access, billing, or model availability"
+	case http.StatusNotFound:
+		return "model or endpoint was not found; check the selected provider and model"
+	case http.StatusTooManyRequests:
+		return "rate limit or quota was exceeded; retry later or check provider quota and billing"
+	case http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+		return "provider service is temporarily unavailable; retry later"
+	}
+	if statusCode >= 500 {
+		return "provider service failed; retry later"
+	}
+	if statusCode >= 400 {
+		return "provider rejected the request; check provider, model, and request settings"
+	}
+	return ""
+}
+
+func sanitizeProviderErrorText(message, apiKey string) string {
+	message = strings.TrimSpace(message)
+	if message == "" {
+		return ""
+	}
+	message = strings.Join(strings.Fields(message), " ")
+	if apiKey != "" {
+		message = strings.ReplaceAll(message, apiKey, "[redacted]")
+	}
+	const maxProviderErrorLength = 700
+	if len(message) > maxProviderErrorLength {
+		return message[:maxProviderErrorLength] + "..."
+	}
+	return message
+}
+
+func providerLabel(providerType string) string {
+	switch providerType {
+	case ProviderTypeOpenAI:
+		return "OpenAI"
+	case ProviderTypeAnthropic:
+		return "Anthropic"
+	case ProviderTypeGemini:
+		return "Gemini"
+	case ProviderTypeOpenAICompatible, "":
+		return "OpenAI-compatible"
+	default:
+		return providerType
+	}
 }

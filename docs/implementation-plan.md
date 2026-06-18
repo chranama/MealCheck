@@ -1409,3 +1409,139 @@ Acceptance:
   inference
 - all operational commands required to keep the deployment running are present
   in `docs/runbook.md`
+
+## Milestone 13: Contract Hardening
+
+Status: Backend implementation completed on 2026-06-18; live API-level BYOK
+smoke against real provider keys remains pending.
+
+Purpose:
+
+MealCheck is far enough along that the next implementation slice should harden
+the contracts between model providers, backend normalization, artifact
+generation, and frontend reporting. The goal is not broader model capability;
+it is making the existing MVP path reliable, observable, and contract-driven
+when real model outputs differ from the exact MealCheck schema.
+
+Observed local test results:
+
+- Bitwarden key retrieval worked for OpenAI, Anthropic, and Google AI Studio.
+- Direct endpoint smoke tests succeeded for:
+  - Gemini `gemini-2.5-flash-lite`
+  - Anthropic `claude-haiku-4-5`
+  - OpenAI `gpt-5.4-mini`
+- Local MealCheck backend health, invite-token gating, and bad-provider failure
+  handling worked.
+- Real BYOK MealCheck runs reached the providers but failed during strict plan
+  decoding because provider outputs used near-schema aliases:
+  - Gemini returned `food_item`
+  - Anthropic returned `meal_type`
+  - OpenAI returned `meal`
+- Provider keys were not found in the scanned runtime files.
+
+Contract-hardening principle:
+
+Production systems generally do not rely on prompt-only JSON repair as the
+primary contract mechanism. The preferred hierarchy is:
+
+1. Use provider-native structured output or tool/schema mode when available.
+2. Parse and validate server-side against MealCheck's own contract anyway.
+3. Apply small deterministic canonicalization for known safe aliases at the
+   model-output boundary.
+4. Make at most one bounded repair call with the exact schema, exact error, and
+   original output.
+5. Fail closed with redacted debug artifacts if the output still cannot become
+   a valid MealCheck plan.
+
+Backend improvement plan:
+
+1. Centralize the MealCheck meal-plan output contract.
+   - Keep one backend-owned schema description for provider requests,
+     generation prompts, repair prompts, canonicalization tests, and validation
+     fixtures.
+   - Make the prompt skeleton exact enough to show `days[].meals[].name`,
+     `days[].meals[].items[]`, and item-level `food`, `quantity`, and `unit`.
+   - Explicitly forbid common aliases in prompts: `meal`, `meal_type`, `type`,
+     `food_items`, `foods`, `ingredients`, `food_item`, `item`, and item-level
+     `name`.
+
+2. Prefer provider-native structured outputs.
+   - OpenAI: use JSON Schema structured outputs with strict schema mode instead
+     of plain JSON mode when compatible with the selected model.
+   - Gemini: send `generationConfig.responseFormat.text.mimeType` plus JSON
+     schema for supported models.
+   - Anthropic: use JSON schema structured outputs through
+     `output_config.format` for supported Claude models.
+   - `openai_compatible`: retain current JSON mode as the compatibility
+     fallback unless a provider-specific schema capability is explicitly added.
+
+3. Add deterministic canonicalization before LLM repair.
+   - Scope canonicalization to expected object positions only.
+   - Meal object aliases:
+     - `meal`, `meal_type`, `type` -> `name`
+   - Meal item-array aliases:
+     - `food_items`, `foods`, `ingredients` -> `items`
+   - Food item aliases:
+     - `food_item`, `item`, item-level `name` -> `food`
+   - Preserve strict final validation after canonicalization.
+   - Unknown fields outside this bounded alias set still fail.
+
+4. Improve bounded repair.
+   - Repair prompt receives the original output, the exact decode or validation
+     error, the schema skeleton, and the alias mapping rules.
+   - Repair must remove invalid fields after mapping them to allowed fields.
+   - Repair may not invent missing foods, quantities, units, nutrition totals,
+     or compliance judgments.
+   - Only one repair attempt is allowed before failing the run.
+
+5. Add failed-normalization observability.
+   - For BYOK runs that fail before the normal artifact bundle is written, write
+     redacted debug artifacts under the run artifact directory.
+   - Include redacted provider metadata, initial provider output, initial
+     decode/canonicalization error, repair output when attempted, and repair
+     decode/canonicalization error when present.
+   - Do not log or persist provider API keys. Debug artifacts must redact keys
+     the same way normal provider config does.
+
+6. Add regression and smoke coverage.
+   - Add unit tests for observed aliases: `food_item`, `meal_type`, and `meal`.
+   - Add canonicalization tests for `food_items`, `foods`, `ingredients`,
+     `item`, and item-level `name`.
+   - Add a negative test proving unknown fields outside the alias map still
+     fail closed.
+   - Add tests for failed-normalization debug artifacts and secret redaction.
+   - Rerun local API-level BYOK smoke before UI testing.
+
+Implemented:
+
+1. Added a centralized backend meal-plan contract for provider schema payloads,
+   generation prompts, repair prompts, alias rules, and decoder tests.
+2. Added native structured-output payloads for OpenAI, Anthropic, and Gemini
+   while preserving plain JSON mode for generic OpenAI-compatible providers.
+3. Added deterministic canonicalization for the observed alias set before any
+   LLM repair call.
+4. Kept strict `DisallowUnknownFields` decoding and final MealCheck plan
+   validation after canonicalization.
+5. Redacted provider output and decode errors before sending them to the repair
+   prompt, so a provider-echoed API key is not sent back to the provider.
+6. Added failed-normalization debug artifacts at
+   `debug/normalization-failure.json` for provider runs that fail before the
+   normal artifact bundle exists.
+7. Added regression tests for provider aliases, unknown-field rejection,
+   provider schema request payloads, failed-normalization debug artifacts, and
+   secret redaction.
+
+Acceptance:
+
+- API-level BYOK smoke runs complete for at least Gemini
+  `gemini-2.5-flash-lite` through the full MealCheck backend path.
+- Anthropic `claude-haiku-4-5` and OpenAI `gpt-5.4-mini` either complete or
+  fail with redacted debug artifacts that identify the remaining contract issue.
+- Provider output is either schema-valid on first pass, canonicalized by a
+  bounded deterministic step, repaired once, or failed closed.
+- Provider keys remain absent from logs, database fields, normal artifacts,
+  debug artifacts, and runtime files scanned during BYOK smoke tests.
+- Service-unavailable, rate-limit, and unreachable-provider failures remain
+  readable to the frontend and do not create partial reports.
+- UI BYOK testing resumes only after at least one provider completes through
+  the API-level backend path.

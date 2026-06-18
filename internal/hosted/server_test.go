@@ -318,6 +318,213 @@ func TestPromptGenerationFailsWithoutRepairAfterInvalidJSON(t *testing.T) {
 	}
 }
 
+func TestDecodePlanTextCanonicalizesKnownProviderAliases(t *testing.T) {
+	tests := []struct {
+		name      string
+		text      string
+		wantMeal  string
+		wantFood  string
+		wantItems int
+	}{
+		{
+			name: "food item alias",
+			text: `{
+				"schema_version": "0.1",
+				"plan_id": "alias-food-item",
+				"days": [{"day": 1, "meals": [{"name": "breakfast", "items": [{"food_item": "plain oatmeal", "quantity": 1, "unit": "cup"}]}]}]
+			}`,
+			wantMeal:  "breakfast",
+			wantFood:  "plain oatmeal",
+			wantItems: 1,
+		},
+		{
+			name: "meal type alias",
+			text: `{
+				"schema_version": "0.1",
+				"plan_id": "alias-meal-type",
+				"days": [{"day": 1, "meals": [{"meal_type": "lunch", "items": [{"food": "brown rice", "quantity": 1, "unit": "cup"}]}]}]
+			}`,
+			wantMeal:  "lunch",
+			wantFood:  "brown rice",
+			wantItems: 1,
+		},
+		{
+			name: "meal alias",
+			text: `{
+				"schema_version": "0.1",
+				"plan_id": "alias-meal",
+				"days": [{"day": 1, "meals": [{"meal": "dinner", "items": [{"food": "salmon", "quantity": 4, "unit": "oz"}]}]}]
+			}`,
+			wantMeal:  "dinner",
+			wantFood:  "salmon",
+			wantItems: 1,
+		},
+		{
+			name: "food items array and item alias",
+			text: `{
+				"schema_version": "0.1",
+				"plan_id": "alias-food-items",
+				"days": [{"day": 1, "meals": [{"name": "snack", "food_items": [{"item": "apple", "quantity": 1, "unit": "serving"}]}]}]
+			}`,
+			wantMeal:  "snack",
+			wantFood:  "apple",
+			wantItems: 1,
+		},
+		{
+			name: "foods array and item-level name alias",
+			text: `{
+				"schema_version": "0.1",
+				"plan_id": "alias-foods",
+				"days": [{"day": 1, "meals": [{"name": "snack", "foods": [{"name": "carrots", "quantity": 1, "unit": "serving"}]}]}]
+			}`,
+			wantMeal:  "snack",
+			wantFood:  "carrots",
+			wantItems: 1,
+		},
+		{
+			name: "ingredients array alias",
+			text: `{
+				"schema_version": "0.1",
+				"plan_id": "alias-ingredients",
+				"days": [{"day": 1, "meals": [{"name": "lunch", "ingredients": [{"food": "lentils", "quantity": 1, "unit": "cup"}]}]}]
+			}`,
+			wantMeal:  "lunch",
+			wantFood:  "lentils",
+			wantItems: 1,
+		},
+		{
+			name: "nullable provider schema fields",
+			text: `{
+				"schema_version": "0.1",
+				"plan_id": "nullable-fields",
+				"description": "test",
+				"days": [{"day": 1, "meals": [{"name": "breakfast", "items": [{
+					"food": "plain oatmeal",
+					"quantity": 1,
+					"unit": "cup",
+					"quantity_text": null,
+					"preparation": null,
+					"brand": null,
+					"resolution_status": null,
+					"unresolved_reason": null
+				}]}]}],
+				"shopping_list": [],
+				"prep_notes": []
+			}`,
+			wantMeal:  "breakfast",
+			wantFood:  "plain oatmeal",
+			wantItems: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := decodePlanTextDetailed(tt.text)
+			if err != nil {
+				t.Fatalf("decodePlanTextDetailed error: %v", err)
+			}
+			if !result.Canonicalized {
+				t.Fatal("Canonicalized = false, want true")
+			}
+			meal := result.Plan.Days[0].Meals[0]
+			if meal.Name != tt.wantMeal {
+				t.Fatalf("meal name = %q, want %q", meal.Name, tt.wantMeal)
+			}
+			if len(meal.Items) != tt.wantItems {
+				t.Fatalf("items = %d, want %d", len(meal.Items), tt.wantItems)
+			}
+			if meal.Items[0].Food != tt.wantFood {
+				t.Fatalf("food = %q, want %q", meal.Items[0].Food, tt.wantFood)
+			}
+		})
+	}
+}
+
+func TestDecodePlanTextRejectsUnknownFieldsOutsideAliasMap(t *testing.T) {
+	_, err := decodePlanText(`{
+		"schema_version": "0.1",
+		"plan_id": "unknown-field",
+		"days": [{"day": 1, "meals": [{"name": "breakfast", "items": [{"food": "plain oatmeal", "quantity": 1, "unit": "cup", "calories": 120}]}]}]
+	}`)
+	if err == nil {
+		t.Fatal("decodePlanText error = nil, want unknown field error")
+	}
+	if !strings.Contains(err.Error(), `unknown field "calories"`) {
+		t.Fatalf("error = %q, want unknown calories field", err.Error())
+	}
+}
+
+func TestPromptGenerationWritesRedactedNormalizationDebugArtifact(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	seeded := seededCase(t, root)
+	secret := "sk-debug-secret"
+	provider := &fakeProvider{responses: []string{
+		`{"schema_version":"0.1","plan_id":"bad-initial","debug":"sk-debug-secret","days":[{"day":1,"meals":[{"meal_type":"breakfast","items":[{"food_item":"plain oatmeal","quantity":1,"unit":"cup"}]}]}]}`,
+		`{"schema_version":"0.1","plan_id":"bad-repair","debug":"sk-debug-secret","days":[{"day":1,"meals":[{"name":"breakfast","items":[{"food":"plain oatmeal","quantity":1,"unit":"cup"}]}]}]}`,
+	}}
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:        "prompt_generation",
+		Profile:          seeded.Profile,
+		Constraints:      seeded.Constraints,
+		GenerationPrompt: "Create a simple 3 day meal plan.",
+		Provider: ProviderConfig{
+			Type:   "openai_compatible",
+			Model:  "fake-model",
+			APIKey: secret,
+		},
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		return provider, nil
+	}).ProcessOne(context.Background())
+	if err == nil {
+		t.Fatal("expected prompt generation to fail")
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+	if provider.calls != 2 {
+		t.Fatalf("provider calls = %d, want 2", provider.calls)
+	}
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	if run.Status != StatusFailed {
+		t.Fatalf("run status = %q, want failed", run.Status)
+	}
+
+	debugBytes := readFile(t, filepath.Join(run.ArtifactDir, "debug", "normalization-failure.json"))
+	if bytes.Contains(debugBytes, []byte(secret)) {
+		t.Fatalf("normalization debug artifact contains provider secret:\n%s", string(debugBytes))
+	}
+	var debug normalizationFailureArtifact
+	decodeJSON(t, debugBytes, &debug)
+	if debug.Provider.APIKey != "redacted" {
+		t.Fatalf("debug provider api_key = %q, want redacted", debug.Provider.APIKey)
+	}
+	if !strings.Contains(debug.InitialOutput, "[redacted]") || !strings.Contains(debug.RepairOutput, "[redacted]") {
+		t.Fatalf("debug outputs were not redacted: %+v", debug)
+	}
+	if !strings.Contains(debug.InitialError, `unknown field "debug"`) || !strings.Contains(debug.RepairError, `unknown field "debug"`) {
+		t.Fatalf("debug errors missing strict decode details: %+v", debug)
+	}
+	if !hasNormalizationEvent(debug.NormalizationEvents, "repair_attempted") {
+		t.Fatalf("debug events missing repair_attempted: %+v", debug.NormalizationEvents)
+	}
+}
+
 func TestRequestRunInputAcceptsNativeProviderTypes(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
@@ -370,8 +577,16 @@ func TestOpenAIProviderRequestAndResponse(t *testing.T) {
 			t.Fatalf("model = %v", payload["model"])
 		}
 		format, ok := payload["response_format"].(map[string]any)
-		if !ok || format["type"] != "json_object" {
+		if !ok || format["type"] != "json_schema" {
 			t.Fatalf("response_format = %#v", payload["response_format"])
+		}
+		jsonSchema, ok := format["json_schema"].(map[string]any)
+		if !ok || jsonSchema["name"] != "mealcheck_meal_plan" || jsonSchema["strict"] != true {
+			t.Fatalf("json_schema = %#v", format["json_schema"])
+		}
+		schema, ok := jsonSchema["schema"].(map[string]any)
+		if !ok || schema["additionalProperties"] != false {
+			t.Fatalf("schema = %#v", jsonSchema["schema"])
 		}
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"{\"schema_version\":\"0.1\"}"}}]}`))
 	}))
@@ -383,6 +598,39 @@ func TestOpenAIProviderRequestAndResponse(t *testing.T) {
 		Model:  "gpt-test",
 		APIKey: "sk-openai",
 	}, []ProviderMessage{{Role: "system", Content: "Return JSON."}, {Role: "user", Content: "Plan."}})
+	if err != nil {
+		t.Fatalf("Complete error: %v", err)
+	}
+	if got != `{"schema_version":"0.1"}` {
+		t.Fatalf("content = %q", got)
+	}
+}
+
+func TestOpenAICompatibleProviderKeepsJSONMode(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/chat/completions" {
+			t.Fatalf("path = %q, want /chat/completions", r.URL.Path)
+		}
+		var payload map[string]any
+		decodeJSON(t, readAll(t, r), &payload)
+		format, ok := payload["response_format"].(map[string]any)
+		if !ok || format["type"] != "json_object" {
+			t.Fatalf("response_format = %#v", payload["response_format"])
+		}
+		if _, ok := format["json_schema"]; ok {
+			t.Fatalf("openai-compatible response_format unexpectedly included json_schema: %#v", format)
+		}
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"{\"schema_version\":\"0.1\"}"}}]}`))
+	}))
+	defer server.Close()
+
+	provider := OpenAICompatibleProvider{Client: server.Client()}
+	got, err := provider.Complete(context.Background(), ProviderConfig{
+		Type:    ProviderTypeOpenAICompatible,
+		BaseURL: server.URL,
+		Model:   "compatible-test",
+		APIKey:  "sk-compatible",
+	}, []ProviderMessage{{Role: "user", Content: "Plan."}})
 	if err != nil {
 		t.Fatalf("Complete error: %v", err)
 	}
@@ -412,6 +660,18 @@ func TestAnthropicProviderRequestAndResponse(t *testing.T) {
 		}
 		if _, ok := payload["messages"].([]any); !ok {
 			t.Fatalf("messages = %#v", payload["messages"])
+		}
+		outputConfig, ok := payload["output_config"].(map[string]any)
+		if !ok {
+			t.Fatalf("output_config = %#v", payload["output_config"])
+		}
+		format, ok := outputConfig["format"].(map[string]any)
+		if !ok || format["type"] != "json_schema" {
+			t.Fatalf("output_config.format = %#v", outputConfig["format"])
+		}
+		schema, ok := format["schema"].(map[string]any)
+		if !ok || schema["additionalProperties"] != false {
+			t.Fatalf("schema = %#v", format["schema"])
 		}
 		_, _ = w.Write([]byte(`{"content":[{"type":"text","text":"{\"schema_version\":\"0.1\"}"}]}`))
 	}))
@@ -448,8 +708,17 @@ func TestGeminiProviderRequestAndResponse(t *testing.T) {
 		if !ok {
 			t.Fatalf("generationConfig = %#v", payload["generationConfig"])
 		}
-		if _, ok := config["responseFormat"].(map[string]any); !ok {
+		responseFormat, ok := config["responseFormat"].(map[string]any)
+		if !ok {
 			t.Fatalf("responseFormat = %#v", config["responseFormat"])
+		}
+		text, ok := responseFormat["text"].(map[string]any)
+		if !ok || text["mimeType"] != "application/json" {
+			t.Fatalf("responseFormat.text = %#v", responseFormat["text"])
+		}
+		schema, ok := text["schema"].(map[string]any)
+		if !ok || schema["additionalProperties"] != false {
+			t.Fatalf("responseFormat schema = %#v", text["schema"])
 		}
 		_, _ = w.Write([]byte(`{"candidates":[{"content":{"parts":[{"text":"{\"schema_version\":\"0.1\"}"}]}}]}`))
 	}))
@@ -466,6 +735,138 @@ func TestGeminiProviderRequestAndResponse(t *testing.T) {
 	}
 	if got != `{"schema_version":"0.1"}` {
 		t.Fatalf("content = %q", got)
+	}
+}
+
+func TestProviderHTTPErrorMessagesAreActionableAndRedacted(t *testing.T) {
+	tests := []struct {
+		name       string
+		status     int
+		body       string
+		provider   Provider
+		config     ProviderConfig
+		want       []string
+		wantAbsent []string
+	}{
+		{
+			name:   "openai quota",
+			status: http.StatusTooManyRequests,
+			body:   `{"error":{"message":"Quota exceeded for sk-openai","type":"rate_limit_error","code":"rate_limit_exceeded"}}`,
+			provider: OpenAIProvider{
+				BaseURL: "REPLACED",
+			},
+			config: ProviderConfig{
+				Type:   ProviderTypeOpenAI,
+				Model:  "gpt-test",
+				APIKey: "sk-openai",
+			},
+			want: []string{
+				"OpenAI provider returned HTTP 429 Too Many Requests",
+				"Quota exceeded for [redacted]",
+				"rate_limit_error",
+				"rate_limit_exceeded",
+			},
+			wantAbsent: []string{"sk-openai"},
+		},
+		{
+			name:   "anthropic overloaded",
+			status: 529,
+			body:   `{"type":"error","error":{"type":"overloaded_error","message":"Anthropic is overloaded"}}`,
+			provider: AnthropicProvider{
+				BaseURL: "REPLACED",
+			},
+			config: ProviderConfig{
+				Type:   ProviderTypeAnthropic,
+				Model:  "claude-test",
+				APIKey: "sk-ant",
+			},
+			want: []string{
+				"Anthropic provider returned HTTP 529",
+				"Anthropic is overloaded",
+				"overloaded_error",
+			},
+		},
+		{
+			name:   "gemini unavailable",
+			status: http.StatusServiceUnavailable,
+			body:   `{"error":{"code":503,"message":"The model is overloaded. Please try again later.","status":"UNAVAILABLE"}}`,
+			provider: GeminiProvider{
+				BaseURL: "REPLACED",
+			},
+			config: ProviderConfig{
+				Type:   ProviderTypeGemini,
+				Model:  "gemini-test",
+				APIKey: "sk-gemini",
+			},
+			want: []string{
+				"Gemini provider returned HTTP 503 Service Unavailable",
+				"The model is overloaded. Please try again later.",
+				"UNAVAILABLE",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.status)
+				_, _ = w.Write([]byte(tt.body))
+			}))
+			defer server.Close()
+
+			switch provider := tt.provider.(type) {
+			case OpenAIProvider:
+				provider.Client = server.Client()
+				provider.BaseURL = server.URL + "/v1"
+				tt.provider = provider
+			case AnthropicProvider:
+				provider.Client = server.Client()
+				provider.BaseURL = server.URL
+				tt.provider = provider
+			case GeminiProvider:
+				provider.Client = server.Client()
+				provider.BaseURL = server.URL
+				tt.provider = provider
+			}
+
+			_, err := tt.provider.Complete(context.Background(), tt.config, []ProviderMessage{{Role: "user", Content: "Plan."}})
+			if err == nil {
+				t.Fatal("Complete error = nil, want provider error")
+			}
+			got := err.Error()
+			for _, want := range tt.want {
+				if !strings.Contains(got, want) {
+					t.Fatalf("error %q does not contain %q", got, want)
+				}
+			}
+			for _, absent := range tt.wantAbsent {
+				if strings.Contains(got, absent) {
+					t.Fatalf("error %q contains secret %q", got, absent)
+				}
+			}
+		})
+	}
+}
+
+func TestProviderRequestErrorRedactsKey(t *testing.T) {
+	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return nil, fmt.Errorf("dial failed with sk-secret")
+	})}
+	provider := OpenAIProvider{Client: client, BaseURL: "https://example.invalid/v1"}
+
+	_, err := provider.Complete(context.Background(), ProviderConfig{
+		Type:   ProviderTypeOpenAI,
+		Model:  "gpt-test",
+		APIKey: "sk-secret",
+	}, []ProviderMessage{{Role: "user", Content: "Plan."}})
+	if err == nil {
+		t.Fatal("Complete error = nil, want request error")
+	}
+	if strings.Contains(err.Error(), "sk-secret") {
+		t.Fatalf("error %q contains secret", err.Error())
+	}
+	if !strings.Contains(err.Error(), "OpenAI provider request failed") {
+		t.Fatalf("error %q does not identify provider request failure", err.Error())
 	}
 }
 
@@ -784,6 +1185,12 @@ func (p *fakeProvider) Complete(_ context.Context, config ProviderConfig, messag
 	response := p.responses[p.calls]
 	p.calls++
 	return response, nil
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
 }
 
 func testConfig(t *testing.T, root string) Config {

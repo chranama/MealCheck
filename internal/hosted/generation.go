@@ -44,6 +44,11 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 
 	var plan checker.Plan
 	var llmOutput string
+	var initialOutput string
+	var initialErr error
+	var repairOutput string
+	var repairErr error
+	var finalErr error
 	var events []NormalizationEvent
 	var providerRedacted RedactedProviderConfig
 	usedProvider := false
@@ -70,25 +75,51 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		if err != nil {
 			return PreparedRun{}, err
 		}
+		initialOutput = llmOutput
 		events = append(events, normalizationEvent("llm_output_received", "provider returned candidate meal-plan JSON"))
-		plan, err = decodePlanText(llmOutput)
+		decodeResult, err := decodePlanTextDetailed(llmOutput)
 		if err != nil {
+			initialErr = err
 			events = append(events, normalizationEvent("json_decode_failed", "initial provider output was not valid normalized meal-plan JSON"))
 			if !input.RepairJSON {
-				return PreparedRun{}, err
+				return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+					InitialOutput: initialOutput,
+					InitialError:  initialErr,
+					FinalError:    initialErr,
+				})
 			}
-			repairOutput, repairErr := provider.Complete(ctx, input.Provider, repairMessages(input, llmOutput, err))
+			repairDecodeErr := sanitizeRepairPromptError(err, input.Provider.APIKey)
+			repairOutput, repairErr = provider.Complete(ctx, input.Provider, repairMessages(input, sanitizeDebugArtifactText(llmOutput, input.Provider.APIKey), repairDecodeErr))
 			if repairErr != nil {
-				return PreparedRun{}, repairErr
+				return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+					InitialOutput: initialOutput,
+					InitialError:  initialErr,
+					RepairError:   repairErr,
+					FinalError:    repairErr,
+				})
 			}
 			events = append(events, normalizationEvent("repair_attempted", "one bounded JSON repair attempt was made"))
 			llmOutput = repairOutput
-			plan, err = decodePlanText(repairOutput)
+			decodeResult, err = decodePlanTextDetailed(repairOutput)
 			if err != nil {
-				return PreparedRun{}, err
+				return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+					InitialOutput: initialOutput,
+					InitialError:  initialErr,
+					RepairOutput:  repairOutput,
+					RepairError:   err,
+					FinalError:    err,
+				})
+			}
+			plan = decodeResult.Plan
+			if decodeResult.Canonicalized {
+				events = append(events, normalizationEvent("json_canonicalized", "repair output used bounded alias canonicalization before strict decode"))
 			}
 			events = append(events, normalizationEvent("repair_succeeded", "repair output decoded as normalized meal-plan JSON"))
 		} else {
+			plan = decodeResult.Plan
+			if decodeResult.Canonicalized {
+				events = append(events, normalizationEvent("json_canonicalized", "provider output used bounded alias canonicalization before strict decode"))
+			}
 			events = append(events, normalizationEvent("json_decoded", "provider output decoded as normalized meal-plan JSON"))
 		}
 	default:
@@ -96,6 +127,17 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 	}
 
 	if err := validatePlan(plan); err != nil {
+		if usedProvider {
+			finalErr = err
+			events = append(events, normalizationEvent("plan_validation_failed", "decoded provider output failed MealCheck plan validation"))
+			return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+				InitialOutput: initialOutput,
+				InitialError:  initialErr,
+				RepairOutput:  repairOutput,
+				RepairError:   repairErr,
+				FinalError:    finalErr,
+			})
+		}
 		return PreparedRun{}, err
 	}
 
@@ -119,6 +161,7 @@ func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 	system := strings.Join([]string{
 		"You generate normalized MealCheck meal-plan JSON only.",
 		"Return one JSON object matching schema_version 0.1.",
+		mealPlanContractPromptBlock(),
 		"Do not include nutrient totals, calories, or compliance judgments.",
 		"Every food item must include either quantity plus unit, or quantity_text with resolution_status unresolved and unresolved_reason.",
 		"Allowed units are g, oz, cup, tbsp, tsp, and serving.",
@@ -126,16 +169,10 @@ func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 		"Do not provide medical claims.",
 	}, " ")
 	payload := map[string]any{
-		"profile":     input.Profile,
-		"constraints": input.Constraints,
-		"required_shape": map[string]any{
-			"schema_version": "0.1",
-			"plan_id":        "string",
-			"description":    "string",
-			"days":           "array of day objects with meals and food items",
-			"shopping_list":  "array of food items",
-			"prep_notes":     "array of strings",
-		},
+		"profile":        input.Profile,
+		"constraints":    input.Constraints,
+		"required_shape": mealPlanExampleShape(),
+		"alias_rules":    mealPlanAliasRules(),
 	}
 	if input.Mode == "prompt_generation" {
 		payload["user_prompt"] = input.GenerationPrompt
@@ -150,14 +187,18 @@ func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 func repairMessages(input PendingRunInput, original string, decodeErr error) []ProviderMessage {
 	system := strings.Join([]string{
 		"Repair MealCheck meal-plan JSON syntax or minor schema shape only.",
+		mealPlanContractPromptBlock(),
 		"Do not invent missing foods, quantities, units, nutrition totals, or compliance judgments.",
 		"If a quantity is vague or missing, preserve it as quantity_text with resolution_status unresolved and unresolved_reason vague_quantity.",
+		"Remove invalid alias fields after mapping them to allowed MealCheck fields.",
 		"Return only one JSON object.",
 	}, " ")
 	payload := map[string]any{
 		"profile":         input.Profile,
 		"constraints":     input.Constraints,
 		"decode_error":    decodeErr.Error(),
+		"required_shape":  mealPlanExampleShape(),
+		"alias_rules":     mealPlanAliasRules(),
 		"original_output": original,
 	}
 	payloadJSON, _ := json.MarshalIndent(payload, "", "  ")
@@ -165,23 +206,6 @@ func repairMessages(input PendingRunInput, original string, decodeErr error) []P
 		{Role: "system", Content: system},
 		{Role: "user", Content: string(payloadJSON)},
 	}
-}
-
-func decodePlanText(text string) (checker.Plan, error) {
-	var plan checker.Plan
-	jsonText, err := extractJSONObject(text)
-	if err != nil {
-		return checker.Plan{}, err
-	}
-	decoder := json.NewDecoder(strings.NewReader(jsonText))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&plan); err != nil {
-		return checker.Plan{}, err
-	}
-	if decoder.More() {
-		return checker.Plan{}, fmt.Errorf("meal plan JSON contains multiple values")
-	}
-	return plan, nil
 }
 
 func extractJSONObject(text string) (string, error) {
@@ -341,6 +365,93 @@ func writeOptionalArtifacts(outDir string, prepared PreparedRun) error {
 		return updateManifestOptionals(outDir, prepared)
 	}
 	return nil
+}
+
+type normalizationFailureDebug struct {
+	InitialOutput string
+	InitialError  error
+	RepairOutput  string
+	RepairError   error
+	FinalError    error
+}
+
+type normalizationFailureArtifact struct {
+	SchemaVersion       string                 `json:"schema_version"`
+	RunID               string                 `json:"run_id"`
+	CreatedAt           string                 `json:"created_at"`
+	Provider            RedactedProviderConfig `json:"provider"`
+	NormalizationEvents []NormalizationEvent   `json:"normalization_events"`
+	InitialOutput       string                 `json:"initial_output,omitempty"`
+	InitialError        string                 `json:"initial_error,omitempty"`
+	RepairOutput        string                 `json:"repair_output,omitempty"`
+	RepairError         string                 `json:"repair_error,omitempty"`
+	FinalError          string                 `json:"final_error,omitempty"`
+}
+
+func writeNormalizationFailureAndReturn(config Config, run Run, provider ProviderConfig, events []NormalizationEvent, failure normalizationFailureDebug) error {
+	finalErr := failure.FinalError
+	if finalErr == nil {
+		finalErr = failure.RepairError
+	}
+	if finalErr == nil {
+		finalErr = failure.InitialError
+	}
+	if finalErr == nil {
+		finalErr = fmt.Errorf("provider output failed normalization")
+	}
+	if err := writeNormalizationFailureDebug(config, run, provider, events, failure); err != nil {
+		return fmt.Errorf("%w; additionally failed to write normalization debug artifact: %v", finalErr, err)
+	}
+	return finalErr
+}
+
+func writeNormalizationFailureDebug(config Config, run Run, provider ProviderConfig, events []NormalizationEvent, failure normalizationFailureDebug) error {
+	debugDir := filepath.Join(run.ArtifactDir, "debug")
+	if err := os.MkdirAll(debugDir, 0o755); err != nil {
+		return err
+	}
+	artifact := normalizationFailureArtifact{
+		SchemaVersion:       "0.1",
+		RunID:               run.ID,
+		CreatedAt:           time.Now().UTC().Format(time.RFC3339),
+		Provider:            redactProvider(provider),
+		NormalizationEvents: append([]NormalizationEvent(nil), events...),
+		InitialOutput:       sanitizeDebugArtifactText(failure.InitialOutput, provider.APIKey),
+		InitialError:        sanitizeDebugError(failure.InitialError, provider.APIKey),
+		RepairOutput:        sanitizeDebugArtifactText(failure.RepairOutput, provider.APIKey),
+		RepairError:         sanitizeDebugError(failure.RepairError, provider.APIKey),
+		FinalError:          sanitizeDebugError(failure.FinalError, provider.APIKey),
+	}
+	return writeJSONFile(filepath.Join(debugDir, "normalization-failure.json"), artifact)
+}
+
+func sanitizeDebugError(err error, apiKey string) string {
+	if err == nil {
+		return ""
+	}
+	return sanitizeProviderErrorText(err.Error(), apiKey)
+}
+
+func sanitizeRepairPromptError(err error, apiKey string) error {
+	message := sanitizeDebugError(err, apiKey)
+	if message == "" {
+		message = "provider output failed MealCheck JSON decode"
+	}
+	return fmt.Errorf("%s", message)
+}
+
+func sanitizeDebugArtifactText(text, apiKey string) string {
+	if text == "" {
+		return ""
+	}
+	if apiKey != "" {
+		text = strings.ReplaceAll(text, apiKey, "[redacted]")
+	}
+	const maxDebugArtifactTextLength = 200_000
+	if len(text) > maxDebugArtifactTextLength {
+		return text[:maxDebugArtifactTextLength] + "\n[truncated]"
+	}
+	return text
 }
 
 func updateManifestOptionals(outDir string, prepared PreparedRun) error {

@@ -13,6 +13,7 @@ spreading across separate ADR, RFC, and planning documents.
 - [Nutritional Guidelines](nutritional-guidelines.md): source selection, guideline-pack preprocessing, and meal-plan JSON normalization.
 - [Privacy And Safety](privacy-and-safety.md): data minimization, retention, disclosure, safety boundaries, and live-run controls.
 - [Contracts](contracts.md): meal-plan, guideline-pack, API, decision, report, and artifact contracts.
+- [CLI](cli.md): local commands, artifact generation, decision exit codes, and access-code administration.
 - [API](api.md): hosted API endpoints, request modes, response shapes, lifecycle, and runtime limits.
 - [Architecture](architecture.md): checker engine, guideline sources, hosted wrapper, BYOK execution, and server shape.
 - [Web Design](web-design.md): static frontend design posture, layout, component rules, and hardening criteria.

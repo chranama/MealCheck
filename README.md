@@ -63,6 +63,7 @@ MealCheck is not:
 - [Nutritional Guidelines](docs/nutritional-guidelines.md)
 - [Privacy And Safety](docs/privacy-and-safety.md)
 - [Contracts](docs/contracts.md)
+- [CLI](docs/cli.md)
 - [API](docs/api.md)
 - [Architecture](docs/architecture.md)
 - [Web Design](docs/web-design.md)
