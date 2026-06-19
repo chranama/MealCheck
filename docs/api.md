@@ -75,28 +75,22 @@ curl -fsS -X POST "http://127.0.0.1:8080/api/qualify" \
   -H "X-MealCheck-Invite-Token: ${MEALCHECK_ACCESS_CODE}" \
   --data '{
     "text": "Day 1 breakfast: 1 cup cooked oatmeal and 1 banana.",
-    "profile": {
-      "age": 35,
-      "sex": "male",
-      "height_cm": 178,
-      "weight_kg": 82,
-      "activity_level": "moderate",
-      "goal": "maintain_weight",
-      "calorie_target_kcal": 2000,
-      "protein_target_g": 98
-    },
-    "constraints": {
-      "days": 1,
-      "meals_per_day": 1,
-      "allergies": ["peanuts"],
-      "excluded_foods": [],
-      "diet_pattern": "general",
-      "max_sodium_mg_per_day": 2300,
-      "max_added_sugar_g_per_meal": 10,
-      "max_saturated_fat_pct_calories": 10,
-      "calorie_tolerance_pct": 15,
-      "requires_shopping_list": true,
-      "requires_prep_safety_notes": true
+    "settings": {
+      "nutrition_targets": {
+        "calorie_target_kcal": 2000,
+        "protein_target_g": 98
+      },
+      "verification_constraints": {
+        "days": 1,
+        "meals_per_day": 1,
+        "allergies": ["peanuts"],
+        "excluded_foods": [],
+        "max_sodium_mg_per_day": 2300,
+        "max_added_sugar_g_per_meal": 10,
+        "max_saturated_fat_pct_calories": 10,
+        "calorie_tolerance_pct": 15,
+        "requires_prep_safety_notes": true
+      }
     },
     "provider": {
       "type": "gemini",
@@ -220,60 +214,44 @@ The response is intentionally a job handle, not the final report:
 | Mode | Fields | LLM Used | Purpose |
 |---|---|---:|---|
 | Checked-in case | `case_path` | no | Developer/demo compatibility for checked-in examples. |
-| `profile_generation` | `input_mode`, `profile`, `constraints`, `provider` | yes | Ask a provider to generate a plan from the profile and constraints. |
-| `prompt_generation` | `input_mode`, `profile`, `constraints`, `generation_prompt`, `provider` | yes | Ask a provider to generate a plan from a user prompt plus profile and constraints. |
+| `profile_generation` | `input_mode`, `settings`, `provider` | yes | Ask a provider to generate a plan from nutrition targets and verification constraints. |
+| `prompt_generation` | `input_mode`, `settings`, `generation_prompt`, `provider` | yes | Ask a provider to generate a plan from a user prompt plus nutrition targets and verification constraints. |
 
 `case_path` cannot be combined with `input_mode`. Hosted live requests should
 use `profile_generation` or `prompt_generation`. Structured JSON entry is
 preserved in the local CLI/debug workflow, not the hosted `/api/runs` endpoint.
 
-### Profile
+### Settings
 
 ```json
 {
-  "age": 35,
-  "sex": "male",
-  "height_cm": 178,
-  "weight_kg": 82,
-  "activity_level": "moderate",
-  "goal": "maintain_weight",
-  "calorie_target_kcal": 2000,
-  "protein_target_g": 98
+  "nutrition_targets": {
+    "calorie_target_kcal": 2000,
+    "protein_target_g": 98
+  },
+  "verification_constraints": {
+    "days": 3,
+    "meals_per_day": 3,
+    "allergies": ["peanuts"],
+    "excluded_foods": ["shellfish"],
+    "max_sodium_mg_per_day": 2300,
+    "max_added_sugar_g_per_meal": 10,
+    "max_saturated_fat_pct_calories": 10,
+    "calorie_tolerance_pct": 15,
+    "requires_prep_safety_notes": true
+  }
 }
 ```
 
 Validation rules:
 
-- `age` must be at least `18`.
-- `sex` must be `male` or `female`.
-- `height_cm` and `weight_kg` must be positive.
-- `activity_level` must be `inactive`, `low_active`, `moderate`, `active`, or
-  `very_active`.
-
-### Constraints
-
-```json
-{
-  "days": 3,
-  "meals_per_day": 3,
-  "allergies": ["peanuts"],
-  "excluded_foods": ["shellfish"],
-  "diet_pattern": "general",
-  "max_sodium_mg_per_day": 2300,
-  "max_added_sugar_g_per_meal": 10,
-  "max_saturated_fat_pct_calories": 10,
-  "calorie_tolerance_pct": 15,
-  "requires_shopping_list": true,
-  "requires_prep_safety_notes": true
-}
-```
-
-Validation rules:
-
+- `nutrition_targets.calorie_target_kcal` must be positive.
+- `nutrition_targets.protein_target_g` must be positive.
 - `days` must be between `1` and `7`.
 - `meals_per_day` must be between `1` and `6`.
-- Constraint fields that are omitted use Go zero values. The current frontend
-  should send explicit values for all MVP guideline controls it displays.
+- Hosted requests no longer accept demographic profile fields, diet pattern, or
+  shopping-list switches. Use the `settings` object above for all BYOK and
+  qualification requests.
 
 ### Local Structured JSON Verification
 
@@ -290,7 +268,7 @@ file workflow. The same normalized plan validation rules apply there:
 - Unquantified items must include `quantity_text`,
   `resolution_status: "unresolved"`, and `unresolved_reason`.
 
-### BYOK Profile Generation Request
+### BYOK Targets Generation Request
 
 ```bash
 curl -fsS -X POST "http://127.0.0.1:8080/api/runs" \
@@ -298,28 +276,22 @@ curl -fsS -X POST "http://127.0.0.1:8080/api/runs" \
   -H "X-MealCheck-Invite-Token: ${MEALCHECK_ACCESS_CODE}" \
   --data '{
     "input_mode": "profile_generation",
-    "profile": {
-      "age": 35,
-      "sex": "male",
-      "height_cm": 178,
-      "weight_kg": 82,
-      "activity_level": "moderate",
-      "goal": "maintain_weight",
-      "calorie_target_kcal": 2000,
-      "protein_target_g": 98
-    },
-    "constraints": {
-      "days": 3,
-      "meals_per_day": 3,
-      "allergies": ["peanuts"],
-      "excluded_foods": ["shellfish"],
-      "diet_pattern": "general",
-      "max_sodium_mg_per_day": 2300,
-      "max_added_sugar_g_per_meal": 10,
-      "max_saturated_fat_pct_calories": 10,
-      "calorie_tolerance_pct": 15,
-      "requires_shopping_list": true,
-      "requires_prep_safety_notes": true
+    "settings": {
+      "nutrition_targets": {
+        "calorie_target_kcal": 2000,
+        "protein_target_g": 98
+      },
+      "verification_constraints": {
+        "days": 3,
+        "meals_per_day": 3,
+        "allergies": ["peanuts"],
+        "excluded_foods": ["shellfish"],
+        "max_sodium_mg_per_day": 2300,
+        "max_added_sugar_g_per_meal": 10,
+        "max_saturated_fat_pct_calories": 10,
+        "calorie_tolerance_pct": 15,
+        "requires_prep_safety_notes": true
+      }
     },
     "provider": {
       "type": "openai",
@@ -351,28 +323,22 @@ Generation rules:
 ```json
 {
   "input_mode": "prompt_generation",
-  "profile": {
-    "age": 35,
-    "sex": "male",
-    "height_cm": 178,
-    "weight_kg": 82,
-    "activity_level": "moderate",
-    "goal": "maintain_weight",
-    "calorie_target_kcal": 2000,
-    "protein_target_g": 98
-  },
-  "constraints": {
-    "days": 3,
-    "meals_per_day": 3,
-    "allergies": ["peanuts"],
-    "excluded_foods": ["shellfish"],
-    "diet_pattern": "general",
-    "max_sodium_mg_per_day": 2300,
-    "max_added_sugar_g_per_meal": 10,
-    "max_saturated_fat_pct_calories": 10,
-    "calorie_tolerance_pct": 15,
-    "requires_shopping_list": true,
-    "requires_prep_safety_notes": true
+  "settings": {
+    "nutrition_targets": {
+      "calorie_target_kcal": 2000,
+      "protein_target_g": 98
+    },
+    "verification_constraints": {
+      "days": 3,
+      "meals_per_day": 3,
+      "allergies": ["peanuts"],
+      "excluded_foods": ["shellfish"],
+      "max_sodium_mg_per_day": 2300,
+      "max_added_sugar_g_per_meal": 10,
+      "max_saturated_fat_pct_calories": 10,
+      "calorie_tolerance_pct": 15,
+      "requires_prep_safety_notes": true
+    }
   },
   "generation_prompt": "Create a simple 3 day high-protein meal plan.",
   "provider": {
@@ -545,7 +511,7 @@ Errors use a consistent JSON envelope:
 {
   "error": {
     "code": "invalid_request",
-    "message": "constraints days must be between 1 and 7",
+    "message": "settings verification_constraints days must be between 1 and 7",
     "request_id": "req_8d8c75f9a22a4be7f4533e73"
   }
 }
@@ -555,7 +521,7 @@ Representative error codes:
 
 | Code | Typical Status | Cause |
 |---|---:|---|
-| `invalid_request` | `400` | Invalid JSON, unknown field, oversized body, invalid mode, bad profile, bad constraints, or invalid plan. |
+| `invalid_request` | `400` | Invalid JSON, unknown field, oversized body, invalid mode, bad settings, or invalid plan. |
 | `unauthorized` | `401` | Live qualification or run creation requires a valid access code. |
 | `invite_limit_reached` | `429` | The access code has reached its configured run limit. |
 | `not_found` | `404` | Run, demo run, report, or artifact does not exist. |

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -57,8 +58,8 @@ func TestSeededCaseEvaluatesToExpectedDecision(t *testing.T) {
 	}
 
 	day2 := dailyTotal(t, got.DailyTotals, 2)
-	if day2.Nutrients.SodiumMG <= float64(c.Constraints.MaxSodiumMGPerDay) {
-		t.Fatalf("day 2 sodium = %.1f, want above %d", day2.Nutrients.SodiumMG, c.Constraints.MaxSodiumMGPerDay)
+	if day2.Nutrients.SodiumMG <= float64(c.Settings.VerificationConstraints.MaxSodiumMGPerDay) {
+		t.Fatalf("day 2 sodium = %.1f, want above %d", day2.Nutrients.SodiumMG, c.Settings.VerificationConstraints.MaxSodiumMGPerDay)
 	}
 	if day2.Nutrients.EnergyKcal <= 0 {
 		t.Fatalf("day 2 energy = %.1f, want positive computed calories", day2.Nutrients.EnergyKcal)
@@ -99,6 +100,56 @@ func TestLoadCaseRejectsLLMSuppliedNutrientTotals(t *testing.T) {
 	caseCopy.CandidatePlan = badPlan
 	if _, err := loadPlan(caseCopy.CandidatePlan); err == nil {
 		t.Fatal("loadPlan accepted LLM-supplied nutrition_totals; want rejection")
+	}
+}
+
+func TestLoadCaseRejectsOldProfileAndConstraintsContract(t *testing.T) {
+	temp := t.TempDir()
+	casePath := filepath.Join(temp, "case.json")
+	if err := os.WriteFile(casePath, []byte(`{
+  "schema_version": "0.1",
+  "case_id": "old-contract",
+  "input_mode": "prompt_generation",
+  "profile": {"calorie_target_kcal": 2000, "protein_target_g": 98},
+  "constraints": {"days": 1, "meals_per_day": 3},
+  "guideline_pack_id": "test",
+  "candidate_plan": "plan.json",
+  "nutrient_catalog_path": "catalog.json",
+  "expectations": {"expected_decision": "pass"}
+}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, _, _, err := LoadCase(temp, "case.json")
+	if err == nil {
+		t.Fatal("LoadCase accepted old profile/constraints contract")
+	}
+	if got := err.Error(); !strings.Contains(got, `unknown field "profile"`) {
+		t.Fatalf("LoadCase error = %q, want unknown profile field", got)
+	}
+}
+
+func TestLoadCaseRequiresSettingsContract(t *testing.T) {
+	temp := t.TempDir()
+	casePath := filepath.Join(temp, "case.json")
+	if err := os.WriteFile(casePath, []byte(`{
+  "schema_version": "0.1",
+  "case_id": "missing-settings",
+  "input_mode": "prompt_generation",
+  "guideline_pack_id": "test",
+  "candidate_plan": "plan.json",
+  "nutrient_catalog_path": "catalog.json",
+  "expectations": {"expected_decision": "pass"}
+}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, _, _, err := LoadCase(temp, "case.json")
+	if err == nil {
+		t.Fatal("LoadCase accepted missing settings")
+	}
+	if got := err.Error(); !strings.Contains(got, "settings nutrition_targets calorie_target_kcal must be positive") {
+		t.Fatalf("LoadCase error = %q, want settings validation error", got)
 	}
 }
 

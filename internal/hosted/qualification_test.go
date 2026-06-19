@@ -97,11 +97,13 @@ func TestQualifyMealPlanTextUsesBYOKProviderForEligibleTextNormalization(t *test
 		}
 		return provider, nil
 	}, MealPlanQualificationRequest{
-		Text:    "Day 1 / Breakfast / cooked oatmeal / 1 / cup\n" + secret,
-		Profile: seeded.Profile,
-		Constraints: checker.Constraints{
-			Days:        1,
-			MealsPerDay: 1,
+		Text: "Day 1 / Breakfast / cooked oatmeal / 1 / cup\n" + secret,
+		Settings: checker.Settings{
+			NutritionTargets: seeded.Settings.NutritionTargets,
+			VerificationConstraints: checker.VerificationConstraints{
+				Days:        1,
+				MealsPerDay: 1,
+			},
 		},
 		Provider: ProviderConfig{
 			Type:   ProviderTypeOpenAI,

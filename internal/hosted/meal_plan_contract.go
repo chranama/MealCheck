@@ -36,7 +36,7 @@ func mealPlanAliasRules() []string {
 	}
 }
 
-func mealPlanShapeInstructions(constraints checker.Constraints) map[string]any {
+func mealPlanShapeInstructions(constraints checker.VerificationConstraints) map[string]any {
 	return map[string]any{
 		"schema_version": "0.1",
 		"plan_id":        "provider-generated-plan",

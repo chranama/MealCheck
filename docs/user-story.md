@@ -127,9 +127,9 @@ Natural language may appear in:
 - user-facing report explanations
 
 The auditable evaluation input is always normalized JSON. The same schema is
-used whether the plan was generated from nutrition targets and constraints,
-generated from a custom prompt, normalized from pasted text, or supplied locally
-to the CLI.
+used whether the plan was generated from nutrition targets and verification
+constraints, generated from a custom prompt, normalized from pasted text, or
+supplied locally to the CLI.
 
 Minimal internal shape:
 
@@ -183,7 +183,7 @@ Minimal internal shape:
    - prep-safety-notes requirement
 7. The user supplies either:
    - a BYOK generation prompt
-   - profile-only generation intent
+   - targets-only generation intent
    - pasted candidate meal-plan text for qualification/normalization
 8. MealCheck can qualify pasted candidate content before a report run.
 9. For generation modes, MealCheck creates a normalized JSON plan and verifies
@@ -232,7 +232,8 @@ The LLM may:
 - generate a candidate meal plan
 - classify whether text appears to be a meal plan
 - normalize eligible text into MealCheck JSON
-- produce normalized JSON directly from profile and constraints
+- produce normalized JSON directly from nutrition targets and verification
+  constraints
 - produce normalized JSON from a custom user prompt
 - repair malformed JSON when allowed
 - explain failed checks in plain language
@@ -256,7 +257,7 @@ MealCheck owns:
 
 - meal-plan qualification contract
 - schema validation
-- profile and constraint validation
+- settings validation
 - guideline-pack rule loading
 - food and unit resolution
 - nutrition calculation
@@ -287,7 +288,7 @@ The first hosted and local story should support:
 
 The report should answer:
 
-- What profile and constraints were used?
+- What nutrition targets and verification constraints were used?
 - Which guideline pack was used?
 - Which foods were resolved?
 - Which foods were unresolved?
@@ -321,7 +322,7 @@ The tightened MVP user story is supported when:
   the seeded proof without network access, provider keys, or hosted services
 - the CLI preserves structured JSON validation for debugging and regression
   cases
-- optional BYOK profile-only generation can create a plan without storing the
+- optional BYOK targets-only generation can create a plan without storing the
   user's provider key
 - optional BYOK prompt-based generation can create a plan without storing the
   user's provider key
@@ -331,8 +332,8 @@ The tightened MVP user story is supported when:
 - invite-gated BYOK runs can be created, monitored, viewed, and deleted through
   the web surface or documented API commands
 - BYOK flows disclose that provider keys transit the MealCheck backend, and
-  that profile, constraints, prompt text, and generated meal-plan content are
-  sent to the user's selected provider
+  that nutrition targets, verification constraints, prompt text, and generated
+  meal-plan content are sent to the user's selected provider
 - every verification mode produces auditable JSON before deterministic checks
 - MealCheck calculates nutrition totals from resolver data
 - failed checks include evidence and source references

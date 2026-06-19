@@ -2,10 +2,9 @@ import { useState } from "react";
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import {
   DEFAULT_CANDIDATE_TEXT,
-  DEFAULT_CONSTRAINTS,
   DEFAULT_GENERATION_PROMPT,
-  DEFAULT_PROFILE,
   DEFAULT_PROVIDER,
+  DEFAULT_SETTINGS,
   PROVIDER_OPTIONS,
 } from "../../constants";
 import { cleanApiBase } from "../../lib/api";
@@ -13,16 +12,15 @@ import { readableID } from "../../lib/format";
 import { buildQualificationPayload, buildRunPayload } from "../../lib/payload";
 import type {
   BackendState,
-  ConstraintsDraft,
   GenerationMode,
   LiveState,
   MealPlanQualificationResult,
-  Profile,
   ProviderConfig,
   ProviderType,
   QualificationState,
   QualifyMealPlanPayload,
   RunPayload,
+  SettingsDraft,
 } from "../../types";
 import { Field, NumberInput } from "../common/FormControls";
 
@@ -46,11 +44,13 @@ export function LiveWorkspace({
   onError: (error: unknown) => void;
 }) {
   const [inviteToken, setInviteToken] = useState("");
-  const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
-  const [constraints, setConstraints] = useState<ConstraintsDraft>({
-    ...DEFAULT_CONSTRAINTS,
-    allergies: DEFAULT_CONSTRAINTS.allergies.join(", "),
-    excluded_foods: DEFAULT_CONSTRAINTS.excluded_foods.join(", "),
+  const [settings, setSettings] = useState<SettingsDraft>({
+    nutrition_targets: DEFAULT_SETTINGS.nutrition_targets,
+    verification_constraints: {
+      ...DEFAULT_SETTINGS.verification_constraints,
+      allergies: DEFAULT_SETTINGS.verification_constraints.allergies.join(", "),
+      excluded_foods: DEFAULT_SETTINGS.verification_constraints.excluded_foods.join(", "),
+    },
   });
   const [candidateText, setCandidateText] = useState(DEFAULT_CANDIDATE_TEXT);
   const [mode, setMode] = useState<GenerationMode>("profile_generation");
@@ -79,8 +79,7 @@ export function LiveWorkspace({
     try {
       const payload = buildRunPayload({
         mode,
-        profile,
-        constraints,
+        settings,
         provider,
         generationPrompt,
         repairJSON,
@@ -96,8 +95,7 @@ export function LiveWorkspace({
     try {
       const payload = buildQualificationPayload({
         text: candidateText,
-        profile,
-        constraints,
+        settings,
         provider,
       });
       await onQualify(cleanBase, inviteToken, payload);
@@ -159,8 +157,8 @@ export function LiveWorkspace({
                 <small>Targets and checks</small>
               </summary>
               <div className="verification-settings-body">
-                <ProfileForm profile={profile} setProfile={setProfile} />
-                <ConstraintsForm constraints={constraints} setConstraints={setConstraints} />
+                <NutritionTargetsForm settings={settings} setSettings={setSettings} />
+                <ConstraintsForm settings={settings} setSettings={setSettings} />
               </div>
             </details>
           </section>
@@ -267,27 +265,41 @@ function runPillTone(status: LiveState["status"]): string {
   return "info";
 }
 
-function ProfileForm({ profile, setProfile }: { profile: Profile; setProfile: Dispatch<SetStateAction<Profile>> }) {
-  function update<K extends keyof Profile>(field: K, value: Profile[K]) {
-    setProfile((current) => ({ ...current, [field]: value }));
+function NutritionTargetsForm({ settings, setSettings }: { settings: SettingsDraft; setSettings: Dispatch<SetStateAction<SettingsDraft>> }) {
+  function update<K extends keyof SettingsDraft["nutrition_targets"]>(field: K, value: SettingsDraft["nutrition_targets"][K]) {
+    setSettings((current) => ({
+      ...current,
+      nutrition_targets: {
+        ...current.nutrition_targets,
+        [field]: value,
+      },
+    }));
   }
 
+  const targets = settings.nutrition_targets;
   return (
     <fieldset>
       <legend>Nutrition Targets</legend>
       <div className="form-grid">
-        <Field label="Calories"><NumberInput value={profile.calorie_target_kcal} min={1} max={8000} step={1} onChange={(value) => update("calorie_target_kcal", value)} /></Field>
-        <Field label="Protein g"><NumberInput value={profile.protein_target_g} min={1} max={400} step={1} onChange={(value) => update("protein_target_g", value)} /></Field>
+        <Field label="Calories"><NumberInput value={targets.calorie_target_kcal} min={1} max={8000} step={1} onChange={(value) => update("calorie_target_kcal", value)} /></Field>
+        <Field label="Protein g"><NumberInput value={targets.protein_target_g} min={1} max={400} step={1} onChange={(value) => update("protein_target_g", value)} /></Field>
       </div>
     </fieldset>
   );
 }
 
-function ConstraintsForm({ constraints, setConstraints }: { constraints: ConstraintsDraft; setConstraints: Dispatch<SetStateAction<ConstraintsDraft>> }) {
-  function update<K extends keyof ConstraintsDraft>(field: K, value: ConstraintsDraft[K]) {
-    setConstraints((current) => ({ ...current, [field]: value }));
+function ConstraintsForm({ settings, setSettings }: { settings: SettingsDraft; setSettings: Dispatch<SetStateAction<SettingsDraft>> }) {
+  function update<K extends keyof SettingsDraft["verification_constraints"]>(field: K, value: SettingsDraft["verification_constraints"][K]) {
+    setSettings((current) => ({
+      ...current,
+      verification_constraints: {
+        ...current.verification_constraints,
+        [field]: value,
+      },
+    }));
   }
 
+  const constraints = settings.verification_constraints;
   return (
     <fieldset>
       <legend>Constraints</legend>

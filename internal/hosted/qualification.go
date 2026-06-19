@@ -19,10 +19,9 @@ const (
 )
 
 type MealPlanQualificationRequest struct {
-	Text        string              `json:"text"`
-	Profile     checker.Profile     `json:"profile,omitempty"`
-	Constraints checker.Constraints `json:"constraints,omitempty"`
-	Provider    ProviderConfig      `json:"provider,omitempty"`
+	Text     string           `json:"text"`
+	Settings checker.Settings `json:"settings,omitempty"`
+	Provider ProviderConfig   `json:"provider,omitempty"`
 }
 
 type MealPlanQualificationResult struct {
@@ -136,9 +135,9 @@ func qualificationMessages(request MealPlanQualificationRequest) []ProviderMessa
 		"Do not provide medical claims.",
 	}, " ")
 	payload := map[string]any{
-		"settings":       providerPromptSettings(request.Profile, request.Constraints),
+		"settings":       request.Settings,
 		"source_text":    sanitizeDebugArtifactText(request.Text, request.Provider.APIKey),
-		"required_shape": mealPlanShapeInstructions(request.Constraints),
+		"required_shape": mealPlanShapeInstructions(request.Settings.VerificationConstraints),
 		"alias_rules":    mealPlanAliasRules(),
 	}
 	payloadJSON, _ := json.MarshalIndent(payload, "", "  ")

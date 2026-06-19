@@ -41,13 +41,14 @@ MealCheck should make the check bounded, source-linked, and inspectable.
   inference.
 - Determine whether model output or pasted text qualifies as a verifiable meal
   plan.
-- Generate a structured meal plan from profile and constraints through
-  bring-your-own-key execution.
-- Generate a structured meal plan from a user prompt plus profile and
+- Generate a structured meal plan from nutrition targets and verification
   constraints through bring-your-own-key execution.
+- Generate a structured meal plan from a user prompt plus nutrition targets and
+  verification constraints through bring-your-own-key execution.
 - Verify normalized structured JSON locally through the CLI for debugging and
   regression cases.
-- Check declared allergens, exclusions, and profile constraints.
+- Check declared allergens, exclusions, nutrition targets, and verification
+  constraints.
 - Check calculated nutrition totals against configured guideline-derived
   thresholds.
 - Produce a shareable report with failures, unresolved foods, source references,
@@ -99,7 +100,7 @@ regression tests, and agent-generated structured inputs.
 
 - Healthy-adult seeded scenarios.
 - Public seeded report demos.
-- Invite-gated BYOK profile-only generation and prompt-based generation.
+- Invite-gated BYOK targets-only generation and prompt-based generation.
 - Meal-plan qualification before verification.
 - Local CLI structured JSON verification for debugging and regression cases.
 - Strict meal-plan schema.

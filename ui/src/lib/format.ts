@@ -39,7 +39,7 @@ export function liveStatusTone(status: RunStatus): string {
 
 export function modeLabel(mode: string): string {
   if (mode === "manual_structured") return "Manual";
-  if (mode === "profile_generation") return "Profile";
+  if (mode === "profile_generation") return "Targets";
   return "Prompt";
 }
 
@@ -102,7 +102,7 @@ export function sourceClaimLabel(entry: unknown): string {
     "foodsafety-danger-zone-40-140f": "Food temperature danger zone",
     "foodsafety-microwave-165f": "Microwave cooking temperature",
     "foodsafety-refrigerator-freezer-temperatures": "Refrigerator and freezer temperatures",
-    "dri-profile-inputs": "Profile-based nutrient estimates",
+    "dri-profile-inputs": "Target-based nutrient estimates",
     "fdc-api-search-details": "FoodData Central search details",
   };
   return labels[id] || readableID(id);

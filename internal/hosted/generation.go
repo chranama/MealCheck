@@ -38,7 +38,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 	if input.Mode == "" {
 		return PreparedRun{}, fmt.Errorf("input mode is required")
 	}
-	if err := validateProfileAndConstraints(input.Profile, input.Constraints); err != nil {
+	if err := validateSettings(input.Settings); err != nil {
 		return PreparedRun{}, err
 	}
 
@@ -167,7 +167,7 @@ func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provid
 		})
 	}
 
-	if err := validateGeneratedPlanAgainstConstraints(plan, input.Constraints); err != nil {
+	if err := validateGeneratedPlanAgainstConstraints(plan, input.Settings.VerificationConstraints); err != nil {
 		events = append(events, normalizationEvent("plan_constraints_failed", "decoded provider output did not satisfy requested day and meal counts"))
 		if !input.RepairJSON || repairAttempted {
 			return checker.Plan{}, llmOutput, repairOutput, repairErr, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
@@ -217,7 +217,7 @@ func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provid
 				FinalError:    err,
 			})
 		}
-		if err := validateGeneratedPlanAgainstConstraints(plan, input.Constraints); err != nil {
+		if err := validateGeneratedPlanAgainstConstraints(plan, input.Settings.VerificationConstraints); err != nil {
 			events = append(events, normalizationEvent("plan_constraints_failed", "repair output did not satisfy requested day and meal counts"))
 			return checker.Plan{}, llmOutput, repairOutput, err, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
 				InitialOutput: initialOutput,
@@ -236,11 +236,12 @@ func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 	if input.Mode == "prompt_generation" && strings.TrimSpace(input.GenerationPrompt) == "" {
 		return nil, fmt.Errorf("generation_prompt is required for prompt_generation")
 	}
+	constraints := input.Settings.VerificationConstraints
 	system := strings.Join([]string{
 		"You generate normalized MealCheck meal-plan JSON only.",
 		"Return one JSON object matching schema_version 0.1.",
 		mealPlanContractPromptBlock(),
-		fmt.Sprintf("Return exactly %d day object(s), and every day must contain exactly %d meal object(s).", input.Constraints.Days, input.Constraints.MealsPerDay),
+		fmt.Sprintf("Return exactly %d day object(s), and every day must contain exactly %d meal object(s).", constraints.Days, constraints.MealsPerDay),
 		"Do not copy the shape instructions as the answer; generate a complete meal plan that satisfies the requested counts.",
 		"Do not include nutrient totals, calories, or compliance judgments.",
 		"Every food item must include either quantity plus unit, or quantity_text with resolution_status unresolved and unresolved_reason.",
@@ -249,12 +250,12 @@ func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 		"Do not provide medical claims.",
 	}, " ")
 	payload := map[string]any{
-		"settings": providerPromptSettings(input.Profile, input.Constraints),
+		"settings": input.Settings,
 		"required_counts": map[string]int{
-			"days":          input.Constraints.Days,
-			"meals_per_day": input.Constraints.MealsPerDay,
+			"days":          constraints.Days,
+			"meals_per_day": constraints.MealsPerDay,
 		},
-		"required_shape": mealPlanShapeInstructions(input.Constraints),
+		"required_shape": mealPlanShapeInstructions(constraints),
 		"alias_rules":    mealPlanAliasRules(),
 	}
 	if input.Mode == "prompt_generation" {
@@ -268,10 +269,11 @@ func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 }
 
 func repairMessages(input PendingRunInput, original string, decodeErr error) []ProviderMessage {
+	constraints := input.Settings.VerificationConstraints
 	system := strings.Join([]string{
 		"Repair MealCheck meal-plan JSON syntax or minor schema shape only.",
 		mealPlanContractPromptBlock(),
-		fmt.Sprintf("The repaired output must contain exactly %d day object(s), and every day must contain exactly %d meal object(s).", input.Constraints.Days, input.Constraints.MealsPerDay),
+		fmt.Sprintf("The repaired output must contain exactly %d day object(s), and every day must contain exactly %d meal object(s).", constraints.Days, constraints.MealsPerDay),
 		"Do not invent nutrition totals or compliance judgments.",
 		"If day or meal count is wrong, add or remove meal objects while preserving declared allergies, excluded foods, constraints, and any valid existing foods.",
 		"If a quantity is vague or missing, preserve it as quantity_text with resolution_status unresolved and unresolved_reason vague_quantity.",
@@ -279,9 +281,9 @@ func repairMessages(input PendingRunInput, original string, decodeErr error) []P
 		"Return only one JSON object.",
 	}, " ")
 	payload := map[string]any{
-		"settings":        providerPromptSettings(input.Profile, input.Constraints),
+		"settings":        input.Settings,
 		"decode_error":    decodeErr.Error(),
-		"required_shape":  mealPlanShapeInstructions(input.Constraints),
+		"required_shape":  mealPlanShapeInstructions(constraints),
 		"alias_rules":     mealPlanAliasRules(),
 		"original_output": original,
 	}
@@ -289,43 +291,6 @@ func repairMessages(input PendingRunInput, original string, decodeErr error) []P
 	return []ProviderMessage{
 		{Role: "system", Content: system},
 		{Role: "user", Content: string(payloadJSON)},
-	}
-}
-
-type providerPromptNutritionTargets struct {
-	CalorieTargetKcal int `json:"calorie_target_kcal,omitempty"`
-	ProteinTargetG    int `json:"protein_target_g,omitempty"`
-}
-
-type providerPromptConstraints struct {
-	Days                       int      `json:"days,omitempty"`
-	MealsPerDay                int      `json:"meals_per_day,omitempty"`
-	Allergies                  []string `json:"allergies,omitempty"`
-	ExcludedFoods              []string `json:"excluded_foods,omitempty"`
-	MaxSodiumMGPerDay          int      `json:"max_sodium_mg_per_day,omitempty"`
-	MaxAddedSugarGPerMeal      float64  `json:"max_added_sugar_g_per_meal,omitempty"`
-	MaxSaturatedFatPctCalories float64  `json:"max_saturated_fat_pct_calories,omitempty"`
-	CalorieTolerancePct        float64  `json:"calorie_tolerance_pct,omitempty"`
-	RequiresPrepSafetyNotes    bool     `json:"requires_prep_safety_notes"`
-}
-
-func providerPromptSettings(profile checker.Profile, constraints checker.Constraints) map[string]any {
-	return map[string]any{
-		"nutrition_targets": providerPromptNutritionTargets{
-			CalorieTargetKcal: profile.CalorieTargetKcal,
-			ProteinTargetG:    profile.ProteinTargetG,
-		},
-		"verification_constraints": providerPromptConstraints{
-			Days:                       constraints.Days,
-			MealsPerDay:                constraints.MealsPerDay,
-			Allergies:                  constraints.Allergies,
-			ExcludedFoods:              constraints.ExcludedFoods,
-			MaxSodiumMGPerDay:          constraints.MaxSodiumMGPerDay,
-			MaxAddedSugarGPerMeal:      constraints.MaxAddedSugarGPerMeal,
-			MaxSaturatedFatPctCalories: constraints.MaxSaturatedFatPctCalories,
-			CalorieTolerancePct:        constraints.CalorieTolerancePct,
-			RequiresPrepSafetyNotes:    constraints.RequiresPrepSafetyNotes,
-		},
 	}
 }
 
@@ -346,26 +311,20 @@ func extractJSONObject(text string) (string, error) {
 	return trimmed[start : end+1], nil
 }
 
-func validateProfileAndConstraints(profile checker.Profile, constraints checker.Constraints) error {
-	if profile.Age < 18 {
-		return fmt.Errorf("profile age must be at least 18")
+func validateSettings(settings checker.Settings) error {
+	targets := settings.NutritionTargets
+	constraints := settings.VerificationConstraints
+	if targets.CalorieTargetKcal <= 0 {
+		return fmt.Errorf("settings nutrition_targets calorie_target_kcal must be positive")
 	}
-	if profile.Sex != "male" && profile.Sex != "female" {
-		return fmt.Errorf("profile sex must be male or female")
-	}
-	if profile.HeightCM <= 0 || profile.WeightKG <= 0 {
-		return fmt.Errorf("profile height_cm and weight_kg must be positive")
-	}
-	switch profile.ActivityLevel {
-	case "inactive", "low_active", "moderate", "active", "very_active":
-	default:
-		return fmt.Errorf("profile activity_level must be inactive, low_active, moderate, active, or very_active")
+	if targets.ProteinTargetG <= 0 {
+		return fmt.Errorf("settings nutrition_targets protein_target_g must be positive")
 	}
 	if constraints.Days < 1 || constraints.Days > 7 {
-		return fmt.Errorf("constraints days must be between 1 and 7")
+		return fmt.Errorf("settings verification_constraints days must be between 1 and 7")
 	}
 	if constraints.MealsPerDay < 1 || constraints.MealsPerDay > 6 {
-		return fmt.Errorf("constraints meals_per_day must be between 1 and 6")
+		return fmt.Errorf("settings verification_constraints meals_per_day must be between 1 and 6")
 	}
 	return nil
 }
@@ -416,7 +375,7 @@ func validatePlan(plan checker.Plan) error {
 	return nil
 }
 
-func validateGeneratedPlanAgainstConstraints(plan checker.Plan, constraints checker.Constraints) error {
+func validateGeneratedPlanAgainstConstraints(plan checker.Plan, constraints checker.VerificationConstraints) error {
 	if len(plan.Days) != constraints.Days {
 		return fmt.Errorf("meal plan must include exactly %d day(s); got %d", constraints.Days, len(plan.Days))
 	}
@@ -464,8 +423,7 @@ func writeRuntimeCase(config Config, run Run, input PendingRunInput, plan checke
 		SchemaVersion:       "0.1",
 		CaseID:              run.ID,
 		InputMode:           input.Mode,
-		Profile:             input.Profile,
-		Constraints:         input.Constraints,
+		Settings:            input.Settings,
 		GuidelinePackID:     defaultGuidelinePackID,
 		GuidelinePackPath:   defaultGuidelinePackPath,
 		NutrientCatalogID:   defaultNutrientCatalogID,

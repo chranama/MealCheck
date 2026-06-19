@@ -110,9 +110,8 @@ func TestProfileGenerationUsesBYOKProviderAndRedactsSecret(t *testing.T) {
 	secret := "sk-test-secret"
 
 	body := marshalJSON(t, CreateRunRequest{
-		InputMode:   "profile_generation",
-		Profile:     seeded.Profile,
-		Constraints: seeded.Constraints,
+		InputMode: "profile_generation",
+		Settings:  seeded.Settings,
 		Provider: ProviderConfig{
 			Type:   "openai_compatible",
 			Model:  "fake-model",
@@ -178,9 +177,8 @@ func TestProfileGenerationRedactsSuccessfulLLMOutputArtifact(t *testing.T) {
 	provider := &fakeProvider{responses: []string{secret + "\n" + candidate}}
 
 	body := marshalJSON(t, CreateRunRequest{
-		InputMode:   "profile_generation",
-		Profile:     seeded.Profile,
-		Constraints: seeded.Constraints,
+		InputMode: "profile_generation",
+		Settings:  seeded.Settings,
 		Provider: ProviderConfig{
 			Type:   ProviderTypeOpenAI,
 			Model:  "fake-model",
@@ -234,8 +232,7 @@ func TestHostedManualStructuredRunIsRejected(t *testing.T) {
 
 	body := marshalJSON(t, CreateRunRequest{
 		InputMode:     "manual_structured",
-		Profile:       seeded.Profile,
-		Constraints:   seeded.Constraints,
+		Settings:      seeded.Settings,
 		CandidatePlan: ptr(seededPlan(t, root)),
 	})
 	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
@@ -259,9 +256,8 @@ func TestQualifyEndpointRequiresInviteAndReturnsStructuredQualification(t *testi
 	seeded := seededCase(t, root)
 
 	body := marshalJSON(t, MealPlanQualificationRequest{
-		Text:        testMealPlanJSON(false),
-		Profile:     seeded.Profile,
-		Constraints: seeded.Constraints,
+		Text:     testMealPlanJSON(false),
+		Settings: seeded.Settings,
 	})
 	unauthorized := doRequest(t, server, http.MethodPost, "/api/qualify", body)
 	if unauthorized.Code != http.StatusUnauthorized {
@@ -297,9 +293,8 @@ func TestQualifyEndpointRequiresProviderOnlyWhenNormalizationIsNeeded(t *testing
 	seeded := seededCase(t, root)
 
 	body := marshalJSON(t, MealPlanQualificationRequest{
-		Text:        "Day 1 breakfast: 1 cup cooked oatmeal.",
-		Profile:     seeded.Profile,
-		Constraints: seeded.Constraints,
+		Text:     "Day 1 breakfast: 1 cup cooked oatmeal.",
+		Settings: seeded.Settings,
 	})
 	resp := doRequest(t, server, http.MethodPost, "/api/qualify", body)
 	if resp.Code != http.StatusBadRequest {
@@ -329,11 +324,13 @@ func TestQualifyEndpointUsesBYOKProviderForTextNormalization(t *testing.T) {
 	}
 
 	body := marshalJSON(t, MealPlanQualificationRequest{
-		Text:    "Day 1 / Breakfast / cooked oatmeal / 1 / cup\n" + secret,
-		Profile: seeded.Profile,
-		Constraints: checker.Constraints{
-			Days:        1,
-			MealsPerDay: 1,
+		Text: "Day 1 / Breakfast / cooked oatmeal / 1 / cup\n" + secret,
+		Settings: checker.Settings{
+			NutritionTargets: seeded.Settings.NutritionTargets,
+			VerificationConstraints: checker.VerificationConstraints{
+				Days:        1,
+				MealsPerDay: 1,
+			},
 		},
 		Provider: ProviderConfig{
 			Type:   ProviderTypeOpenAI,
@@ -372,8 +369,7 @@ func TestPromptGenerationAllowsOneBoundedRepair(t *testing.T) {
 
 	body := marshalJSON(t, CreateRunRequest{
 		InputMode:        "prompt_generation",
-		Profile:          seeded.Profile,
-		Constraints:      seeded.Constraints,
+		Settings:         seeded.Settings,
 		GenerationPrompt: "Create a simple 3 day meal plan that avoids shellfish.",
 		Provider: ProviderConfig{
 			Type:   "openai_compatible",
@@ -419,8 +415,8 @@ func TestPromptGenerationRepairsGeneratedPlanCountMismatch(t *testing.T) {
 	pending := NewPendingInputs()
 	server := NewServer(config, store, pending)
 	seeded := seededCase(t, root)
-	seeded.Constraints.Days = 1
-	seeded.Constraints.MealsPerDay = 3
+	seeded.Settings.VerificationConstraints.Days = 1
+	seeded.Settings.VerificationConstraints.MealsPerDay = 3
 	provider := &fakeProvider{responses: []string{
 		`{"schema_version":"0.1","plan_id":"one-meal","days":[{"day":1,"meals":[{"name":"breakfast","items":[{"food":"cooked oatmeal","quantity":1,"unit":"cup"}]}]}]}`,
 		`{"schema_version":"0.1","plan_id":"three-meals","days":[{"day":1,"meals":[{"name":"breakfast","items":[{"food":"cooked oatmeal","quantity":1,"unit":"cup"}]},{"name":"lunch","items":[{"food":"chicken breast","quantity":4,"unit":"oz"}]},{"name":"dinner","items":[{"food":"salmon","quantity":4,"unit":"oz"}]}]}]}`,
@@ -428,8 +424,7 @@ func TestPromptGenerationRepairsGeneratedPlanCountMismatch(t *testing.T) {
 
 	body := marshalJSON(t, CreateRunRequest{
 		InputMode:        "prompt_generation",
-		Profile:          seeded.Profile,
-		Constraints:      seeded.Constraints,
+		Settings:         seeded.Settings,
 		GenerationPrompt: "Create a simple 1 day meal plan.",
 		Provider: ProviderConfig{
 			Type:   "openai_compatible",
@@ -490,8 +485,7 @@ func TestPromptGenerationFailsWithoutRepairAfterInvalidJSON(t *testing.T) {
 
 	body := marshalJSON(t, CreateRunRequest{
 		InputMode:        "prompt_generation",
-		Profile:          seeded.Profile,
-		Constraints:      seeded.Constraints,
+		Settings:         seeded.Settings,
 		GenerationPrompt: "Create a simple 3 day meal plan.",
 		Provider: ProviderConfig{
 			Type:   "openai_compatible",
@@ -679,8 +673,7 @@ func TestPromptGenerationWritesRedactedNormalizationDebugArtifact(t *testing.T) 
 
 	body := marshalJSON(t, CreateRunRequest{
 		InputMode:        "prompt_generation",
-		Profile:          seeded.Profile,
-		Constraints:      seeded.Constraints,
+		Settings:         seeded.Settings,
 		GenerationPrompt: "Create a simple 3 day meal plan.",
 		Provider: ProviderConfig{
 			Type:   "openai_compatible",
@@ -746,8 +739,7 @@ func TestPromptGenerationWritesRedactedDebugArtifactOnProviderError(t *testing.T
 
 	body := marshalJSON(t, CreateRunRequest{
 		InputMode:        "prompt_generation",
-		Profile:          seeded.Profile,
-		Constraints:      seeded.Constraints,
+		Settings:         seeded.Settings,
 		GenerationPrompt: "Create a simple 3 day meal plan.",
 		Provider: ProviderConfig{
 			Type:   ProviderTypeGemini,
@@ -807,8 +799,7 @@ func TestBYOKRunFailsClosedWhenPendingInputExpiresBeforeWorkerClaim(t *testing.T
 
 	body := marshalJSON(t, CreateRunRequest{
 		InputMode:        "prompt_generation",
-		Profile:          seeded.Profile,
-		Constraints:      seeded.Constraints,
+		Settings:         seeded.Settings,
 		GenerationPrompt: "Create a simple 3 day meal plan.",
 		Provider: ProviderConfig{
 			Type:   ProviderTypeGemini,
@@ -863,9 +854,8 @@ func TestRequestRunInputAcceptsNativeProviderTypes(t *testing.T) {
 	for _, providerType := range []string{ProviderTypeOpenAI, ProviderTypeAnthropic, ProviderTypeGemini, ProviderTypeOpenAICompatible} {
 		t.Run(providerType, func(t *testing.T) {
 			_, input, ok, err := requestRunInput(config, CreateRunRequest{
-				InputMode:   "profile_generation",
-				Profile:     seeded.Profile,
-				Constraints: seeded.Constraints,
+				InputMode: "profile_generation",
+				Settings:  seeded.Settings,
 				Provider: ProviderConfig{
 					Type:    providerType,
 					BaseURL: "https://example.invalid/v1",
@@ -897,17 +887,15 @@ func TestProviderPromptSettingsExposeOnlyVerifierUsedFields(t *testing.T) {
 	root := repoRoot(t)
 	seeded := seededCase(t, root)
 	genMessages, err := generationMessages(PendingRunInput{
-		Mode:        "profile_generation",
-		Profile:     seeded.Profile,
-		Constraints: seeded.Constraints,
+		Mode:     "profile_generation",
+		Settings: seeded.Settings,
 	})
 	if err != nil {
 		t.Fatalf("generationMessages error: %v", err)
 	}
 	qualMessages := qualificationMessages(MealPlanQualificationRequest{
-		Text:        "Day 1 breakfast: 1 cup oatmeal.",
-		Profile:     seeded.Profile,
-		Constraints: seeded.Constraints,
+		Text:     "Day 1 breakfast: 1 cup oatmeal.",
+		Settings: seeded.Settings,
 	})
 	for name, content := range map[string]string{
 		"generation":    genMessages[1].Content,

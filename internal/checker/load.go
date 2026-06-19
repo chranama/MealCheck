@@ -12,6 +12,9 @@ func LoadCase(root, casePath string) (Case, Plan, NutrientCatalog, error) {
 	if err := readJSON(resolvePath(root, casePath), &c); err != nil {
 		return Case{}, Plan{}, NutrientCatalog{}, fmt.Errorf("load case: %w", err)
 	}
+	if err := validateCaseSettings(c.Settings); err != nil {
+		return Case{}, Plan{}, NutrientCatalog{}, fmt.Errorf("load case: %w", err)
+	}
 
 	var plan Plan
 	if err := readJSON(resolvePath(root, c.CandidatePlan), &plan); err != nil {
@@ -24,6 +27,24 @@ func LoadCase(root, casePath string) (Case, Plan, NutrientCatalog, error) {
 	}
 
 	return c, plan, catalog, nil
+}
+
+func validateCaseSettings(settings Settings) error {
+	targets := settings.NutritionTargets
+	constraints := settings.VerificationConstraints
+	if targets.CalorieTargetKcal <= 0 {
+		return fmt.Errorf("settings nutrition_targets calorie_target_kcal must be positive")
+	}
+	if targets.ProteinTargetG <= 0 {
+		return fmt.Errorf("settings nutrition_targets protein_target_g must be positive")
+	}
+	if constraints.Days < 1 || constraints.Days > 7 {
+		return fmt.Errorf("settings verification_constraints days must be between 1 and 7")
+	}
+	if constraints.MealsPerDay < 1 || constraints.MealsPerDay > 6 {
+		return fmt.Errorf("settings verification_constraints meals_per_day must be between 1 and 6")
+	}
+	return nil
 }
 
 func resolvePath(root, path string) string {

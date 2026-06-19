@@ -1,36 +1,45 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_CONSTRAINTS,
   DEFAULT_GENERATION_PROMPT,
   DEFAULT_PREP_NOTES,
-  DEFAULT_PROFILE,
   DEFAULT_PROVIDER,
+  DEFAULT_SETTINGS,
   INITIAL_MANUAL_ITEMS,
 } from "../../constants";
 import {
   buildQualificationPayload,
   buildManualPlan,
   buildRunPayload,
-  normalizeConstraints,
-  normalizeProfile,
+  normalizeSettings,
 } from "../payload";
-import type { ConstraintsDraft } from "../../types";
+import type { SettingsDraft } from "../../types";
 
-const draftConstraints: ConstraintsDraft = {
-  ...DEFAULT_CONSTRAINTS,
-  allergies: "peanuts, shellfish",
-  excluded_foods: "grapefruit",
+const draftSettings: SettingsDraft = {
+  nutrition_targets: DEFAULT_SETTINGS.nutrition_targets,
+  verification_constraints: {
+    ...DEFAULT_SETTINGS.verification_constraints,
+    allergies: "peanuts, shellfish",
+    excluded_foods: "grapefruit",
+  },
 };
 
 describe("payload", () => {
-  it("normalizes profile and CSV constraint fields", () => {
-    expect(normalizeProfile({ ...DEFAULT_PROFILE, age: 35.6 })).toEqual({
-      ...DEFAULT_PROFILE,
-      age: 36,
-    });
-    expect(normalizeConstraints(draftConstraints)).toMatchObject({
-      allergies: ["peanuts", "shellfish"],
-      excluded_foods: ["grapefruit"],
+  it("normalizes nutrition targets and CSV constraint fields", () => {
+    expect(normalizeSettings({
+      ...draftSettings,
+      nutrition_targets: {
+        calorie_target_kcal: 2000.6,
+        protein_target_g: 98.2,
+      },
+    })).toMatchObject({
+      nutrition_targets: {
+        calorie_target_kcal: 2001,
+        protein_target_g: 98,
+      },
+      verification_constraints: {
+        allergies: ["peanuts", "shellfish"],
+        excluded_foods: ["grapefruit"],
+      },
     });
   });
 
@@ -54,8 +63,7 @@ describe("payload", () => {
   it("builds a prompt-generation BYOK payload", () => {
     const payload = buildRunPayload({
       mode: "prompt_generation",
-      profile: DEFAULT_PROFILE,
-      constraints: draftConstraints,
+      settings: draftSettings,
       provider: {
         ...DEFAULT_PROVIDER,
         model: "gpt-test",
@@ -75,17 +83,20 @@ describe("payload", () => {
         model: "gpt-test",
         api_key: "secret",
       },
-      constraints: {
-        allergies: ["peanuts", "shellfish"],
+      settings: {
+        verification_constraints: {
+          allergies: ["peanuts", "shellfish"],
+        },
       },
     });
+    expect(payload).not.toHaveProperty("profile");
+    expect(payload).not.toHaveProperty("constraints");
   });
 
   it("preserves OpenAI-compatible base URLs", () => {
     const payload = buildRunPayload({
       mode: "profile_generation",
-      profile: DEFAULT_PROFILE,
-      constraints: draftConstraints,
+      settings: draftSettings,
       provider: {
         type: "openai_compatible",
         base_url: "https://router.local/v1/",
@@ -109,8 +120,7 @@ describe("payload", () => {
   it("clears base URLs for native providers", () => {
     const payload = buildRunPayload({
       mode: "profile_generation",
-      profile: DEFAULT_PROFILE,
-      constraints: draftConstraints,
+      settings: draftSettings,
       provider: {
         type: "gemini",
         base_url: "https://example.invalid",
@@ -133,8 +143,7 @@ describe("payload", () => {
   it("requires provider model and API key for BYOK modes", () => {
     expect(() => buildRunPayload({
       mode: "profile_generation",
-      profile: DEFAULT_PROFILE,
-      constraints: draftConstraints,
+      settings: draftSettings,
       provider: DEFAULT_PROVIDER,
       generationPrompt: DEFAULT_GENERATION_PROMPT,
       repairJSON: true,
@@ -144,15 +153,16 @@ describe("payload", () => {
   it("builds qualification payloads without provider keys when none are supplied", () => {
     const payload = buildQualificationPayload({
       text: " Day 1 breakfast: 1 cup oatmeal. ",
-      profile: DEFAULT_PROFILE,
-      constraints: draftConstraints,
+      settings: draftSettings,
       provider: DEFAULT_PROVIDER,
     });
 
     expect(payload).toMatchObject({
       text: "Day 1 breakfast: 1 cup oatmeal.",
-      constraints: {
-        allergies: ["peanuts", "shellfish"],
+      settings: {
+        verification_constraints: {
+          allergies: ["peanuts", "shellfish"],
+        },
       },
     });
     expect(payload.provider).toBeUndefined();
@@ -161,8 +171,7 @@ describe("payload", () => {
   it("adds provider config to qualification payloads when BYOK fields are supplied", () => {
     const payload = buildQualificationPayload({
       text: "Day 1 breakfast: 1 cup oatmeal.",
-      profile: DEFAULT_PROFILE,
-      constraints: draftConstraints,
+      settings: draftSettings,
       provider: {
         type: "openai_compatible",
         base_url: "https://router.local/v1/",

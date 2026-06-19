@@ -12,10 +12,8 @@ Initial fields:
 
 - `case_id`: stable identifier.
 - `input_mode`: `manual_structured`, `profile_generation`, or `prompt_generation`.
-- `profile`: age, sex, height, weight, activity level, and optional calorie
-  target.
-- `constraints`: allergies, excluded foods, diet pattern, days, meals per day,
-  budget or prep limits, and check thresholds.
+- `settings`: nutrition targets and verification constraints used by generation,
+  qualification, and deterministic checks.
 - `baseline_plan`: optional baseline plan.
 - `candidate_plan`: required plan to evaluate for manual or seeded cases; created
   by the LLM for generation cases.
@@ -33,22 +31,22 @@ Example:
 {
   "case_id": "seeded-3-day-peanut-allergy",
   "input_mode": "manual_structured",
-  "profile": {
-    "age": 35,
-    "sex": "male",
-    "height_cm": 178,
-    "weight_kg": 82,
-    "activity_level": "moderate",
-    "calorie_target_kcal": 2000
-  },
-  "constraints": {
-    "days": 3,
-    "meals_per_day": 3,
-    "allergies": ["peanut"],
-    "excluded_foods": ["shellfish"],
-    "max_sodium_mg_per_day": 2300,
-    "max_added_sugar_g_per_meal": 10,
-    "max_saturated_fat_pct_calories": 10
+  "settings": {
+    "nutrition_targets": {
+      "calorie_target_kcal": 2000,
+      "protein_target_g": 98
+    },
+    "verification_constraints": {
+      "days": 3,
+      "meals_per_day": 3,
+      "allergies": ["peanut"],
+      "excluded_foods": ["shellfish"],
+      "max_sodium_mg_per_day": 2300,
+      "max_added_sugar_g_per_meal": 10,
+      "max_saturated_fat_pct_calories": 10,
+      "calorie_tolerance_pct": 15,
+      "requires_prep_safety_notes": true
+    }
   },
   "guideline_pack_id": "dga-2025-2030-us-adult-general-v1",
   "guideline_pack_path": "data/guidelines/dga-2025-2030-us-adult-general-v1/guideline-pack.json",
@@ -66,11 +64,11 @@ is preserved for CLI/local debugging and regression fixtures.
 
 - `manual_structured`: a local/debug case supplies normalized meal-plan JSON.
   No LLM is required.
-- `profile_generation`: the user supplies profile and constraints; MealCheck
-  builds the LLM prompt and requires JSON output.
-- `prompt_generation`: the user supplies profile, constraints, and a custom
-  natural-language prompt; MealCheck wraps the prompt with its system prompt and
-  requires JSON output.
+- `profile_generation`: the user supplies nutrition targets and verification
+  constraints; MealCheck builds the LLM prompt and requires JSON output.
+- `prompt_generation`: the user supplies nutrition targets, verification
+  constraints, and a custom natural-language prompt; MealCheck wraps the prompt
+  with its system prompt and requires JSON output.
 
 All modes must produce the same normalized meal-plan JSON before evaluation.
 The verifier evaluates the JSON artifact, not the prompt or user-facing prose.
@@ -391,16 +389,22 @@ BYOK normalization to decide eligibility.
 ```json
 {
   "text": "Day 1 breakfast: 1 cup cooked oatmeal and 1 banana.",
-  "profile": {
-    "age": 35,
-    "sex": "male",
-    "height_cm": 178,
-    "weight_kg": 82,
-    "activity_level": "moderate"
-  },
-  "constraints": {
-    "days": 1,
-    "meals_per_day": 1
+  "settings": {
+    "nutrition_targets": {
+      "calorie_target_kcal": 2000,
+      "protein_target_g": 98
+    },
+    "verification_constraints": {
+      "days": 1,
+      "meals_per_day": 1,
+      "allergies": [],
+      "excluded_foods": [],
+      "max_sodium_mg_per_day": 2300,
+      "max_added_sugar_g_per_meal": 10,
+      "max_saturated_fat_pct_calories": 10,
+      "calorie_tolerance_pct": 15,
+      "requires_prep_safety_notes": true
+    }
   },
   "provider": {
     "type": "gemini",
@@ -460,21 +464,27 @@ Checked-in demo or fixture case:
 }
 ```
 
-Profile-only BYOK generation:
+Targets-only BYOK generation:
 
 ```json
 {
   "input_mode": "profile_generation",
-  "profile": {
-    "age": 35,
-    "sex": "male",
-    "height_cm": 178,
-    "weight_kg": 82,
-    "activity_level": "moderate"
-  },
-  "constraints": {
-    "days": 3,
-    "meals_per_day": 3
+  "settings": {
+    "nutrition_targets": {
+      "calorie_target_kcal": 2000,
+      "protein_target_g": 98
+    },
+    "verification_constraints": {
+      "days": 3,
+      "meals_per_day": 3,
+      "allergies": ["peanuts"],
+      "excluded_foods": ["shellfish"],
+      "max_sodium_mg_per_day": 2300,
+      "max_added_sugar_g_per_meal": 10,
+      "max_saturated_fat_pct_calories": 10,
+      "calorie_tolerance_pct": 15,
+      "requires_prep_safety_notes": true
+    }
   },
   "provider": {
     "type": "openai",
@@ -490,16 +500,22 @@ Prompt-based BYOK generation:
 ```json
 {
   "input_mode": "prompt_generation",
-  "profile": {
-    "age": 35,
-    "sex": "male",
-    "height_cm": 178,
-    "weight_kg": 82,
-    "activity_level": "moderate"
-  },
-  "constraints": {
-    "days": 3,
-    "meals_per_day": 3
+  "settings": {
+    "nutrition_targets": {
+      "calorie_target_kcal": 2000,
+      "protein_target_g": 98
+    },
+    "verification_constraints": {
+      "days": 3,
+      "meals_per_day": 3,
+      "allergies": ["peanuts"],
+      "excluded_foods": ["shellfish"],
+      "max_sodium_mg_per_day": 2300,
+      "max_added_sugar_g_per_meal": 10,
+      "max_saturated_fat_pct_calories": 10,
+      "calorie_tolerance_pct": 15,
+      "requires_prep_safety_notes": true
+    }
   },
   "generation_prompt": "Create a simple 3 day high-protein meal plan.",
   "provider": {
@@ -518,6 +534,9 @@ Rules:
   verification belongs to CLI/local case files.
 - `profile_generation` and `prompt_generation` require a BYOK provider with
   `model` and `api_key`.
+- Hosted and CLI case contracts use `settings.nutrition_targets` and
+  `settings.verification_constraints`. Old `profile` and `constraints` fields
+  are rejected as unknown fields.
 - Supported `provider.type` values are `openai`, `anthropic`, `gemini`, and
   `openai_compatible`.
 - Native providers use their official endpoints. `base_url` is honored only for

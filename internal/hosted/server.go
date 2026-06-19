@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/chranama/MealCheck/internal/checker"
 )
 
 type Server struct {
@@ -171,7 +173,7 @@ func (s *Server) handleQualify(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", "text is required", nil)
 		return
 	}
-	if err := validateProfileAndConstraints(request.Profile, request.Constraints); err != nil {
+	if err := validateSettings(request.Settings); err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 		return
 	}
@@ -312,14 +314,13 @@ func requestRunInput(config Config, request CreateRunRequest) (string, PendingRu
 	}
 	pendingInput := PendingRunInput{
 		Mode:             inputMode,
-		Profile:          request.Profile,
-		Constraints:      request.Constraints,
+		Settings:         request.Settings,
 		CandidatePlan:    request.CandidatePlan,
 		GenerationPrompt: strings.TrimSpace(request.GenerationPrompt),
 		Provider:         normalizeProviderConfig(request.Provider),
 		RepairJSON:       repairJSON,
 	}
-	if err := validateProfileAndConstraints(pendingInput.Profile, pendingInput.Constraints); err != nil {
+	if err := validateSettings(pendingInput.Settings); err != nil {
 		return "", PendingRunInput{}, false, err
 	}
 
@@ -357,12 +358,29 @@ func pendingInputExpiresAt(config Config, run Run) time.Time {
 
 func hasDynamicRunFields(request CreateRunRequest) bool {
 	return request.CandidatePlan != nil ||
+		hasSettingsFields(request.Settings) ||
 		request.GenerationPrompt != "" ||
 		request.Provider.Type != "" ||
 		request.Provider.BaseURL != "" ||
 		request.Provider.Model != "" ||
 		request.Provider.APIKey != "" ||
 		request.RepairJSON != nil
+}
+
+func hasSettingsFields(settings checker.Settings) bool {
+	targets := settings.NutritionTargets
+	constraints := settings.VerificationConstraints
+	return targets.CalorieTargetKcal != 0 ||
+		targets.ProteinTargetG != 0 ||
+		constraints.Days != 0 ||
+		constraints.MealsPerDay != 0 ||
+		len(constraints.Allergies) > 0 ||
+		len(constraints.ExcludedFoods) > 0 ||
+		constraints.MaxSodiumMGPerDay != 0 ||
+		constraints.MaxAddedSugarGPerMeal != 0 ||
+		constraints.MaxSaturatedFatPctCalories != 0 ||
+		constraints.CalorieTolerancePct != 0 ||
+		constraints.RequiresPrepSafetyNotes
 }
 
 func normalizeProviderConfig(config ProviderConfig) ProviderConfig {

@@ -27,8 +27,9 @@ case loader
 
 MealCheck separates LLM roles from verification roles:
 
-- Generator LLM: optional model that creates a meal plan from profile and
-  constraints, or from profile, constraints, and a custom user prompt.
+- Generator LLM: optional model that creates a meal plan from nutrition targets
+  and verification constraints, or from those settings plus a custom user
+  prompt.
 - Repair LLM: optional bounded repair step for malformed JSON or minor schema
   mismatches. It must not invent missing quantities, units, or nutrition-critical
   details.
@@ -49,7 +50,7 @@ artifact generation.
 Input-mode handling supports the shared local case contract:
 
 - manual structured case files without an LLM
-- profile-only LLM generation
+- targets-only LLM generation
 - prompt-based LLM generation
 
 All three paths must produce the same normalized JSON meal-plan artifact before

@@ -27,15 +27,15 @@ type BundleResult struct {
 }
 
 type reportDocument struct {
-	SchemaVersion     string              `json:"schema_version"`
-	CaseID            string              `json:"case_id"`
-	Decision          string              `json:"decision"`
-	ProfileSummary    checker.Profile     `json:"profile_summary"`
-	ConstraintSummary checker.Constraints `json:"constraint_summary"`
-	GuidelinePackID   string              `json:"guideline_pack_id"`
-	GuidelinePackName string              `json:"guideline_pack_name,omitempty"`
-	Sections          []reportSection     `json:"sections"`
-	Disclaimer        string              `json:"disclaimer"`
+	SchemaVersion     string                          `json:"schema_version"`
+	CaseID            string                          `json:"case_id"`
+	Decision          string                          `json:"decision"`
+	ProfileSummary    checker.NutritionTargets        `json:"profile_summary"`
+	ConstraintSummary checker.VerificationConstraints `json:"constraint_summary"`
+	GuidelinePackID   string                          `json:"guideline_pack_id"`
+	GuidelinePackName string                          `json:"guideline_pack_name,omitempty"`
+	Sections          []reportSection                 `json:"sections"`
+	Disclaimer        string                          `json:"disclaimer"`
 }
 
 type reportSection struct {
@@ -219,8 +219,8 @@ func buildReport(c checker.Case, e checker.Evaluation) reportDocument {
 		SchemaVersion:     "0.1",
 		CaseID:            c.CaseID,
 		Decision:          e.Decision,
-		ProfileSummary:    c.Profile,
-		ConstraintSummary: c.Constraints,
+		ProfileSummary:    c.Settings.NutritionTargets,
+		ConstraintSummary: c.Settings.VerificationConstraints,
 		GuidelinePackID:   c.GuidelinePackID,
 		Sections: []reportSection{
 			{

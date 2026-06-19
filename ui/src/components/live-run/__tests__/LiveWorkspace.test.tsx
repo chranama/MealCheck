@@ -58,7 +58,7 @@ describe("LiveWorkspace", () => {
     expect(screen.queryByLabelText("Prep notes")).not.toBeInTheDocument();
   });
 
-  it("keeps profile and constraints configurable behind verification settings", async () => {
+  it("keeps targets and constraints configurable behind verification settings", async () => {
     const user = userEvent.setup();
     const onCreateRun = vi.fn(async () => undefined);
     renderWorkspace({ onCreateRun });
@@ -94,12 +94,14 @@ describe("LiveWorkspace", () => {
       "invite-1",
       expect.objectContaining({
         input_mode: "profile_generation",
-        profile: expect.objectContaining({
-          calorie_target_kcal: 2100,
-          protein_target_g: 120,
-        }),
-        constraints: expect.objectContaining({
-          days: 2,
+        settings: expect.objectContaining({
+          nutrition_targets: expect.objectContaining({
+            calorie_target_kcal: 2100,
+            protein_target_g: 120,
+          }),
+          verification_constraints: expect.objectContaining({
+            days: 2,
+          }),
         }),
       }),
     );

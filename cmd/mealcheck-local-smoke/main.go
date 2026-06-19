@@ -179,9 +179,8 @@ func (r *runner) hostedSmoke() error {
 		return err
 	}
 	byokRunID, err := r.createRun(client, httpServer.URL, hosted.CreateRunRequest{
-		InputMode:   "profile_generation",
-		Profile:     seeded.Profile,
-		Constraints: seeded.Constraints,
+		InputMode: "profile_generation",
+		Settings:  seeded.Settings,
 		Provider: hosted.ProviderConfig{
 			Type:    "openai_compatible",
 			BaseURL: "https://fake-provider.local/v1",

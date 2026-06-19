@@ -83,14 +83,13 @@ type InviteToken struct {
 }
 
 type CreateRunRequest struct {
-	CasePath         string              `json:"case_path,omitempty"`
-	InputMode        string              `json:"input_mode,omitempty"`
-	Profile          checker.Profile     `json:"profile,omitempty"`
-	Constraints      checker.Constraints `json:"constraints,omitempty"`
-	CandidatePlan    *checker.Plan       `json:"candidate_plan,omitempty"`
-	GenerationPrompt string              `json:"generation_prompt,omitempty"`
-	Provider         ProviderConfig      `json:"provider,omitempty"`
-	RepairJSON       *bool               `json:"repair_json,omitempty"`
+	CasePath         string           `json:"case_path,omitempty"`
+	InputMode        string           `json:"input_mode,omitempty"`
+	Settings         checker.Settings `json:"settings,omitempty"`
+	CandidatePlan    *checker.Plan    `json:"candidate_plan,omitempty"`
+	GenerationPrompt string           `json:"generation_prompt,omitempty"`
+	Provider         ProviderConfig   `json:"provider,omitempty"`
+	RepairJSON       *bool            `json:"repair_json,omitempty"`
 }
 
 type QualifyMealPlanResponse struct {
@@ -161,8 +160,7 @@ type RedactedProviderConfig struct {
 
 type PendingRunInput struct {
 	Mode             string
-	Profile          checker.Profile
-	Constraints      checker.Constraints
+	Settings         checker.Settings
 	CandidatePlan    *checker.Plan
 	GenerationPrompt string
 	Provider         ProviderConfig

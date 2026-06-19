@@ -19,10 +19,10 @@ This keeps the first screen focused and limits choice overload.
 ### 2. Reduce Cognitive Load With Progressive Disclosure
 
 MealCheck has more state than the user should have to parse at once: service
-access, access code, profile, constraints, meal-plan entry mode, provider
-settings, progress events, and report artifacts. Group related controls, reveal
-mode-specific controls only when needed, and hide operational detail behind
-plain-language disclosures.
+access, access code, nutrition targets, verification constraints, meal-plan
+entry mode, provider settings, progress events, and report artifacts. Group
+related controls, reveal mode-specific controls only when needed, and hide
+operational detail behind plain-language disclosures.
 
 ### 3. Make System State Impossible To Miss
 

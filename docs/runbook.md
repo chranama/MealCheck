@@ -260,16 +260,22 @@ curl -X POST http://127.0.0.1:8080/api/runs \
   -H "X-MealCheck-Invite-Token: $MEALCHECK_ACCESS_CODE" \
   -d '{
     "input_mode": "profile_generation",
-    "profile": {
-      "age": 35,
-      "sex": "male",
-      "height_cm": 178,
-      "weight_kg": 82,
-      "activity_level": "moderate"
-    },
-    "constraints": {
-      "days": 3,
-      "meals_per_day": 3
+    "settings": {
+      "nutrition_targets": {
+        "calorie_target_kcal": 2000,
+        "protein_target_g": 98
+      },
+      "verification_constraints": {
+        "days": 3,
+        "meals_per_day": 3,
+        "allergies": ["peanuts"],
+        "excluded_foods": ["shellfish"],
+        "max_sodium_mg_per_day": 2300,
+        "max_added_sugar_g_per_meal": 10,
+        "max_saturated_fat_pct_calories": 10,
+        "calorie_tolerance_pct": 15,
+        "requires_prep_safety_notes": true
+      }
     },
     "provider": {
       "type": "openai",
@@ -783,8 +789,8 @@ rsync -a /Users/chranama-server/MealCheck-data/artifacts/ \
 ```
 
 Retention note: live artifacts are intentionally short-lived. Backups should
-not become indefinite retention for user profile data unless that policy is
-explicitly accepted later.
+not become indefinite retention for user settings or meal-plan data unless that
+policy is explicitly accepted later.
 
 ## Public Smoke-Test Checklist
 

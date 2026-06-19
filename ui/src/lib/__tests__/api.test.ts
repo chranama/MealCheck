@@ -7,7 +7,7 @@ import {
   qualifyMealPlan,
   requestJSON,
 } from "../api";
-import { DEFAULT_CONSTRAINTS, DEFAULT_PROFILE } from "../../constants";
+import { DEFAULT_SETTINGS } from "../../constants";
 import type { RunPayload } from "../../types";
 
 describe("api", () => {
@@ -29,14 +29,14 @@ describe("api", () => {
   it("formats backend error envelopes", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(
       JSON.stringify({
-        error: { code: "invalid_input", message: "Bad profile" },
+        error: { code: "invalid_input", message: "Bad settings" },
         request_id: "req-123",
       }),
       { status: 422 },
     )));
 
     await expect(requestJSON("http://api", "/api/runs")).rejects.toThrow(
-      "HTTP 422: invalid_input - Bad profile (request_id=req-123)",
+      "HTTP 422: invalid_input - Bad settings (request_id=req-123)",
     );
   });
 
@@ -67,8 +67,7 @@ describe("api", () => {
 
     const payload: RunPayload = {
       input_mode: "profile_generation",
-      profile: DEFAULT_PROFILE,
-      constraints: DEFAULT_CONSTRAINTS,
+      settings: DEFAULT_SETTINGS,
       provider: {
         type: "openai",
         base_url: "",
@@ -110,8 +109,7 @@ describe("api", () => {
 
     await expect(qualifyMealPlan("http://api", "invite-1", {
       text: "Day 1 breakfast: 1 cup oatmeal.",
-      profile: DEFAULT_PROFILE,
-      constraints: DEFAULT_CONSTRAINTS,
+      settings: DEFAULT_SETTINGS,
     })).resolves.toMatchObject({
       qualification: {
         status: "eligible_for_verification",

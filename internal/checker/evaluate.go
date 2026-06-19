@@ -111,12 +111,13 @@ func checkSchemaValid() CheckResult {
 
 func checkRequiredMeals(c Case, plan Plan) CheckResult {
 	var evidence []map[string]any
-	if len(plan.Days) != c.Constraints.Days {
-		evidence = append(evidence, map[string]any{"expected_days": c.Constraints.Days, "actual_days": len(plan.Days)})
+	constraints := c.Settings.VerificationConstraints
+	if len(plan.Days) != constraints.Days {
+		evidence = append(evidence, map[string]any{"expected_days": constraints.Days, "actual_days": len(plan.Days)})
 	}
 	for _, day := range plan.Days {
-		if len(day.Meals) != c.Constraints.MealsPerDay {
-			evidence = append(evidence, map[string]any{"day": day.Day, "expected_meals": c.Constraints.MealsPerDay, "actual_meals": len(day.Meals)})
+		if len(day.Meals) != constraints.MealsPerDay {
+			evidence = append(evidence, map[string]any{"day": day.Day, "expected_meals": constraints.MealsPerDay, "actual_meals": len(day.Meals)})
 		}
 	}
 	if len(evidence) > 0 {
@@ -148,7 +149,7 @@ func checkQuantitiesResolvable(unresolved []UnresolvedItem) CheckResult {
 }
 
 func checkAllergensAbsent(c Case, items []ResolvedItem) CheckResult {
-	allergies := normalizedSet(c.Constraints.Allergies)
+	allergies := normalizedSet(c.Settings.VerificationConstraints.Allergies)
 	var evidence []map[string]any
 	var days []int
 	var meals []string
@@ -168,7 +169,7 @@ func checkAllergensAbsent(c Case, items []ResolvedItem) CheckResult {
 }
 
 func checkExcludedFoodsAbsent(c Case, items []ResolvedItem) CheckResult {
-	excluded := normalizedSet(c.Constraints.ExcludedFoods)
+	excluded := normalizedSet(c.Settings.VerificationConstraints.ExcludedFoods)
 	var evidence []map[string]any
 	for _, item := range items {
 		if excluded[normalizeName(item.Food)] {
@@ -182,8 +183,8 @@ func checkExcludedFoodsAbsent(c Case, items []ResolvedItem) CheckResult {
 }
 
 func checkCaloriesWithinTolerance(c Case, totals []DailyTotal) CheckResult {
-	target := float64(c.Profile.CalorieTargetKcal)
-	tolerance := c.Constraints.CalorieTolerancePct
+	target := float64(c.Settings.NutritionTargets.CalorieTargetKcal)
+	tolerance := c.Settings.VerificationConstraints.CalorieTolerancePct
 	if target <= 0 || tolerance <= 0 {
 		return CheckResult{CheckID: "calories_within_tolerance", Status: "not_applicable", Severity: "not_applicable", Message: "No calorie target and tolerance were configured."}
 	}
@@ -202,7 +203,7 @@ func checkCaloriesWithinTolerance(c Case, totals []DailyTotal) CheckResult {
 }
 
 func checkSodiumUnderLimit(c Case, totals []DailyTotal) CheckResult {
-	limit := float64(c.Constraints.MaxSodiumMGPerDay)
+	limit := float64(c.Settings.VerificationConstraints.MaxSodiumMGPerDay)
 	if limit <= 0 {
 		return CheckResult{CheckID: "sodium_under_limit", Status: "not_applicable", Severity: "not_applicable", Message: "No sodium limit was configured."}
 	}
@@ -221,7 +222,7 @@ func checkSodiumUnderLimit(c Case, totals []DailyTotal) CheckResult {
 }
 
 func checkAddedSugarUnderLimit(c Case, totals []MealTotal) CheckResult {
-	limit := c.Constraints.MaxAddedSugarGPerMeal
+	limit := c.Settings.VerificationConstraints.MaxAddedSugarGPerMeal
 	if limit <= 0 {
 		return CheckResult{CheckID: "added_sugar_under_limit", Status: "not_applicable", Severity: "not_applicable", Message: "No added-sugar meal limit was configured."}
 	}
@@ -242,7 +243,7 @@ func checkAddedSugarUnderLimit(c Case, totals []MealTotal) CheckResult {
 }
 
 func checkSaturatedFatUnderLimit(c Case, totals []DailyTotal) CheckResult {
-	limit := c.Constraints.MaxSaturatedFatPctCalories
+	limit := c.Settings.VerificationConstraints.MaxSaturatedFatPctCalories
 	if limit <= 0 {
 		return CheckResult{CheckID: "saturated_fat_under_limit", Status: "not_applicable", Severity: "not_applicable", Message: "No saturated-fat limit was configured."}
 	}
@@ -259,10 +260,7 @@ func checkSaturatedFatUnderLimit(c Case, totals []DailyTotal) CheckResult {
 }
 
 func checkProteinMinimumMet(c Case, totals []DailyTotal) CheckResult {
-	limit := float64(c.Profile.ProteinTargetG)
-	if limit <= 0 {
-		limit = c.Profile.WeightKG * 1.2
-	}
+	limit := float64(c.Settings.NutritionTargets.ProteinTargetG)
 	if limit <= 0 {
 		return CheckResult{CheckID: "protein_minimum_met", Status: "not_applicable", Severity: "not_applicable", Message: "No protein minimum could be derived."}
 	}
@@ -292,7 +290,7 @@ func checkFoodGroupCoverage(totals []DailyTotal) CheckResult {
 }
 
 func checkPrepSafety(c Case, plan Plan) CheckResult {
-	if !c.Constraints.RequiresPrepSafetyNotes {
+	if !c.Settings.VerificationConstraints.RequiresPrepSafetyNotes {
 		return CheckResult{CheckID: "prep_safety_mentions_present", Status: "not_applicable", Severity: "not_applicable", Message: "Prep-safety notes were not required."}
 	}
 	joined := strings.ToLower(strings.Join(plan.PrepNotes, " "))

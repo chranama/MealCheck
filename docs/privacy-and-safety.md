@@ -2,7 +2,8 @@
 
 This document defines MealCheck's MVP privacy and safety policy.
 
-MealCheck handles health-adjacent profile data. It should therefore minimize
+MealCheck handles health-adjacent meal-plan and settings data. It should
+therefore minimize
 collection, avoid unnecessary retention, and be explicit about when data leaves
 the MealCheck server.
 
@@ -37,8 +38,6 @@ MealCheck may receive:
 - hosted nutrition targets: calorie target and protein target
 - verification constraints: days, meals per day, allergies, excluded foods,
   nutrient limits, calorie tolerance, and prep-safety requirement
-- local/API compatibility profile fields: age, sex, height, weight, activity
-  level, and goal when supplied through structured case files or API payloads
 - meal-plan data: foods, quantities, units, prep notes, and shopping lists
 - prompts: custom user prompts for prompt-based generation
 - provider credentials: model API keys supplied for BYOK runs
@@ -70,22 +69,22 @@ Default rules:
 - Do not require accounts for seeded public demos.
 - Do not require a name or email for manual local runs.
 - Do not store provider API keys.
-- Do not store profile fields in separate database columns unless needed for
+- Do not store settings fields in separate database columns unless needed for
   queueing, filtering, or deletion.
-- Prefer keeping profile, constraints, and plan details inside the run artifact
+- Prefer keeping settings and plan details inside the run artifact
   bundle rather than duplicating them in operational tables.
 - Redact secrets from every persisted config and artifact.
 
 ## Third-Party Disclosure
 
-Local structured case-file verification can run without sending profile or plan
-data to an LLM provider.
+Local structured case-file verification can run without sending settings or
+plan data to an LLM provider.
 
 BYOK LLM modes send data to the user's selected provider:
 
 - qualification normalization sends pasted candidate meal-plan text, nutrition
   targets, and verification constraints when a provider is needed
-- profile-only generation sends nutrition targets and verification constraints
+- targets-only generation sends nutrition targets and verification constraints
 - prompt-based generation sends nutrition targets, verification constraints,
   and the custom prompt
 - bounded repair sends invalid model output, schema errors, and enough context
@@ -97,8 +96,8 @@ OpenAI-compatible endpoints.
 The UI must disclose this before a BYOK qualification or generation request
 starts.
 
-MealCheck should not send user profile, prompt, or meal-plan data to analytics,
-advertising, or tracking services.
+MealCheck should not send user settings, prompt, or meal-plan data to
+analytics, advertising, or tracking services.
 
 ## Secrets
 
@@ -155,7 +154,7 @@ Application logs should include:
 Application logs should not include:
 
 - provider API keys
-- profile payloads
+- settings payloads
 - custom prompts
 - meal-plan contents
 - normalized-plan JSON
@@ -194,8 +193,8 @@ Default visibility:
 Shared reports should not expose provider keys, admin metadata, internal file
 paths, database IDs beyond the public run ID, or unredacted configs.
 
-Before sharing, the UI should remind the user that profile, constraints, foods,
-and prompts may be visible in the report.
+Before sharing, the UI should remind the user that nutrition targets,
+verification constraints, foods, and prompts may be visible in the report.
 
 ## Access Control
 

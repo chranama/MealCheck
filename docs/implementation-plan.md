@@ -1985,3 +1985,66 @@ Acceptance:
   constraints, but omit unused demographic/profile fields and unused switches
 - frontend typecheck, unit tests, backend tests, mocked e2e tests, local e2e
   tests, and build pass
+
+## Milestone 21: Settings Contract Simplification Across API And CLI
+
+Status: Implemented on 2026-06-19 for hosted API requests, CLI case files,
+frontend payloads, checked-in examples, and current contract documentation.
+
+Purpose:
+
+Milestone 20 minimized the hosted UI and provider prompt surface, but the API
+and CLI still retained the older top-level `profile` and `constraints`
+contract. That compatibility shape made the product story harder to explain and
+kept unused demographic fields in the public contract. The MVP should expose one
+settings contract everywhere: nutrition targets plus verification constraints.
+
+Deliver:
+
+- replace hosted `profile` and `constraints` request fields with one
+  `settings` object
+- replace CLI case-file `profile` and `constraints` fields with the same
+  `settings` object
+- reject old profile/constraints case files and unknown hosted request fields
+- update frontend payload construction, API client tests, and browser tests to
+  submit `settings`
+- preserve report compatibility while sourcing report summaries from reduced
+  settings
+- update examples, API docs, CLI docs, contract docs, runbook, product/privacy
+  docs, decision log, and implementation plan
+
+Implemented:
+
+1. Replaced `checker.Case.Profile` and `checker.Case.Constraints` with
+   `checker.Case.Settings`.
+2. Added `NutritionTargets` and `VerificationConstraints` structs under the
+   shared `Settings` contract.
+3. Updated deterministic checks, BYOK generation, repair, qualification, and
+   runtime case writing to read from `settings`.
+4. Added CLI case-file settings validation and regression coverage for rejecting
+   old `profile`/`constraints` keys.
+5. Updated hosted `POST /api/runs` and `POST /api/qualify` request types to
+   accept `settings` and reject missing or invalid settings.
+6. Updated the frontend state, normalization helpers, payload builders, and
+   tests to send `settings.nutrition_targets` and
+   `settings.verification_constraints`.
+7. Updated checked-in example cases and local smoke request templates to the
+   new contract.
+8. Kept existing report artifact keys for compatibility, but populated them from
+   reduced settings rather than removed profile/constraint structs.
+9. Updated current API, contract, CLI, runbook, product, privacy, architecture,
+   user-story, and web-design docs.
+
+Acceptance:
+
+- hosted qualification and run creation use `settings`, not top-level
+  `profile` or `constraints`
+- CLI case files use `settings`, and old `profile`/`constraints` fields fail as
+  unknown fields
+- missing CLI case settings fail with actionable validation errors before plan
+  loading
+- frontend request payload tests assert no top-level `profile` or `constraints`
+  fields are emitted
+- examples and docs show the same reduced settings contract
+- backend tests, frontend typecheck, unit tests, mocked e2e tests, local e2e
+  tests, and build pass

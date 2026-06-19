@@ -6,6 +6,40 @@ public expectations.
 Use this log instead of separate ADR and RFC files until a decision becomes too
 large to keep readable here.
 
+## 2026-06-19: API And CLI Use One Reduced Settings Contract
+
+Status: Accepted
+
+Decision:
+
+Hosted API requests and CLI case files should use one explicit `settings`
+object containing `nutrition_targets` and `verification_constraints`. The
+public contract should no longer accept top-level `profile` and `constraints`
+objects, nor the unused demographic/profile fields removed from the hosted UI.
+The internal `profile_generation` mode string can remain as a compatibility
+mode name for now, but visible product language should describe it as
+targets-only generation.
+
+Reason:
+
+Milestone 20 established that MealCheck should ask only for fields that affect
+verification or provider meal-plan generation. Keeping a broader API/CLI
+contract after removing those fields from the UI would create hidden semantics,
+make documentation harder to trust, and encourage clients to send data that the
+verifier cannot use. A single settings contract makes the hosted demo, local CLI,
+future agent-tool use, and BYOK provider prompts easier to reason about.
+
+Consequences:
+
+- New hosted requests must send `settings.nutrition_targets` and
+  `settings.verification_constraints`.
+- CLI case files must use the same `settings` object.
+- Old top-level `profile` and `constraints` fields are rejected.
+- Report artifacts keep existing summary keys for compatibility, but those
+  summaries are populated only from reduced settings.
+- Future settings should be added only when deterministic verification,
+  generation, qualification, or provider prompt construction actually uses them.
+
 ## 2026-06-19: Hosted Settings Ask Only For Verifier-Used Fields
 
 Status: Accepted

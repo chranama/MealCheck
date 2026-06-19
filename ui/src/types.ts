@@ -183,8 +183,7 @@ export type CreateRunResponse = {
 
 export type QualifyMealPlanPayload = {
   text: string;
-  profile: Profile;
-  constraints: Constraints;
+  settings: Settings;
   provider?: ProviderConfig;
 };
 
@@ -202,34 +201,36 @@ export type QualifyMealPlanResponse = {
   qualification: MealPlanQualificationResult;
 };
 
-export type Profile = {
-  age: number;
-  sex: "male" | "female" | string;
-  height_cm: number;
-  weight_kg: number;
-  activity_level: string;
-  goal: string;
+export type Settings = {
+  nutrition_targets: NutritionTargets;
+  verification_constraints: VerificationConstraints;
+};
+
+export type NutritionTargets = {
   calorie_target_kcal: number;
   protein_target_g: number;
 };
 
-export type Constraints = {
+export type VerificationConstraints = {
   days: number;
   meals_per_day: number;
   allergies: string[];
   excluded_foods: string[];
-  diet_pattern: string;
   max_sodium_mg_per_day: number;
   max_added_sugar_g_per_meal: number;
   max_saturated_fat_pct_calories: number;
   calorie_tolerance_pct: number;
-  requires_shopping_list: boolean;
   requires_prep_safety_notes: boolean;
 };
 
-export type ConstraintsDraft = Omit<Constraints, "allergies" | "excluded_foods"> & {
+export type VerificationConstraintsDraft = Omit<VerificationConstraints, "allergies" | "excluded_foods"> & {
   allergies: string;
   excluded_foods: string;
+};
+
+export type SettingsDraft = {
+  nutrition_targets: NutritionTargets;
+  verification_constraints: VerificationConstraintsDraft;
 };
 
 export type ProviderType = "openai" | "anthropic" | "gemini" | "openai_compatible";
@@ -274,15 +275,13 @@ export type MealPlan = {
 export type RunPayload =
   | {
       input_mode: "profile_generation";
-      profile: Profile;
-      constraints: Constraints;
+      settings: Settings;
       provider: ProviderConfig;
       repair_json: boolean;
     }
   | {
       input_mode: "prompt_generation";
-      profile: Profile;
-      constraints: Constraints;
+      settings: Settings;
       provider: ProviderConfig;
       repair_json: boolean;
       generation_prompt: string;

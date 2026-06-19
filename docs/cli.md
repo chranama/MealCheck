@@ -226,8 +226,10 @@ Important files:
 
 ## Case Input
 
-`validate` and `compare` accept a case file with profile, constraints,
+`validate` and `compare` accept a case file with `settings`,
 candidate meal plan, nutrient catalog reference, and guideline-pack reference.
+`settings` contains only `nutrition_targets` and `verification_constraints`;
+old top-level `profile` and `constraints` fields are rejected as unknown fields.
 
 The seeded proof case is:
 

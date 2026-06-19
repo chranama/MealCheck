@@ -4,8 +4,7 @@ type Case struct {
 	SchemaVersion       string       `json:"schema_version"`
 	CaseID              string       `json:"case_id"`
 	InputMode           string       `json:"input_mode"`
-	Profile             Profile      `json:"profile"`
-	Constraints         Constraints  `json:"constraints"`
+	Settings            Settings     `json:"settings"`
 	GuidelinePackID     string       `json:"guideline_pack_id"`
 	GuidelinePackPath   string       `json:"guideline_pack_path"`
 	NutrientCatalogID   string       `json:"nutrient_catalog_id"`
@@ -17,28 +16,25 @@ type Case struct {
 	Tags                []string     `json:"tags"`
 }
 
-type Profile struct {
-	Age               int     `json:"age"`
-	Sex               string  `json:"sex"`
-	HeightCM          float64 `json:"height_cm"`
-	WeightKG          float64 `json:"weight_kg"`
-	ActivityLevel     string  `json:"activity_level"`
-	Goal              string  `json:"goal"`
-	CalorieTargetKcal int     `json:"calorie_target_kcal"`
-	ProteinTargetG    int     `json:"protein_target_g"`
+type Settings struct {
+	NutritionTargets        NutritionTargets        `json:"nutrition_targets"`
+	VerificationConstraints VerificationConstraints `json:"verification_constraints"`
 }
 
-type Constraints struct {
+type NutritionTargets struct {
+	CalorieTargetKcal int `json:"calorie_target_kcal"`
+	ProteinTargetG    int `json:"protein_target_g"`
+}
+
+type VerificationConstraints struct {
 	Days                       int      `json:"days"`
 	MealsPerDay                int      `json:"meals_per_day"`
 	Allergies                  []string `json:"allergies"`
 	ExcludedFoods              []string `json:"excluded_foods"`
-	DietPattern                string   `json:"diet_pattern"`
 	MaxSodiumMGPerDay          int      `json:"max_sodium_mg_per_day"`
 	MaxAddedSugarGPerMeal      float64  `json:"max_added_sugar_g_per_meal"`
 	MaxSaturatedFatPctCalories float64  `json:"max_saturated_fat_pct_calories"`
 	CalorieTolerancePct        float64  `json:"calorie_tolerance_pct"`
-	RequiresShoppingList       bool     `json:"requires_shopping_list"`
 	RequiresPrepSafetyNotes    bool     `json:"requires_prep_safety_notes"`
 }
 

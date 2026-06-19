@@ -1,41 +1,36 @@
 import type {
-  Constraints,
-  ConstraintsDraft,
   GenerationMode,
   ManualItem,
   MealPlan,
-  Profile,
   ProviderConfig,
   QualifyMealPlanPayload,
   RunPayload,
+  Settings,
+  SettingsDraft,
+  VerificationConstraints,
 } from "../types";
 import { csvValue } from "./format";
 
-export function normalizeProfile(profile: Profile): Profile {
+export function normalizeSettings(settings: SettingsDraft): Settings {
   return {
-    age: Math.round(Number(profile.age)),
-    sex: String(profile.sex).trim(),
-    height_cm: Number(profile.height_cm),
-    weight_kg: Number(profile.weight_kg),
-    activity_level: String(profile.activity_level).trim(),
-    goal: String(profile.goal).trim(),
-    calorie_target_kcal: Math.round(Number(profile.calorie_target_kcal)),
-    protein_target_g: Math.round(Number(profile.protein_target_g)),
+    nutrition_targets: {
+      calorie_target_kcal: Math.round(Number(settings.nutrition_targets.calorie_target_kcal)),
+      protein_target_g: Math.round(Number(settings.nutrition_targets.protein_target_g)),
+    },
+    verification_constraints: normalizeVerificationConstraints(settings.verification_constraints),
   };
 }
 
-export function normalizeConstraints(constraints: ConstraintsDraft): Constraints {
+function normalizeVerificationConstraints(constraints: SettingsDraft["verification_constraints"]): VerificationConstraints {
   return {
     days: Math.round(Number(constraints.days)),
     meals_per_day: Math.round(Number(constraints.meals_per_day)),
     allergies: csvValue(constraints.allergies),
     excluded_foods: csvValue(constraints.excluded_foods),
-    diet_pattern: String(constraints.diet_pattern).trim(),
     max_sodium_mg_per_day: Math.round(Number(constraints.max_sodium_mg_per_day)),
     max_added_sugar_g_per_meal: Number(constraints.max_added_sugar_g_per_meal),
     max_saturated_fat_pct_calories: Number(constraints.max_saturated_fat_pct_calories),
     calorie_tolerance_pct: Number(constraints.calorie_tolerance_pct),
-    requires_shopping_list: Boolean(constraints.requires_shopping_list),
     requires_prep_safety_notes: Boolean(constraints.requires_prep_safety_notes),
   };
 }
@@ -113,8 +108,7 @@ function requireProviderConfig(provider: ProviderConfig): ProviderConfig {
 
 export function buildQualificationPayload(args: {
   text: string;
-  profile: Profile;
-  constraints: ConstraintsDraft;
+  settings: SettingsDraft;
   provider: ProviderConfig;
 }): QualifyMealPlanPayload {
   const text = args.text.trim();
@@ -124,8 +118,7 @@ export function buildQualificationPayload(args: {
 
   const payload: QualifyMealPlanPayload = {
     text,
-    profile: normalizeProfile(args.profile),
-    constraints: normalizeConstraints(args.constraints),
+    settings: normalizeSettings(args.settings),
   };
   if (args.provider.model.trim() || args.provider.api_key.trim()) {
     payload.provider = requireProviderConfig(args.provider);
@@ -135,14 +128,12 @@ export function buildQualificationPayload(args: {
 
 export function buildRunPayload(args: {
   mode: GenerationMode;
-  profile: Profile;
-  constraints: ConstraintsDraft;
+  settings: SettingsDraft;
   provider: ProviderConfig;
   generationPrompt: string;
   repairJSON: boolean;
 }): RunPayload {
-  const profile = normalizeProfile(args.profile);
-  const constraints = normalizeConstraints(args.constraints);
+  const settings = normalizeSettings(args.settings);
   const provider = requireProviderConfig(args.provider);
 
   if (args.mode === "prompt_generation") {
@@ -151,8 +142,7 @@ export function buildRunPayload(args: {
     }
     return {
       input_mode: args.mode,
-      profile,
-      constraints,
+      settings,
       provider,
       repair_json: args.repairJSON,
       generation_prompt: args.generationPrompt.trim(),
@@ -161,8 +151,7 @@ export function buildRunPayload(args: {
 
   return {
     input_mode: args.mode,
-    profile,
-    constraints,
+    settings,
     provider,
     repair_json: args.repairJSON,
   };
