@@ -19,10 +19,11 @@ This keeps the first screen focused and limits choice overload.
 ### 2. Reduce Cognitive Load With Progressive Disclosure
 
 MealCheck has more state than the user should have to parse at once: service
-access, access code, nutrition targets, verification constraints, meal-plan
-entry mode, provider settings, progress events, and report artifacts. Group
-related controls, reveal mode-specific controls only when needed, and hide
-operational detail behind plain-language disclosures.
+access, optional access code for private deployments, nutrition targets,
+verification constraints, meal-plan entry mode, provider settings, progress
+events, and report artifacts. Group related controls, reveal mode-specific
+controls only when needed, and hide operational detail behind plain-language
+disclosures.
 
 ### 3. Make System State Impossible To Miss
 
@@ -201,14 +202,16 @@ form can continue below it.
 
 ### Use Progressive Disclosure For Advanced Inputs
 
-The default path should expose only the controls most reviewers need to start a
-run:
+The default public path should expose only the controls most reviewers need to
+start a run:
 
-- access code
 - meal-plan text
 - model provider settings
 - optional verification settings for nutrition targets, day and meal count,
   allergies, excluded foods, nutrient thresholds, and prep-safety requirement
+
+Access code entry should appear only when the backend reports
+`invite_required`.
 
 Do not expose demographic profile fields or unused switches until the verifier
 or provider prompt has a concrete use for them.
@@ -223,6 +226,8 @@ or artifact lists in the default live-check viewport. Use product language:
 - Delete Report
 - Results
 - Activity details
+
+Use "Access code" only in invite-required deployments.
 
 Activity details can disclose event messages after a report has started, but the
 default state should stay focused on the next user action.

@@ -226,8 +226,8 @@ curl -X POST http://127.0.0.1:8080/api/runs \
 The queued seeded run is expected to complete with a `block` decision because
 the fixture intentionally contains blocking findings.
 
-Invite-gated BYOK generation uses the same run endpoint. Create a per-user
-access code before sharing the live-check path:
+Public BYOK generation uses the same run endpoint. For private deployments,
+switch to invite-required mode and create per-user access codes:
 
 ```bash
 /Users/chranama-server/MealCheck/bin/mealcheck invite create \
@@ -251,13 +251,12 @@ Revoke one access code by its public ID:
 /Users/chranama-server/MealCheck/bin/mealcheck invite revoke <INVITE_ID>
 ```
 
-Use the access code in the header below. Do not commit real provider keys or
-access codes:
+In public BYOK mode, omit the access-code header. Do not commit real provider
+keys or access codes:
 
 ```bash
 curl -X POST http://127.0.0.1:8080/api/runs \
   -H 'Content-Type: application/json' \
-  -H "X-MealCheck-Invite-Token: $MEALCHECK_ACCESS_CODE" \
   -d '{
     "input_mode": "profile_generation",
     "settings": {
@@ -802,8 +801,8 @@ place.
   access.
 - Confirm the frontend shows backend health when
   `https://api.mealcheck.dev/api/health` is online.
-- Create an invite-gated BYOK qualification request through the UI or API.
-- Create an invite-gated BYOK generation run through the UI or API.
+- Create a public BYOK qualification request through the UI or API.
+- Create a public BYOK generation run through the UI or API.
 - Observe status/events until `completed` or `failed`.
 - Fetch `GET /api/runs/<RUN_ID>/report`.
 - Fetch `GET /api/runs/<RUN_ID>/artifacts`.
@@ -919,14 +918,15 @@ Vite frontend on `127.0.0.1:4173`. The backend uses:
 
 ```bash
 MEALCHECK_STORE=memory
+MEALCHECK_ACCESS_MODE=public_byok
 MEALCHECK_INVITE_TOKEN=invite-1
 MEALCHECK_ALLOWED_ORIGIN=http://127.0.0.1:4173
 MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH=../examples/seeded-3-day-peanut-allergy/plans/candidate.json
 ```
 
-The local browser suite uses the legacy shared-token compatibility path. The
-production deployment should set `MEALCHECK_INVITE_REQUIRED=true` and create
-per-user access codes with `mealcheck invite create`.
+The local browser suite uses public BYOK mode. Private deployments can set
+`MEALCHECK_ACCESS_MODE=invite_required` and create per-user access codes with
+`mealcheck invite create`.
 
 `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` is for local smoke testing only. Do not
 set it in the deployed MacBook service.
@@ -1030,9 +1030,9 @@ Required web smoke tests:
 - open the production frontend URL from outside the home network
 - inspect the seeded report without logging in or using a provider key
 - verify the frontend shows backend health when the API is online
-- submit one invite-gated BYOK qualification request through the web UI or
+- submit one public BYOK qualification request through the web UI or
   documented API command
-- create one invite-gated BYOK generation run through the web UI or documented
+- create one public BYOK generation run through the web UI or documented
   API command
 - observe run events through completion or failure
 - fetch the report and artifact list for the live run

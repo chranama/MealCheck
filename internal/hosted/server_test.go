@@ -250,6 +250,7 @@ func TestHostedManualStructuredRunIsRejected(t *testing.T) {
 func TestQualifyEndpointRequiresInviteAndReturnsStructuredQualification(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
+	config.AccessMode = AccessModeInviteRequired
 	config.InviteToken = "invite-secret"
 	store := NewMemoryStore()
 	server := NewServer(config, store)
@@ -1248,9 +1249,164 @@ func TestHostedQueueLimit(t *testing.T) {
 	}
 }
 
+func TestHealthReportsPublicAccessPolicy(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.PublicOpenAICompatible = false
+	config.PublicDailyRunLimit = 7
+	server := NewServer(config, NewMemoryStore())
+
+	resp := doRequest(t, server, http.MethodGet, "/api/health", "")
+	if resp.Code != http.StatusOK {
+		t.Fatalf("health status = %d, want 200 body=%s", resp.Code, resp.Body.String())
+	}
+	var health map[string]any
+	decodeJSON(t, resp.Body.Bytes(), &health)
+	if health["access_mode"] != AccessModePublicBYOK {
+		t.Fatalf("access_mode = %v, want %q", health["access_mode"], AccessModePublicBYOK)
+	}
+	if health["public_openai_compatible"] != false {
+		t.Fatalf("public_openai_compatible = %v, want false", health["public_openai_compatible"])
+	}
+	policy, ok := health["policy"].(map[string]any)
+	if !ok {
+		t.Fatalf("policy missing or wrong type: %#v", health["policy"])
+	}
+	if policy["public_daily_run_limit"] != float64(7) {
+		t.Fatalf("public_daily_run_limit = %v, want 7", policy["public_daily_run_limit"])
+	}
+}
+
+func TestPublicRequestRateLimit(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.PublicRequestLimit = 1
+	config.PublicRequestWindow = time.Hour
+	server := NewServer(config, NewMemoryStore())
+	seeded := seededCase(t, root)
+	body := marshalJSON(t, MealPlanQualificationRequest{
+		Text:     testMealPlanJSON(false),
+		Settings: seeded.Settings,
+	})
+
+	first := doRequest(t, server, http.MethodPost, "/api/qualify", body)
+	if first.Code != http.StatusOK {
+		t.Fatalf("first qualify status = %d, want 200 body=%s", first.Code, first.Body.String())
+	}
+	second := doRequest(t, server, http.MethodPost, "/api/qualify", body)
+	if second.Code != http.StatusTooManyRequests {
+		t.Fatalf("second qualify status = %d, want 429 body=%s", second.Code, second.Body.String())
+	}
+	if got := second.Header().Get("Retry-After"); got == "" {
+		t.Fatal("rate-limited response missing Retry-After")
+	}
+}
+
+func TestPublicDailyRunLimit(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.PublicDailyRunLimit = 1
+	store := NewMemoryStore()
+	server := NewServer(config, store)
+
+	body := `{"case_path":"examples/seeded-3-day-peanut-allergy/case.json"}`
+	first := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if first.Code != http.StatusAccepted {
+		t.Fatalf("first create status = %d, want 202 body=%s", first.Code, first.Body.String())
+	}
+	second := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if second.Code != http.StatusTooManyRequests {
+		t.Fatalf("second create status = %d, want 429 body=%s", second.Code, second.Body.String())
+	}
+	if !strings.Contains(second.Body.String(), "daily public run limit") {
+		t.Fatalf("daily limit body missing reason: %s", second.Body.String())
+	}
+}
+
+func TestPublicModeRejectsOpenAICompatibleByDefault(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.PublicOpenAICompatible = false
+	server := NewServer(config, NewMemoryStore())
+	seeded := seededCase(t, root)
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode: "profile_generation",
+		Settings:  seeded.Settings,
+		Provider: ProviderConfig{
+			Type:    ProviderTypeOpenAICompatible,
+			BaseURL: "https://router.example/v1",
+			Model:   "custom",
+			APIKey:  "secret",
+		},
+	})
+	resp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("create status = %d, want 400 body=%s", resp.Code, resp.Body.String())
+	}
+	if !strings.Contains(resp.Body.String(), "openai_compatible providers are disabled") {
+		t.Fatalf("body missing openai_compatible policy message: %s", resp.Body.String())
+	}
+}
+
+func TestPublicModeRejectsLocalOpenAICompatibleBaseURLWhenEnabled(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.PublicOpenAICompatible = true
+	server := NewServer(config, NewMemoryStore())
+	seeded := seededCase(t, root)
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode: "profile_generation",
+		Settings:  seeded.Settings,
+		Provider: ProviderConfig{
+			Type:    ProviderTypeOpenAICompatible,
+			BaseURL: "https://127.0.0.1/v1",
+			Model:   "custom",
+			APIKey:  "secret",
+		},
+	})
+	resp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("create status = %d, want 400 body=%s", resp.Code, resp.Body.String())
+	}
+	if !strings.Contains(resp.Body.String(), "private or local IP") {
+		t.Fatalf("body missing local IP policy message: %s", resp.Body.String())
+	}
+}
+
+func TestInviteModeAllowsOpenAICompatibleWhenPublicCustomEndpointsDisabled(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.AccessMode = AccessModeInviteRequired
+	config.InviteToken = "invite-secret"
+	config.PublicOpenAICompatible = false
+	server := NewServer(config, NewMemoryStore())
+	seeded := seededCase(t, root)
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode: "profile_generation",
+		Settings:  seeded.Settings,
+		Provider: ProviderConfig{
+			Type:   ProviderTypeOpenAICompatible,
+			Model:  "fake-model",
+			APIKey: "secret",
+		},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/runs", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-MealCheck-Invite-Token", "invite-secret")
+	recorder := httptest.NewRecorder()
+	server.Handler().ServeHTTP(recorder, req)
+	if recorder.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d, want 202 body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
 func TestInviteTokenGate(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
+	config.AccessMode = AccessModeInviteRequired
 	config.InviteToken = "invite-secret"
 	server := NewServer(config, NewMemoryStore())
 
@@ -1273,6 +1429,7 @@ func TestInviteTokenGate(t *testing.T) {
 func TestPerUserInviteTokenGate(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
+	config.AccessMode = AccessModeInviteRequired
 	config.InviteRequired = true
 	store := NewMemoryStore()
 	maxRuns := 1
@@ -1565,21 +1722,28 @@ func testConfig(t *testing.T, root string) Config {
 	t.Helper()
 	dataDir := t.TempDir()
 	return Config{
-		Root:             root,
-		DataDir:          dataDir,
-		ArtifactDir:      filepath.Join(dataDir, "artifacts"),
-		Addr:             "127.0.0.1:0",
-		StoreKind:        "memory",
-		QueueSize:        3,
-		MaxCasesPerRun:   20,
-		MaxUploadBytes:   1_000_000,
-		RunTimeout:       10 * time.Minute,
-		PendingInputTTL:  30 * time.Minute,
-		Retention:        7 * 24 * time.Hour,
-		WorkerPoll:       time.Millisecond,
-		CleanupInterval:  time.Hour,
-		DemoIndexPath:    filepath.Join(root, "ui", "public", "demo-runs", "index.json"),
-		DemoArtifactRoot: filepath.Join(root, "ui", "public"),
+		Root:                     root,
+		DataDir:                  dataDir,
+		ArtifactDir:              filepath.Join(dataDir, "artifacts"),
+		Addr:                     "127.0.0.1:0",
+		StoreKind:                "memory",
+		AccessMode:               AccessModePublicBYOK,
+		PublicOpenAICompatible:   true,
+		PublicRequestLimit:       60,
+		PublicRequestWindow:      time.Minute,
+		PublicDailyRunLimit:      20,
+		MaxCandidateTextChars:    20_000,
+		MaxGenerationPromptChars: 4_000,
+		QueueSize:                3,
+		MaxCasesPerRun:           20,
+		MaxUploadBytes:           1_000_000,
+		RunTimeout:               10 * time.Minute,
+		PendingInputTTL:          30 * time.Minute,
+		Retention:                7 * 24 * time.Hour,
+		WorkerPoll:               time.Millisecond,
+		CleanupInterval:          time.Hour,
+		DemoIndexPath:            filepath.Join(root, "ui", "public", "demo-runs", "index.json"),
+		DemoArtifactRoot:         filepath.Join(root, "ui", "public"),
 	}
 }
 

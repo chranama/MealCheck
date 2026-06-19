@@ -87,8 +87,8 @@ strict resource limits.
 The hosted website should expose three primary surfaces:
 
 - `Demo Reports`: public seeded reports and artifacts
-- `BYOK Verify`: invite-gated qualification, generation or normalization, and
-  deterministic verification
+- `BYOK Verify`: policy-limited public qualification, generation or
+  normalization, and deterministic verification
 - `Run Locally`: instructions for local CLI/backend use and future agent-tool
   integration
 
@@ -100,7 +100,8 @@ regression tests, and agent-generated structured inputs.
 
 - Healthy-adult seeded scenarios.
 - Public seeded report demos.
-- Invite-gated BYOK targets-only generation and prompt-based generation.
+- Policy-limited public BYOK targets-only generation and prompt-based
+  generation.
 - Meal-plan qualification before verification.
 - Local CLI structured JSON verification for debugging and regression cases.
 - Strict meal-plan schema.
@@ -136,12 +137,12 @@ MealCheck is useful when:
 - source-pack versions are visible in reports
 - generated artifacts are stable enough for the hosted UI and local CLI
 - the hosted public surface is inspectable without secrets or live paid calls
-- invite-gated BYOK users can test whether generated or pasted content
+- public BYOK users can test whether generated or pasted content
   qualifies as a verifiable meal plan
 - the Cloudflare Pages frontend remains useful when the MacBook backend is
   offline
 - the MacBook backend can run behind Cloudflare Tunnel as a bounded,
-  invite-gated live-run service
+  policy-limited live-run service
 - a reviewer can reach the deployed frontend and API without local setup
 - local users can verify structured JSON through the CLI without provider keys
   or hosted infrastructure

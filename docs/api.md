@@ -1,6 +1,6 @@
 # API
 
-MealCheck exposes a small hosted API for public demo reports and invite-gated
+MealCheck exposes a small hosted API for public demo reports and public BYOK
 live meal-plan checks. The frontend should treat this API as asynchronous:
 creating a run queues work, and separate endpoints expose status, events,
 reports, and artifacts.
@@ -9,28 +9,44 @@ The API is intended for a static frontend plus a small self-hosted backend. It
 does not run a local LLM. When a live generation run needs an LLM, the caller
 supplies a BYOK provider key in the request.
 
-## Authentication
+## Access Mode
 
 `GET` endpoints are currently public. `DELETE /api/runs/{run_id}` is also
 public in the MVP API and treats the unguessable run id as the deletion
-capability. Live run creation can be access-code gated with
-`MEALCHECK_INVITE_REQUIRED=true`. Per-user access codes are created by an
-operator with `mealcheck invite create`; the full code is shown once, while the
-backend stores only the secret hash and usage metadata.
+capability.
+
+The hosted MVP supports two access modes:
+
+- `public_byok`: live qualification and run creation do not require an access
+  code. Abuse is bounded by request-rate, queue, body-size, text-length, daily
+  run, timeout, and retention policies. This is the recommended hosted
+  `mealcheck.dev` shape.
+- `invite_required`: live qualification and run creation require an access
+  code. This remains available for private or self-hosted deployments.
+
+Set `MEALCHECK_ACCESS_MODE=public_byok` or
+`MEALCHECK_ACCESS_MODE=invite_required`. If unset, the server uses
+`invite_required` when `MEALCHECK_INVITE_TOKEN` or
+`MEALCHECK_INVITE_REQUIRED=true` is configured; otherwise it uses
+`public_byok`.
+
+Per-user access codes are created by an operator with `mealcheck invite create`;
+the full code is shown once, while the backend stores only the secret hash and
+usage metadata.
 
 ```http
 X-MealCheck-Invite-Token: <access-code>
 ```
 
 The legacy `MEALCHECK_INVITE_TOKEN` environment variable is still supported as
-a shared access-code fallback during local migration. Production deployments
-should prefer per-user access codes so individual reviewers can have expiry,
-revocation, and run limits.
+a shared access-code fallback during local migration. Private deployments that
+need access codes should prefer per-user access codes so individual reviewers
+can have expiry, revocation, and run limits.
 
 The server always adds an `X-Request-ID` response header. A client may send its
 own `X-Request-ID`; otherwise, the server assigns one.
 
-Provider API keys are supplied only on invite-gated BYOK qualification and live
+Provider API keys are supplied only on BYOK qualification and live
 generation requests. Treat them as one-run bearer secrets: the browser sends the
 key to the MealCheck backend, the backend uses it only for the requested
 provider call, and MealCheck does not persist provider keys to run metadata,
@@ -38,6 +54,12 @@ reports, logs, metrics, runtime case files, or artifact bundles. Hosted BYOK
 users should use temporary, scoped, budget-limited, revocable keys; for maximum
 control, run MealCheck locally from the repository and submit requests to the
 local backend.
+
+In `public_byok` mode, hosted `openai_compatible` custom endpoints are disabled
+unless `MEALCHECK_PUBLIC_OPENAI_COMPATIBLE=true`. Even when enabled, public mode
+rejects localhost, private IP, link-local, non-HTTPS, and non-default-port
+custom endpoint URLs. Native OpenAI, Anthropic, and Gemini providers remain
+available.
 
 ## Runtime Endpoints
 
@@ -61,7 +83,7 @@ local backend.
 ## Qualify Candidate Meal Plan Text
 
 `POST /api/qualify` is the hosted preflight endpoint for pasted candidate text.
-It is synchronous and invite-gated. It answers whether the text is a meal plan
+It is synchronous and policy-limited. It answers whether the text is a meal plan
 eligible for verification, and it can use a BYOK provider to normalize detailed
 meal-plan text into MealCheck JSON.
 
@@ -72,7 +94,6 @@ can be rejected deterministically as not eligible. `provider.model` and
 ```bash
 curl -fsS -X POST "http://127.0.0.1:8080/api/qualify" \
   -H "Content-Type: application/json" \
-  -H "X-MealCheck-Invite-Token: ${MEALCHECK_ACCESS_CODE}" \
   --data '{
     "text": "Day 1 breakfast: 1 cup cooked oatmeal and 1 banana.",
     "settings": {
@@ -273,7 +294,6 @@ file workflow. The same normalized plan validation rules apply there:
 ```bash
 curl -fsS -X POST "http://127.0.0.1:8080/api/runs" \
   -H "Content-Type: application/json" \
-  -H "X-MealCheck-Invite-Token: ${MEALCHECK_ACCESS_CODE}" \
   --data '{
     "input_mode": "profile_generation",
     "settings": {
@@ -477,11 +497,22 @@ Example response:
 {
   "status": "ok",
   "store": "postgres",
+  "access_mode": "public_byok",
   "queued_runs": 0,
   "running_runs": 0,
   "queue_size": 3,
   "active_run_limit": 1,
-  "retention_days": 7
+  "retention_days": 7,
+  "public_openai_compatible": false,
+  "max_candidate_text_chars": 20000,
+  "max_generation_prompt_chars": 4000,
+  "policy": {
+    "public_request_limit": 60,
+    "public_request_window_sec": 60,
+    "public_daily_run_limit": 20,
+    "queue_size": 3,
+    "active_run_limit": 1
+  }
 }
 ```
 
@@ -522,7 +553,9 @@ Representative error codes:
 | Code | Typical Status | Cause |
 |---|---:|---|
 | `invalid_request` | `400` | Invalid JSON, unknown field, oversized body, invalid mode, bad settings, or invalid plan. |
-| `unauthorized` | `401` | Live qualification or run creation requires a valid access code. |
+| `unauthorized` | `401` | Invite-required mode needs a valid access code. |
+| `rate_limited` | `429` | Public request rate limit was exceeded. |
+| `daily_run_limit_reached` | `429` | Public daily run limit was reached for the client. |
 | `invite_limit_reached` | `429` | The access code has reached its configured run limit. |
 | `not_found` | `404` | Run, demo run, report, or artifact does not exist. |
 | `method_not_allowed` | `405` | HTTP method is not supported on the route. |
@@ -558,6 +591,13 @@ Default hosted limits:
 | Active workers | `1` | fixed for MVP |
 | Queue size | `3` | `MEALCHECK_QUEUE_SIZE` |
 | Request body limit | `1,000,000` bytes | `MEALCHECK_MAX_UPLOAD_BYTES` |
+| Public access mode | `public_byok` unless invite config is set | `MEALCHECK_ACCESS_MODE` |
+| Public OpenAI-compatible endpoints | `false` | `MEALCHECK_PUBLIC_OPENAI_COMPATIBLE` |
+| Public request limit | `60` per window | `MEALCHECK_PUBLIC_REQUEST_LIMIT` |
+| Public request window | `1m` | `MEALCHECK_PUBLIC_REQUEST_WINDOW` |
+| Public daily run limit | `20` | `MEALCHECK_PUBLIC_DAILY_RUN_LIMIT` |
+| Candidate text limit | `20,000` characters | `MEALCHECK_MAX_CANDIDATE_TEXT_CHARS` |
+| Generation prompt limit | `4,000` characters | `MEALCHECK_MAX_GENERATION_PROMPT_CHARS` |
 | Run timeout | `10m` | `MEALCHECK_RUN_TIMEOUT` |
 | Retention | `7 days` | `MEALCHECK_RETENTION` |
 | Worker poll interval | `1s` | `MEALCHECK_WORKER_POLL` |

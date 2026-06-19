@@ -24,26 +24,38 @@ const (
 	EventFailed          = "failed"
 )
 
+const (
+	AccessModePublicBYOK     = "public_byok"
+	AccessModeInviteRequired = "invite_required"
+)
+
 type Config struct {
-	Root             string
-	DataDir          string
-	ArtifactDir      string
-	Addr             string
-	DatabaseURL      string
-	StoreKind        string
-	AllowedOrigin    string
-	InviteToken      string
-	InviteRequired   bool
-	QueueSize        int
-	MaxCasesPerRun   int
-	MaxUploadBytes   int64
-	RunTimeout       time.Duration
-	PendingInputTTL  time.Duration
-	Retention        time.Duration
-	WorkerPoll       time.Duration
-	CleanupInterval  time.Duration
-	DemoIndexPath    string
-	DemoArtifactRoot string
+	Root                     string
+	DataDir                  string
+	ArtifactDir              string
+	Addr                     string
+	DatabaseURL              string
+	StoreKind                string
+	AllowedOrigin            string
+	InviteToken              string
+	InviteRequired           bool
+	AccessMode               string
+	PublicOpenAICompatible   bool
+	PublicRequestLimit       int
+	PublicRequestWindow      time.Duration
+	PublicDailyRunLimit      int
+	MaxCandidateTextChars    int
+	MaxGenerationPromptChars int
+	QueueSize                int
+	MaxCasesPerRun           int
+	MaxUploadBytes           int64
+	RunTimeout               time.Duration
+	PendingInputTTL          time.Duration
+	Retention                time.Duration
+	WorkerPoll               time.Duration
+	CleanupInterval          time.Duration
+	DemoIndexPath            string
+	DemoArtifactRoot         string
 }
 
 type Run struct {

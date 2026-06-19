@@ -3,6 +3,7 @@ import {
   ApiError,
   cleanApiBase,
   createRun,
+  fetchHealth,
   joinUrl,
   qualifyMealPlan,
   requestJSON,
@@ -93,6 +94,41 @@ describe("api", () => {
     );
   });
 
+  it("creates public runs without an invite token header", async () => {
+    const fetchMock = vi.fn(async () => new Response(
+      JSON.stringify({ run_id: "run-public", status: "queued" }),
+      { status: 202 },
+    ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const payload: RunPayload = {
+      input_mode: "profile_generation",
+      settings: DEFAULT_SETTINGS,
+      provider: {
+        type: "openai",
+        base_url: "",
+        model: "gpt-test",
+        api_key: "secret",
+      },
+      repair_json: true,
+    };
+
+    await expect(createRun("http://api", "", payload)).resolves.toEqual({
+      run_id: "run-public",
+      status: "queued",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api/api/runs",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.not.objectContaining({
+          "X-MealCheck-Invite-Token": expect.any(String),
+        }),
+      }),
+    );
+  });
+
   it("qualifies meal plan text with the invite token header", async () => {
     const fetchMock = vi.fn(async () => new Response(
       JSON.stringify({
@@ -125,6 +161,24 @@ describe("api", () => {
         }),
       }),
     );
+  });
+
+  it("loads health metadata", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({
+        status: "ok",
+        store: "memory",
+        access_mode: "public_byok",
+        public_openai_compatible: false,
+      }),
+      { status: 200 },
+    )));
+
+    await expect(fetchHealth("http://api")).resolves.toMatchObject({
+      status: "ok",
+      access_mode: "public_byok",
+      public_openai_compatible: false,
+    });
   });
 
   it("exposes ApiError fields for diagnostics", () => {

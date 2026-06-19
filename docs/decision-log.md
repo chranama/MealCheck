@@ -6,6 +6,45 @@ public expectations.
 Use this log instead of separate ADR and RFC files until a decision becomes too
 large to keep readable here.
 
+## 2026-06-19: Hosted BYOK Uses Public Policy Gates By Default
+
+Status: Accepted
+
+Decision:
+
+The hosted BYOK surface should be able to run without an access code. Public
+hosted use should be bounded by admission policies rather than trusted-user
+gating alone: request-rate limits, daily run limits, queue limits, body-size and
+text-length limits, provider timeouts, short retention, and cleanup. The
+existing invite-token system remains available as `invite_required` mode for
+private deployments and rollback.
+
+Public hosted mode should disable unrestricted `openai_compatible` custom
+endpoints by default. If an operator enables them, the server should still
+reject localhost, private-IP, link-local, non-HTTPS, and non-default-port custom
+endpoint URLs. Native OpenAI, Anthropic, and Gemini providers remain available.
+
+Reason:
+
+BYOK removes the largest original abuse risk: anonymous users cannot spend
+maintainer model budget because they must supply their own provider key.
+Access-code friction is therefore less central to product safety. The remaining
+risks are service exhaustion, storage abuse, proxy/SSRF behavior through custom
+endpoints, and accidental provider-key exposure. Those risks are better handled
+with hard public limits and egress restrictions than with a shared access-code
+gate.
+
+Consequences:
+
+- Public hosted qualification and run creation can omit access codes.
+- `/api/health` exposes access mode and policy metadata so the frontend can
+  show or hide access-code entry.
+- Private deployments can still require access codes with
+  `MEALCHECK_ACCESS_MODE=invite_required`.
+- Public hosted custom OpenAI-compatible endpoints are disabled unless
+  explicitly enabled by configuration.
+- The UI treats access code entry as conditional, not a first-screen default.
+
 ## 2026-06-19: API And CLI Use One Reduced Settings Contract
 
 Status: Accepted

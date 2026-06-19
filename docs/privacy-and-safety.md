@@ -127,7 +127,19 @@ when the endpoint operator is trusted.
 FoodData Central API keys, if added later, are server credentials and must not
 be embedded in frontend code or user-visible artifacts.
 
-Access codes:
+Public BYOK policy controls:
+
+- gate public hosted use through hard limits rather than trust alone
+- limit request rate by client IP
+- limit daily live-run creation by client IP
+- enforce queue, active-run, body-size, candidate-text, generation-prompt,
+  timeout, repair-attempt, artifact-retention, and cleanup limits
+- disable public hosted `openai_compatible` custom endpoints by default
+- reject public custom endpoint URLs that target localhost, private IPs,
+  link-local IPs, non-HTTPS schemes, or non-default HTTPS ports
+- return `429` with `Retry-After` when policy capacity is exceeded
+
+Access codes remain available for private deployments:
 
 - gate live run creation for invited reviewers or beta users
 - are bearer credentials, not user accounts or proof of identity
@@ -211,8 +223,10 @@ Public visitors may not:
 - view user-provided API keys
 - access admin endpoints
 
-Live BYOK runs should require a per-user access code or stronger auth gate.
-Admin operations should require a separate admin credential.
+Public hosted live BYOK runs may operate without access codes when policy gates
+are enabled. Private or self-hosted deployments may still require a per-user
+access code or stronger auth gate. Admin operations should require a separate
+admin credential.
 
 ## Legal And Compliance Notes
 

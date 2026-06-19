@@ -378,4 +378,5 @@ The CLI and hosted API share the checker engine and artifact writer:
 
 Use the CLI when you want a deterministic local check from an existing case
 file or structured JSON debugging workflow. Use the hosted API or web UI when
-you want invite-gated qualification preflight or BYOK model generation.
+you want public policy-limited qualification preflight or BYOK model
+generation. Invite-required mode remains available for private deployments.

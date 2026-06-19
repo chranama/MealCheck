@@ -27,7 +27,7 @@ Example user:
 
 MealCheck has three intended surfaces:
 
-- Hosted website: public seeded demo reports plus invite-gated BYOK
+- Hosted website: public seeded demo reports plus policy-limited public BYOK
   qualification and verification.
 - Downloaded repo: trusted local verifier, local backend, and debugging surface.
 - CLI: structured JSON validation, fixture regression, artifact inspection, and
@@ -61,7 +61,8 @@ The MVP assumes:
 - the user is an adult
 - the user is not asking for disease-specific, pediatric, pregnancy, or
   therapeutic nutrition guidance
-- hosted live runs are invite-gated and require BYOK provider credentials
+- hosted model-backed live work requires BYOK provider credentials and is
+  bounded by public request and run policies
 - the selected guideline pack is `dga-2025-2030-us-adult-general-v1`
 - all verification modes eventually produce a normalized JSON meal plan
 - nutrient values are calculated from MealCheck's resolver, not trusted from the
@@ -159,19 +160,19 @@ Minimal internal shape:
 ## Hosted BYOK Flow
 
 1. The user opens the hosted BYOK verification surface.
-2. The user enters an access code.
-3. The user pastes candidate meal-plan text to qualify.
-4. The user enters model provider settings when BYOK normalization or
+2. The user pastes candidate meal-plan text to qualify.
+3. The user enters model provider settings when BYOK normalization or
    generation is needed:
    - provider type
    - model ID
    - API key
-   - custom base URL only for OpenAI-compatible providers
-5. If defaults are not sufficient, the user opens Verification Settings and
+   - custom base URL only for OpenAI-compatible providers in local/private
+     deployments or explicitly enabled hosted deployments
+4. If defaults are not sufficient, the user opens Verification Settings and
    adjusts nutrition targets:
    - calorie target
    - protein target
-6. If defaults are not sufficient, the user adjusts verification constraints:
+5. If defaults are not sufficient, the user adjusts verification constraints:
    - number of days
    - meals per day
    - allergies
@@ -181,15 +182,15 @@ Minimal internal shape:
    - saturated fat limit
    - calorie tolerance
    - prep-safety-notes requirement
-7. The user supplies either:
+6. The user supplies either:
    - a BYOK generation prompt
    - targets-only generation intent
    - pasted candidate meal-plan text for qualification/normalization
-8. MealCheck can qualify pasted candidate content before a report run.
-9. For generation modes, MealCheck creates a normalized JSON plan and verifies
+7. MealCheck can qualify pasted candidate content before a report run.
+8. For generation modes, MealCheck creates a normalized JSON plan and verifies
    it deterministically.
-10. MealCheck creates an artifact bundle and report for completed runs.
-11. The user sees the qualification result, decision, failed checks, unresolved
+9. MealCheck creates an artifact bundle and report for completed runs.
+10. The user sees the qualification result, decision, failed checks, unresolved
     foods, calculated totals, and source-pack citations.
 
 ## Local CLI Debug Flow
@@ -315,7 +316,8 @@ The tightened MVP user story is supported when:
   network calls to the MacBook backend, model API keys, or paid inference
 - hosted navigation exposes demo reports, BYOK verification, and local-run
   instructions
-- hosted live verification requires an access code and BYOK provider key
+- hosted live verification requires BYOK provider credentials for model-backed
+  work and is bounded by public request/rate/run policies
 - hosted live verification does not present structured manual entry as the
   primary workflow
 - a reviewer can build or install the local CLI from a fresh checkout and run
@@ -329,7 +331,7 @@ The tightened MVP user story is supported when:
 - a qualification step can distinguish content that is not a meal plan, too
   vague to verify, recipe-like but undecomposed, eligible, or eligible with
   unresolved items
-- invite-gated BYOK runs can be created, monitored, viewed, and deleted through
+- policy-limited BYOK runs can be created, monitored, viewed, and deleted through
   the web surface or documented API commands
 - BYOK flows disclose that provider keys transit the MealCheck backend, and
   that nutrition targets, verification constraints, prompt text, and generated

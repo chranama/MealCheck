@@ -2048,3 +2048,65 @@ Acceptance:
 - examples and docs show the same reduced settings contract
 - backend tests, frontend typecheck, unit tests, mocked e2e tests, local e2e
   tests, and build pass
+
+## Milestone 22: Public BYOK Access Mode And Policy Gate
+
+Status: Implemented on 2026-06-19 for the hosted backend, frontend, tests, and
+current product/API/privacy documentation.
+
+Purpose:
+
+The original access-code gate served two roles: limiting work on a small hosted
+server and restricting live use to trusted people. After the product shifted to
+BYOK, anonymous users no longer spend maintainer model budget. The remaining
+hosted risks are service exhaustion, artifact/storage abuse, provider-key
+transit, and custom-endpoint proxy/SSRF behavior. The hosted MVP should support
+a public BYOK mode protected by hard admission policies, while preserving invite
+mode for private deployments.
+
+Deliver:
+
+- explicit `MEALCHECK_ACCESS_MODE=public_byok|invite_required`
+- public-mode admission policy for request rate and daily run count
+- public-mode body/text/prompt length configuration
+- `/api/health` access-mode and policy metadata for frontend adaptation
+- conditional invite-token enforcement so public mode accepts live requests
+  without `X-MealCheck-Invite-Token`
+- public-mode `openai_compatible` custom endpoints disabled by default
+- basic public custom-endpoint URL checks when explicitly enabled
+- frontend Access field hidden in public mode and visible in invite mode
+- frontend invite headers omitted when no access code is supplied
+- docs and tests aligned with public BYOK as the default hosted shape
+
+Implemented:
+
+1. Added access-mode and public-policy fields to hosted config.
+2. Added `PolicyLimiter` for per-client request rate and daily run limits.
+3. Added `Retry-After` policy responses for public throttling.
+4. Added candidate-text and generation-prompt length validation.
+5. Added public custom endpoint policy that disables `openai_compatible` by
+   default and rejects local/private/non-HTTPS custom URLs when enabled.
+6. Exposed `access_mode`, policy metadata, and public custom endpoint status
+   through `/api/health`.
+7. Updated the frontend API client to parse health metadata and send invite
+   headers only when a token exists.
+8. Updated `LiveWorkspace` to hide access-code entry in public mode and show it
+   in invite-required mode.
+9. Updated mocked and local browser tests to exercise public BYOK without an
+   access code.
+10. Updated API, product, user-story, web-design, privacy/safety, decision-log,
+    and implementation-plan docs.
+
+Acceptance:
+
+- public mode accepts `/api/qualify` and `/api/runs` without an access code
+- invite-required mode still rejects missing or invalid access codes
+- public request-rate and daily-run policy violations return `429`
+- policy responses include `Retry-After`
+- public hosted mode rejects unrestricted `openai_compatible` endpoints by
+  default
+- native OpenAI, Anthropic, and Gemini provider paths remain supported
+- the frontend hides Access in public mode and omits the invite header
+- the frontend shows Access in invite-required mode
+- backend tests, frontend typecheck, unit tests, mocked e2e tests, local e2e
+  tests, and build pass

@@ -85,11 +85,11 @@ async function mockMealCheckApi(page: Page) {
   const deletedRunIDs: string[] = [];
 
   await page.route("**/mock-api/api/health", async (route) => {
-    await route.fulfill({ json: { status: "ok" } });
+    await route.fulfill({ json: { status: "ok", access_mode: "public_byok", public_openai_compatible: false } });
   });
   await page.route("**/mock-api/api/runs", async (route) => {
     expect(route.request().method()).toBe("POST");
-    expect(route.request().headers()["x-mealcheck-invite-token"]).toBe("invite-1");
+    expect(route.request().headers()["x-mealcheck-invite-token"]).toBeUndefined();
     payloads.push(route.request().postDataJSON());
     runCounter += 1;
     await route.fulfill({
@@ -99,7 +99,7 @@ async function mockMealCheckApi(page: Page) {
   });
   await page.route("**/mock-api/api/qualify", async (route) => {
     expect(route.request().method()).toBe("POST");
-    expect(route.request().headers()["x-mealcheck-invite-token"]).toBe("invite-1");
+    expect(route.request().headers()["x-mealcheck-invite-token"]).toBeUndefined();
     payloads.push(route.request().postDataJSON());
     await route.fulfill({
       status: 200,
@@ -189,7 +189,7 @@ test("loads the live run homepage and can open a seeded demo", async ({ page }) 
   await expect(page.getByLabel("Service URL")).toHaveCount(0);
   await expect(page.locator("#backend-guidance")).toHaveCount(0);
   await expect(page.getByText("Service ready")).toHaveCount(0);
-  await expect(page.getByLabel("Access code")).toBeVisible();
+  await expect(page.getByLabel("Access code")).toHaveCount(0);
   await expect(page.getByLabel("Meal plan text")).toBeVisible();
   await expect(page.getByText("Model Provider", { exact: true })).toBeVisible();
   await expect(page.getByText("Verification Settings")).toBeVisible();
@@ -210,7 +210,6 @@ test("qualifies mocked candidate text", async ({ page }) => {
   await expect(page.locator(".backend-status")).toHaveCount(0);
   await expect(page.locator("#backend-guidance")).toHaveCount(0);
   await expect(page.getByText("Service ready")).toHaveCount(0);
-  await page.getByLabel("Access code").fill("invite-1");
   await page.getByRole("button", { name: "Check Eligibility" }).click();
 
   await expect(page.getByText("Candidate text was normalized into a MealCheck plan.")).toBeVisible();
@@ -228,7 +227,6 @@ test("creates a mocked BYOK profile-generation run without persisting provider k
 
   await page.getByRole("button", { name: "Targets" }).click();
   await expect(page.getByText("Model provider disclosure")).toBeVisible();
-  await page.getByLabel("Access code").fill("invite-1");
   await page.getByLabel("Model").fill("gpt-test");
   await page.getByLabel("API key").fill("secret-profile-key");
   await page.getByRole("button", { name: "Create Report" }).click();
@@ -251,7 +249,6 @@ test("creates a mocked BYOK prompt-generation run", async ({ page }) => {
   await page.goto("/?api=/mock-api");
 
   await page.getByRole("button", { name: "Prompt" }).click();
-  await page.getByLabel("Access code").fill("invite-1");
   await page.getByLabel("Model").fill("gpt-test");
   await page.getByLabel("API key").fill("secret-prompt-key");
   await page.getByLabel("Prompt").fill("Create a two-day meal plan with salmon and oatmeal.");

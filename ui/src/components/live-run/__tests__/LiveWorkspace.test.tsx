@@ -8,6 +8,13 @@ const backend: BackendState = {
   online: true,
   label: "Online",
   kind: "online",
+  accessMode: "public_byok",
+  publicOpenAICompatible: false,
+};
+
+const inviteBackend: BackendState = {
+  ...backend,
+  accessMode: "invite_required",
 };
 
 const live: LiveState = {
@@ -47,6 +54,7 @@ describe("LiveWorkspace", () => {
     expect(screen.getByText("Meal Plan Text")).toBeInTheDocument();
     expect(screen.getByLabelText("Meal plan text")).toBeVisible();
     expect(screen.getByText("Model Provider")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Access code")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Manual" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Targets" })).toHaveClass("is-active");
     expect(screen.getByText("Model provider disclosure")).toBeInTheDocument();
@@ -56,6 +64,15 @@ describe("LiveWorkspace", () => {
     expect(screen.queryByLabelText("Diet pattern")).not.toBeInTheDocument();
     expect(screen.queryByText("Shopping list required")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Prep notes")).not.toBeInTheDocument();
+  });
+
+  it("shows access code entry when the backend requires invites", () => {
+    renderWorkspace({ backend: inviteBackend });
+
+    expect(screen.getByText("Access")).toBeInTheDocument();
+    expect(screen.getByLabelText("Access code")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Create Report" })).toBeDisabled();
+    expect(screen.getAllByText("Enter your access code to start.").length).toBeGreaterThan(0);
   });
 
   it("keeps targets and constraints configurable behind verification settings", async () => {
@@ -84,14 +101,13 @@ describe("LiveWorkspace", () => {
     await user.type(screen.getByLabelText("Protein g"), "120");
     await user.clear(screen.getByLabelText("Days"));
     await user.type(screen.getByLabelText("Days"), "2");
-    await user.type(screen.getByLabelText("Access code"), "invite-1");
     await user.type(screen.getByLabelText("Model"), "gpt-test");
     await user.type(screen.getByLabelText("API key"), "secret");
     await user.click(screen.getByRole("button", { name: "Create Report" }));
 
     expect(onCreateRun).toHaveBeenCalledWith(
       "http://127.0.0.1:8080",
-      "invite-1",
+      "",
       expect.objectContaining({
         input_mode: "profile_generation",
         settings: expect.objectContaining({
@@ -116,7 +132,7 @@ describe("LiveWorkspace", () => {
     expect(screen.getByRole("button", { name: "Prompt" })).toHaveClass("is-active");
     expect(screen.getByText("Model provider disclosure")).toBeInTheDocument();
     expect(screen.getByText(/Use temporary, scoped, budget-limited keys/)).toBeInTheDocument();
-    expect(screen.getByText(/custom OpenAI-compatible endpoints receive the key too/)).toBeInTheDocument();
+    expect(screen.getByText(/Hosted public mode disables custom OpenAI-compatible endpoints/)).toBeInTheDocument();
     expect(screen.getByText(/run MealCheck locally from the repo/)).toBeInTheDocument();
     expect(screen.getByLabelText("Provider")).toHaveValue("openai");
     expect(screen.getByLabelText("Prompt")).toBeInTheDocument();
@@ -129,12 +145,11 @@ describe("LiveWorkspace", () => {
     const onQualify = vi.fn(async () => undefined);
     renderWorkspace({ onQualify });
 
-    await user.type(screen.getByLabelText("Access code"), "invite-1");
     await user.click(screen.getByRole("button", { name: "Check Eligibility" }));
 
     expect(onQualify).toHaveBeenCalledWith(
       "http://127.0.0.1:8080",
-      "invite-1",
+      "",
       expect.objectContaining({
         text: expect.stringContaining("Day 1 breakfast"),
       }),
@@ -151,6 +166,8 @@ describe("LiveWorkspace", () => {
         online: false,
         label: "Static demo",
         kind: "idle",
+        accessMode: "public_byok",
+        publicOpenAICompatible: false,
       },
     });
 
@@ -216,14 +233,13 @@ describe("LiveWorkspace", () => {
     renderWorkspace({ onCreateRun });
 
     await user.click(screen.getByRole("button", { name: "Prompt" }));
-    await user.type(screen.getByLabelText("Access code"), "invite-1");
     await user.type(screen.getByLabelText("Model"), "gpt-test");
     await user.type(screen.getByLabelText("API key"), "secret");
     await user.click(screen.getByRole("button", { name: "Create Report" }));
 
     expect(onCreateRun).toHaveBeenCalledWith(
       "http://127.0.0.1:8080",
-      "invite-1",
+      "",
       expect.objectContaining({
         input_mode: "prompt_generation",
         provider: expect.objectContaining({
@@ -244,14 +260,13 @@ describe("LiveWorkspace", () => {
     const onQualify = vi.fn(async () => undefined);
     renderWorkspace({ onQualify });
 
-    await user.type(screen.getByLabelText("Access code"), "invite-1");
     await user.type(screen.getByLabelText("Model"), "gpt-test");
     await user.type(screen.getByLabelText("API key"), "secret");
     await user.click(screen.getByRole("button", { name: "Check Eligibility" }));
 
     expect(onQualify).toHaveBeenCalledWith(
       "http://127.0.0.1:8080",
-      "invite-1",
+      "",
       expect.objectContaining({
         text: expect.stringContaining("Day 1 breakfast"),
         provider: expect.objectContaining({
@@ -308,7 +323,6 @@ describe("LiveWorkspace", () => {
     renderWorkspace({ onCreateRun });
 
     await user.click(screen.getByRole("button", { name: "Targets" }));
-    await user.type(screen.getByLabelText("Access code"), "invite-1");
     await user.selectOptions(screen.getByLabelText("Provider"), "gemini");
     await user.type(screen.getByLabelText("Model"), "gemini-test");
     await user.type(screen.getByLabelText("API key"), "secret");
@@ -316,7 +330,7 @@ describe("LiveWorkspace", () => {
 
     expect(onCreateRun).toHaveBeenCalledWith(
       "http://127.0.0.1:8080",
-      "invite-1",
+      "",
       expect.objectContaining({
         input_mode: "profile_generation",
         provider: expect.objectContaining({

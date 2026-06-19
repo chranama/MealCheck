@@ -323,9 +323,9 @@ The server is ready for MVP web acceptance when:
 - Postgres and artifact storage use final paths outside the Git checkout
 - `MEALCHECK_ALLOWED_ORIGIN` is set to the production frontend origin
 - the `LaunchDaemon` mode is verified after reboot or manual restart
-- `MEALCHECK_INVITE_REQUIRED=true` is configured for live run creation
-- at least one per-user access code has been created with `mealcheck invite
-  create`
+- `MEALCHECK_ACCESS_MODE=public_byok` is configured for the public BYOK surface
+- public request/rate/run policy limits are configured for the hosted hardware
+- invite-required mode has been tested as a private deployment fallback
 - Cloudflare Tunnel maps the public API hostname to the local API service
 - `dev.mealcheck.tunnel` keeps the Cloudflare Tunnel connector running after
   reboot
@@ -345,7 +345,7 @@ Production acceptance was recorded on 2026-06-15:
 - `https://mealcheck.dev` serves the accepted static frontend.
 - `https://api.mealcheck.dev/api/health` returns `status: ok` with Postgres
   storage, queue limits, and `retention_days: 7`.
-- live run creation requires a valid per-user access code.
+- live run creation is public BYOK and policy-limited.
 - public manual live run creation, report retrieval, artifact listing, deletion,
   backup capture, retention verification, CORS verification, and fake-key BYOK
   redaction checks were completed.

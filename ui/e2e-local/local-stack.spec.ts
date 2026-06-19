@@ -19,7 +19,7 @@ test("renders the live run homepage without an API base and can open a seeded re
   await expect(page.getByLabel("Service URL")).toHaveCount(0);
   await expect(page.locator("#backend-guidance")).toHaveCount(0);
   await expect(page.getByText("Service ready")).toHaveCount(0);
-  await expect(page.getByLabel("Access code")).toBeVisible();
+  await expect(page.getByLabel("Access code")).toHaveCount(0);
   await expect(page.getByLabel("Meal plan text")).toBeVisible();
   await expect(page.getByText("Model Provider", { exact: true })).toBeVisible();
   await expect(page.getByText("Verification Settings")).toBeVisible();
@@ -39,7 +39,6 @@ test("qualifies a real local candidate meal plan through the fake provider", asy
   await expect(page.locator(".backend-status")).toHaveCount(0);
   await expect(page.locator("#backend-guidance")).toHaveCount(0);
   await expect(page.getByText("Service ready")).toHaveCount(0);
-  await page.getByLabel("Access code").fill("invite-1");
   await page.getByLabel("Model").fill("fake-meal-plan");
   await page.getByLabel("API key").fill(providerKey);
 
@@ -63,7 +62,6 @@ test("creates a real local BYOK run through the fake provider and redacts secret
 
   await page.getByRole("button", { name: "Targets" }).click();
   await expect(page.getByText("Model provider disclosure")).toBeVisible();
-  await page.getByLabel("Access code").fill("invite-1");
   await page.getByLabel("Model").fill("fake-meal-plan");
   await page.getByLabel("API key").fill(providerKey);
 

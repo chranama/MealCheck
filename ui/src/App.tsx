@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  checkHealth,
   cleanApiBase,
   createRun,
   deleteRun,
+  fetchHealth,
   fetchEvents,
   fetchRun,
   loadDemoArtifacts,
@@ -39,6 +39,8 @@ const INITIAL_BACKEND: BackendState = {
   online: false,
   label: "Static demo",
   kind: "idle",
+  accessMode: "public_byok",
+  publicOpenAICompatible: false,
 };
 
 const INITIAL_LIVE: LiveState = {
@@ -95,12 +97,24 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
       return;
     }
 
-    const online = await checkHealth(cleanBase);
-    setBackend({
-      online,
-      label: online ? "Online" : "Unavailable",
-      kind: online ? "online" : "offline",
-    });
+    try {
+      const health = await fetchHealth(cleanBase);
+      setBackend({
+        online: true,
+        label: "Online",
+        kind: "online",
+        accessMode: health.access_mode || "public_byok",
+        publicOpenAICompatible: Boolean(health.public_openai_compatible),
+      });
+    } catch {
+      setBackend({
+        online: false,
+        label: "Unavailable",
+        kind: "offline",
+        accessMode: "public_byok",
+        publicOpenAICompatible: false,
+      });
+    }
   }
 
   async function loadDemo(demo: DemoRun) {
@@ -127,7 +141,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     if (!cleanBase) {
       throw new Error("A configured MealCheck service is required to create a report.");
     }
-    if (!inviteToken.trim()) {
+    if (backend.accessMode === "invite_required" && !inviteToken.trim()) {
       throw new Error("Access code is required to create a report.");
     }
 
@@ -159,7 +173,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     if (!cleanBase) {
       throw new Error("A configured MealCheck service is required to check eligibility.");
     }
-    if (!inviteToken.trim()) {
+    if (backend.accessMode === "invite_required" && !inviteToken.trim()) {
       throw new Error("Access code is required to check eligibility.");
     }
 

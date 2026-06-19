@@ -13,6 +13,7 @@ export type ViewMode = "demo" | "live";
 export type ReportTab = "checks" | "nutrition" | "foods" | "sources" | "report";
 export type RunStatus = "idle" | "queued" | "running" | "completed" | "failed" | "deleted" | string;
 export type CheckStatus = "pass" | "warn" | "block" | string;
+export type AccessMode = "public_byok" | "invite_required" | string;
 
 export type RuntimeConfig = {
   api?: {
@@ -25,6 +26,23 @@ export type BackendState = {
   online: boolean;
   label: string;
   kind: "online" | "offline" | "idle";
+  accessMode: AccessMode;
+  publicOpenAICompatible: boolean;
+};
+
+export type HealthResponse = {
+  status: string;
+  store: string;
+  access_mode?: AccessMode;
+  queued_runs?: number;
+  running_runs?: number;
+  queue_size?: number;
+  active_run_limit?: number;
+  retention_days?: number;
+  public_openai_compatible?: boolean;
+  max_candidate_text_chars?: number;
+  max_generation_prompt_chars?: number;
+  policy?: Record<string, unknown>;
 };
 
 export type DemoRun = {

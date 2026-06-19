@@ -20,6 +20,7 @@ type Server struct {
 	Config          Config
 	Store           Store
 	Pending         *PendingInputs
+	Policy          *PolicyLimiter
 	ProviderFactory ProviderFactory
 	mux             *http.ServeMux
 }
@@ -29,7 +30,7 @@ func NewServer(config Config, store Store, pending ...*PendingInputs) *Server {
 	if len(pending) > 0 && pending[0] != nil {
 		pendingInputs = pending[0]
 	}
-	s := &Server{Config: config, Store: store, Pending: pendingInputs, ProviderFactory: DefaultProviderFactory, mux: http.NewServeMux()}
+	s := &Server{Config: config, Store: store, Pending: pendingInputs, Policy: NewPolicyLimiter(), ProviderFactory: DefaultProviderFactory, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -58,13 +59,24 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"status":           "ok",
-		"store":            s.Config.StoreKind,
-		"queued_runs":      stats.Queued,
-		"running_runs":     stats.Running,
-		"queue_size":       s.Config.QueueSize,
-		"active_run_limit": 1,
-		"retention_days":   int(s.Config.Retention.Hours() / 24),
+		"status":                      "ok",
+		"store":                       s.Config.StoreKind,
+		"access_mode":                 accessMode(s.Config),
+		"queued_runs":                 stats.Queued,
+		"running_runs":                stats.Running,
+		"queue_size":                  s.Config.QueueSize,
+		"active_run_limit":            1,
+		"retention_days":              int(s.Config.Retention.Hours() / 24),
+		"public_openai_compatible":    s.Config.PublicOpenAICompatible,
+		"max_candidate_text_chars":    s.Config.MaxCandidateTextChars,
+		"max_generation_prompt_chars": s.Config.MaxGenerationPromptChars,
+		"policy": map[string]any{
+			"public_request_limit":      s.Config.PublicRequestLimit,
+			"public_request_window_sec": int(s.Config.PublicRequestWindow.Seconds()),
+			"public_daily_run_limit":    s.Config.PublicDailyRunLimit,
+			"queue_size":                s.Config.QueueSize,
+			"active_run_limit":          1,
+		},
 	})
 }
 
@@ -158,6 +170,9 @@ func (s *Server) handleQualify(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusUnauthorized, "unauthorized", "valid access code required", nil)
 		return
 	}
+	if err := s.enforcePublicRequestPolicy(w, r); err != nil {
+		return
+	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, s.Config.MaxUploadBytes)
 	var request MealPlanQualificationRequest
@@ -167,15 +182,26 @@ func (s *Server) handleQualify(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", "invalid JSON request", nil)
 		return
 	}
+	providerSupplied := hasProviderConfigFields(request.Provider)
 	request.Text = strings.TrimSpace(request.Text)
 	request.Provider = normalizeProviderConfig(request.Provider)
 	if request.Text == "" {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", "text is required", nil)
 		return
 	}
+	if err := validateTextLength("text", request.Text, s.Config.MaxCandidateTextChars); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
+		return
+	}
 	if err := validateSettings(request.Settings); err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 		return
+	}
+	if providerSupplied {
+		if err := validatePublicProviderPolicy(s.Config, request.Provider); err != nil {
+			writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
+			return
+		}
 	}
 
 	providerFactory := s.ProviderFactory
@@ -238,6 +264,9 @@ func (s *Server) createRun(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusUnauthorized, "unauthorized", "valid access code required", nil)
 		return
 	}
+	if err := s.enforcePublicRequestPolicy(w, r); err != nil {
+		return
+	}
 	r.Body = http.MaxBytesReader(w, r.Body, s.Config.MaxUploadBytes)
 	var request CreateRunRequest
 	decoder := json.NewDecoder(r.Body)
@@ -251,6 +280,13 @@ func (s *Server) createRun(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 		return
+	}
+	ip := requestClientIP(r)
+	if accessMode(s.Config) == AccessModePublicBYOK {
+		if err := s.Policy.CheckDailyRunLimit(ip, time.Now().UTC(), s.Config.PublicDailyRunLimit); err != nil {
+			writePolicyError(w, r, err)
+			return
+		}
 	}
 
 	run := newRun(s.Config, casePath)
@@ -276,6 +312,9 @@ func (s *Server) createRun(w http.ResponseWriter, r *http.Request) {
 		}
 		writeError(w, r, http.StatusInternalServerError, "store_error", err.Error(), nil)
 		return
+	}
+	if accessMode(s.Config) == AccessModePublicBYOK {
+		s.Policy.RecordRun(ip, run.CreatedAt)
 	}
 	if err := s.Store.AppendEvent(r.Context(), run.ID, EventQueued, "run queued", time.Now().UTC()); err != nil {
 		if hasPending {
@@ -323,6 +362,9 @@ func requestRunInput(config Config, request CreateRunRequest) (string, PendingRu
 	if err := validateSettings(pendingInput.Settings); err != nil {
 		return "", PendingRunInput{}, false, err
 	}
+	if err := validateTextLength("generation_prompt", pendingInput.GenerationPrompt, config.MaxGenerationPromptChars); err != nil {
+		return "", PendingRunInput{}, false, err
+	}
 
 	switch inputMode {
 	case "manual_structured":
@@ -331,11 +373,17 @@ func requestRunInput(config Config, request CreateRunRequest) (string, PendingRu
 		if err := validateProviderConfig(pendingInput.Provider); err != nil {
 			return "", PendingRunInput{}, false, err
 		}
+		if err := validatePublicProviderPolicy(config, pendingInput.Provider); err != nil {
+			return "", PendingRunInput{}, false, err
+		}
 	case "prompt_generation":
 		if pendingInput.GenerationPrompt == "" {
 			return "", PendingRunInput{}, false, fmt.Errorf("generation_prompt is required for prompt_generation")
 		}
 		if err := validateProviderConfig(pendingInput.Provider); err != nil {
+			return "", PendingRunInput{}, false, err
+		}
+		if err := validatePublicProviderPolicy(config, pendingInput.Provider); err != nil {
 			return "", PendingRunInput{}, false, err
 		}
 	default:
@@ -383,6 +431,13 @@ func hasSettingsFields(settings checker.Settings) bool {
 		constraints.RequiresPrepSafetyNotes
 }
 
+func hasProviderConfigFields(config ProviderConfig) bool {
+	return config.Type != "" ||
+		config.BaseURL != "" ||
+		config.Model != "" ||
+		config.APIKey != ""
+}
+
 func normalizeProviderConfig(config ProviderConfig) ProviderConfig {
 	providerType := strings.TrimSpace(config.Type)
 	if providerType == "" {
@@ -411,6 +466,16 @@ func validateProviderConfig(config ProviderConfig) error {
 	}
 	if config.APIKey == "" {
 		return fmt.Errorf("provider api_key is required")
+	}
+	return nil
+}
+
+func validateTextLength(field, value string, limit int) error {
+	if limit <= 0 || value == "" {
+		return nil
+	}
+	if len([]rune(value)) > limit {
+		return fmt.Errorf("%s exceeds maximum length of %d characters", field, limit)
 	}
 	return nil
 }
@@ -595,6 +660,9 @@ func (s *Server) withMiddleware(next http.Handler) http.Handler {
 }
 
 func (s *Server) authorizeRun(r *http.Request) (string, error) {
+	if accessMode(s.Config) == AccessModePublicBYOK {
+		return "", nil
+	}
 	value := strings.TrimSpace(r.Header.Get("X-MealCheck-Invite-Token"))
 	if s.Config.InviteToken != "" && value == s.Config.InviteToken {
 		return "", nil
@@ -617,6 +685,41 @@ func (s *Server) authorizeRun(r *http.Request) (string, error) {
 		return "", nil
 	}
 	return "", ErrInviteUnavailable
+}
+
+func (s *Server) enforcePublicRequestPolicy(w http.ResponseWriter, r *http.Request) error {
+	if accessMode(s.Config) != AccessModePublicBYOK {
+		return nil
+	}
+	if s.Policy == nil {
+		s.Policy = NewPolicyLimiter()
+	}
+	if err := s.Policy.AllowRequest(requestClientIP(r), time.Now().UTC(), s.Config.PublicRequestLimit, s.Config.PublicRequestWindow); err != nil {
+		writePolicyError(w, r, err)
+		return err
+	}
+	return nil
+}
+
+func accessMode(config Config) string {
+	switch config.AccessMode {
+	case AccessModePublicBYOK, AccessModeInviteRequired:
+		return config.AccessMode
+	default:
+		if config.InviteToken != "" || config.InviteRequired {
+			return AccessModeInviteRequired
+		}
+		return AccessModePublicBYOK
+	}
+}
+
+func requestClientIP(r *http.Request) string {
+	headers := map[string]string{
+		"CF-Connecting-IP": r.Header.Get("CF-Connecting-IP"),
+		"X-Forwarded-For":  r.Header.Get("X-Forwarded-For"),
+		"X-Real-IP":        r.Header.Get("X-Real-IP"),
+	}
+	return clientIP(r.RemoteAddr, headers)
 }
 
 func linksForRun(runID string) RunLinks {
@@ -686,6 +789,18 @@ func writeStoreError(w http.ResponseWriter, r *http.Request, err error) {
 		return
 	}
 	writeError(w, r, http.StatusInternalServerError, "store_error", err.Error(), nil)
+}
+
+func writePolicyError(w http.ResponseWriter, r *http.Request, err error) {
+	var policyErr PolicyError
+	if errors.As(err, &policyErr) {
+		if policyErr.RetryAfter > 0 {
+			w.Header().Set("Retry-After", retryAfterHeader(policyErr.RetryAfter))
+		}
+		writeError(w, r, policyErr.Status, policyErr.Code, policyErr.Message, policyErr.Details)
+		return
+	}
+	writeError(w, r, http.StatusTooManyRequests, "rate_limited", err.Error(), nil)
 }
 
 func writeError(w http.ResponseWriter, r *http.Request, status int, code, message string, details map[string]any) {

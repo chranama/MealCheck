@@ -3,6 +3,7 @@ import type {
   CreateRunResponse,
   DemoIndex,
   DemoRun,
+  HealthResponse,
   QualifyMealPlanPayload,
   QualifyMealPlanResponse,
   ReportArtifacts,
@@ -95,7 +96,18 @@ export async function loadStaticJSON<T>(path: string): Promise<T> {
 }
 
 export async function checkHealth(base: string): Promise<boolean> {
-  if (!cleanApiBase(base)) return false;
+  try {
+    await fetchHealth(base);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchHealth(base: string): Promise<HealthResponse> {
+  if (!cleanApiBase(base)) {
+    throw new Error("API base URL is required.");
+  }
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 2500);
   try {
@@ -103,9 +115,10 @@ export async function checkHealth(base: string): Promise<boolean> {
       signal: controller.signal,
       headers: { accept: "application/json" },
     });
-    return response.ok;
-  } catch {
-    return false;
+    if (!response.ok) {
+      throw new ApiError(response.status, await response.text());
+    }
+    return await response.json() as HealthResponse;
   } finally {
     window.clearTimeout(timeout);
   }
@@ -146,7 +159,7 @@ export async function createRun(base: string, inviteToken: string, payload: RunP
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-MealCheck-Invite-Token": inviteToken,
+      ...inviteHeader(inviteToken),
     },
     body: JSON.stringify(payload),
   });
@@ -157,10 +170,15 @@ export async function qualifyMealPlan(base: string, inviteToken: string, payload
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-MealCheck-Invite-Token": inviteToken,
+      ...inviteHeader(inviteToken),
     },
     body: JSON.stringify(payload),
   });
+}
+
+function inviteHeader(inviteToken: string): Record<string, string> {
+  const token = inviteToken.trim();
+  return token ? { "X-MealCheck-Invite-Token": token } : {};
 }
 
 export async function fetchRun(base: string, runID: string): Promise<RunDocument> {

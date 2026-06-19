@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import {
   DEFAULT_CANDIDATE_TEXT,
@@ -60,19 +60,28 @@ export function LiveWorkspace({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const cleanBase = cleanApiBase(apiBase);
+  const inviteRequired = backend.accessMode === "invite_required";
+  const allowOpenAICompatible = backend.accessMode !== "public_byok" || backend.publicOpenAICompatible;
   const isSubmitting = live.status === "queued" || live.status === "running";
   const isCheckingQualification = qualification.status === "checking";
   const healthBlocksSubmit = backend.kind === "offline" && Boolean(cleanBase);
   const canDeleteRun = Boolean(live.runID && live.status !== "deleted");
-  const baseActionsEnabled = Boolean(cleanBase && inviteToken.trim()) && !isSubmitting && !isCheckingQualification && !healthBlocksSubmit;
+  const baseActionsEnabled = Boolean(cleanBase) && (!inviteRequired || Boolean(inviteToken.trim())) && !isSubmitting && !isCheckingQualification && !healthBlocksSubmit;
   const canQualify = baseActionsEnabled && Boolean(candidateText.trim());
   const canCreateRun = baseActionsEnabled;
   const createFeedback = createRunFeedback({
     apiBase: cleanBase,
     hasInviteToken: Boolean(inviteToken.trim()),
+    inviteRequired,
     healthBlocksSubmit,
     isBusy: isSubmitting || isCheckingQualification,
   });
+
+  useEffect(() => {
+    if (!allowOpenAICompatible && provider.type === "openai_compatible") {
+      setProvider((current) => ({ ...current, type: "openai", base_url: "" }));
+    }
+  }, [allowOpenAICompatible, provider.type]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -122,14 +131,16 @@ export function LiveWorkspace({
         />
 
         <form id="live-run-form" onSubmit={handleSubmit}>
-          <fieldset>
-            <legend>Access</legend>
-            <div className="form-grid">
-              <Field label="Access code">
-                <input autoComplete="off" value={inviteToken} onChange={(event) => setInviteToken(event.target.value)} type="password" />
-              </Field>
-            </div>
-          </fieldset>
+          {inviteRequired ? (
+            <fieldset>
+              <legend>Access</legend>
+              <div className="form-grid">
+                <Field label="Access code">
+                  <input autoComplete="off" value={inviteToken} onChange={(event) => setInviteToken(event.target.value)} type="password" />
+                </Field>
+              </div>
+            </fieldset>
+          ) : null}
 
           <fieldset>
             <legend>Meal Plan Text</legend>
@@ -145,6 +156,7 @@ export function LiveWorkspace({
               setRepairJSON={setRepairJSON}
               mode={mode}
               setMode={setMode}
+              allowOpenAICompatible={allowOpenAICompatible}
               generationPrompt={generationPrompt}
               setGenerationPrompt={setGenerationPrompt}
             />
@@ -243,17 +255,19 @@ function RunActionStrip({
 function createRunFeedback({
   apiBase,
   hasInviteToken,
+  inviteRequired,
   healthBlocksSubmit,
   isBusy,
 }: {
   apiBase: string;
   hasInviteToken: boolean;
+  inviteRequired: boolean;
   healthBlocksSubmit: boolean;
   isBusy: boolean;
 }) {
   if (isBusy) return "Request in progress.";
   if (!apiBase) return "Report creation needs a configured MealCheck service.";
-  if (!hasInviteToken) return "Enter your access code to start.";
+  if (inviteRequired && !hasInviteToken) return "Enter your access code to start.";
   if (healthBlocksSubmit) return "Service is unavailable right now.";
   return "Ready to check eligibility or create a MealCheck report.";
 }
@@ -359,6 +373,7 @@ function ProviderForm({
   setRepairJSON,
   mode,
   setMode,
+  allowOpenAICompatible,
   generationPrompt,
   setGenerationPrompt,
 }: {
@@ -368,6 +383,7 @@ function ProviderForm({
   setRepairJSON: (value: boolean) => void;
   mode: GenerationMode;
   setMode: (mode: GenerationMode) => void;
+  allowOpenAICompatible: boolean;
   generationPrompt: string;
   setGenerationPrompt: (value: string) => void;
 }) {
@@ -382,18 +398,19 @@ function ProviderForm({
     }));
   }
 
-  const selectedProvider = PROVIDER_OPTIONS.find((option) => option.type === provider.type) ?? PROVIDER_OPTIONS[0];
+  const providerOptions = PROVIDER_OPTIONS.filter((option) => allowOpenAICompatible || option.type !== "openai_compatible");
+  const selectedProvider = providerOptions.find((option) => option.type === provider.type) ?? providerOptions[0];
 
   return (
     <section className="mode-section" id="provider-section">
       <div className="notice">
         <strong>Model provider disclosure</strong>
-        <p>MealCheck sends this key to the backend for the requested provider call. Use temporary, scoped, budget-limited keys; custom OpenAI-compatible endpoints receive the key too. For maximum control, run MealCheck locally from the repo.</p>
+        <p>MealCheck sends this key to the backend for the requested provider call. Use temporary, scoped, budget-limited keys. Hosted public mode disables custom OpenAI-compatible endpoints unless explicitly allowed; run MealCheck locally from the repo for maximum endpoint control.</p>
       </div>
       <div className="form-grid">
         <Field label="Provider">
           <select value={provider.type} onChange={(event) => updateProviderType(event.target.value as ProviderType)}>
-            {PROVIDER_OPTIONS.map((option) => (
+            {providerOptions.map((option) => (
               <option key={option.type} value={option.type}>{option.label}</option>
             ))}
           </select>
