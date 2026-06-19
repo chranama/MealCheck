@@ -1689,3 +1689,65 @@ Acceptance:
 - docs preserve local CLI structured JSON validation for debugging
 - README, product, user-story, and implementation-plan docs describe the same
   product split
+
+## Milestone 16: Meal Plan Qualification Contract
+
+Status: Implemented on 2026-06-19 for backend contract and tests.
+
+Purpose:
+
+MealCheck needs a first-class way to answer whether candidate content qualifies
+as a meal plan before deterministic guideline verification runs. Qualification
+is separate from verification: it determines whether content can become
+normalized ingredient-level MealCheck JSON, while verification determines
+`pass`, `warn`, or `block`.
+
+Deliver:
+
+- backend qualification result contract
+- deterministic qualification for already-structured MealCheck JSON
+- text classification for content that is not a meal plan, too vague, or
+  recipe/menu-like but not decomposed
+- BYOK-assisted normalization path for text that already contains meal
+  structure and ingredient quantities
+- explicit `eligible_with_unresolved_items` result for plans that can be
+  verified while preserving unresolved foods or quantities
+- tests for non-meal text, vague meal outlines, recipe-like text, eligible
+  structured JSON, eligible unresolved JSON, and BYOK-assisted text
+  normalization
+
+Implemented:
+
+1. Added `MealPlanQualificationRequest` and `MealPlanQualificationResult` in
+   `internal/hosted`.
+2. Added qualification statuses:
+   - `not_meal_plan`
+   - `meal_plan_too_vague`
+   - `recipe_or_menu_needs_decomposition`
+   - `eligible_for_verification`
+   - `eligible_with_unresolved_items`
+3. Added deterministic structured JSON qualification using the existing strict
+   MealCheck decode, bounded alias canonicalization, and `validatePlan`
+   contract.
+4. Added lightweight text classification before provider calls, so clearly
+   non-meal, vague, or recipe-like text does not trigger BYOK inference.
+5. Added BYOK-assisted normalization messages for text that already looks
+   meal-plan-like and includes quantities or units.
+6. Redacted the provider API key from qualification source text before sending
+   prompts to a provider.
+7. Added focused backend tests for all target statuses and provider-prompt
+   secret redaction.
+
+Acceptance:
+
+- qualification can identify content that is not a meal plan
+- qualification can identify meal-plan outlines that lack quantities or units
+- qualification can identify recipe-like text that needs decomposition before
+  verification
+- already-normalized MealCheck JSON can qualify without a provider call
+- normalized JSON with explicit unresolved items qualifies as
+  `eligible_with_unresolved_items`
+- detailed pasted text can use a BYOK provider to produce normalized MealCheck
+  JSON
+- qualification does not decide guideline compliance
+- provider API keys are not copied into qualification prompts
