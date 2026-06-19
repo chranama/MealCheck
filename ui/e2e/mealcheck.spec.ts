@@ -226,7 +226,7 @@ test("creates a mocked BYOK profile-generation run without persisting provider k
   const api = await mockMealCheckApi(page);
   await page.goto("/?api=/mock-api");
 
-  await page.getByRole("button", { name: "Profile" }).click();
+  await page.getByRole("button", { name: "Targets" }).click();
   await expect(page.getByText("Model provider disclosure")).toBeVisible();
   await page.getByLabel("Access code").fill("invite-1");
   await page.getByLabel("Model").fill("gpt-test");

@@ -249,8 +249,7 @@ func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 		"Do not provide medical claims.",
 	}, " ")
 	payload := map[string]any{
-		"profile":     input.Profile,
-		"constraints": input.Constraints,
+		"settings": providerPromptSettings(input.Profile, input.Constraints),
 		"required_counts": map[string]int{
 			"days":          input.Constraints.Days,
 			"meals_per_day": input.Constraints.MealsPerDay,
@@ -280,8 +279,7 @@ func repairMessages(input PendingRunInput, original string, decodeErr error) []P
 		"Return only one JSON object.",
 	}, " ")
 	payload := map[string]any{
-		"profile":         input.Profile,
-		"constraints":     input.Constraints,
+		"settings":        providerPromptSettings(input.Profile, input.Constraints),
 		"decode_error":    decodeErr.Error(),
 		"required_shape":  mealPlanShapeInstructions(input.Constraints),
 		"alias_rules":     mealPlanAliasRules(),
@@ -291,6 +289,43 @@ func repairMessages(input PendingRunInput, original string, decodeErr error) []P
 	return []ProviderMessage{
 		{Role: "system", Content: system},
 		{Role: "user", Content: string(payloadJSON)},
+	}
+}
+
+type providerPromptNutritionTargets struct {
+	CalorieTargetKcal int `json:"calorie_target_kcal,omitempty"`
+	ProteinTargetG    int `json:"protein_target_g,omitempty"`
+}
+
+type providerPromptConstraints struct {
+	Days                       int      `json:"days,omitempty"`
+	MealsPerDay                int      `json:"meals_per_day,omitempty"`
+	Allergies                  []string `json:"allergies,omitempty"`
+	ExcludedFoods              []string `json:"excluded_foods,omitempty"`
+	MaxSodiumMGPerDay          int      `json:"max_sodium_mg_per_day,omitempty"`
+	MaxAddedSugarGPerMeal      float64  `json:"max_added_sugar_g_per_meal,omitempty"`
+	MaxSaturatedFatPctCalories float64  `json:"max_saturated_fat_pct_calories,omitempty"`
+	CalorieTolerancePct        float64  `json:"calorie_tolerance_pct,omitempty"`
+	RequiresPrepSafetyNotes    bool     `json:"requires_prep_safety_notes"`
+}
+
+func providerPromptSettings(profile checker.Profile, constraints checker.Constraints) map[string]any {
+	return map[string]any{
+		"nutrition_targets": providerPromptNutritionTargets{
+			CalorieTargetKcal: profile.CalorieTargetKcal,
+			ProteinTargetG:    profile.ProteinTargetG,
+		},
+		"verification_constraints": providerPromptConstraints{
+			Days:                       constraints.Days,
+			MealsPerDay:                constraints.MealsPerDay,
+			Allergies:                  constraints.Allergies,
+			ExcludedFoods:              constraints.ExcludedFoods,
+			MaxSodiumMGPerDay:          constraints.MaxSodiumMGPerDay,
+			MaxAddedSugarGPerMeal:      constraints.MaxAddedSugarGPerMeal,
+			MaxSaturatedFatPctCalories: constraints.MaxSaturatedFatPctCalories,
+			CalorieTolerancePct:        constraints.CalorieTolerancePct,
+			RequiresPrepSafetyNotes:    constraints.RequiresPrepSafetyNotes,
+		},
 	}
 }
 

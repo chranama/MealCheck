@@ -61,7 +61,7 @@ test("qualifies a real local candidate meal plan through the fake provider", asy
 test("creates a real local BYOK run through the fake provider and redacts secrets", async ({ page }) => {
   await page.goto(`/?api=${apiBase}`);
 
-  await page.getByRole("button", { name: "Profile" }).click();
+  await page.getByRole("button", { name: "Targets" }).click();
   await expect(page.getByText("Model provider disclosure")).toBeVisible();
   await page.getByLabel("Access code").fill("invite-1");
   await page.getByLabel("Model").fill("fake-meal-plan");

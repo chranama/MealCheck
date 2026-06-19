@@ -48,11 +48,13 @@ describe("LiveWorkspace", () => {
     expect(screen.getByLabelText("Meal plan text")).toBeVisible();
     expect(screen.getByText("Model Provider")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Manual" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Profile" })).toHaveClass("is-active");
+    expect(screen.getByRole("button", { name: "Targets" })).toHaveClass("is-active");
     expect(screen.getByText("Model provider disclosure")).toBeInTheDocument();
     expect(screen.getByText("Verification Settings").closest("details")).not.toHaveAttribute("open");
-    expect(screen.getByLabelText("Age")).not.toBeVisible();
     expect(screen.getByLabelText("Days")).not.toBeVisible();
+    expect(screen.queryByLabelText("Age")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Diet pattern")).not.toBeInTheDocument();
+    expect(screen.queryByText("Shopping list required")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Prep notes")).not.toBeInTheDocument();
   });
 
@@ -62,12 +64,24 @@ describe("LiveWorkspace", () => {
     renderWorkspace({ onCreateRun });
 
     await user.click(screen.getByText("Verification Settings"));
-    expect(screen.getByLabelText("Age")).toBeVisible();
+    expect(screen.getByText("Nutrition Targets")).toBeInTheDocument();
+    expect(screen.getByLabelText("Calories")).toBeVisible();
+    expect(screen.getByLabelText("Protein g")).toBeVisible();
     expect(screen.getByLabelText("Days")).toBeVisible();
     expect(screen.getByText("Advanced constraints")).toBeVisible();
+    expect(screen.queryByLabelText("Age")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Sex")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Height cm")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Weight kg")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Activity")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Goal")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Diet pattern")).not.toBeInTheDocument();
+    expect(screen.queryByText("Shopping list required")).not.toBeInTheDocument();
 
     await user.clear(screen.getByLabelText("Calories"));
     await user.type(screen.getByLabelText("Calories"), "2100");
+    await user.clear(screen.getByLabelText("Protein g"));
+    await user.type(screen.getByLabelText("Protein g"), "120");
     await user.clear(screen.getByLabelText("Days"));
     await user.type(screen.getByLabelText("Days"), "2");
     await user.type(screen.getByLabelText("Access code"), "invite-1");
@@ -82,6 +96,7 @@ describe("LiveWorkspace", () => {
         input_mode: "profile_generation",
         profile: expect.objectContaining({
           calorie_target_kcal: 2100,
+          protein_target_g: 120,
         }),
         constraints: expect.objectContaining({
           days: 2,
@@ -290,7 +305,7 @@ describe("LiveWorkspace", () => {
     const onCreateRun = vi.fn(async () => undefined);
     renderWorkspace({ onCreateRun });
 
-    await user.click(screen.getByRole("button", { name: "Profile" }));
+    await user.click(screen.getByRole("button", { name: "Targets" }));
     await user.type(screen.getByLabelText("Access code"), "invite-1");
     await user.selectOptions(screen.getByLabelText("Provider"), "gemini");
     await user.type(screen.getByLabelText("Model"), "gemini-test");

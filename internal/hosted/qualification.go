@@ -136,8 +136,7 @@ func qualificationMessages(request MealPlanQualificationRequest) []ProviderMessa
 		"Do not provide medical claims.",
 	}, " ")
 	payload := map[string]any{
-		"profile":        request.Profile,
-		"constraints":    request.Constraints,
+		"settings":       providerPromptSettings(request.Profile, request.Constraints),
 		"source_text":    sanitizeDebugArtifactText(request.Text, request.Provider.APIKey),
 		"required_shape": mealPlanShapeInstructions(request.Constraints),
 		"alias_rules":    mealPlanAliasRules(),

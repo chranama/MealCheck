@@ -1929,3 +1929,59 @@ Acceptance:
   submission
 - frontend typecheck, unit tests, mocked e2e tests, local e2e tests, and build
   pass
+
+## Milestone 20: Hosted Verifier Settings Minimization
+
+Status: Implemented on 2026-06-19 for the hosted frontend, BYOK prompt context,
+and product/privacy documentation.
+
+Purpose:
+
+After moving profile and constraints behind Verification Settings, the remaining
+panel still exposed fields that the verifier did not use directly. The hosted
+surface should ask only for information that can customize verification or
+provider meal-plan generation. Compatibility defaults can keep backend structs
+valid, but unused demographic/profile fields should not be presented as user
+requirements or sent to model providers as if they were user choices.
+
+Deliver:
+
+- hosted Verification Settings limited to direct nutrition targets and
+  verification constraints
+- removal of age, sex, height, weight, activity, goal, diet pattern, and
+  shopping-list-required from the hosted settings UI
+- BYOK provider prompt context filtered to the same exposed target/check fields
+- frontend and backend tests that prevent reintroducing unused hosted settings
+- user-story, privacy, decision-log, and implementation-plan docs aligned with
+  the minimized settings surface
+
+Implemented:
+
+1. Renamed the Profile fieldset to Nutrition Targets and kept only calories and
+   protein.
+2. Kept direct verification constraints: days, meals per day, allergies,
+   excluded foods, sodium, added sugar, saturated fat, calorie tolerance, and
+   prep-safety requirement.
+3. Removed unused hosted UI controls for age, sex, height, weight, activity,
+   goal, diet pattern, and shopping-list requirement.
+4. Renamed the visible profile-generation mode button to Targets while keeping
+   the backend `profile_generation` mode name unchanged.
+5. Added provider prompt settings filtering so generation, repair, and
+   qualification prompts no longer send hidden compatibility profile/default
+   fields.
+6. Updated frontend unit tests and hosted backend tests for the minimized field
+   set and provider prompt payload.
+7. Updated the user story, privacy/safety policy, design notes, and decision
+   log.
+
+Acceptance:
+
+- hosted Verification Settings exposes only fields with a direct verifier,
+  generation, or provider-prompt effect
+- removed fields are not present in the hosted settings DOM
+- edited calorie, protein, day-count, and meal-count settings still reach report
+  creation payloads
+- BYOK provider prompt payloads include nutrition targets and verification
+  constraints, but omit unused demographic/profile fields and unused switches
+- frontend typecheck, unit tests, backend tests, mocked e2e tests, local e2e
+  tests, and build pass

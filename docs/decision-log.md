@@ -6,6 +6,39 @@ public expectations.
 Use this log instead of separate ADR and RFC files until a decision becomes too
 large to keep readable here.
 
+## 2026-06-19: Hosted Settings Ask Only For Verifier-Used Fields
+
+Status: Accepted
+
+Decision:
+
+The hosted Verification Settings panel should ask only for fields that
+directly affect the verifier or provider meal-plan generation contract:
+calorie target, protein target, days, meals per day, allergies, excluded foods,
+nutrient thresholds, calorie tolerance, and prep-safety requirement. It should
+not ask for general demographic/profile fields or unused switches such as diet
+pattern or shopping-list requirement until the product has code paths that use
+them.
+
+Reason:
+
+The hosted product is a verifier, not a general nutrition profile intake. Asking
+for age, sex, height, weight, activity level, goal, diet pattern, or unused
+policy switches creates friction and suggests the system can personalize or
+judge more than it actually does. Hidden compatibility defaults may still keep
+the backend contract valid, but provider-facing prompts should include only the
+same target/check fields the hosted UI exposes.
+
+Consequences:
+
+- Hosted users see a smaller Verification Settings panel.
+- The backend request contract remains compatible with existing case files and
+  API clients.
+- BYOK provider prompts receive filtered settings rather than full profile and
+  constraint structs.
+- New hosted settings should not be exposed until they have a real verifier,
+  generation, or provider-prompt effect.
+
 ## 2026-06-19: Hosted UI Is Text-First With Optional Verification Settings
 
 Status: Accepted
@@ -13,7 +46,7 @@ Status: Accepted
 Decision:
 
 The hosted MealCheck workspace should lead with the core verification workflow:
-access code, pasted meal-plan text, and model provider settings. Profile and
+access code, pasted meal-plan text, and model provider settings. Target and
 constraint inputs should remain available, but they should live behind a
 collapsed Verification Settings disclosure and use defaults unless the user
 chooses to tune them.
@@ -32,9 +65,9 @@ Consequences:
 
 - The first screen should expose Access, Meal Plan Text, and Model Provider
   before optional settings.
-- Profile and constraint defaults remain part of qualification and generation
+- Target and constraint defaults remain part of qualification and generation
   payloads.
-- Users can still expand Verification Settings to adjust profile assumptions,
+- Users can still expand Verification Settings to adjust nutrition targets,
   constraints, and advanced thresholds.
 - Backend contracts do not change for this UI decision.
 - Tests should assert both the collapsed default state and that edited settings

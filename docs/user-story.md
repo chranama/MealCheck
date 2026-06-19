@@ -127,8 +127,9 @@ Natural language may appear in:
 - user-facing report explanations
 
 The auditable evaluation input is always normalized JSON. The same schema is
-used whether the plan was generated from profile fields, generated from a custom
-prompt, normalized from pasted text, or supplied locally to the CLI.
+used whether the plan was generated from nutrition targets and constraints,
+generated from a custom prompt, normalized from pasted text, or supplied locally
+to the CLI.
 
 Minimal internal shape:
 
@@ -167,13 +168,7 @@ Minimal internal shape:
    - API key
    - custom base URL only for OpenAI-compatible providers
 5. If defaults are not sufficient, the user opens Verification Settings and
-   adjusts profile inputs:
-   - age
-   - sex
-   - height
-   - weight
-   - activity level
-   - goal
+   adjusts nutrition targets:
    - calorie target
    - protein target
 6. If defaults are not sufficient, the user adjusts verification constraints:
@@ -181,12 +176,10 @@ Minimal internal shape:
    - meals per day
    - allergies
    - foods to avoid
-   - diet pattern
    - sodium limit
    - added sugar limit
    - saturated fat limit
    - calorie tolerance
-   - shopping-list requirement
    - prep-safety-notes requirement
 7. The user supplies either:
    - a BYOK generation prompt

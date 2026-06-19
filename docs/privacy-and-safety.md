@@ -34,9 +34,11 @@ Reports should include a short non-medical-use disclaimer.
 
 MealCheck may receive:
 
-- profile fields: age, sex, height, weight, activity level, and goal
-- constraints: allergies, excluded foods, diet pattern, nutrient limits, and
-  food preferences
+- hosted nutrition targets: calorie target and protein target
+- verification constraints: days, meals per day, allergies, excluded foods,
+  nutrient limits, calorie tolerance, and prep-safety requirement
+- local/API compatibility profile fields: age, sex, height, weight, activity
+  level, and goal when supplied through structured case files or API payloads
 - meal-plan data: foods, quantities, units, prep notes, and shopping lists
 - prompts: custom user prompts for prompt-based generation
 - provider credentials: model API keys supplied for BYOK runs
@@ -81,10 +83,11 @@ data to an LLM provider.
 
 BYOK LLM modes send data to the user's selected provider:
 
-- qualification normalization sends pasted candidate meal-plan text, profile,
-  and constraints when a provider is needed
-- profile-only generation sends profile and constraints
-- prompt-based generation sends profile, constraints, and the custom prompt
+- qualification normalization sends pasted candidate meal-plan text, nutrition
+  targets, and verification constraints when a provider is needed
+- profile-only generation sends nutrition targets and verification constraints
+- prompt-based generation sends nutrition targets, verification constraints,
+  and the custom prompt
 - bounded repair sends invalid model output, schema errors, and enough context
   to repair JSON shape
 

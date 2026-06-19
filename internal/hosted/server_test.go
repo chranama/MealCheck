@@ -893,6 +893,39 @@ func TestRequestRunInputAcceptsNativeProviderTypes(t *testing.T) {
 	}
 }
 
+func TestProviderPromptSettingsExposeOnlyVerifierUsedFields(t *testing.T) {
+	root := repoRoot(t)
+	seeded := seededCase(t, root)
+	genMessages, err := generationMessages(PendingRunInput{
+		Mode:        "profile_generation",
+		Profile:     seeded.Profile,
+		Constraints: seeded.Constraints,
+	})
+	if err != nil {
+		t.Fatalf("generationMessages error: %v", err)
+	}
+	qualMessages := qualificationMessages(MealPlanQualificationRequest{
+		Text:        "Day 1 breakfast: 1 cup oatmeal.",
+		Profile:     seeded.Profile,
+		Constraints: seeded.Constraints,
+	})
+	for name, content := range map[string]string{
+		"generation":    genMessages[1].Content,
+		"qualification": qualMessages[1].Content,
+	} {
+		for _, want := range []string{`"nutrition_targets"`, `"calorie_target_kcal"`, `"protein_target_g"`, `"verification_constraints"`, `"days"`, `"meals_per_day"`, `"allergies"`, `"excluded_foods"`, `"max_sodium_mg_per_day"`, `"requires_prep_safety_notes"`} {
+			if !strings.Contains(content, want) {
+				t.Fatalf("%s provider prompt missing %s: %s", name, want, content)
+			}
+		}
+		for _, unwanted := range []string{`"age"`, `"sex"`, `"height_cm"`, `"weight_kg"`, `"activity_level"`, `"goal"`, `"diet_pattern"`, `"requires_shopping_list"`} {
+			if strings.Contains(content, unwanted) {
+				t.Fatalf("%s provider prompt contains unused field %s: %s", name, unwanted, content)
+			}
+		}
+	}
+}
+
 func TestOpenAIProviderRequestAndResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/chat/completions" {

@@ -204,16 +204,14 @@ form can continue below it.
 The default path should expose only the controls most reviewers need to start a
 run:
 
-- API base URL
 - access code
-- profile basics
-- day and meal count
-- allergy and excluded-food constraints
-- input mode
-- plan input
+- meal-plan text
+- model provider settings
+- optional verification settings for nutrition targets, day and meal count,
+  allergies, excluded foods, nutrient thresholds, and prep-safety requirement
 
-Advanced threshold controls, shopping-list requirements, and prep-safety
-requirements belong in an expandable advanced constraints section.
+Do not expose demographic profile fields or unused switches until the verifier
+or provider prompt has a concrete use for them.
 
 ### Hide Internal Workflow Mechanics
 
@@ -317,7 +315,8 @@ First-viewport priorities:
 2. New meal check navigation as the active primary surface.
 3. A concise summary showing readiness and service availability.
 4. A compact action/status strip with the primary report action visible.
-5. The live-check form, starting with access and profile fields.
+5. The live-check form, starting with access, meal-plan text, and provider
+   settings.
 6. A companion results panel.
 7. Seeded demo navigation as a secondary path.
 
@@ -403,15 +402,12 @@ Summary band:
 
 Live form:
 
-- Group fields in this order: Access, Profile, Constraints, Meal Plan Entry,
-  Plan Input.
+- Group fields in this order: Access, Meal Plan Text, Model Provider, optional
+  Verification Settings.
 - Keep labels short and visible.
 - Keep the primary create action in a compact action/status strip near the top
   of the live-run workspace.
 - Put threshold and policy details inside an advanced constraints disclosure.
-- Manual entry should show column labels for day, meal, food, quantity, unit,
-  and actions.
-- Manual entry should become labeled cards on mobile.
 - The destructive delete action should be disabled when no report exists.
 
 Results:

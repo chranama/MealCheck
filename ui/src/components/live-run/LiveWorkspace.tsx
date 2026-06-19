@@ -156,7 +156,7 @@ export function LiveWorkspace({
             <details className="advanced-section verification-settings">
               <summary>
                 <span>Verification Settings</span>
-                <small>Profile and constraints</small>
+                <small>Targets and checks</small>
               </summary>
               <div className="verification-settings-body">
                 <ProfileForm profile={profile} setProfile={setProfile} />
@@ -274,27 +274,8 @@ function ProfileForm({ profile, setProfile }: { profile: Profile; setProfile: Di
 
   return (
     <fieldset>
-      <legend>Profile</legend>
+      <legend>Nutrition Targets</legend>
       <div className="form-grid">
-        <Field label="Age"><NumberInput value={profile.age} min={18} max={120} step={1} onChange={(value) => update("age", value)} /></Field>
-        <Field label="Sex">
-          <select value={profile.sex} onChange={(event) => update("sex", event.target.value)}>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
-        </Field>
-        <Field label="Height cm"><NumberInput value={profile.height_cm} min={1} max={260} step={1} onChange={(value) => update("height_cm", value)} /></Field>
-        <Field label="Weight kg"><NumberInput value={profile.weight_kg} min={1} max={300} step={1} onChange={(value) => update("weight_kg", value)} /></Field>
-        <Field label="Activity">
-          <select value={profile.activity_level} onChange={(event) => update("activity_level", event.target.value)}>
-            <option value="inactive">Inactive</option>
-            <option value="low_active">Low Active</option>
-            <option value="moderate">Moderate</option>
-            <option value="active">Active</option>
-            <option value="very_active">Very Active</option>
-          </select>
-        </Field>
-        <Field label="Goal"><input value={profile.goal} onChange={(event) => update("goal", event.target.value)} type="text" /></Field>
         <Field label="Calories"><NumberInput value={profile.calorie_target_kcal} min={1} max={8000} step={1} onChange={(value) => update("calorie_target_kcal", value)} /></Field>
         <Field label="Protein g"><NumberInput value={profile.protein_target_g} min={1} max={400} step={1} onChange={(value) => update("protein_target_g", value)} /></Field>
       </div>
@@ -315,7 +296,6 @@ function ConstraintsForm({ constraints, setConstraints }: { constraints: Constra
         <Field label="Meals/day"><NumberInput value={constraints.meals_per_day} min={1} max={6} step={1} onChange={(value) => update("meals_per_day", value)} /></Field>
         <Field label="Allergies"><input value={constraints.allergies} onChange={(event) => update("allergies", event.target.value)} type="text" /></Field>
         <Field label="Excluded foods"><input value={constraints.excluded_foods} onChange={(event) => update("excluded_foods", event.target.value)} type="text" /></Field>
-        <Field label="Diet pattern"><input value={constraints.diet_pattern} onChange={(event) => update("diet_pattern", event.target.value)} type="text" /></Field>
       </div>
       <details className="advanced-section">
         <summary>
@@ -329,7 +309,6 @@ function ConstraintsForm({ constraints, setConstraints }: { constraints: Constra
           <Field label="Calorie tolerance %"><NumberInput value={constraints.calorie_tolerance_pct} min={0} max={100} step={0.1} onChange={(value) => update("calorie_tolerance_pct", value)} /></Field>
         </div>
         <div className="check-row">
-          <label><input checked={constraints.requires_shopping_list} onChange={(event) => update("requires_shopping_list", event.target.checked)} type="checkbox" />Shopping list required</label>
           <label><input checked={constraints.requires_prep_safety_notes} onChange={(event) => update("requires_prep_safety_notes", event.target.checked)} type="checkbox" />Prep safety notes required</label>
         </div>
       </details>
@@ -415,7 +394,7 @@ function ProviderForm({
       </div>
       <section className="generation-mode-section">
         <div className="segmented" role="group" aria-label="Generation mode">
-          <ModeButton mode="profile_generation" activeMode={mode} setMode={setMode} label="Profile" />
+          <ModeButton mode="profile_generation" activeMode={mode} setMode={setMode} label="Targets" />
           <ModeButton mode="prompt_generation" activeMode={mode} setMode={setMode} label="Prompt" />
         </div>
       </section>

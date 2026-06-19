@@ -74,7 +74,7 @@ Each source-derived rule belongs to an explicit domain.
 | Domain | Example Checks | Claim Strength |
 | --- | --- | --- |
 | Nutrient limits | sodium, added sugar, saturated fat | Strong when nutrient data resolves |
-| Profile targets | estimated calories, optional protein target | Strong only when profile inputs are present and assumptions are visible |
+| Nutrition targets | configured calories and protein minimum | Strong only when targets are present and assumptions are visible |
 | Food exclusions | declared allergies, user-excluded foods | Strong for ingredient/name matches; warn when unresolved |
 | Food groups | vegetables, fruit, grains, protein, dairy alternatives | Advisory or warn by default |
 | Meal-prep safety | chill, reheat, storage, cross-contamination notes | Warn by default unless a clear unsafe instruction appears |
