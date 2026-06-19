@@ -19,8 +19,12 @@ The MVP should include:
 - Versioned guideline pack snapshot.
 - Local fixture nutrient catalog sufficient for the seeded scenario.
 - Strict normalized meal-plan schema.
-- Three input modes: manual structured entry, profile-only generation, and
-  prompt-based generation.
+- Hosted surfaces for public seeded demos, invite-gated BYOK verification, and
+  local/agent-tool guidance.
+- BYOK profile-only generation, prompt-based generation, qualification,
+  normalization, and bounded JSON repair as the hosted live path.
+- Local CLI structured JSON validation for debugging, fixtures, regression
+  cases, and agent-generated structured inputs.
 - Deterministic checks for structure, allergens, nutrient limits, unresolved
   foods, and baseline-versus-candidate regression.
 - Human-readable report and machine-readable artifacts.
@@ -61,8 +65,8 @@ long-standing public web deployment:
   uses Postgres plus filesystem artifact storage outside the Git checkout.
 - The public API exposes only the intended HTTP surface and uses CORS limited to
   the production frontend origin.
-- Live manual and BYOK runs are invite-gated, bounded by the configured queue,
-  upload, timeout, and retention limits, and can be deleted by the user.
+- Live BYOK runs are invite-gated, bounded by the configured queue, upload,
+  timeout, and retention limits, and can be deleted by the user.
 - The runbook documents deployment, start, stop, restart, health check, logs,
   tunnel status, smoke tests, backup, and cleanup commands.
 - A smoke test from outside the home network can inspect the seeded report,
@@ -1629,3 +1633,59 @@ Acceptance:
 - An expired queued BYOK run fails closed before provider invocation.
 - API, CLI, privacy/safety, contracts, and runbook docs describe the same BYOK
   trust model.
+
+## Milestone 15: Product Surface Tightening
+
+Status: Implemented on 2026-06-19 for product and user-story documentation.
+
+Purpose:
+
+MealCheck's hosted website should have a sharper product role. The hosted
+surface is a public demonstration and invite-gated BYOK verification playground,
+not the primary structured manual-entry verifier and not a general meal-planning
+chatbot. The downloaded repository remains the trusted local deployment and
+debug surface, and the CLI preserves structured JSON verification for fixtures,
+regression cases, and agent/tool integration.
+
+Deliver:
+
+- update product positioning so hosted MealCheck exposes seeded demos,
+  invite-gated BYOK verification, and a local/agent-tool path
+- remove the nontechnical hosted manual-entry user story from the target
+  product narrative
+- preserve structured JSON entry and validation in the CLI/local workflow for
+  debugging and regression use
+- define what qualifies as a meal plan before verification
+- distinguish natural-language prompts, meal-plan outlines, recipes, and
+  normalized ingredient-level meal plans
+- make qualification separate from guideline verification
+
+Implemented:
+
+1. Updated `docs/product.md` so the primary users are technical users who
+   already work with LLM-generated meal plans, plus developers evaluating the
+   pattern. The hosted target surface is now demo reports, invite-gated BYOK
+   verification, and local/agent-tool instructions.
+2. Updated `docs/user-story.md` so the primary story is a technically capable
+   user testing whether an LLM-generated or LLM-normalized plan qualifies for
+   deterministic verification. Hosted manual structured entry is no longer a
+   primary live story.
+3. Added a meal-plan eligibility contract:
+   - natural language prompts are not directly verifiable
+   - vague menus and recipe titles are not enough
+   - eligible plans require days, meals, ingredient-level items, quantities and
+     units, or explicit unresolved quantity fields
+   - qualification answers whether verification can proceed, while verification
+     answers `pass`, `warn`, or `block`
+4. Updated `README.md` to describe the hosted website as a demo/BYOK surface
+   and the downloaded repo as the local verifier/debug and future agent-tool
+   surface.
+
+Acceptance:
+
+- docs clearly remove the nontechnical hosted manual-entry story
+- docs define what qualifies as a meal plan
+- docs distinguish qualification from verification
+- docs preserve local CLI structured JSON validation for debugging
+- README, product, user-story, and implementation-plan docs describe the same
+  product split

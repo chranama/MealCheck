@@ -1,29 +1,58 @@
 # User Story
 
-This document defines the MVP user story MealCheck should support first.
+This document defines the tightened MVP user story MealCheck should support
+first.
 
 ## Primary Story
 
-A healthy adult wants to create or enter a meal plan, then verify whether the
-plan satisfies declared constraints and guideline-backed checks before using it.
+A technically capable user is already using an LLM, agent, or prompt workflow
+to draft meal plans. They want MealCheck to answer two bounded questions before
+they trust the result:
+
+1. Is this content specific enough to qualify as a verifiable meal plan?
+2. If so, does the normalized meal plan violate declared constraints or
+   source-backed guideline checks?
 
 Example user:
 
-- 35-year-old male
-- generally healthy
+- adult healthy-user scenario
 - no clinical diet requirements
-- wants a three-day or seven-day meal plan
-- may want LLM generation, prompt-based generation, or manual structured entry
+- comfortable managing temporary, scoped model-provider API keys
+- may use OpenAI, Anthropic, Gemini, or an OpenAI-compatible endpoint
+- wants a three-day or seven-day meal plan checked
 - wants MealCheck to verify the plan, not provide medical nutrition advice
+- may run the repo locally or use MealCheck as a future agent-callable tool
+
+## Product Surface
+
+MealCheck has three intended surfaces:
+
+- Hosted website: public seeded demo reports plus invite-gated BYOK
+  qualification and verification.
+- Downloaded repo: trusted local verifier, local backend, and debugging surface.
+- CLI: structured JSON validation, fixture regression, artifact inspection, and
+  future agent-tool integration.
+
+The hosted website is not the primary structured manual-entry verifier and is
+not a general meal-planning chatbot. Structured JSON entry remains preserved in
+the CLI and local development workflow for debugging and regression purposes.
 
 ## User Goal
 
-The user wants an answer to:
+The user wants answers to:
 
-`Does this meal plan violate my constraints or the selected public-guideline checks?`
+```text
+Does this text or model output qualify as a meal plan MealCheck can verify?
+```
 
-The user should receive a clear `pass`, `warn`, or `block` decision with
-evidence.
+and, once qualified:
+
+```text
+Does this meal plan violate my constraints or the selected public-guideline checks?
+```
+
+The user should receive a qualification result before verification, and then a
+clear `pass`, `warn`, or `block` decision with evidence after verification.
 
 ## Preconditions
 
@@ -32,12 +61,60 @@ The MVP assumes:
 - the user is an adult
 - the user is not asking for disease-specific, pediatric, pregnancy, or
   therapeutic nutrition guidance
+- hosted live runs are invite-gated and require BYOK provider credentials
 - the selected guideline pack is `dga-2025-2030-us-adult-general-v1`
-- all input modes eventually produce a normalized JSON meal plan
+- all verification modes eventually produce a normalized JSON meal plan
 - nutrient values are calculated from MealCheck's resolver, not trusted from the
   LLM
 - strong judgments are made only from user constraints, resolved nutrient data,
   guideline-pack rules, or a baseline plan
+
+## What Qualifies As A Meal Plan
+
+MealCheck verifies structured, ingredient-level meal plans. Natural language can
+start the process, but natural language is not directly eligible for
+verification until it is normalized into the MealCheck meal-plan contract.
+
+A verifiable meal plan must answer:
+
+- what days are covered
+- what meals exist on each day
+- what food items are in each meal
+- what quantities and units are attached to those foods
+- which items are unresolved when quantities or foods cannot be normalized
+
+Not eligible:
+
+```text
+Eat healthy this week.
+```
+
+Not yet eligible because it is too vague:
+
+```text
+Breakfast: oatmeal
+Lunch: salad
+Dinner: chicken bowl
+```
+
+Recipe-like but requiring decomposition:
+
+```text
+Make a healthy chicken bowl with rice, vegetables, and sauce.
+```
+
+Eligible:
+
+```text
+Day 1 / Breakfast / cooked oatmeal / 1 / cup
+Day 1 / Breakfast / blueberries / 0.5 / cup
+Day 1 / Lunch / chicken breast / 6 / oz
+Day 1 / Lunch / brown rice / 1 / cup
+Day 1 / Lunch / broccoli / 1 / cup
+```
+
+Eligible plans may still contain unresolved foods or quantities, but those
+uncertainties must be explicit rather than silently guessed.
 
 ## Internal Meal Plan Contract
 
@@ -46,11 +123,12 @@ MealCheck evaluates structured JSON, not natural language.
 Natural language may appear in:
 
 - the user's custom generation prompt
+- pasted source text that a BYOK model attempts to normalize
 - user-facing report explanations
 
 The auditable evaluation input is always normalized JSON. The same schema is
 used whether the plan was generated from profile fields, generated from a custom
-prompt, or entered manually through a form.
+prompt, normalized from pasted text, or supplied locally to the CLI.
 
 Minimal internal shape:
 
@@ -64,7 +142,7 @@ Minimal internal shape:
           "name": "breakfast",
           "items": [
             {
-              "food": "oatmeal",
+              "food": "cooked oatmeal",
               "quantity": 1,
               "unit": "cup",
               "preparation": "plain"
@@ -77,120 +155,86 @@ Minimal internal shape:
 }
 ```
 
-## User Flow
+## Hosted BYOK Flow
 
-1. The user starts a new MealCheck run.
-2. The user enters profile inputs:
+1. The user opens the hosted BYOK verification surface.
+2. The user enters an access code.
+3. The user enters BYOK provider settings:
+   - provider type
+   - model ID
+   - API key
+   - custom base URL only for OpenAI-compatible providers
+4. The user enters profile inputs:
    - age
    - sex
    - height
    - weight
    - activity level
-   - goal, such as maintain weight or mild calorie deficit
-3. MealCheck selects the default guideline pack for the profile. MVP default:
-   `dga-2025-2030-us-adult-general-v1`.
-4. The user enters or adjusts plan settings and optional constraints:
+   - goal
+   - calorie target
+   - protein target
+5. The user enters constraints:
    - number of days
    - meals per day
    - allergies
    - foods to avoid
    - diet pattern
-   - calorie target override
-   - protein target
    - sodium limit
    - added sugar limit
    - saturated fat limit
-   - preferred foods
-   - disliked foods
-   - prep-time or meal-prep requirements
+   - calorie tolerance
    - shopping-list requirement
-5. The user chooses one of three plan input modes:
-   - profile-only LLM generation
-   - prompt-based LLM generation
-   - manual structured entry without an LLM
-6. MealCheck produces or receives a normalized JSON meal plan.
-7. MealCheck validates the meal-plan schema.
-8. MealCheck resolves foods, quantities, and nutrients.
-9. MealCheck runs deterministic checks.
-10. MealCheck creates an artifact bundle and report.
-11. The user sees the decision, failed checks, unresolved foods, calculated
-    totals, and source-pack citations.
+   - prep-safety-notes requirement
+6. The user supplies either:
+   - a BYOK generation prompt
+   - profile-only generation intent
+   - pasted candidate meal-plan text for future qualification/normalization
+7. MealCheck qualifies the candidate content.
+8. If eligible, MealCheck verifies the normalized JSON plan.
+9. MealCheck creates an artifact bundle and report.
+10. The user sees the qualification result, decision, failed checks, unresolved
+    foods, calculated totals, and source-pack citations.
 
-## Input Modes
+## Local CLI Debug Flow
 
-### Profile-Only LLM Generation
+The local CLI preserves structured JSON validation and artifact writing.
 
-The user provides profile and constraints through forms. MealCheck builds the
-LLM prompt behind the scenes.
+The CLI is used for:
 
-Flow:
+- validating fixture cases
+- debugging normalized meal-plan JSON
+- reproducing checker behavior without hosted infrastructure
+- regression testing
+- preparing a future agent-tool integration
 
-```text
-profile + constraints
-  -> MealCheck system prompt + JSON schema
-  -> remote BYOK LLM
-  -> normalized meal_plan.json
-  -> verifier
-```
+Structured manual JSON entry is valid in this local/debug context. It is not the
+primary hosted website workflow.
 
-This is the lowest-friction LLM path. The user does not need to write a prompt.
+## Qualification Outcomes
 
-### Prompt-Based LLM Generation
+MealCheck should distinguish qualification from verification.
 
-The user writes a custom natural-language prompt after profile and constraints
-exist.
+Target qualification outcomes:
 
-Example:
+- `not_meal_plan`: the content does not describe a meal plan
+- `meal_plan_too_vague`: the content resembles a plan but lacks verification
+  details such as days, meals, ingredients, quantities, or units
+- `recipe_or_menu_needs_decomposition`: the content includes recipes or menu
+  labels that must be decomposed into ingredient-level items
+- `eligible_for_verification`: the content has enough structure to verify
+- `eligible_with_unresolved_items`: the content can be verified, but some foods
+  or quantities remain unresolved and must be reflected in the report
 
-```text
-Create a simple three-day high-protein meal-prep plan. I prefer eggs, rice,
-chicken, Greek yogurt, and easy leftovers. Avoid peanuts and shellfish.
-```
-
-MealCheck combines the custom prompt with its system prompt, schema requirement,
-profile, and constraints.
-
-The user's prompt may influence preferences, but it must not override declared
-hard constraints such as allergies, excluded foods, or guideline-pack limits.
-
-Flow:
-
-```text
-profile + constraints + user prompt
-  -> MealCheck system prompt + JSON schema
-  -> remote BYOK LLM
-  -> normalized meal_plan.json
-  -> verifier
-```
-
-### Manual Structured Entry
-
-The user enters the meal plan directly through a form. No LLM is required.
-
-Example form rows:
-
-```text
-Day 1 / Breakfast / oatmeal / 1 / cup
-Day 1 / Breakfast / blueberries / 0.5 / cup
-Day 1 / Lunch / chicken breast / 6 / oz
-```
-
-Flow:
-
-```text
-profile + constraints + manual plan form
-  -> normalized meal_plan.json
-  -> verifier
-```
-
-This path is important because it proves MealCheck is a verifier, not just an
-LLM wrapper.
+Qualification answers whether verification can proceed. It does not decide
+whether the plan passes.
 
 ## LLM Role
 
 The LLM may:
 
 - generate a candidate meal plan
+- classify whether text appears to be a meal plan
+- normalize eligible text into MealCheck JSON
 - produce normalized JSON directly from profile and constraints
 - produce normalized JSON from a custom user prompt
 - repair malformed JSON when allowed
@@ -201,6 +245,7 @@ The LLM must not:
 - decide whether the plan passes
 - provide the source of truth for calories or nutrients
 - override allergies, excluded foods, or guideline-pack limits
+- silently invent missing nutrition-critical quantities
 - produce medical claims about health outcomes
 
 If LLM output fails schema validation, MealCheck may make one bounded repair
@@ -212,9 +257,9 @@ information. Missing quantities or units should remain unresolved.
 
 MealCheck owns:
 
+- meal-plan qualification contract
 - schema validation
 - profile and constraint validation
-- form-to-JSON conversion for manual structured entry
 - guideline-pack rule loading
 - food and unit resolution
 - nutrition calculation
@@ -265,33 +310,33 @@ exceeds the configured sodium limit. The plan should be revised before use.
 
 ## Acceptance Criteria
 
-The MVP user story is supported when:
+The tightened MVP user story is supported when:
 
 - a public Cloudflare Pages frontend loads from a stable URL
 - the seeded report is inspectable from the public frontend without login,
   network calls to the MacBook backend, model API keys, or paid inference
+- hosted navigation exposes demo reports, BYOK verification, and local-run
+  instructions
+- hosted live verification requires an access code and BYOK provider key
+- hosted live verification does not present structured manual entry as the
+  primary workflow
 - a reviewer can build or install the local CLI from a fresh checkout and run
   the seeded proof without network access, provider keys, or hosted services
-- the frontend can show backend health from the tunneled MacBook API when the
-  API is online
-- a seeded example runs without network access or model API keys
-- manual structured entry can produce the same normalized meal-plan JSON without
-  an LLM through an invite-gated live run
+- the CLI preserves structured JSON validation for debugging and regression
+  cases
 - optional BYOK profile-only generation can create a plan without storing the
   user's provider key
 - optional BYOK prompt-based generation can create a plan without storing the
   user's provider key
-- invite-gated live runs can be created, monitored, viewed, and deleted through
+- a qualification step can distinguish content that is not a meal plan, too
+  vague to verify, recipe-like but undecomposed, eligible, or eligible with
+  unresolved items
+- invite-gated BYOK runs can be created, monitored, viewed, and deleted through
   the web surface or documented API commands
-- the MacBook backend can run as a long-standing service behind Cloudflare
-  Tunnel with one worker, Postgres metadata storage, bounded queue/runtime
-  limits, and 7-day retention
-- production CORS allows the frontend origin and does not turn the API into an
-  unrestricted public write surface
 - BYOK flows disclose that provider keys transit the MealCheck backend, and
   that profile, constraints, prompt text, and generated meal-plan content are
   sent to the user's selected provider
-- every input mode produces auditable JSON before verification
+- every verification mode produces auditable JSON before deterministic checks
 - MealCheck calculates nutrition totals from resolver data
 - failed checks include evidence and source references
 - unresolved foods are visible rather than silently ignored
@@ -313,3 +358,5 @@ The MVP user story does not support:
 - personalized clinical nutrition advice
 - grocery price optimization
 - guaranteed weight-loss outcomes
+- hosted nontechnical manual meal-plan entry as a primary workflow
+- open-ended hosted brainstorming chat for deciding what to eat

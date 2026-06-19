@@ -4,8 +4,10 @@ MealCheck answers one verification question:
 
 `Does this meal plan satisfy declared constraints and source-backed checks well enough to use, or should it be revised?`
 
-The plan may be entered manually, generated from profile fields, or generated
-from a user prompt through MealCheck's bring-your-own-key LLM flow.
+For the hosted product, the plan is generated, normalized, or repaired through
+MealCheck's bring-your-own-key LLM flow. Structured JSON entry remains available
+in the downloaded repository and CLI for local verification, debugging,
+regression cases, and future agent-tool integration.
 
 ## Problem
 
@@ -26,19 +28,25 @@ MealCheck should make the check bounded, source-linked, and inspectable.
 
 ## Primary Users
 
-- General users who already ask LLMs for meal plans and want a sanity check.
-- People with recurring meal-prep prompts who want to compare prompt or model
-  changes.
+- Technical users who already use LLMs or agents to draft meal plans and want
+  a bounded verifier before trusting the result.
+- People with recurring meal-prep prompts who want to compare prompt, model, or
+  provider changes under the same deterministic checks.
 - Developers evaluating whether this pattern can generalize to other
   guideline-backed consumer workflows.
 
 ## Core Use Cases
 
-- Validate a manually entered structured meal plan.
+- Inspect seeded demo reports without credentials, model keys, or live
+  inference.
+- Determine whether model output or pasted text qualifies as a verifiable meal
+  plan.
 - Generate a structured meal plan from profile and constraints through
   bring-your-own-key execution.
 - Generate a structured meal plan from a user prompt plus profile and
   constraints through bring-your-own-key execution.
+- Verify normalized structured JSON locally through the CLI for debugging and
+  regression cases.
 - Check declared allergens, exclusions, and profile constraints.
 - Check calculated nutrition totals against configured guideline-derived
   thresholds.
@@ -54,13 +62,14 @@ MealCheck is:
 - source-pack-driven rather than vague-health-advice-driven
 - strict-schema-oriented
 - fixed-cost-friendly
-- local-first with a constrained hosted wrapper
+- local-first with a hosted demonstration and BYOK verification wrapper
+- agent-tool-ready for users who already formulate plans in an LLM environment
 - honest about uncertainty and unresolved foods
 
 All input modes converge on the same normalized JSON meal-plan contract before
 evaluation. The LLM may generate structured JSON, perform bounded JSON repair,
-or explain failed checks. It is not the authority for nutrition totals or
-guideline compliance.
+or help determine whether text can be normalized into a verifiable meal plan.
+It is not the authority for nutrition totals or guideline compliance.
 
 ## Public Demo Model
 
@@ -74,19 +83,27 @@ backend behavior should be reached through the MacBook-hosted API.
 Live LLM generation or repair should require bring-your-own-key execution and
 strict resource limits.
 
-The first public manual-entry surface is intentionally limited to the existing
-17-food fixture catalog used by the seeded proof. MealCheck should treat foods
-outside that reviewed scope as unresolved until a later catalog expansion or
-FoodData Central strategy is accepted.
+The hosted website should expose three primary surfaces:
+
+- `Demo Reports`: public seeded reports and artifacts
+- `BYOK Verify`: invite-gated qualification, generation or normalization, and
+  deterministic verification
+- `Run Locally`: instructions for local CLI/backend use and future agent-tool
+  integration
+
+Structured manual JSON entry is not a primary hosted workflow. It belongs in
+the local CLI and development workflow where it supports fixtures, debugging,
+regression tests, and agent-generated structured inputs.
 
 ## In Scope
 
 - Healthy-adult seeded scenarios.
-- Manual structured entry, profile-only generation, and prompt-based generation
-  as the first input modes.
+- Public seeded report demos.
+- Invite-gated BYOK profile-only generation and prompt-based generation.
+- Meal-plan qualification before verification.
+- Local CLI structured JSON verification for debugging and regression cases.
 - Strict meal-plan schema.
-- Small fixture nutrient catalog for the first proof and first public manual
-  live-run path.
+- Small fixture nutrient catalog for the first proof and local/debug paths.
 - Versioned guideline packs derived from public sources.
 - Deterministic checks for structure, allergens, exclusions, nutrient limits,
   food-group coverage, meal-prep safety, and regression against baseline.
@@ -103,6 +120,8 @@ FoodData Central strategy is accepted.
 - Grocery-store price optimization.
 - Local LLM serving as the primary value proposition.
 - Anonymous live inference paid for by the maintainer.
+- Hosted structured manual-entry as a primary nontechnical workflow.
+- Open-ended hosted meal-plan brainstorming chat.
 - High-availability production operation.
 
 ## Success Criteria
@@ -116,8 +135,12 @@ MealCheck is useful when:
 - source-pack versions are visible in reports
 - generated artifacts are stable enough for the hosted UI and local CLI
 - the hosted public surface is inspectable without secrets or live paid calls
+- invite-gated BYOK users can test whether generated or pasted content
+  qualifies as a verifiable meal plan
 - the Cloudflare Pages frontend remains useful when the MacBook backend is
   offline
 - the MacBook backend can run behind Cloudflare Tunnel as a bounded,
   invite-gated live-run service
 - a reviewer can reach the deployed frontend and API without local setup
+- local users can verify structured JSON through the CLI without provider keys
+  or hosted infrastructure
