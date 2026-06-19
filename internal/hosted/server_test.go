@@ -224,7 +224,7 @@ func TestProfileGenerationRedactsSuccessfulLLMOutputArtifact(t *testing.T) {
 	assertFileTreeDoesNotContain(t, config.DataDir, secret)
 }
 
-func TestManualStructuredRunDoesNotRequireProvider(t *testing.T) {
+func TestHostedManualStructuredRunIsRejected(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
 	store := NewMemoryStore()
@@ -239,36 +239,122 @@ func TestManualStructuredRunDoesNotRequireProvider(t *testing.T) {
 		CandidatePlan: ptr(seededPlan(t, root)),
 	})
 	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
-	if createResp.Code != http.StatusAccepted {
-		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	if createResp.Code != http.StatusBadRequest {
+		t.Fatalf("create status = %d, want 400 body=%s", createResp.Code, createResp.Body.String())
 	}
-	var created CreateRunResponse
-	decodeJSON(t, createResp.Body.Bytes(), &created)
+	if !strings.Contains(createResp.Body.String(), "local CLI/debug workflow") {
+		t.Fatalf("manual rejection body missing local CLI/debug guidance: %s", createResp.Body.String())
+	}
+	if pending.Count() != 0 {
+		t.Fatalf("pending count = %d, want 0", pending.Count())
+	}
+}
 
-	providerCalled := false
-	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
-		providerCalled = true
-		return nil, fmt.Errorf("provider should not be called")
-	}).ProcessOne(context.Background())
-	if err != nil {
-		t.Fatalf("process run: %v", err)
-	}
-	if !processed {
-		t.Fatal("expected worker to process one run")
-	}
-	if providerCalled {
-		t.Fatal("manual_structured run called provider")
+func TestQualifyEndpointRequiresInviteAndReturnsStructuredQualification(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.InviteToken = "invite-secret"
+	store := NewMemoryStore()
+	server := NewServer(config, store)
+	seeded := seededCase(t, root)
+
+	body := marshalJSON(t, MealPlanQualificationRequest{
+		Text:        testMealPlanJSON(false),
+		Profile:     seeded.Profile,
+		Constraints: seeded.Constraints,
+	})
+	unauthorized := doRequest(t, server, http.MethodPost, "/api/qualify", body)
+	if unauthorized.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthorized status = %d, want 401 body=%s", unauthorized.Code, unauthorized.Body.String())
 	}
 
-	run, err := store.GetRun(context.Background(), created.RunID)
-	if err != nil {
-		t.Fatalf("get run: %v", err)
+	req := httptest.NewRequest(http.MethodPost, "/api/qualify", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-MealCheck-Invite-Token", "invite-secret")
+	recorder := httptest.NewRecorder()
+	server.Handler().ServeHTTP(recorder, req)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("qualify status = %d, want 200 body=%s", recorder.Code, recorder.Body.String())
 	}
-	if run.Status != StatusCompleted {
-		t.Fatalf("run status = %q, want completed", run.Status)
+	var response QualifyMealPlanResponse
+	decodeJSON(t, recorder.Body.Bytes(), &response)
+	if response.Qualification.Status != QualificationStatusEligibleForVerification {
+		t.Fatalf("qualification status = %q, want %q", response.Qualification.Status, QualificationStatusEligibleForVerification)
 	}
-	if _, err := os.Stat(filepath.Join(run.ArtifactDir, "optional", "llm-output.json")); !os.IsNotExist(err) {
-		t.Fatalf("manual run wrote llm output or unexpected stat error: %v", err)
+	if response.Qualification.NormalizedPlan == nil {
+		t.Fatal("normalized plan missing")
+	}
+	if response.Qualification.ProviderUsed {
+		t.Fatal("provider_used = true, want false for already-normalized JSON")
+	}
+}
+
+func TestQualifyEndpointRequiresProviderOnlyWhenNormalizationIsNeeded(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	store := NewMemoryStore()
+	server := NewServer(config, store)
+	seeded := seededCase(t, root)
+
+	body := marshalJSON(t, MealPlanQualificationRequest{
+		Text:        "Day 1 breakfast: 1 cup cooked oatmeal.",
+		Profile:     seeded.Profile,
+		Constraints: seeded.Constraints,
+	})
+	resp := doRequest(t, server, http.MethodPost, "/api/qualify", body)
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("qualify status = %d, want 400 body=%s", resp.Code, resp.Body.String())
+	}
+	if !strings.Contains(resp.Body.String(), "provider model is required") {
+		t.Fatalf("provider validation body missing model error: %s", resp.Body.String())
+	}
+}
+
+func TestQualifyEndpointUsesBYOKProviderForTextNormalization(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	store := NewMemoryStore()
+	server := NewServer(config, store)
+	seeded := seededCase(t, root)
+	secret := "sk-qualify-endpoint-secret"
+	provider := &fakeProvider{responses: []string{testMealPlanJSON(false)}}
+	server.ProviderFactory = func(config ProviderConfig) (Provider, error) {
+		if config.Type != ProviderTypeOpenAI {
+			t.Fatalf("provider type = %q, want openai", config.Type)
+		}
+		if config.APIKey != secret {
+			t.Fatalf("provider api key = %q, want secret", config.APIKey)
+		}
+		return provider, nil
+	}
+
+	body := marshalJSON(t, MealPlanQualificationRequest{
+		Text:    "Day 1 / Breakfast / cooked oatmeal / 1 / cup\n" + secret,
+		Profile: seeded.Profile,
+		Constraints: checker.Constraints{
+			Days:        1,
+			MealsPerDay: 1,
+		},
+		Provider: ProviderConfig{
+			Type:   ProviderTypeOpenAI,
+			Model:  "fake-model",
+			APIKey: secret,
+		},
+	})
+	resp := doRequest(t, server, http.MethodPost, "/api/qualify", body)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("qualify status = %d, want 200 body=%s", resp.Code, resp.Body.String())
+	}
+	if provider.calls != 1 {
+		t.Fatalf("provider calls = %d, want 1", provider.calls)
+	}
+	var response QualifyMealPlanResponse
+	decodeJSON(t, resp.Body.Bytes(), &response)
+	if response.Qualification.Status != QualificationStatusEligibleForVerification {
+		t.Fatalf("qualification status = %q, want %q", response.Qualification.Status, QualificationStatusEligibleForVerification)
+	}
+	if !response.Qualification.ProviderUsed {
+		t.Fatal("provider_used = false, want true")
 	}
 }
 

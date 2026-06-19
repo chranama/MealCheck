@@ -30,14 +30,14 @@ revocation, and run limits.
 The server always adds an `X-Request-ID` response header. A client may send its
 own `X-Request-ID`; otherwise, the server assigns one.
 
-Provider API keys are supplied only on live generation requests. Treat them as
-one-run bearer secrets: the browser sends the key to the MealCheck backend, the
-backend holds it in pending memory until the worker claims the run, and the
-backend sends it to the selected provider endpoint. MealCheck does not persist
-provider keys to run metadata, reports, logs, metrics, runtime case files, or
-artifact bundles. Hosted BYOK users should use temporary, scoped,
-budget-limited, revocable keys; for maximum control, run MealCheck locally from
-the repository and submit requests to the local backend.
+Provider API keys are supplied only on invite-gated BYOK qualification and live
+generation requests. Treat them as one-run bearer secrets: the browser sends the
+key to the MealCheck backend, the backend uses it only for the requested
+provider call, and MealCheck does not persist provider keys to run metadata,
+reports, logs, metrics, runtime case files, or artifact bundles. Hosted BYOK
+users should use temporary, scoped, budget-limited, revocable keys; for maximum
+control, run MealCheck locally from the repository and submit requests to the
+local backend.
 
 ## Runtime Endpoints
 
@@ -49,6 +49,7 @@ the repository and submit requests to the local backend.
 | `GET` | `/api/demo-runs/{demo_id}/report` | Fetch a static demo `report.json`. |
 | `GET` | `/api/demo-runs/{demo_id}/artifacts` | List static demo artifacts. |
 | `GET` | `/api/demo-runs/{demo_id}/artifacts/{path}` | Fetch one static demo artifact. |
+| `POST` | `/api/qualify` | Classify candidate text and optionally normalize it with BYOK. |
 | `POST` | `/api/runs` | Queue a live meal-plan check. |
 | `GET` | `/api/runs/{run_id}` | Read live run status and summary. |
 | `GET` | `/api/runs/{run_id}/events` | Read live run events as an SSE stream. |
@@ -56,6 +57,102 @@ the repository and submit requests to the local backend.
 | `GET` | `/api/runs/{run_id}/artifacts` | List completed live run artifacts. |
 | `GET` | `/api/runs/{run_id}/artifacts/{path}` | Fetch one completed live run artifact. |
 | `DELETE` | `/api/runs/{run_id}` | Delete live run metadata, pending input, and artifacts. |
+
+## Qualify Candidate Meal Plan Text
+
+`POST /api/qualify` is the hosted preflight endpoint for pasted candidate text.
+It is synchronous and invite-gated. It answers whether the text is a meal plan
+eligible for verification, and it can use a BYOK provider to normalize detailed
+meal-plan text into MealCheck JSON.
+
+`provider` may be omitted when the text is already normalized MealCheck JSON or
+can be rejected deterministically as not eligible. `provider.model` and
+`provider.api_key` are required when the text needs BYOK normalization.
+
+```bash
+curl -fsS -X POST "http://127.0.0.1:8080/api/qualify" \
+  -H "Content-Type: application/json" \
+  -H "X-MealCheck-Invite-Token: ${MEALCHECK_ACCESS_CODE}" \
+  --data '{
+    "text": "Day 1 breakfast: 1 cup cooked oatmeal and 1 banana.",
+    "profile": {
+      "age": 35,
+      "sex": "male",
+      "height_cm": 178,
+      "weight_kg": 82,
+      "activity_level": "moderate",
+      "goal": "maintain_weight",
+      "calorie_target_kcal": 2000,
+      "protein_target_g": 98
+    },
+    "constraints": {
+      "days": 1,
+      "meals_per_day": 1,
+      "allergies": ["peanuts"],
+      "excluded_foods": [],
+      "diet_pattern": "general",
+      "max_sodium_mg_per_day": 2300,
+      "max_added_sugar_g_per_meal": 10,
+      "max_saturated_fat_pct_calories": 10,
+      "calorie_tolerance_pct": 15,
+      "requires_shopping_list": true,
+      "requires_prep_safety_notes": true
+    },
+    "provider": {
+      "type": "gemini",
+      "model": "gemini-example",
+      "api_key": "user-supplied-key"
+    }
+  }'
+```
+
+Example response:
+
+```json
+{
+  "qualification": {
+    "schema_version": "0.1",
+    "status": "eligible_for_verification",
+    "reason": "text was normalized into a MealCheck meal plan",
+    "provider_used": true,
+    "normalized_plan": {
+      "schema_version": "0.1",
+      "plan_id": "normalized-from-text",
+      "days": [
+        {
+          "day": 1,
+          "meals": [
+            {
+              "name": "breakfast",
+              "items": [
+                {
+                  "food": "cooked oatmeal",
+                  "quantity": 1,
+                  "unit": "cup"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+Qualification statuses:
+
+| Status | Meaning |
+|---|---|
+| `not_meal_plan` | The text is not asking for or describing meals. |
+| `meal_plan_too_vague` | The text has meals or menu ideas but lacks ingredient quantities or units. |
+| `recipe_or_menu_needs_decomposition` | The text is recipe-like or menu-like and needs ingredient decomposition before verification. |
+| `eligible_for_verification` | The text is already normalized MealCheck JSON or was normalized successfully. |
+| `eligible_with_unresolved_items` | The normalized plan can be checked while preserving explicit unresolved items. |
+
+Qualification is not guideline verification. When `normalized_plan` is present,
+the client can submit that plan through a local CLI/debug workflow or use a
+generation flow that produces a run artifact for verification.
 
 ## Run Lifecycle
 
@@ -118,17 +215,17 @@ The response is intentionally a job handle, not the final report:
 
 ### Request Modes
 
-`POST /api/runs` supports four request shapes.
+`POST /api/runs` supports three hosted request shapes.
 
 | Mode | Fields | LLM Used | Purpose |
 |---|---|---:|---|
 | Checked-in case | `case_path` | no | Developer/demo compatibility for checked-in examples. |
-| `manual_structured` | `input_mode`, `profile`, `constraints`, `candidate_plan` | no | Check a structured meal plan supplied by the user. |
 | `profile_generation` | `input_mode`, `profile`, `constraints`, `provider` | yes | Ask a provider to generate a plan from the profile and constraints. |
 | `prompt_generation` | `input_mode`, `profile`, `constraints`, `generation_prompt`, `provider` | yes | Ask a provider to generate a plan from a user prompt plus profile and constraints. |
 
 `case_path` cannot be combined with `input_mode`. Hosted live requests should
-use one of the three `input_mode` values.
+use `profile_generation` or `prompt_generation`. Structured JSON entry is
+preserved in the local CLI/debug workflow, not the hosted `/api/runs` endpoint.
 
 ### Profile
 
@@ -178,61 +275,11 @@ Validation rules:
 - Constraint fields that are omitted use Go zero values. The current frontend
   should send explicit values for all MVP guideline controls it displays.
 
-### Manual Structured Request
+### Local Structured JSON Verification
 
-```bash
-curl -fsS -X POST "http://127.0.0.1:8080/api/runs" \
-  -H "Content-Type: application/json" \
-  -H "X-MealCheck-Invite-Token: ${MEALCHECK_ACCESS_CODE}" \
-  --data '{
-    "input_mode": "manual_structured",
-    "profile": {
-      "age": 35,
-      "sex": "male",
-      "height_cm": 178,
-      "weight_kg": 82,
-      "activity_level": "moderate",
-      "goal": "maintain_weight",
-      "calorie_target_kcal": 2000,
-      "protein_target_g": 98
-    },
-    "constraints": {
-      "days": 1,
-      "meals_per_day": 3,
-      "allergies": ["peanuts"],
-      "excluded_foods": [],
-      "diet_pattern": "general",
-      "max_sodium_mg_per_day": 2300,
-      "max_added_sugar_g_per_meal": 10,
-      "max_saturated_fat_pct_calories": 10,
-      "calorie_tolerance_pct": 15,
-      "requires_shopping_list": true,
-      "requires_prep_safety_notes": true
-    },
-    "candidate_plan": {
-      "schema_version": "0.1",
-      "plan_id": "manual-example",
-      "description": "One day manually entered plan.",
-      "days": [
-        {
-          "day": 1,
-          "meals": [
-            {
-              "name": "breakfast",
-              "items": [
-                { "food": "cooked oatmeal", "quantity": 1, "unit": "cup" }
-              ]
-            }
-          ]
-        }
-      ],
-      "shopping_list": [],
-      "prep_notes": []
-    }
-  }'
-```
-
-Manual plan validation rules:
+Hosted `/api/runs` no longer accepts `input_mode: "manual_structured"`.
+Structured JSON verification is still supported by the CLI and local/debug case
+file workflow. The same normalized plan validation rules apply there:
 
 - `candidate_plan.schema_version` must be `0.1`.
 - `candidate_plan.plan_id` is required.
@@ -509,11 +556,12 @@ Representative error codes:
 | Code | Typical Status | Cause |
 |---|---:|---|
 | `invalid_request` | `400` | Invalid JSON, unknown field, oversized body, invalid mode, bad profile, bad constraints, or invalid plan. |
-| `unauthorized` | `401` | Live run creation requires a valid access code. |
+| `unauthorized` | `401` | Live qualification or run creation requires a valid access code. |
 | `invite_limit_reached` | `429` | The access code has reached its configured run limit. |
 | `not_found` | `404` | Run, demo run, report, or artifact does not exist. |
 | `method_not_allowed` | `405` | HTTP method is not supported on the route. |
 | `queue_full` | `429` | The live run queue is at capacity. |
+| `provider_error` | `502` | A BYOK provider call failed or returned unusable output. |
 | `store_error` | `500` | Backend store operation failed. |
 | `artifact_error` | `500` | Artifact file could not be read. |
 

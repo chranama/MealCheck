@@ -1751,3 +1751,64 @@ Acceptance:
   JSON
 - qualification does not decide guideline compliance
 - provider API keys are not copied into qualification prompts
+
+## Milestone 17: Hosted BYOK Qualification Surface
+
+Status: Implemented on 2026-06-19 for backend API, local smoke, and docs.
+
+Purpose:
+
+The hosted website should expose a focused BYOK demonstration surface instead
+of a general manual structured verifier. Hosted users paste candidate meal-plan
+text, ask whether it qualifies for verification, and use BYOK model providers
+only when text needs normalization. Structured JSON verification remains
+available in the downloaded repo through CLI/local case files for debugging,
+regression testing, and future agent-tool integration.
+
+Deliver:
+
+- invite-gated `POST /api/qualify` endpoint for candidate meal-plan text
+- qualification response that wraps the Milestone 16
+  `MealPlanQualificationResult` contract
+- BYOK provider invocation only when qualification text needs normalization
+- hosted `/api/runs` limited to checked-in cases, `profile_generation`, and
+  `prompt_generation`
+- hosted rejection of `input_mode: "manual_structured"` with guidance to use
+  the local CLI/debug workflow
+- local smoke coverage that no longer depends on hosted manual structured input
+- API, contract, runbook, CLI, and backend-server docs aligned with the hosted
+  BYOK-only shape
+
+Implemented:
+
+1. Added `POST /api/qualify` to the hosted server.
+2. Added `QualifyMealPlanResponse` so the API returns qualification results
+   under a stable top-level `qualification` field.
+3. Reused the Milestone 16 qualification path for structured JSON,
+   deterministic text classification, and BYOK-assisted normalization.
+   Already-normalized JSON and deterministic ineligible classifications do not
+   require a provider key.
+4. Added server-level `ProviderFactory` injection so qualification provider
+   calls can be tested without live external endpoints.
+5. Rejected hosted `manual_structured` run creation while preserving
+   `case_path` compatibility for checked-in examples and smoke tests.
+6. Updated the local smoke harness to process a checked-in seeded run plus a
+   fake-provider BYOK run.
+7. Added tests for invite gating, structured qualification response, BYOK text
+   normalization through `/api/qualify`, and hosted manual-mode rejection.
+8. Updated API, contract, runbook, CLI, and backend-server documentation.
+
+Acceptance:
+
+- `POST /api/qualify` rejects missing or invalid access codes when invite
+  gating is enabled.
+- `POST /api/qualify` returns a structured qualification result for already
+  normalized meal-plan JSON.
+- `POST /api/qualify` can call a BYOK provider to normalize detailed meal-plan
+  text.
+- hosted `/api/runs` rejects `input_mode: "manual_structured"` and queues no
+  pending input.
+- checked-in `case_path` runs still work for developer/demo compatibility.
+- the CLI/local workflow remains the structured JSON verification path.
+- docs describe the same hosted BYOK-only product shape across API, contracts,
+  runbook, CLI, and backend-server references.

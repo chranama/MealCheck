@@ -15,10 +15,11 @@ import (
 )
 
 type Server struct {
-	Config  Config
-	Store   Store
-	Pending *PendingInputs
-	mux     *http.ServeMux
+	Config          Config
+	Store           Store
+	Pending         *PendingInputs
+	ProviderFactory ProviderFactory
+	mux             *http.ServeMux
 }
 
 func NewServer(config Config, store Store, pending ...*PendingInputs) *Server {
@@ -26,7 +27,7 @@ func NewServer(config Config, store Store, pending ...*PendingInputs) *Server {
 	if len(pending) > 0 && pending[0] != nil {
 		pendingInputs = pending[0]
 	}
-	s := &Server{Config: config, Store: store, Pending: pendingInputs, mux: http.NewServeMux()}
+	s := &Server{Config: config, Store: store, Pending: pendingInputs, ProviderFactory: DefaultProviderFactory, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -39,6 +40,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/health", s.handleHealth)
 	s.mux.HandleFunc("/api/demo-runs", s.handleDemoRuns)
 	s.mux.HandleFunc("/api/demo-runs/", s.handleDemoRun)
+	s.mux.HandleFunc("/api/qualify", s.handleQualify)
 	s.mux.HandleFunc("/api/runs", s.handleRuns)
 	s.mux.HandleFunc("/api/runs/", s.handleRun)
 }
@@ -140,6 +142,54 @@ func (s *Server) handleRuns(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeError(w, r, http.StatusMethodNotAllowed, "method_not_allowed", "method not allowed", nil)
 	}
+}
+
+func (s *Server) handleQualify(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, r, http.StatusMethodNotAllowed, "method_not_allowed", "method not allowed", nil)
+		return
+	}
+	if _, err := s.authorizeRun(r); errors.Is(err, ErrInviteRunLimit) {
+		writeError(w, r, http.StatusTooManyRequests, "invite_limit_reached", "access code run limit reached", nil)
+		return
+	} else if err != nil {
+		writeError(w, r, http.StatusUnauthorized, "unauthorized", "valid access code required", nil)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, s.Config.MaxUploadBytes)
+	var request MealPlanQualificationRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&request); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "invalid JSON request", nil)
+		return
+	}
+	request.Text = strings.TrimSpace(request.Text)
+	request.Provider = normalizeProviderConfig(request.Provider)
+	if request.Text == "" {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", "text is required", nil)
+		return
+	}
+	if err := validateProfileAndConstraints(request.Profile, request.Constraints); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
+		return
+	}
+
+	providerFactory := s.ProviderFactory
+	if providerFactory == nil {
+		providerFactory = DefaultProviderFactory
+	}
+	qualification, err := QualifyMealPlanText(r.Context(), providerFactory, request)
+	if err != nil {
+		if isProviderConfigError(err) {
+			writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
+			return
+		}
+		writeError(w, r, http.StatusBadGateway, "provider_error", sanitizeProviderErrorText(err.Error(), request.Provider.APIKey), nil)
+		return
+	}
+	writeJSON(w, http.StatusOK, QualifyMealPlanResponse{Qualification: qualification})
 }
 
 func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
@@ -275,12 +325,7 @@ func requestRunInput(config Config, request CreateRunRequest) (string, PendingRu
 
 	switch inputMode {
 	case "manual_structured":
-		if pendingInput.CandidatePlan == nil {
-			return "", PendingRunInput{}, false, fmt.Errorf("candidate_plan is required for manual_structured")
-		}
-		if err := validatePlan(*pendingInput.CandidatePlan); err != nil {
-			return "", PendingRunInput{}, false, err
-		}
+		return "", PendingRunInput{}, false, fmt.Errorf("manual_structured is supported only by the local CLI/debug workflow; hosted live runs require BYOK generation")
 	case "profile_generation":
 		if err := validateProviderConfig(pendingInput.Provider); err != nil {
 			return "", PendingRunInput{}, false, err
@@ -350,6 +395,16 @@ func validateProviderConfig(config ProviderConfig) error {
 		return fmt.Errorf("provider api_key is required")
 	}
 	return nil
+}
+
+func isProviderConfigError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := err.Error()
+	return strings.HasPrefix(message, "unsupported provider type ") ||
+		message == "provider model is required" ||
+		message == "provider api_key is required"
 }
 
 func (s *Server) getRun(w http.ResponseWriter, r *http.Request, runID string) {

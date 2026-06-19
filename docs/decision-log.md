@@ -6,6 +6,36 @@ public expectations.
 Use this log instead of separate ADR and RFC files until a decision becomes too
 large to keep readable here.
 
+## 2026-06-19: Hosted Surface Uses BYOK Qualification Instead Of Manual Entry
+
+Status: Accepted
+
+Decision:
+
+The hosted website should expose seeded demos, invite-gated BYOK meal-plan
+qualification, and invite-gated BYOK generation. It should not expose hosted
+manual structured JSON entry as a primary verifier surface. Structured JSON
+verification remains available through CLI/local case files for debugging,
+regression tests, and future agent-tool use.
+
+Reason:
+
+The target hosted user is technical enough to manage provider API keys and is
+often testing LLM output. The useful hosted preflight question is whether
+pasted candidate text qualifies as a verifiable meal plan, not whether a user
+can manually fill every normalized JSON field in a browser form. Keeping
+structured JSON local also gives users a higher-trust path when provider-key
+control matters.
+
+Consequences:
+
+- Hosted `/api/qualify` is the synchronous meal-plan eligibility endpoint.
+- Hosted `/api/runs` supports checked-in case compatibility plus BYOK
+  `profile_generation` and `prompt_generation`.
+- Hosted `/api/runs` rejects `input_mode: "manual_structured"` with guidance to
+  use the local CLI/debug workflow.
+- CLI/local case files preserve deterministic structured JSON verification.
+
 ## 2026-06-18: BYOK Is A Technical Test Surface, Not Key Storage
 
 Status: Accepted

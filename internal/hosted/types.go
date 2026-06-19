@@ -93,6 +93,10 @@ type CreateRunRequest struct {
 	RepairJSON       *bool               `json:"repair_json,omitempty"`
 }
 
+type QualifyMealPlanResponse struct {
+	Qualification MealPlanQualificationResult `json:"qualification"`
+}
+
 type CreateRunResponse struct {
 	RunID     string    `json:"run_id"`
 	Status    string    `json:"status"`

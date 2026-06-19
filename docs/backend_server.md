@@ -332,8 +332,8 @@ The server is ready for MVP web acceptance when:
 - `dev.mealcheck.autodeploy` can fast-forward the server checkout from GitHub
   and restart the backend when backend code changes
 - Cloudflare Pages can call the public API hostname and display health
-- live manual/BYOK run creation, status polling or SSE, report retrieval,
-  artifact listing, and deletion work through the public path
+- BYOK qualification, live BYOK run creation, status polling or SSE, report
+  retrieval, artifact listing, and deletion work through the public path
 - cleanup enforces the 7-day retention policy
 - public smoke tests verify that provider keys are not present in database
   fields, logs, reports, or artifact bundles

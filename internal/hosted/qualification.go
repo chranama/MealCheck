@@ -19,10 +19,10 @@ const (
 )
 
 type MealPlanQualificationRequest struct {
-	Text        string
-	Profile     checker.Profile
-	Constraints checker.Constraints
-	Provider    ProviderConfig
+	Text        string              `json:"text"`
+	Profile     checker.Profile     `json:"profile,omitempty"`
+	Constraints checker.Constraints `json:"constraints,omitempty"`
+	Provider    ProviderConfig      `json:"provider,omitempty"`
 }
 
 type MealPlanQualificationResult struct {

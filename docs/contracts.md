@@ -60,10 +60,12 @@ Example:
 
 ## Input Modes
 
-MealCheck has three MVP input modes:
+MealCheck has three MVP case input modes. The hosted website exposes only the
+BYOK generation modes plus checked-in demo compatibility; `manual_structured`
+is preserved for CLI/local debugging and regression fixtures.
 
-- `manual_structured`: the user enters a meal plan through a form. No LLM is
-  required.
+- `manual_structured`: a local/debug case supplies normalized meal-plan JSON.
+  No LLM is required.
 - `profile_generation`: the user supplies profile and constraints; MealCheck
   builds the LLM prompt and requires JSON output.
 - `prompt_generation`: the user supplies profile, constraints, and a custom
@@ -366,7 +368,9 @@ The initial hosted backend should expose:
 
 - `GET /api/health`: read service health.
 - `GET /api/demo-runs`: list seeded public reports.
-- `POST /api/runs`: create a manual validation, profile-generation, or
+- `POST /api/qualify`: classify pasted candidate text and optionally normalize
+  it with BYOK.
+- `POST /api/runs`: create a checked-in case, profile-generation, or
   prompt-generation run.
 - `GET /api/runs/{run_id}`: read run status and summary.
 - `GET /api/runs/{run_id}/events`: stream run events over SSE.
@@ -378,21 +382,15 @@ The initial hosted backend should expose:
 The frontend is a Cloudflare Pages static site. It should consume these
 endpoints rather than depending on backend internals.
 
-`POST /api/runs` supports four request shapes.
+`POST /api/qualify` supports the hosted meal-plan qualification contract:
 
-Checked-in demo or fixture case:
-
-```json
-{
-  "case_path": "examples/seeded-3-day-peanut-allergy/case.json"
-}
-```
-
-Manual structured meal plan:
+`provider` is optional when candidate text is already normalized MealCheck JSON
+or can be rejected deterministically. It is required only when MealCheck needs
+BYOK normalization to decide eligibility.
 
 ```json
 {
-  "input_mode": "manual_structured",
+  "text": "Day 1 breakfast: 1 cup cooked oatmeal and 1 banana.",
   "profile": {
     "age": 35,
     "sex": "male",
@@ -402,32 +400,63 @@ Manual structured meal plan:
   },
   "constraints": {
     "days": 1,
-    "meals_per_day": 3
+    "meals_per_day": 1
   },
-  "candidate_plan": {
-    "schema_version": "0.1",
-    "plan_id": "manual-example",
-    "description": "One day manually entered plan.",
-    "days": [
-      {
-        "day": 1,
-        "meals": [
-          {
-            "name": "breakfast",
-            "items": [
-              {
-                "food": "cooked oatmeal",
-                "quantity": 1,
-                "unit": "cup"
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    "shopping_list": [],
-    "prep_notes": []
+  "provider": {
+    "type": "gemini",
+    "model": "gemini-example",
+    "api_key": "user-supplied-key"
   }
+}
+```
+
+Response shape:
+
+```json
+{
+  "qualification": {
+    "schema_version": "0.1",
+    "status": "eligible_for_verification",
+    "reason": "text was normalized into a MealCheck meal plan",
+    "provider_used": true,
+    "normalized_plan": {
+      "schema_version": "0.1",
+      "plan_id": "normalized-from-text",
+      "days": [
+        {
+          "day": 1,
+          "meals": [
+            {
+              "name": "breakfast",
+              "items": [
+                {
+                  "food": "cooked oatmeal",
+                  "quantity": 1,
+                  "unit": "cup"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+Qualification statuses are `not_meal_plan`, `meal_plan_too_vague`,
+`recipe_or_menu_needs_decomposition`, `eligible_for_verification`, and
+`eligible_with_unresolved_items`. Qualification does not decide guideline
+compliance; it only determines whether content can become normalized meal-plan
+JSON for verification.
+
+`POST /api/runs` supports three hosted request shapes.
+
+Checked-in demo or fixture case:
+
+```json
+{
+  "case_path": "examples/seeded-3-day-peanut-allergy/case.json"
 }
 ```
 
@@ -485,6 +514,8 @@ Prompt-based BYOK generation:
 Rules:
 
 - `case_path` cannot be combined with `input_mode`.
+- Hosted `/api/runs` rejects `input_mode: "manual_structured"`; structured JSON
+  verification belongs to CLI/local case files.
 - `profile_generation` and `prompt_generation` require a BYOK provider with
   `model` and `api_key`.
 - Supported `provider.type` values are `openai`, `anthropic`, `gemini`, and

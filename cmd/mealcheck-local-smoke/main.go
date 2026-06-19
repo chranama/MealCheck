@@ -156,28 +156,20 @@ func (r *runner) hostedSmoke() error {
 	if err := readJSON(filepath.Join(r.root, seededCasePath), &seeded); err != nil {
 		return err
 	}
-	var plan checker.Plan
-	if err := readJSON(filepath.Join(r.root, seededPlanPath), &plan); err != nil {
-		return err
-	}
-
-	manualRunID, err := r.createRun(client, httpServer.URL, hosted.CreateRunRequest{
-		InputMode:     "manual_structured",
-		Profile:       seeded.Profile,
-		Constraints:   seeded.Constraints,
-		CandidatePlan: &plan,
+	seededRunID, err := r.createRun(client, httpServer.URL, hosted.CreateRunRequest{
+		CasePath: seededCasePath,
 	})
 	if err != nil {
 		return err
 	}
-	r.logf("hosted: process manual run")
+	r.logf("hosted: process checked-in seeded run")
 	if err := processOne(config, store, pending, hosted.DefaultProviderFactory); err != nil {
 		return err
 	}
-	if err := verifyCompletedRun(client, httpServer.URL, manualRunID); err != nil {
+	if err := verifyCompletedRun(client, httpServer.URL, seededRunID); err != nil {
 		return err
 	}
-	if err := deleteRun(client, httpServer.URL, manualRunID); err != nil {
+	if err := deleteRun(client, httpServer.URL, seededRunID); err != nil {
 		return err
 	}
 

@@ -375,5 +375,5 @@ The CLI and hosted API share the checker engine and artifact writer:
   operation is the recommended path when provider-key control matters most.
 
 Use the CLI when you want a deterministic local check from an existing case
-file. Use the hosted API or web UI when you want invite-gated live manual input
-or BYOK model generation.
+file or structured JSON debugging workflow. Use the hosted API or web UI when
+you want invite-gated qualification preflight or BYOK model generation.

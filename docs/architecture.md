@@ -46,14 +46,16 @@ Owns case loading, config resolution, plan normalization, food resolution,
 guideline-pack loading, deterministic checks, regression classification, and
 artifact generation.
 
-Input-mode handling supports:
+Input-mode handling supports the shared local case contract:
 
-- manual structured entry without an LLM
+- manual structured case files without an LLM
 - profile-only LLM generation
 - prompt-based LLM generation
 
 All three paths must produce the same normalized JSON meal-plan artifact before
-verification starts.
+verification starts. The hosted API exposes checked-in case compatibility plus
+BYOK qualification and generation; hosted manual structured entry is not part of
+the public web surface.
 
 ### Guideline Pack
 

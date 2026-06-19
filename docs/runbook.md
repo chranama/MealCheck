@@ -796,7 +796,8 @@ place.
   access.
 - Confirm the frontend shows backend health when
   `https://api.mealcheck.dev/api/health` is online.
-- Create an invite-gated live manual run through the UI or API.
+- Create an invite-gated BYOK qualification request through the UI or API.
+- Create an invite-gated BYOK generation run through the UI or API.
 - Observe status/events until `completed` or `failed`.
 - Fetch `GET /api/runs/<RUN_ID>/report`.
 - Fetch `GET /api/runs/<RUN_ID>/artifacts`.
@@ -894,7 +895,7 @@ This command:
 - starts an in-memory hosted API harness
 - verifies access-code gating
 - verifies allowed and disallowed CORS behavior
-- creates and processes one manual structured run
+- creates and processes one checked-in seeded run
 - creates and processes one BYOK run with a fake provider response
 - checks run events, reports, artifact listing, and deletion
 - verifies the fake provider key is absent from runtime files, reports,
