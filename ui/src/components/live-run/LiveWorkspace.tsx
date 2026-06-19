@@ -1,29 +1,27 @@
 import { useState } from "react";
-import type { Dispatch, FormEvent, ReactNode, SetStateAction } from "react";
+import type { Dispatch, FormEvent, SetStateAction } from "react";
 import {
+  DEFAULT_CANDIDATE_TEXT,
   DEFAULT_CONSTRAINTS,
   DEFAULT_GENERATION_PROMPT,
-  DEFAULT_PREP_NOTES,
   DEFAULT_PROFILE,
   DEFAULT_PROVIDER,
-  INITIAL_MANUAL_ITEMS,
-  MEALS,
-  MVP_FOODS,
   PROVIDER_OPTIONS,
-  UNITS,
 } from "../../constants";
 import { cleanApiBase } from "../../lib/api";
 import { readableID } from "../../lib/format";
-import { buildRunPayload } from "../../lib/payload";
+import { buildQualificationPayload, buildRunPayload } from "../../lib/payload";
 import type {
   BackendState,
   ConstraintsDraft,
-  InputMode,
+  GenerationMode,
   LiveState,
-  ManualItem,
+  MealPlanQualificationResult,
   Profile,
   ProviderConfig,
   ProviderType,
+  QualificationState,
+  QualifyMealPlanPayload,
   RunPayload,
 } from "../../types";
 import { Field, NumberInput } from "../common/FormControls";
@@ -32,14 +30,18 @@ export function LiveWorkspace({
   apiBase,
   backend,
   live,
+  qualification,
   onCreateRun,
+  onQualify,
   onDeleteRun,
   onError,
 }: {
   apiBase: string;
   backend: BackendState;
   live: LiveState;
+  qualification: QualificationState;
   onCreateRun: (base: string, inviteToken: string, payload: RunPayload) => Promise<void>;
+  onQualify: (base: string, inviteToken: string, payload: QualifyMealPlanPayload) => Promise<void>;
   onDeleteRun: () => Promise<void>;
   onError: (error: unknown) => void;
 }) {
@@ -50,9 +52,8 @@ export function LiveWorkspace({
     allergies: DEFAULT_CONSTRAINTS.allergies.join(", "),
     excluded_foods: DEFAULT_CONSTRAINTS.excluded_foods.join(", "),
   });
-  const [mode, setMode] = useState<InputMode>("manual_structured");
-  const [manualItems, setManualItems] = useState<ManualItem[]>(INITIAL_MANUAL_ITEMS);
-  const [prepNotes, setPrepNotes] = useState(DEFAULT_PREP_NOTES);
+  const [candidateText, setCandidateText] = useState(DEFAULT_CANDIDATE_TEXT);
+  const [mode, setMode] = useState<GenerationMode>("profile_generation");
   const [provider, setProvider] = useState<ProviderConfig>(DEFAULT_PROVIDER);
   const [generationPrompt, setGenerationPrompt] = useState(DEFAULT_GENERATION_PROMPT);
   const [repairJSON, setRepairJSON] = useState(true);
@@ -60,14 +61,17 @@ export function LiveWorkspace({
 
   const cleanBase = cleanApiBase(apiBase);
   const isSubmitting = live.status === "queued" || live.status === "running";
+  const isCheckingQualification = qualification.status === "checking";
   const healthBlocksSubmit = backend.kind === "offline" && Boolean(cleanBase);
   const canDeleteRun = Boolean(live.runID && live.status !== "deleted");
-  const canCreateRun = Boolean(cleanBase && inviteToken.trim()) && !isSubmitting && !healthBlocksSubmit;
+  const baseActionsEnabled = Boolean(cleanBase && inviteToken.trim()) && !isSubmitting && !isCheckingQualification && !healthBlocksSubmit;
+  const canQualify = baseActionsEnabled && Boolean(candidateText.trim());
+  const canCreateRun = baseActionsEnabled;
   const createFeedback = createRunFeedback({
     apiBase: cleanBase,
     hasInviteToken: Boolean(inviteToken.trim()),
     healthBlocksSubmit,
-    isSubmitting,
+    isBusy: isSubmitting || isCheckingQualification,
   });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -77,14 +81,27 @@ export function LiveWorkspace({
         mode,
         profile,
         constraints,
-        manualItems,
-        prepNotes,
         provider,
         generationPrompt,
         repairJSON,
       });
       await onCreateRun(cleanBase, inviteToken, payload);
-      if (mode !== "manual_structured") {
+      setProvider((current) => ({ ...current, api_key: "" }));
+    } catch (error) {
+      onError(error);
+    }
+  }
+
+  async function handleQualify() {
+    try {
+      const payload = buildQualificationPayload({
+        text: candidateText,
+        profile,
+        constraints,
+        provider,
+      });
+      await onQualify(cleanBase, inviteToken, payload);
+      if (payload.provider) {
         setProvider((current) => ({ ...current, api_key: "" }));
       }
     } catch (error) {
@@ -97,9 +114,12 @@ export function LiveWorkspace({
       <section className="panel live-panel">
         <RunActionStrip
           canCreateRun={canCreateRun}
+          canQualify={canQualify}
           canDeleteRun={canDeleteRun}
           createFeedback={createFeedback}
           live={live}
+          qualification={qualification}
+          onQualify={handleQualify}
           onDelete={() => setConfirmDelete(true)}
         />
 
@@ -117,32 +137,28 @@ export function LiveWorkspace({
           <ConstraintsForm constraints={constraints} setConstraints={setConstraints} />
 
           <fieldset>
-            <legend>Meal Plan Entry</legend>
-            <div className="segmented" role="group" aria-label="Input mode">
-              <ModeButton mode="manual_structured" activeMode={mode} setMode={setMode} label="Manual" />
-              <ModeButton mode="profile_generation" activeMode={mode} setMode={setMode} label="Profile" />
-              <ModeButton mode="prompt_generation" activeMode={mode} setMode={setMode} label="Prompt" />
-            </div>
+            <legend>Qualification</legend>
+            <CandidateTextForm candidateText={candidateText} setCandidateText={setCandidateText} />
+          </fieldset>
 
-            {mode === "manual_structured" ? (
-              <ManualPlanForm manualItems={manualItems} setManualItems={setManualItems} prepNotes={prepNotes} setPrepNotes={setPrepNotes} />
-            ) : (
-              <ProviderForm
-                provider={provider}
-                setProvider={setProvider}
-                repairJSON={repairJSON}
-                setRepairJSON={setRepairJSON}
-                mode={mode}
-                generationPrompt={generationPrompt}
-                setGenerationPrompt={setGenerationPrompt}
-              />
-            )}
+          <fieldset>
+            <legend>BYOK Provider</legend>
+            <ProviderForm
+              provider={provider}
+              setProvider={setProvider}
+              repairJSON={repairJSON}
+              setRepairJSON={setRepairJSON}
+              mode={mode}
+              setMode={setMode}
+              generationPrompt={generationPrompt}
+              setGenerationPrompt={setGenerationPrompt}
+            />
           </fieldset>
 
         </form>
       </section>
 
-      <RunStatusPanel live={live} />
+      <RunStatusPanel live={live} qualification={qualification} />
 
       {confirmDelete ? (
         <ConfirmDeleteDialog
@@ -160,15 +176,21 @@ export function LiveWorkspace({
 
 function RunActionStrip({
   canCreateRun,
+  canQualify,
   canDeleteRun,
   createFeedback,
   live,
+  qualification,
+  onQualify,
   onDelete,
 }: {
   canCreateRun: boolean;
+  canQualify: boolean;
   canDeleteRun: boolean;
   createFeedback: string;
   live: LiveState;
+  qualification: QualificationState;
+  onQualify: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -178,6 +200,15 @@ function RunActionStrip({
         <p className="submit-feedback" id="create-run-feedback" role="status">{createFeedback}</p>
       </div>
       <div className="action-strip-actions">
+        <button
+          className="action-button action-button--secondary"
+          disabled={!canQualify}
+          id="qualify-button"
+          type="button"
+          onClick={onQualify}
+        >
+          {qualification.status === "checking" ? "Checking" : "Check Eligibility"}
+        </button>
         <button
           aria-describedby="create-run-feedback"
           className="action-button action-button--primary"
@@ -206,18 +237,18 @@ function createRunFeedback({
   apiBase,
   hasInviteToken,
   healthBlocksSubmit,
-  isSubmitting,
+  isBusy,
 }: {
   apiBase: string;
   hasInviteToken: boolean;
   healthBlocksSubmit: boolean;
-  isSubmitting: boolean;
+  isBusy: boolean;
 }) {
-  if (isSubmitting) return "Creating your report.";
+  if (isBusy) return "Request in progress.";
   if (!apiBase) return "Report creation needs a configured MealCheck service.";
   if (!hasInviteToken) return "Enter your access code to start.";
   if (healthBlocksSubmit) return "Service is unavailable right now.";
-  return "Ready to create a MealCheck report.";
+  return "Ready to check eligibility or create a MealCheck report.";
 }
 
 function runPillTone(status: LiveState["status"]): string {
@@ -297,96 +328,27 @@ function ConstraintsForm({ constraints, setConstraints }: { constraints: Constra
   );
 }
 
-function ModeButton({ mode, activeMode, setMode, label }: { mode: InputMode; activeMode: InputMode; setMode: (mode: InputMode) => void; label: string }) {
-  return (
-    <button className={`mode-button${activeMode === mode ? " is-active" : ""}`} data-mode={mode} type="button" onClick={() => setMode(mode)}>
-      {label}
-    </button>
-  );
-}
-
-function ManualPlanForm({
-  manualItems,
-  setManualItems,
-  prepNotes,
-  setPrepNotes,
+function CandidateTextForm({
+  candidateText,
+  setCandidateText,
 }: {
-  manualItems: ManualItem[];
-  setManualItems: Dispatch<SetStateAction<ManualItem[]>>;
-  prepNotes: string;
-  setPrepNotes: (notes: string) => void;
+  candidateText: string;
+  setCandidateText: (value: string) => void;
 }) {
-  function updateItem<K extends keyof ManualItem>(id: string, field: K, value: ManualItem[K]) {
-    setManualItems((current) => current.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
-  }
-  function addFood() {
-    setManualItems((current) => [...current, { id: `item-${Date.now()}`, day: 1, meal: "snack", food: "apple", quantity: 1, unit: "serving" }]);
-  }
-  function removeFood(id: string) {
-    setManualItems((current) => (current.length > 1 ? current.filter((item) => item.id !== id) : current));
-  }
-
   return (
-    <section className="mode-section" id="manual-section">
-      <div className="manual-header" aria-hidden="true">
-        <span>Day</span>
-        <span>Meal</span>
-        <span>Food</span>
-        <span>Qty</span>
-        <span>Unit</span>
-        <span>Action</span>
-      </div>
-      <div className="manual-table" id="manual-items">
-        {manualItems.map((item) => (
-          <div className="manual-row" key={item.id}>
-            <ManualCell label="Day">
-              <NumberInput className="item-day" value={item.day} min={1} max={7} step={1} onChange={(value) => updateItem(item.id, "day", value)} />
-            </ManualCell>
-            <ManualCell label="Meal">
-              <select className="item-meal" value={item.meal} onChange={(event) => updateItem(item.id, "meal", event.target.value)}>
-                {MEALS.map((meal) => <option key={meal} value={meal}>{readableID(meal)}</option>)}
-              </select>
-            </ManualCell>
-            <ManualCell label="Food">
-              <select className="item-food" value={item.food} onChange={(event) => updateItem(item.id, "food", event.target.value)}>
-                {MVP_FOODS.map((food) => <option key={food} value={food}>{food}</option>)}
-              </select>
-            </ManualCell>
-            <ManualCell label="Qty">
-              <NumberInput className="item-quantity" value={item.quantity} min={0.1} max={10000} step={0.1} onChange={(value) => updateItem(item.id, "quantity", value)} />
-            </ManualCell>
-            <ManualCell label="Unit">
-              <select className="item-unit" value={item.unit} onChange={(event) => updateItem(item.id, "unit", event.target.value)}>
-                {UNITS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
-              </select>
-            </ManualCell>
-            <div className="manual-cell manual-cell--action">
-              <span className="manual-cell-label">Action</span>
-              <button className="action-button action-button--ghost" disabled={manualItems.length <= 1} type="button" onClick={() => removeFood(item.id)}>
-                Remove
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="form-actions form-actions--compact">
-        <button className="action-button action-button--secondary" type="button" onClick={addFood}>
-          Add Food
-        </button>
-      </div>
-      <Field label="Prep notes">
-        <textarea value={prepNotes} rows={4} onChange={(event) => setPrepNotes(event.target.value)} />
+    <section className="mode-section" id="candidate-text-section">
+      <Field label="Candidate text">
+        <textarea value={candidateText} rows={7} onChange={(event) => setCandidateText(event.target.value)} />
       </Field>
     </section>
   );
 }
 
-function ManualCell({ label, children }: { label: string; children: ReactNode }) {
+function ModeButton({ mode, activeMode, setMode, label }: { mode: GenerationMode; activeMode: GenerationMode; setMode: (mode: GenerationMode) => void; label: string }) {
   return (
-    <label className="manual-cell">
-      <span className="manual-cell-label">{label}</span>
-      {children}
-    </label>
+    <button className={`mode-button${activeMode === mode ? " is-active" : ""}`} data-mode={mode} type="button" onClick={() => setMode(mode)}>
+      {label}
+    </button>
   );
 }
 
@@ -396,6 +358,7 @@ function ProviderForm({
   repairJSON,
   setRepairJSON,
   mode,
+  setMode,
   generationPrompt,
   setGenerationPrompt,
 }: {
@@ -403,7 +366,8 @@ function ProviderForm({
   setProvider: Dispatch<SetStateAction<ProviderConfig>>;
   repairJSON: boolean;
   setRepairJSON: (value: boolean) => void;
-  mode: InputMode;
+  mode: GenerationMode;
+  setMode: (mode: GenerationMode) => void;
   generationPrompt: string;
   setGenerationPrompt: (value: string) => void;
 }) {
@@ -424,7 +388,7 @@ function ProviderForm({
     <section className="mode-section" id="provider-section">
       <div className="notice">
         <strong>BYOK provider disclosure</strong>
-        <p>MealCheck sends this key to the backend for this run, then to the selected provider. Use temporary, scoped, budget-limited keys; custom OpenAI-compatible endpoints receive the key too. For maximum control, run MealCheck locally from the repo.</p>
+        <p>MealCheck sends this key to the backend for the requested provider call. Use temporary, scoped, budget-limited keys; custom OpenAI-compatible endpoints receive the key too. For maximum control, run MealCheck locally from the repo.</p>
       </div>
       <div className="form-grid">
         <Field label="Provider">
@@ -440,6 +404,12 @@ function ProviderForm({
         <Field label="Model"><input placeholder={selectedProvider.modelHint} value={provider.model} onChange={(event) => update("model", event.target.value)} type="text" /></Field>
         <Field label="API key"><input autoComplete="off" value={provider.api_key} onChange={(event) => update("api_key", event.target.value)} type="password" /></Field>
       </div>
+      <section className="generation-mode-section">
+        <div className="segmented" role="group" aria-label="Generation mode">
+          <ModeButton mode="profile_generation" activeMode={mode} setMode={setMode} label="Profile" />
+          <ModeButton mode="prompt_generation" activeMode={mode} setMode={setMode} label="Prompt" />
+        </div>
+      </section>
       {mode === "prompt_generation" ? (
         <section id="prompt-section">
           <Field label="Prompt"><textarea value={generationPrompt} rows={4} onChange={(event) => setGenerationPrompt(event.target.value)} /></Field>
@@ -452,7 +422,7 @@ function ProviderForm({
   );
 }
 
-function RunStatusPanel({ live }: { live: LiveState }) {
+function RunStatusPanel({ live, qualification }: { live: LiveState; qualification: QualificationState }) {
   const hasEvents = live.events.length > 0;
   const hasReport = live.status !== "deleted" && live.artifactItems.length > 0;
   return (
@@ -463,6 +433,7 @@ function RunStatusPanel({ live }: { live: LiveState }) {
       </div>
       <div className="status-stack">
         <p className="summary-text">{live.message || "Your report will appear here after you create a check."}</p>
+        <QualificationNotice qualification={qualification} />
         {hasReport ? (
           <div className="notice notice--pass live-report-ready" role="status">
             <strong>Report ready</strong>
@@ -485,6 +456,58 @@ function RunStatusPanel({ live }: { live: LiveState }) {
       ) : null}
     </section>
   );
+}
+
+function QualificationNotice({ qualification }: { qualification: QualificationState }) {
+  if (qualification.status === "idle") return null;
+  const result = qualification.result || null;
+  return (
+    <div className={`notice notice--${qualificationTone(result, qualification.status)}`} role="status">
+      <strong>Qualification</strong>
+      <p>{qualification.message}</p>
+      {result ? (
+        <dl className="qualification-facts">
+          <div>
+            <dt>Status</dt>
+            <dd>{readableID(result.status)}</dd>
+          </div>
+          <div>
+            <dt>Provider</dt>
+            <dd>{result.provider_used ? "Used" : "Not used"}</dd>
+          </div>
+          {normalizedPlanSummary(result) ? (
+            <div>
+              <dt>Plan</dt>
+              <dd>{normalizedPlanSummary(result)}</dd>
+            </div>
+          ) : null}
+          {result.missing_fields?.length ? (
+            <div>
+              <dt>Missing</dt>
+              <dd>{result.missing_fields.join(", ")}</dd>
+            </div>
+          ) : null}
+        </dl>
+      ) : null}
+    </div>
+  );
+}
+
+function qualificationTone(result: MealPlanQualificationResult | null, status: QualificationState["status"]): string {
+  if (status === "failed") return "block";
+  if (!result) return "info";
+  if (result.status === "eligible_for_verification" || result.status === "eligible_with_unresolved_items") return "pass";
+  if (result.status === "not_meal_plan") return "block";
+  return "warn";
+}
+
+function normalizedPlanSummary(result: MealPlanQualificationResult): string {
+  const plan = result.normalized_plan;
+  if (!plan) return "";
+  const dayCount = plan.days.length;
+  const mealCount = plan.days.reduce((sum, day) => sum + day.meals.length, 0);
+  const itemCount = plan.days.reduce((sum, day) => sum + day.meals.reduce((mealSum, meal) => mealSum + meal.items.length, 0), 0);
+  return `${dayCount} day${dayCount === 1 ? "" : "s"}, ${mealCount} meal${mealCount === 1 ? "" : "s"}, ${itemCount} item${itemCount === 1 ? "" : "s"}`;
 }
 
 function ConfirmDeleteDialog({

@@ -925,10 +925,10 @@ per-user access codes with `mealcheck invite create`.
 `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` is for local smoke testing only. Do not
 set it in the deployed MacBook service.
 
-The first public manual-entry scope is intentionally limited to the existing
-17-food fixture catalog used by the seeded proof. This keeps the first public
-live path honest about its narrow food resolver. Broader manually entered meals
-should wait for a reviewed catalog expansion or FoodData Central strategy.
+The local browser suite uses the fake provider for both qualification
+normalization and BYOK generation. Hosted structured manual entry is no longer
+part of the public web surface; use CLI/local case files for structured JSON
+debugging.
 
 ## Public Access Policy
 
@@ -1024,7 +1024,10 @@ Required web smoke tests:
 - open the production frontend URL from outside the home network
 - inspect the seeded report without logging in or using a provider key
 - verify the frontend shows backend health when the API is online
-- create one invite-gated live run through the web UI or documented API command
+- submit one invite-gated BYOK qualification request through the web UI or
+  documented API command
+- create one invite-gated BYOK generation run through the web UI or documented
+  API command
 - observe run events through completion or failure
 - fetch the report and artifact list for the live run
 - verify persisted artifacts contain `redacted` provider config only

@@ -769,6 +769,37 @@ a:focus-visible {
   font-size: 0.9rem;
 }
 
+.qualification-facts {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.qualification-facts div {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.qualification-facts dt,
+.qualification-facts dd {
+  margin: 0;
+}
+
+.qualification-facts dt {
+  font-family: var(--font-audit);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.qualification-facts dd {
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .notice-meta {
   font-weight: 800;
 }

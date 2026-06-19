@@ -9,6 +9,7 @@ import {
   loadDemoArtifacts,
   loadDemoIndex,
   loadLiveArtifacts as loadLiveArtifactsForRun,
+  qualifyMealPlan,
 } from "./lib/api";
 import { configuredApiBase } from "./lib/runtime_config";
 import { LiveWorkspace } from "./components/live-run/LiveWorkspace";
@@ -24,6 +25,9 @@ import type {
   BackendState,
   DemoRun,
   LiveState,
+  MealPlanQualificationResult,
+  QualificationState,
+  QualifyMealPlanPayload,
   ReportArtifacts,
   ReportTab,
   RunPayload,
@@ -45,6 +49,12 @@ const INITIAL_LIVE: LiveState = {
   artifactItems: [],
 };
 
+const INITIAL_QUALIFICATION: QualificationState = {
+  status: "idle",
+  message: "",
+  result: null,
+};
+
 export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig }) {
   const [activeTab, setActiveTab] = useState<ReportTab>("checks");
   const [view, setView] = useState<ViewMode>("live");
@@ -56,6 +66,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
   const [artifacts, setArtifacts] = useState<ReportArtifacts | null>(null);
   const [error, setError] = useState("");
   const [live, setLive] = useState<LiveState>(INITIAL_LIVE);
+  const [qualification, setQualification] = useState<QualificationState>(INITIAL_QUALIFICATION);
   const pollRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -141,6 +152,40 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
       message: "Report queued.",
     }));
     startLivePolling(cleanBase, created.run_id);
+  }
+
+  async function qualifyCandidate(base: string, inviteToken: string, payload: QualifyMealPlanPayload) {
+    const cleanBase = cleanApiBase(base);
+    if (!cleanBase) {
+      throw new Error("A configured MealCheck service is required to check eligibility.");
+    }
+    if (!inviteToken.trim()) {
+      throw new Error("Access code is required to check eligibility.");
+    }
+
+    setApiBase(cleanBase);
+    setError("");
+    setQualification({
+      status: "checking",
+      message: "Checking meal plan eligibility.",
+      result: null,
+    });
+    try {
+      const response = await qualifyMealPlan(cleanBase, inviteToken, payload);
+      setQualification({
+        status: "completed",
+        message: qualificationMessage(response.qualification),
+        result: response.qualification,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setQualification({
+        status: "failed",
+        message,
+        result: null,
+      });
+      throw error;
+    }
   }
 
   function startLivePolling(base: string, runID: string) {
@@ -248,7 +293,9 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
               apiBase={apiBase}
               backend={backend}
               live={live}
+              qualification={qualification}
               onCreateRun={createLiveRun}
+              onQualify={qualifyCandidate}
               onDeleteRun={deleteLiveRun}
               onError={showError}
             />
@@ -267,4 +314,11 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
       </main>
     </div>
   );
+}
+
+function qualificationMessage(result: MealPlanQualificationResult): string {
+  if (result.status === "eligible_for_verification" || result.status === "eligible_with_unresolved_items") {
+    return result.reason || "Candidate text qualifies for verification.";
+  }
+  return result.reason || "Candidate text is not ready for verification.";
 }

@@ -188,10 +188,11 @@ Minimal internal shape:
 6. The user supplies either:
    - a BYOK generation prompt
    - profile-only generation intent
-   - pasted candidate meal-plan text for future qualification/normalization
-7. MealCheck qualifies the candidate content.
-8. If eligible, MealCheck verifies the normalized JSON plan.
-9. MealCheck creates an artifact bundle and report.
+   - pasted candidate meal-plan text for qualification/normalization
+7. MealCheck can qualify pasted candidate content before a report run.
+8. For generation modes, MealCheck creates a normalized JSON plan and verifies
+   it deterministically.
+9. MealCheck creates an artifact bundle and report for completed runs.
 10. The user sees the qualification result, decision, failed checks, unresolved
     foods, calculated totals, and source-pack citations.
 

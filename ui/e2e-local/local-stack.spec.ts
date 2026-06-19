@@ -30,40 +30,29 @@ test("renders the live run homepage without an API base and can open a seeded re
   await expect(page.getByRole("tab", { name: "Report" })).toBeVisible();
 });
 
-test("creates, renders, lists artifacts, and deletes a real local manual run", async ({ page }) => {
+test("qualifies a real local candidate meal plan through the fake provider", async ({ page }) => {
   await page.goto(`/?api=${apiBase}`);
 
   await expect(page.locator(".backend-status")).toHaveCount(0);
   await expect(page.locator("#backend-guidance")).toHaveCount(0);
   await expect(page.getByText("Service ready")).toHaveCount(0);
   await page.getByLabel("Access code").fill("invite-1");
+  await page.getByLabel("Model").fill("fake-meal-plan");
+  await page.getByLabel("API key").fill(providerKey);
 
-  const createResponsePromise = page.waitForResponse((response) => (
-    response.url() === `${apiBase}/api/runs` &&
+  const qualifyResponsePromise = page.waitForResponse((response) => (
+    response.url() === `${apiBase}/api/qualify` &&
     response.request().method() === "POST"
   ));
-  await page.getByRole("button", { name: "Create Report" }).click();
-  const created = await (await createResponsePromise).json() as { run_id: string };
+  await page.getByRole("button", { name: "Check Eligibility" }).click();
+  const qualified = await (await qualifyResponsePromise).json() as { qualification: { status: string; provider_used: boolean } };
 
-  await expect(page.getByText(created.run_id).first()).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Checks" })).toBeVisible();
-  await page.getByText("Activity details").click();
-  await expect(page.getByText(/worker started run|Artifacts ready.|artifact bundle written/i).first()).toBeVisible();
-  await page.getByRole("tab", { name: "Report" }).click();
-  await expect(page.getByRole("link", { name: "Download report PDF" })).toBeVisible();
-
-  const artifactList = await page.request.get(`${apiBase}/api/runs/${created.run_id}/artifacts`);
-  expect(artifactList.ok()).toBeTruthy();
-  const artifactListText = await artifactList.text();
-  expect(artifactListText).toContain("decision.json");
-  expect(artifactListText).toContain("report.pdf");
-
-  await page.getByRole("button", { name: "Delete Report" }).click();
-  await expect(page.getByRole("dialog", { name: "Delete report?" })).toBeVisible();
-  await page.getByRole("dialog", { name: "Delete report?" }).getByRole("button", { name: "Delete Report" }).click();
-  await expect(page.getByText("Report deleted.").first()).toBeVisible();
-  const deleted = await page.request.get(`${apiBase}/api/runs/${created.run_id}`);
-  expect(deleted.status()).toBe(404);
+  expect(["eligible_for_verification", "eligible_with_unresolved_items"]).toContain(qualified.qualification.status);
+  expect(qualified.qualification.provider_used).toBeTruthy();
+  await expect(page.getByText(/Eligible (For Verification|With Unresolved Items)/)).toBeVisible();
+  await expect(page.getByLabel("API key")).toHaveValue("");
+  expect(await page.evaluate(() => document.body.textContent || "")).not.toContain(providerKey);
+  expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(providerKey);
 });
 
 test("creates a real local BYOK run through the fake provider and redacts secrets", async ({ page }) => {

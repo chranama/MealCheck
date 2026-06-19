@@ -1,6 +1,14 @@
 import type { ReactNode } from "react";
 
-export type InputMode = "manual_structured" | "profile_generation" | "prompt_generation";
+export type GenerationMode = "profile_generation" | "prompt_generation";
+export type InputMode = GenerationMode;
+export type QualificationStatus =
+  | "not_meal_plan"
+  | "meal_plan_too_vague"
+  | "recipe_or_menu_needs_decomposition"
+  | "eligible_for_verification"
+  | "eligible_with_unresolved_items"
+  | string;
 export type ViewMode = "demo" | "live";
 export type ReportTab = "checks" | "nutrition" | "foods" | "sources" | "report";
 export type RunStatus = "idle" | "queued" | "running" | "completed" | "failed" | "deleted" | string;
@@ -150,6 +158,12 @@ export type LiveState = {
   artifactItems: ArtifactItem[];
 };
 
+export type QualificationState = {
+  status: "idle" | "checking" | "completed" | "failed";
+  message: string;
+  result?: MealPlanQualificationResult | null;
+};
+
 export type RunDocument = {
   run: {
     status: RunStatus;
@@ -165,6 +179,27 @@ export type ArtifactListResponse = {
 export type CreateRunResponse = {
   run_id: string;
   status: RunStatus;
+};
+
+export type QualifyMealPlanPayload = {
+  text: string;
+  profile: Profile;
+  constraints: Constraints;
+  provider?: ProviderConfig;
+};
+
+export type MealPlanQualificationResult = {
+  schema_version: string;
+  status: QualificationStatus;
+  reason: string;
+  missing_fields?: string[];
+  normalized_plan?: MealPlan;
+  provider_used: boolean;
+  canonicalized?: boolean;
+};
+
+export type QualifyMealPlanResponse = {
+  qualification: MealPlanQualificationResult;
 };
 
 export type Profile = {
@@ -237,12 +272,6 @@ export type MealPlan = {
 };
 
 export type RunPayload =
-  | {
-      input_mode: "manual_structured";
-      profile: Profile;
-      constraints: Constraints;
-      candidate_plan: MealPlan;
-    }
   | {
       input_mode: "profile_generation";
       profile: Profile;

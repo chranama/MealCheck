@@ -1,11 +1,12 @@
 import type {
   Constraints,
   ConstraintsDraft,
-  InputMode,
+  GenerationMode,
   ManualItem,
   MealPlan,
   Profile,
   ProviderConfig,
+  QualifyMealPlanPayload,
   RunPayload,
 } from "../types";
 import { csvValue } from "./format";
@@ -91,43 +92,63 @@ export function buildManualPlan(items: ManualItem[], prepNotes: string, now: num
   };
 }
 
-export function buildRunPayload(args: {
-  mode: InputMode;
+function buildProviderConfig(provider: ProviderConfig): ProviderConfig {
+  return {
+    type: provider.type,
+    base_url: provider.type === "openai_compatible" ? provider.base_url.trim().replace(/\/+$/, "") : "",
+    model: provider.model.trim(),
+    api_key: provider.api_key,
+  };
+}
+
+function requireProviderConfig(provider: ProviderConfig): ProviderConfig {
+  if (!provider.model.trim()) {
+    throw new Error("Provider model is required.");
+  }
+  if (!provider.api_key.trim()) {
+    throw new Error("Provider API key is required.");
+  }
+  return buildProviderConfig(provider);
+}
+
+export function buildQualificationPayload(args: {
+  text: string;
   profile: Profile;
   constraints: ConstraintsDraft;
-  manualItems: ManualItem[];
-  prepNotes: string;
+  provider: ProviderConfig;
+}): QualifyMealPlanPayload {
+  const text = args.text.trim();
+  if (!text) {
+    throw new Error("Candidate meal plan text is required.");
+  }
+
+  const payload: QualifyMealPlanPayload = {
+    text,
+    profile: normalizeProfile(args.profile),
+    constraints: normalizeConstraints(args.constraints),
+  };
+  if (args.provider.model.trim() || args.provider.api_key.trim()) {
+    payload.provider = requireProviderConfig(args.provider);
+  }
+  return payload;
+}
+
+export function buildRunPayload(args: {
+  mode: GenerationMode;
+  profile: Profile;
+  constraints: ConstraintsDraft;
   provider: ProviderConfig;
   generationPrompt: string;
   repairJSON: boolean;
 }): RunPayload {
   const profile = normalizeProfile(args.profile);
   const constraints = normalizeConstraints(args.constraints);
-
-  if (args.mode === "manual_structured") {
-    return {
-      input_mode: args.mode,
-      profile,
-      constraints,
-      candidate_plan: buildManualPlan(args.manualItems, args.prepNotes),
-    };
-  }
-
-  if (!args.provider.model.trim()) {
-    throw new Error("Provider model is required.");
-  }
-  if (!args.provider.api_key.trim()) {
-    throw new Error("Provider API key is required.");
-  }
-
-  const provider: ProviderConfig = {
-    type: args.provider.type,
-    base_url: args.provider.type === "openai_compatible" ? args.provider.base_url.trim().replace(/\/+$/, "") : "",
-    model: args.provider.model.trim(),
-    api_key: args.provider.api_key,
-  };
+  const provider = requireProviderConfig(args.provider);
 
   if (args.mode === "prompt_generation") {
+    if (!args.generationPrompt.trim()) {
+      throw new Error("Generation prompt is required.");
+    }
     return {
       input_mode: args.mode,
       profile,

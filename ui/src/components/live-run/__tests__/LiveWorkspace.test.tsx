@@ -18,13 +18,21 @@ const live: LiveState = {
   artifactItems: [],
 };
 
+const qualification = {
+  status: "idle" as const,
+  message: "",
+  result: null,
+};
+
 function renderWorkspace(overrides: Partial<Parameters<typeof LiveWorkspace>[0]> = {}) {
   return render(
     <LiveWorkspace
       apiBase="http://127.0.0.1:8080"
       backend={backend}
       live={live}
+      qualification={qualification}
       onCreateRun={vi.fn(async () => undefined)}
+      onQualify={vi.fn(async () => undefined)}
       onDeleteRun={vi.fn(async () => undefined)}
       onError={vi.fn()}
       {...overrides}
@@ -33,16 +41,18 @@ function renderWorkspace(overrides: Partial<Parameters<typeof LiveWorkspace>[0]>
 }
 
 describe("LiveWorkspace", () => {
-  it("shows manual structured entry by default", () => {
+  it("shows qualification and profile generation by default", () => {
     renderWorkspace();
 
-    expect(screen.getByText("Meal Plan Entry")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Manual" })).toHaveClass("is-active");
-    expect(screen.getByLabelText("Prep notes")).toBeInTheDocument();
-    expect(screen.queryByText("BYOK provider disclosure")).not.toBeInTheDocument();
+    expect(screen.getByText("Qualification")).toBeInTheDocument();
+    expect(screen.getByLabelText("Candidate text")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Manual" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Profile" })).toHaveClass("is-active");
+    expect(screen.getByText("BYOK provider disclosure")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Prep notes")).not.toBeInTheDocument();
   });
 
-  it("switches prompt mode to BYOK provider controls", async () => {
+  it("switches prompt mode to prompt controls", async () => {
     const user = userEvent.setup();
     renderWorkspace();
 
@@ -59,24 +69,24 @@ describe("LiveWorkspace", () => {
     expect(screen.queryByLabelText("Prep notes")).not.toBeInTheDocument();
   });
 
-  it("submits manual payloads through the parent API boundary", async () => {
+  it("submits qualification payloads through the parent API boundary", async () => {
     const user = userEvent.setup();
-    const onCreateRun = vi.fn(async () => undefined);
-    renderWorkspace({ onCreateRun });
+    const onQualify = vi.fn(async () => undefined);
+    renderWorkspace({ onQualify });
 
     await user.type(screen.getByLabelText("Access code"), "invite-1");
-    await user.click(screen.getByRole("button", { name: "Create Report" }));
+    await user.click(screen.getByRole("button", { name: "Check Eligibility" }));
 
-    expect(onCreateRun).toHaveBeenCalledWith(
+    expect(onQualify).toHaveBeenCalledWith(
       "http://127.0.0.1:8080",
       "invite-1",
       expect.objectContaining({
-        input_mode: "manual_structured",
-        candidate_plan: expect.objectContaining({
-          days: expect.any(Array),
-        }),
+        text: expect.stringContaining("Day 1 breakfast"),
       }),
     );
+    const calls = onQualify.mock.calls as unknown as Array<[string, string, Record<string, unknown>]>;
+    const payload = calls[0][2];
+    expect(payload).not.toHaveProperty("provider");
   });
 
   it("keeps run creation disabled in static mode until live prerequisites exist", () => {
@@ -92,6 +102,7 @@ describe("LiveWorkspace", () => {
     expect(screen.queryByText("Examples only")).not.toBeInTheDocument();
     expect(screen.queryByText("Service ready")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create Report" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Check Eligibility" })).toBeDisabled();
     expect(screen.getAllByText("Report creation needs a configured MealCheck service.").length).toBeGreaterThan(0);
   });
 
@@ -171,6 +182,69 @@ describe("LiveWorkspace", () => {
     expect(screen.getByLabelText("API key")).toHaveValue("");
     expect(localStorageSetItem).not.toHaveBeenCalled();
     expect(sessionStorageSetItem).not.toHaveBeenCalled();
+  });
+
+  it("submits qualification with BYOK provider config and clears provider keys", async () => {
+    const user = userEvent.setup();
+    const onQualify = vi.fn(async () => undefined);
+    renderWorkspace({ onQualify });
+
+    await user.type(screen.getByLabelText("Access code"), "invite-1");
+    await user.type(screen.getByLabelText("Model"), "gpt-test");
+    await user.type(screen.getByLabelText("API key"), "secret");
+    await user.click(screen.getByRole("button", { name: "Check Eligibility" }));
+
+    expect(onQualify).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080",
+      "invite-1",
+      expect.objectContaining({
+        text: expect.stringContaining("Day 1 breakfast"),
+        provider: expect.objectContaining({
+          type: "openai",
+          base_url: "",
+          model: "gpt-test",
+          api_key: "secret",
+        }),
+      }),
+    );
+    expect(screen.getByLabelText("API key")).toHaveValue("");
+  });
+
+  it("renders completed qualification results", () => {
+    renderWorkspace({
+      qualification: {
+        status: "completed",
+        message: "Candidate text qualifies for verification.",
+        result: {
+          schema_version: "0.1",
+          status: "eligible_for_verification",
+          reason: "ok",
+          provider_used: true,
+          normalized_plan: {
+            schema_version: "0.1",
+            plan_id: "normalized",
+            description: "Normalized",
+            days: [
+              {
+                day: 1,
+                meals: [
+                  {
+                    name: "breakfast",
+                    items: [{ food: "cooked oatmeal", quantity: 1, unit: "cup" }],
+                  },
+                ],
+              },
+            ],
+            shopping_list: [],
+            prep_notes: [],
+          },
+        },
+      },
+    });
+
+    expect(screen.getByText("Candidate text qualifies for verification.")).toBeInTheDocument();
+    expect(screen.getByText("Eligible For Verification")).toBeInTheDocument();
+    expect(screen.getByText("1 day, 1 meal, 1 item")).toBeInTheDocument();
   });
 
   it("submits selected Gemini providers", async () => {

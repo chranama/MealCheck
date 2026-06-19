@@ -54,7 +54,7 @@ const artifactBodies: Record<string, unknown> = {
   ],
   "unresolved-foods.json": [],
   "manifest.json": {
-    mode: "manual_structured",
+    mode: "profile_generation",
     artifacts: [
       "decision.json",
       "report.json",
@@ -95,6 +95,40 @@ async function mockMealCheckApi(page: Page) {
     await route.fulfill({
       status: 202,
       json: { run_id: `run-${runCounter}`, status: "queued" },
+    });
+  });
+  await page.route("**/mock-api/api/qualify", async (route) => {
+    expect(route.request().method()).toBe("POST");
+    expect(route.request().headers()["x-mealcheck-invite-token"]).toBe("invite-1");
+    payloads.push(route.request().postDataJSON());
+    await route.fulfill({
+      status: 200,
+      json: {
+        qualification: {
+          schema_version: "0.1",
+          status: "eligible_for_verification",
+          reason: "Candidate text was normalized into a MealCheck plan.",
+          provider_used: false,
+          normalized_plan: {
+            schema_version: "0.1",
+            plan_id: "mock-normalized",
+            description: "Mock normalized plan.",
+            days: [
+              {
+                day: 1,
+                meals: [
+                  {
+                    name: "breakfast",
+                    items: [{ food: "cooked oatmeal", quantity: 1, unit: "cup" }],
+                  },
+                ],
+              },
+            ],
+            shopping_list: [],
+            prep_notes: [],
+          },
+        },
+      },
     });
   });
 
@@ -166,7 +200,7 @@ test("loads the live run homepage and can open a seeded demo", async ({ page }) 
   await expect(page.getByRole("tab", { name: "Report" })).toBeVisible();
 });
 
-test("creates and deletes a mocked live manual run", async ({ page }) => {
+test("qualifies mocked candidate text", async ({ page }) => {
   const api = await mockMealCheckApi(page);
   await page.goto("/?api=/mock-api");
 
@@ -174,21 +208,15 @@ test("creates and deletes a mocked live manual run", async ({ page }) => {
   await expect(page.locator("#backend-guidance")).toHaveCount(0);
   await expect(page.getByText("Service ready")).toHaveCount(0);
   await page.getByLabel("Access code").fill("invite-1");
-  await page.getByRole("button", { name: "Create Report" }).click();
+  await page.getByRole("button", { name: "Check Eligibility" }).click();
 
-  await expect(page.getByText("run-1").first()).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Checks" })).toBeVisible();
-  await expect(page.getByText("Sodium is within the configured daily limit.")).toBeVisible();
-  await page.getByRole("tab", { name: "Report" }).click();
-  await expect(page.getByRole("link", { name: "Download report PDF" })).toBeVisible();
-  expect(api.payloads[0]).toMatchObject({ input_mode: "manual_structured" });
-
-  await page.getByRole("button", { name: "Delete Report" }).click();
-  await expect(page.getByRole("dialog", { name: "Delete report?" })).toBeVisible();
-  await page.getByRole("dialog", { name: "Delete report?" }).getByRole("button", { name: "Delete Report" }).click();
-  await expect(page.getByText("Report deleted.").first()).toBeVisible();
+  await expect(page.getByText("Candidate text was normalized into a MealCheck plan.")).toBeVisible();
+  await expect(page.getByText("Eligible For Verification")).toBeVisible();
+  await expect(page.getByText("1 day, 1 meal, 1 item")).toBeVisible();
   await expect(page.getByRole("tab", { name: "Checks" })).toHaveCount(0);
-  expect(api.deletedRunIDs).toEqual(["run-1"]);
+  expect(api.payloads[0]).toMatchObject({
+    text: expect.stringContaining("Day 1 breakfast"),
+  });
 });
 
 test("creates a mocked BYOK profile-generation run without persisting provider keys", async ({ page }) => {

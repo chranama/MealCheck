@@ -76,12 +76,14 @@ func run(args []string) error {
 	}
 	worker := hosted.NewWorker(config, store, pendingInputs, providerFactory)
 	cleanup := hosted.CleanupJob{Config: config, Store: store, Pending: pendingInputs}
+	hostedServer := hosted.NewServer(config, store, pendingInputs)
+	hostedServer.ProviderFactory = providerFactory
 	go worker.Run(ctx)
 	go cleanup.Run(ctx)
 
 	server := &http.Server{
 		Addr:              config.Addr,
-		Handler:           hosted.NewServer(config, store, pendingInputs).Handler(),
+		Handler:           hostedServer.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

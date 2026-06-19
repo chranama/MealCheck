@@ -4,6 +4,7 @@ import {
   cleanApiBase,
   createRun,
   joinUrl,
+  qualifyMealPlan,
   requestJSON,
 } from "../api";
 import { DEFAULT_CONSTRAINTS, DEFAULT_PROFILE } from "../../constants";
@@ -65,17 +66,16 @@ describe("api", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const payload: RunPayload = {
-      input_mode: "manual_structured",
+      input_mode: "profile_generation",
       profile: DEFAULT_PROFILE,
       constraints: DEFAULT_CONSTRAINTS,
-      candidate_plan: {
-        schema_version: "0.1",
-        plan_id: "manual-1",
-        description: "test",
-        days: [],
-        shopping_list: [],
-        prep_notes: [],
+      provider: {
+        type: "openai",
+        base_url: "",
+        model: "gpt-test",
+        api_key: "secret",
       },
+      repair_json: true,
     };
 
     await expect(createRun("http://api", "invite-1", payload)).resolves.toEqual({
@@ -85,6 +85,41 @@ describe("api", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "http://api/api/runs",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "X-MealCheck-Invite-Token": "invite-1",
+        }),
+      }),
+    );
+  });
+
+  it("qualifies meal plan text with the invite token header", async () => {
+    const fetchMock = vi.fn(async () => new Response(
+      JSON.stringify({
+        qualification: {
+          schema_version: "0.1",
+          status: "eligible_for_verification",
+          reason: "ok",
+          provider_used: false,
+        },
+      }),
+      { status: 200 },
+    ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(qualifyMealPlan("http://api", "invite-1", {
+      text: "Day 1 breakfast: 1 cup oatmeal.",
+      profile: DEFAULT_PROFILE,
+      constraints: DEFAULT_CONSTRAINTS,
+    })).resolves.toMatchObject({
+      qualification: {
+        status: "eligible_for_verification",
+      },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api/api/qualify",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({

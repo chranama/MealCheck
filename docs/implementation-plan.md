@@ -1812,3 +1812,67 @@ Acceptance:
 - the CLI/local workflow remains the structured JSON verification path.
 - docs describe the same hosted BYOK-only product shape across API, contracts,
   runbook, CLI, and backend-server references.
+
+## Milestone 18: Frontend BYOK Qualification Workflow
+
+Status: Implemented on 2026-06-19 for the Vite/React frontend and local
+browser smoke coverage.
+
+Purpose:
+
+Milestone 17 moved the hosted backend contract to a BYOK qualification surface,
+but the frontend still exposed the older hosted manual structured workflow. The
+web UI should now match the product story: hosted users can paste candidate
+meal-plan text, check whether it qualifies for verification, and separately
+create BYOK profile or prompt generation runs. Structured JSON verification
+stays in the CLI/local case-file workflow.
+
+Deliver:
+
+- frontend API client for invite-gated `POST /api/qualify`
+- typed qualification payload, response, and UI state contracts
+- hosted live workspace with candidate-text qualification preflight
+- removal of hosted manual structured entry and hosted manual run payloads from
+  the React workflow
+- BYOK provider key clearing after qualification and generation requests
+- visible qualification result summary for status, provider use, normalized
+  plan size, and missing fields
+- local fake-provider qualification support through `cmd/mealcheck-server`
+- frontend unit and Playwright tests updated for qualification plus BYOK
+  generation
+
+Implemented:
+
+1. Added `qualifyMealPlan` to the frontend API client.
+2. Added `QualifyMealPlanPayload`, `QualifyMealPlanResponse`,
+   `MealPlanQualificationResult`, and `QualificationState` frontend types.
+3. Added `buildQualificationPayload`, which omits provider config unless a
+   model or API key was supplied and normalizes provider config when BYOK is
+   used.
+4. Reworked `LiveWorkspace` so the first hosted action is candidate-text
+   qualification and hosted run creation is limited to profile and prompt BYOK
+   generation.
+5. Added qualification result rendering in the live results panel.
+6. Cleared provider API keys after both qualification and generation requests.
+7. Wired `cmd/mealcheck-server` so `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH`
+   feeds both worker generation and `/api/qualify` normalization during local
+   smoke tests.
+8. Updated unit tests, mocked Playwright tests, local full-stack Playwright
+   tests, runbook, privacy/safety docs, user story, and UI README.
+
+Acceptance:
+
+- hosted frontend has no manual structured entry mode or manual hosted run
+  payload path
+- user can submit a qualification request with an access code and candidate
+  text
+- qualification can run without provider config when deterministic
+  classification is enough
+- qualification can include BYOK provider config for normalization and clears
+  the API key afterward
+- BYOK profile and prompt generation still create asynchronous report runs and
+  clear provider keys afterward
+- local full-stack browser smoke verifies qualification through the fake
+  provider and BYOK generation redaction
+- frontend typecheck, unit tests, mocked e2e tests, local e2e tests, and build
+  pass

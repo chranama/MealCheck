@@ -8,6 +8,7 @@ import {
   INITIAL_MANUAL_ITEMS,
 } from "../../constants";
 import {
+  buildQualificationPayload,
   buildManualPlan,
   buildRunPayload,
   normalizeConstraints,
@@ -55,8 +56,6 @@ describe("payload", () => {
       mode: "prompt_generation",
       profile: DEFAULT_PROFILE,
       constraints: draftConstraints,
-      manualItems: INITIAL_MANUAL_ITEMS,
-      prepNotes: DEFAULT_PREP_NOTES,
       provider: {
         ...DEFAULT_PROVIDER,
         model: "gpt-test",
@@ -87,8 +86,6 @@ describe("payload", () => {
       mode: "profile_generation",
       profile: DEFAULT_PROFILE,
       constraints: draftConstraints,
-      manualItems: INITIAL_MANUAL_ITEMS,
-      prepNotes: DEFAULT_PREP_NOTES,
       provider: {
         type: "openai_compatible",
         base_url: "https://router.local/v1/",
@@ -114,8 +111,6 @@ describe("payload", () => {
       mode: "profile_generation",
       profile: DEFAULT_PROFILE,
       constraints: draftConstraints,
-      manualItems: INITIAL_MANUAL_ITEMS,
-      prepNotes: DEFAULT_PREP_NOTES,
       provider: {
         type: "gemini",
         base_url: "https://example.invalid",
@@ -140,11 +135,47 @@ describe("payload", () => {
       mode: "profile_generation",
       profile: DEFAULT_PROFILE,
       constraints: draftConstraints,
-      manualItems: INITIAL_MANUAL_ITEMS,
-      prepNotes: DEFAULT_PREP_NOTES,
       provider: DEFAULT_PROVIDER,
       generationPrompt: DEFAULT_GENERATION_PROMPT,
       repairJSON: true,
     })).toThrow("Provider model is required.");
+  });
+
+  it("builds qualification payloads without provider keys when none are supplied", () => {
+    const payload = buildQualificationPayload({
+      text: " Day 1 breakfast: 1 cup oatmeal. ",
+      profile: DEFAULT_PROFILE,
+      constraints: draftConstraints,
+      provider: DEFAULT_PROVIDER,
+    });
+
+    expect(payload).toMatchObject({
+      text: "Day 1 breakfast: 1 cup oatmeal.",
+      constraints: {
+        allergies: ["peanuts", "shellfish"],
+      },
+    });
+    expect(payload.provider).toBeUndefined();
+  });
+
+  it("adds provider config to qualification payloads when BYOK fields are supplied", () => {
+    const payload = buildQualificationPayload({
+      text: "Day 1 breakfast: 1 cup oatmeal.",
+      profile: DEFAULT_PROFILE,
+      constraints: draftConstraints,
+      provider: {
+        type: "openai_compatible",
+        base_url: "https://router.local/v1/",
+        model: "custom-model",
+        api_key: "secret",
+      },
+    });
+
+    expect(payload.provider).toMatchObject({
+      type: "openai_compatible",
+      base_url: "https://router.local/v1",
+      model: "custom-model",
+      api_key: "secret",
+    });
   });
 });

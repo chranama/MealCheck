@@ -3,6 +3,8 @@ import type {
   CreateRunResponse,
   DemoIndex,
   DemoRun,
+  QualifyMealPlanPayload,
+  QualifyMealPlanResponse,
   ReportArtifacts,
   RunDocument,
   RunEvent,
@@ -141,6 +143,17 @@ export async function loadDemoArtifacts(demo: DemoRun): Promise<ReportArtifacts>
 
 export async function createRun(base: string, inviteToken: string, payload: RunPayload): Promise<CreateRunResponse> {
   return requestJSON<CreateRunResponse>(base, "/api/runs", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-MealCheck-Invite-Token": inviteToken,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function qualifyMealPlan(base: string, inviteToken: string, payload: QualifyMealPlanPayload): Promise<QualifyMealPlanResponse> {
+  return requestJSON<QualifyMealPlanResponse>(base, "/api/qualify", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

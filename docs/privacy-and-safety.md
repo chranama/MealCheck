@@ -76,11 +76,13 @@ Default rules:
 
 ## Third-Party Disclosure
 
-Manual structured entry can run without sending profile or plan data to an LLM
-provider.
+Local structured case-file verification can run without sending profile or plan
+data to an LLM provider.
 
 BYOK LLM modes send data to the user's selected provider:
 
+- qualification normalization sends pasted candidate meal-plan text, profile,
+  and constraints when a provider is needed
 - profile-only generation sends profile and constraints
 - prompt-based generation sends profile, constraints, and the custom prompt
 - bounded repair sends invalid model output, schema errors, and enough context
@@ -89,7 +91,8 @@ BYOK LLM modes send data to the user's selected provider:
 The MVP provider choices are OpenAI, Anthropic, Gemini, and custom
 OpenAI-compatible endpoints.
 
-The UI must disclose this before a BYOK run starts.
+The UI must disclose this before a BYOK qualification or generation request
+starts.
 
 MealCheck should not send user profile, prompt, or meal-plan data to analytics,
 advertising, or tracking services.
@@ -98,16 +101,18 @@ advertising, or tracking services.
 
 Provider API keys:
 
-- accepted only for BYOK generation or bounded repair
+- accepted only for BYOK qualification normalization, generation, or bounded
+  repair
 - treated as one-run bearer secrets, not saved account settings
 - sent from the browser to the MealCheck backend and then to the selected
-  provider endpoint for that run
-- held only in short-lived backend memory while the run is queued or active
+  provider endpoint for that request
+- held only in short-lived backend memory while the qualification request is
+  active or while the run is queued or active
 - never written to Postgres, logs, reports, metrics, artifact bundles, or
   persisted configs
 - not persisted in browser `localStorage` or `sessionStorage`
-- discarded when the worker claims the run, the run is deleted, the pending
-  input expires, or cleanup removes expired state
+- discarded after qualification returns, when the worker claims the run, the run
+  is deleted, the pending input expires, or cleanup removes expired state
 - expected to be temporary, scoped, budget-limited, and revocable
 
 Hosted BYOK requires trusting the MealCheck backend process and deployment
