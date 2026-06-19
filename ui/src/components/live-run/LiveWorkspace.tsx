@@ -133,16 +133,13 @@ export function LiveWorkspace({
             </div>
           </fieldset>
 
-          <ProfileForm profile={profile} setProfile={setProfile} />
-          <ConstraintsForm constraints={constraints} setConstraints={setConstraints} />
-
           <fieldset>
-            <legend>Qualification</legend>
+            <legend>Meal Plan Text</legend>
             <CandidateTextForm candidateText={candidateText} setCandidateText={setCandidateText} />
           </fieldset>
 
           <fieldset>
-            <legend>BYOK Provider</legend>
+            <legend>Model Provider</legend>
             <ProviderForm
               provider={provider}
               setProvider={setProvider}
@@ -155,6 +152,18 @@ export function LiveWorkspace({
             />
           </fieldset>
 
+          <section className="verification-settings-section" aria-label="Verification settings">
+            <details className="advanced-section verification-settings">
+              <summary>
+                <span>Verification Settings</span>
+                <small>Profile and constraints</small>
+              </summary>
+              <div className="verification-settings-body">
+                <ProfileForm profile={profile} setProfile={setProfile} />
+                <ConstraintsForm constraints={constraints} setConstraints={setConstraints} />
+              </div>
+            </details>
+          </section>
         </form>
       </section>
 
@@ -337,7 +346,7 @@ function CandidateTextForm({
 }) {
   return (
     <section className="mode-section" id="candidate-text-section">
-      <Field label="Candidate text">
+      <Field label="Meal plan text">
         <textarea value={candidateText} rows={7} onChange={(event) => setCandidateText(event.target.value)} />
       </Field>
     </section>
@@ -387,7 +396,7 @@ function ProviderForm({
   return (
     <section className="mode-section" id="provider-section">
       <div className="notice">
-        <strong>BYOK provider disclosure</strong>
+        <strong>Model provider disclosure</strong>
         <p>MealCheck sends this key to the backend for the requested provider call. Use temporary, scoped, budget-limited keys; custom OpenAI-compatible endpoints receive the key too. For maximum control, run MealCheck locally from the repo.</p>
       </div>
       <div className="form-grid">

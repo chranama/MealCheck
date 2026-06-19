@@ -1876,3 +1876,56 @@ Acceptance:
   provider and BYOK generation redaction
 - frontend typecheck, unit tests, mocked e2e tests, local e2e tests, and build
   pass
+
+## Milestone 19: Text-First Hosted Workspace
+
+Status: Implemented on 2026-06-19 for the Vite/React frontend, user story, and
+browser smoke coverage.
+
+Purpose:
+
+The hosted page had too much configuration before the user reached the actual
+product question. Profile and constraint fields are still useful because they
+parameterize guideline verification and profile-based generation, but the MVP
+hosted surface should first ask for candidate meal-plan text and model provider
+settings. Defaults should carry the common path, with profile and constraints
+available as optional verification settings.
+
+Deliver:
+
+- hosted live workspace ordered around access, meal-plan text, and model
+  provider setup
+- collapsed Verification Settings section for profile and constraints
+- unchanged backend payload contract and default profile/constraint behavior
+- tests that assert settings are hidden by default but still configurable
+- user-story and implementation-plan documentation aligned with the
+  text-first hosted UX
+
+Implemented:
+
+1. Reordered `LiveWorkspace` so Access, Meal Plan Text, and Model Provider are
+   the visible primary flow.
+2. Moved Profile and Constraints into a collapsed Verification Settings
+   disclosure without changing state or payload construction.
+3. Renamed hosted UI copy from Qualification/Candidate Text/BYOK Provider to a
+   clearer Meal Plan Text and Model Provider flow.
+4. Added styling for the collapsed settings area and its nested advanced
+   constraints disclosure.
+5. Updated unit and Playwright coverage to check the text-first default state,
+   hidden settings, settings expansion, and unchanged payload behavior.
+6. Updated the user story so hosted BYOK flow treats profile and constraints as
+   optional defaults rather than required first-screen configuration.
+
+Acceptance:
+
+- hosted first screen shows Access, Meal Plan Text, and Model Provider before
+  optional verification settings
+- Profile and Constraints are not visually imposed before the user reaches the
+  core text/provider workflow
+- expanding Verification Settings exposes all previous profile and constraint
+  controls
+- edited profile and constraint values still flow into report creation payloads
+- qualification and BYOK generation continue to clear provider API keys after
+  submission
+- frontend typecheck, unit tests, mocked e2e tests, local e2e tests, and build
+  pass

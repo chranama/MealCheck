@@ -588,6 +588,28 @@ a:focus-visible {
   margin-inline: 14px;
 }
 
+.verification-settings-section {
+  margin-top: 0;
+}
+
+.verification-settings {
+  margin-top: 0;
+}
+
+.verification-settings[open] > .verification-settings-body {
+  margin-inline: 14px;
+}
+
+.verification-settings[open] > .verification-settings-body > fieldset > .form-grid,
+.verification-settings[open] > .verification-settings-body > fieldset > .check-row {
+  margin-inline: 0;
+}
+
+.verification-settings[open] > .verification-settings-body > fieldset .advanced-section[open] .form-grid,
+.verification-settings[open] > .verification-settings-body > fieldset .advanced-section[open] .check-row {
+  margin-inline: 14px;
+}
+
 .segmented {
   display: inline-flex;
   flex-wrap: wrap;

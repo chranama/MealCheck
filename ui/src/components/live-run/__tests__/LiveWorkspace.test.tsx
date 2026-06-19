@@ -41,15 +41,53 @@ function renderWorkspace(overrides: Partial<Parameters<typeof LiveWorkspace>[0]>
 }
 
 describe("LiveWorkspace", () => {
-  it("shows qualification and profile generation by default", () => {
+  it("shows a text-first BYOK workspace with verification settings collapsed", () => {
     renderWorkspace();
 
-    expect(screen.getByText("Qualification")).toBeInTheDocument();
-    expect(screen.getByLabelText("Candidate text")).toBeInTheDocument();
+    expect(screen.getByText("Meal Plan Text")).toBeInTheDocument();
+    expect(screen.getByLabelText("Meal plan text")).toBeVisible();
+    expect(screen.getByText("Model Provider")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Manual" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Profile" })).toHaveClass("is-active");
-    expect(screen.getByText("BYOK provider disclosure")).toBeInTheDocument();
+    expect(screen.getByText("Model provider disclosure")).toBeInTheDocument();
+    expect(screen.getByText("Verification Settings").closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByLabelText("Age")).not.toBeVisible();
+    expect(screen.getByLabelText("Days")).not.toBeVisible();
     expect(screen.queryByLabelText("Prep notes")).not.toBeInTheDocument();
+  });
+
+  it("keeps profile and constraints configurable behind verification settings", async () => {
+    const user = userEvent.setup();
+    const onCreateRun = vi.fn(async () => undefined);
+    renderWorkspace({ onCreateRun });
+
+    await user.click(screen.getByText("Verification Settings"));
+    expect(screen.getByLabelText("Age")).toBeVisible();
+    expect(screen.getByLabelText("Days")).toBeVisible();
+    expect(screen.getByText("Advanced constraints")).toBeVisible();
+
+    await user.clear(screen.getByLabelText("Calories"));
+    await user.type(screen.getByLabelText("Calories"), "2100");
+    await user.clear(screen.getByLabelText("Days"));
+    await user.type(screen.getByLabelText("Days"), "2");
+    await user.type(screen.getByLabelText("Access code"), "invite-1");
+    await user.type(screen.getByLabelText("Model"), "gpt-test");
+    await user.type(screen.getByLabelText("API key"), "secret");
+    await user.click(screen.getByRole("button", { name: "Create Report" }));
+
+    expect(onCreateRun).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080",
+      "invite-1",
+      expect.objectContaining({
+        input_mode: "profile_generation",
+        profile: expect.objectContaining({
+          calorie_target_kcal: 2100,
+        }),
+        constraints: expect.objectContaining({
+          days: 2,
+        }),
+      }),
+    );
   });
 
   it("switches prompt mode to prompt controls", async () => {
@@ -59,7 +97,7 @@ describe("LiveWorkspace", () => {
     await user.click(screen.getByRole("button", { name: "Prompt" }));
 
     expect(screen.getByRole("button", { name: "Prompt" })).toHaveClass("is-active");
-    expect(screen.getByText("BYOK provider disclosure")).toBeInTheDocument();
+    expect(screen.getByText("Model provider disclosure")).toBeInTheDocument();
     expect(screen.getByText(/Use temporary, scoped, budget-limited keys/)).toBeInTheDocument();
     expect(screen.getByText(/custom OpenAI-compatible endpoints receive the key too/)).toBeInTheDocument();
     expect(screen.getByText(/run MealCheck locally from the repo/)).toBeInTheDocument();

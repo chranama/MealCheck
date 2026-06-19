@@ -6,6 +6,40 @@ public expectations.
 Use this log instead of separate ADR and RFC files until a decision becomes too
 large to keep readable here.
 
+## 2026-06-19: Hosted UI Is Text-First With Optional Verification Settings
+
+Status: Accepted
+
+Decision:
+
+The hosted MealCheck workspace should lead with the core verification workflow:
+access code, pasted meal-plan text, and model provider settings. Profile and
+constraint inputs should remain available, but they should live behind a
+collapsed Verification Settings disclosure and use defaults unless the user
+chooses to tune them.
+
+Reason:
+
+The product question is whether candidate meal-plan text qualifies for
+verification and then passes deterministic checks. Showing profile and
+constraint configuration before the text/provider workflow creates too much
+setup friction and makes the hosted surface feel like a form-heavy planner
+rather than a verification tool. The fields still matter because guideline
+checks and profile-based generation need them, but they should not be imposed
+before the user reaches the primary task.
+
+Consequences:
+
+- The first screen should expose Access, Meal Plan Text, and Model Provider
+  before optional settings.
+- Profile and constraint defaults remain part of qualification and generation
+  payloads.
+- Users can still expand Verification Settings to adjust profile assumptions,
+  constraints, and advanced thresholds.
+- Backend contracts do not change for this UI decision.
+- Tests should assert both the collapsed default state and that edited settings
+  still affect payloads.
+
 ## 2026-06-19: Hosted Surface Uses BYOK Qualification Instead Of Manual Entry
 
 Status: Accepted

@@ -159,12 +159,15 @@ Minimal internal shape:
 
 1. The user opens the hosted BYOK verification surface.
 2. The user enters an access code.
-3. The user enters BYOK provider settings:
+3. The user pastes candidate meal-plan text to qualify.
+4. The user enters model provider settings when BYOK normalization or
+   generation is needed:
    - provider type
    - model ID
    - API key
    - custom base URL only for OpenAI-compatible providers
-4. The user enters profile inputs:
+5. If defaults are not sufficient, the user opens Verification Settings and
+   adjusts profile inputs:
    - age
    - sex
    - height
@@ -173,7 +176,7 @@ Minimal internal shape:
    - goal
    - calorie target
    - protein target
-5. The user enters constraints:
+6. If defaults are not sufficient, the user adjusts verification constraints:
    - number of days
    - meals per day
    - allergies
@@ -185,15 +188,15 @@ Minimal internal shape:
    - calorie tolerance
    - shopping-list requirement
    - prep-safety-notes requirement
-6. The user supplies either:
+7. The user supplies either:
    - a BYOK generation prompt
    - profile-only generation intent
    - pasted candidate meal-plan text for qualification/normalization
-7. MealCheck can qualify pasted candidate content before a report run.
-8. For generation modes, MealCheck creates a normalized JSON plan and verifies
+8. MealCheck can qualify pasted candidate content before a report run.
+9. For generation modes, MealCheck creates a normalized JSON plan and verifies
    it deterministically.
-9. MealCheck creates an artifact bundle and report for completed runs.
-10. The user sees the qualification result, decision, failed checks, unresolved
+10. MealCheck creates an artifact bundle and report for completed runs.
+11. The user sees the qualification result, decision, failed checks, unresolved
     foods, calculated totals, and source-pack citations.
 
 ## Local CLI Debug Flow
