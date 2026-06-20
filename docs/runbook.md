@@ -936,6 +936,58 @@ normalization and BYOK generation. Hosted structured manual entry is no longer
 part of the public web surface; use CLI/local case files for structured JSON
 debugging.
 
+## Deployed BYOK Live Test
+
+Run the deployed live BYOK test from the repository root:
+
+```bash
+export OPENAI_API_KEY="..."
+export ANTHROPIC_API_KEY="..."
+export GEMINI_API_KEY="..."
+
+MEALCHECK_DEPLOYED_API_URL=https://api.mealcheck.dev \
+  scripts/test-deployed-byok-live.sh
+```
+
+The public repo script assumes `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and
+`GEMINI_API_KEY` are already present in the local environment. It does not
+retrieve secrets. It checks the deployed `/api/health` endpoint, submits one
+live BYOK prompt-generation run per native provider, polls each run to
+completion, fetches
+`optional/normalization-events.json`, `normalized-plan.json`, and
+`decision.json`, then scans those fetched artifacts for the provider keys.
+
+Key handling expectations:
+
+- Store provider keys outside the repository in a secure credential manager or
+  equivalent local secret store.
+- Load keys into the terminal environment only for the duration of the live test.
+- Use temporary, scoped, budget-limited provider keys where the provider
+  supports that posture.
+- Do not paste keys into checked-in files, shell history, screenshots, logs, or
+  issue trackers.
+- Rotate or revoke test keys after live endpoint testing when appropriate.
+
+If the deployed API is in invite-required mode, also set:
+
+```bash
+export MEALCHECK_DEPLOYED_INVITE_TOKEN="..."
+```
+
+Operational knobs:
+
+- `MEALCHECK_DEPLOYED_API_URL` defaults to `https://api.mealcheck.dev`.
+- `MEALCHECK_DELETE_RUNS` defaults to `1`, so the script deletes created
+  deployed runs after fetching artifacts. Set `MEALCHECK_DELETE_RUNS=0` to keep
+  runs for manual inspection.
+- `MEALCHECK_DEPLOYED_OUTPUT_DIR` overrides the local directory used for fetched
+  artifacts. The default is under `/tmp`.
+- `GEMINI_MODEL`, `ANTHROPIC_MODEL`, and `OPENAI_MODEL` override provider model
+  names.
+
+The artifact key scan proves that keys are not exposed through retrievable run
+artifacts. It does not inspect the deployed server filesystem directly.
+
 ## Public Access Policy
 
 Public visitors should be able to:
