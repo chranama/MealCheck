@@ -7,11 +7,6 @@ It answers one practical question:
 
 `Does this meal plan satisfy the declared checks well enough to use, or should it be revised?`
 
-MealCheck is not a medical nutrition tool. It does not diagnose, prescribe, or
-claim that a plan is optimal for a person. It checks whether a plan follows a
-bounded contract: profile assumptions, allergens, meal structure, nutrient
-limits, source-backed guideline rules, and baseline-versus-candidate
-regressions.
 
 ## What It Does
 
@@ -44,8 +39,7 @@ The deployed MVP shape is:
 - live generation and bounded repair only through bring-your-own-key execution
 - structured manual JSON verification preserved in the local CLI/debug path
 
-The MVP is web-deployed for first invite-gated public review. Production live
-runs require per-user access codes. The Cloudflare Pages frontend is connected
+The Cloudflare Pages frontend is connected
 to the GitHub repository and automatically deploys from `main`.
 
 The hosted website is a demonstration and BYOK verification playground. The
@@ -56,19 +50,6 @@ The tightened product direction adds first-class meal-plan qualification before
 verification: candidate text may be not a meal plan, too vague, recipe-like but
 undecomposed, eligible, or eligible with unresolved items.
 
-## What It Is Not
-
-MealCheck is not:
-
-- a dietitian
-- a medical recommendation engine
-- a weight-loss promise
-- an eating-disorder support tool
-- a broad food database product
-- a generic chatbot
-- an open-ended hosted meal-planning brainstormer
-- a hosted nontechnical manual-entry verifier as the primary workflow
-- a high-availability production service
 
 ## Documentation
 
