@@ -156,6 +156,10 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 }
 
 func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, plan checker.Plan, llmOutput string, initialOutput string, initialErr error, repairOutput string, repairErr error, repairAttempted bool, events []NormalizationEvent) (checker.Plan, string, string, error, bool, []NormalizationEvent, error) {
+	if normalizedPlan, changed := markUnsupportedUnitsUnresolved(plan); changed {
+		plan = normalizedPlan
+		events = append(events, normalizationEvent("unsupported_units_marked_unresolved", "provider numeric items with unsupported units were preserved as unresolved quantities"))
+	}
 	if err := validatePlan(plan); err != nil {
 		events = append(events, normalizationEvent("plan_validation_failed", "decoded provider output failed MealCheck plan validation"))
 		return checker.Plan{}, llmOutput, repairOutput, repairErr, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
@@ -203,6 +207,10 @@ func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provid
 			})
 		}
 		plan = decodeResult.Plan
+		if normalizedPlan, changed := markUnsupportedUnitsUnresolved(plan); changed {
+			plan = normalizedPlan
+			events = append(events, normalizationEvent("unsupported_units_marked_unresolved", "provider numeric items with unsupported units were preserved as unresolved quantities"))
+		}
 		if decodeResult.Canonicalized {
 			events = append(events, normalizationEvent("json_canonicalized", "repair output used bounded alias canonicalization before strict decode"))
 		}
@@ -230,6 +238,51 @@ func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provid
 	}
 
 	return plan, llmOutput, repairOutput, repairErr, repairAttempted, events, nil
+}
+
+func markUnsupportedUnitsUnresolved(plan checker.Plan) (checker.Plan, bool) {
+	changed := false
+	for dayIndex := range plan.Days {
+		for mealIndex := range plan.Days[dayIndex].Meals {
+			for itemIndex := range plan.Days[dayIndex].Meals[mealIndex].Items {
+				if markUnsupportedItemUnitUnresolved(&plan.Days[dayIndex].Meals[mealIndex].Items[itemIndex]) {
+					changed = true
+				}
+			}
+		}
+	}
+	for itemIndex := range plan.ShoppingList {
+		if markUnsupportedItemUnitUnresolved(&plan.ShoppingList[itemIndex]) {
+			changed = true
+		}
+	}
+	return plan, changed
+}
+
+func markUnsupportedItemUnitUnresolved(item *checker.FoodItem) bool {
+	if item.Quantity == nil || allowedUnit(item.Unit) {
+		return false
+	}
+	if strings.TrimSpace(item.QuantityText) == "" {
+		item.QuantityText = unsupportedUnitQuantityText(item.Quantity, item.Unit)
+	}
+	item.Quantity = nil
+	item.Unit = ""
+	item.ResolutionStatus = "unresolved"
+	item.UnresolvedReason = "unsupported_unit"
+	return true
+}
+
+func unsupportedUnitQuantityText(quantity *float64, unit string) string {
+	if quantity == nil {
+		return strings.TrimSpace(unit)
+	}
+	amount := strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.6f", *quantity), "0"), ".")
+	unit = strings.TrimSpace(unit)
+	if unit == "" {
+		return amount
+	}
+	return amount + " " + unit
 }
 
 func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {

@@ -474,6 +474,81 @@ func TestPromptGenerationRepairsGeneratedPlanCountMismatch(t *testing.T) {
 	}
 }
 
+func TestPromptGenerationMarksUnsupportedUnitsUnresolved(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	seeded := seededCase(t, root)
+	seeded.Settings.VerificationConstraints.Days = 1
+	seeded.Settings.VerificationConstraints.MealsPerDay = 3
+	provider := &fakeProvider{responses: []string{
+		`{"schema_version":"0.1","plan_id":"unsupported-unit","days":[{"day":1,"meals":[{"name":"breakfast","items":[{"food":"Whole Wheat Bread","quantity":1,"unit":"slice"}]},{"name":"lunch","items":[{"food":"chicken breast","quantity":4,"unit":"oz"}]},{"name":"dinner","items":[{"food":"broccoli","quantity":1,"unit":"cup"}]}]}]}`,
+	}}
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:        "prompt_generation",
+		Settings:         seeded.Settings,
+		GenerationPrompt: "Create a simple 1 day meal plan.",
+		Provider: ProviderConfig{
+			Type:   "openai_compatible",
+			Model:  "fake-model",
+			APIKey: "sk-unsupported-unit-secret",
+		},
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		return provider, nil
+	}).ProcessOne(context.Background())
+	if err != nil {
+		t.Fatalf("process run: %v", err)
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+	if provider.calls != 1 {
+		t.Fatalf("provider calls = %d, want 1", provider.calls)
+	}
+
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	if run.Status != StatusCompleted {
+		t.Fatalf("run status = %q, want completed", run.Status)
+	}
+	if run.Decision != "block" {
+		t.Fatalf("run decision = %q, want block", run.Decision)
+	}
+	var events []NormalizationEvent
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "normalization-events.json")), &events)
+	if !hasNormalizationEvent(events, "unsupported_units_marked_unresolved") {
+		t.Fatalf("normalization events missing unsupported_units_marked_unresolved: %+v", events)
+	}
+	var plan checker.Plan
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "normalized-plan.json")), &plan)
+	item := plan.Days[0].Meals[0].Items[0]
+	if item.Quantity != nil || item.Unit != "" || item.QuantityText != "1 slice" || item.ResolutionStatus != "unresolved" || item.UnresolvedReason != "unsupported_unit" {
+		t.Fatalf("unsupported unit item was not preserved as unresolved: %+v", item)
+	}
+	var decision checker.DecisionDocument
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "decision.json")), &decision)
+	if len(decision.UnresolvedItems) != 1 {
+		t.Fatalf("len(unresolved_items) = %d, want 1: %+v", len(decision.UnresolvedItems), decision.UnresolvedItems)
+	}
+	unresolved := decision.UnresolvedItems[0]
+	if unresolved.Food != "Whole Wheat Bread" || unresolved.QuantityText != "1 slice" || unresolved.UnresolvedReason != "unsupported_unit" {
+		t.Fatalf("unexpected unresolved item: %+v", unresolved)
+	}
+}
+
 func TestPromptGenerationFailsWithoutRepairAfterInvalidJSON(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
