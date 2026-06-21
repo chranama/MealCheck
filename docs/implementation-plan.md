@@ -2151,7 +2151,7 @@ Implemented:
    - validates the resulting MealCheck shape with `jq`
    - optionally runs the deterministic MealCheck CLI checker against the model
      output
-   - writes per-run artifacts and `summary.jsonl`
+   - writes per-run artifacts, token/byte metrics, and `summary.jsonl`
 
 Acceptance:
 

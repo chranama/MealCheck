@@ -18,7 +18,7 @@ PROMPT_FILE="${MEALCHECK_LLAMA_PROMPT_FILE:-$ROOT/examples/local-llama/synthetic
 SCHEMA_PATH="${MEALCHECK_LLAMA_SCHEMA_PATH:-$ROOT/examples/local-llama/meal-plan-response.schema.json}"
 OUTPUT_DIR="${MEALCHECK_LLAMA_OUTPUT_DIR:-/tmp/mealcheck-local-llama-$(date +%Y%m%d-%H%M%S)}"
 REPEATS="${MEALCHECK_LLAMA_REPEATS:-3}"
-MAX_TOKENS="${MEALCHECK_LLAMA_MAX_TOKENS:-900}"
+MAX_TOKENS="${MEALCHECK_LLAMA_MAX_TOKENS:-600}"
 CURL_MAX_TIME_SECONDS="${MEALCHECK_LLAMA_CURL_MAX_TIME_SECONDS:-300}"
 RUN_CHECKER="${MEALCHECK_LLAMA_RUN_CHECKER:-1}"
 
@@ -87,11 +87,11 @@ build_request() {
       messages: [
         {
           role: "system",
-          content: "You normalize meal-plan text into compact MealCheck verifier JSON only. Return exactly one JSON object. Do not use Markdown. Use only these fields: schema_version, plan_id, days, day, meals, name, items, food, quantity, unit, prep_notes. Do not include description, shopping_list, quantity_text, preparation, brand, resolution_status, or unresolved_reason. Allowed units are g, oz, cup, tbsp, tsp, and serving."
+          content: "You normalize meal-plan text into compact MealCheck verifier JSON only. Return exactly one minified JSON object. Do not use Markdown. Do not include line breaks, indentation, or spaces outside string values. Use only these fields: schema_version, plan_id, days, day, meals, name, items, food, quantity, unit, prep_notes. Do not include description, shopping_list, quantity_text, preparation, brand, resolution_status, or unresolved_reason. Allowed units are g, oz, cup, tbsp, tsp, and serving."
         },
         {
           role: "user",
-          content: ("Normalize this meal plan into compact MealCheck JSON. The result must use schema_version 0.1, include exactly one day, include exactly three meals named breakfast, lunch, and dinner, and include only resolved food items with numeric quantity plus unit. Keep prep_notes as a top-level array if included.\n\n" + $meal_plan_text)
+          content: ("Normalize this meal plan into the smallest valid minified MealCheck JSON object. The result must use schema_version 0.1, include exactly one day, include exactly three meals named breakfast, lunch, and dinner, and include only resolved food items with numeric quantity plus unit. Keep prep_notes as a top-level array if included.\n\n" + $meal_plan_text)
         }
       ]
     }'
@@ -190,7 +190,7 @@ run_trial() {
   local response_path="$run_dir/response.json"
   local content_path="$run_dir/content.txt"
   local plan_path="$run_dir/normalized-plan.json"
-  local response start end duration
+  local response start end duration content_bytes completion_tokens predicted_tokens predicted_per_second
 
   mkdir -p "$run_dir"
   build_request >"$request_path"
@@ -216,6 +216,10 @@ run_trial() {
     failures=$((failures + 1))
     return 0
   fi
+  content_bytes="$(wc -c <"$content_path" | tr -d ' ')"
+  completion_tokens="$(jq -r '.usage.completion_tokens // empty' "$response_path")"
+  predicted_tokens="$(jq -r '.timings.predicted_n // empty' "$response_path")"
+  predicted_per_second="$(jq -r '.timings.predicted_per_second // empty' "$response_path")"
 
   if ! jq . "$content_path" >"$plan_path" 2>"$run_dir/json-parse-error.txt"; then
     echo "FAIL: model content was not JSON; see $content_path"
@@ -241,6 +245,14 @@ run_trial() {
 
   jq '{schema_version, plan_id, meals: [.days[0].meals[].name], item_count: ([.days[0].meals[].items[]] | length)}' "$plan_path"
   printf "duration_seconds=%s\n" "$duration"
+  printf "content_bytes=%s\n" "$content_bytes"
+  if [[ -n "$completion_tokens" ]]; then
+    printf "completion_tokens=%s\n" "$completion_tokens"
+  fi
+  if [[ -n "$predicted_tokens" && -n "$predicted_per_second" ]]; then
+    printf "predicted_tokens=%s\n" "$predicted_tokens"
+    printf "predicted_tokens_per_second=%s\n" "$predicted_per_second"
+  fi
   record_summary "pass" "$index" "$duration" "structured JSON smoke passed"
 }
 

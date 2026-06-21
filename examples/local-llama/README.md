@@ -9,6 +9,9 @@ These files support the local llama.cpp model trial matrix.
   llama.cpp schema-constrained JSON decoding. It intentionally avoids `$ref`
   and omits optional `description`, `shopping_list`, and redundant resolved-item
   fields to keep local generation latency bounded.
+- `scripts/test-local-llama-structured-json.sh` asks the model for minified JSON
+  and prints content-byte and token-count metrics so latency changes are visible
+  between model and quantization trials.
 
 This fixture is a smoke datapoint, not a full evaluation set. A model must pass
 this before it is worth testing larger synthetic or manually reviewed examples.
