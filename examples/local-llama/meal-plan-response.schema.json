@@ -49,48 +49,38 @@
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": [
-                      "food",
-                      "quantity",
-                      "quantity_text",
-                      "unit",
-                      "preparation",
-                      "brand",
-                      "resolution_status",
-                      "unresolved_reason"
-                    ],
+                    "required": ["food"],
                     "properties": {
                       "food": {
                         "type": "string"
                       },
                       "quantity": {
-                        "type": ["number", "null"]
+                        "type": "number"
                       },
                       "quantity_text": {
-                        "type": ["string", "null"]
+                        "type": "string"
                       },
                       "unit": {
-                        "type": ["string", "null"],
-                        "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving", null]
+                        "type": "string",
+                        "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
                       },
                       "preparation": {
-                        "type": ["string", "null"]
+                        "type": "string"
                       },
                       "brand": {
-                        "type": ["string", "null"]
+                        "type": "string"
                       },
                       "resolution_status": {
-                        "type": ["string", "null"],
-                        "enum": ["pending", "unresolved", null]
+                        "type": "string",
+                        "enum": ["pending", "unresolved"]
                       },
                       "unresolved_reason": {
-                        "type": ["string", "null"],
+                        "type": "string",
                         "enum": [
                           "unknown_food",
                           "vague_quantity",
                           "unsupported_unit",
-                          "missing_conversion",
-                          null
+                          "missing_conversion"
                         ]
                       }
                     }
@@ -107,48 +97,38 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "food",
-          "quantity",
-          "quantity_text",
-          "unit",
-          "preparation",
-          "brand",
-          "resolution_status",
-          "unresolved_reason"
-        ],
+        "required": ["food"],
         "properties": {
           "food": {
             "type": "string"
           },
           "quantity": {
-            "type": ["number", "null"]
+            "type": "number"
           },
           "quantity_text": {
-            "type": ["string", "null"]
+            "type": "string"
           },
           "unit": {
-            "type": ["string", "null"],
-            "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving", null]
+            "type": "string",
+            "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
           },
           "preparation": {
-            "type": ["string", "null"]
+            "type": "string"
           },
           "brand": {
-            "type": ["string", "null"]
+            "type": "string"
           },
           "resolution_status": {
-            "type": ["string", "null"],
-            "enum": ["pending", "unresolved", null]
+            "type": "string",
+            "enum": ["pending", "unresolved"]
           },
           "unresolved_reason": {
-            "type": ["string", "null"],
+            "type": "string",
             "enum": [
               "unknown_food",
               "vague_quantity",
               "unsupported_unit",
-              "missing_conversion",
-              null
+              "missing_conversion"
             ]
           }
         }

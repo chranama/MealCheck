@@ -78,7 +78,11 @@ build_request() {
       },
       response_format: {
         type: "json_schema",
-        schema: $schema[0]
+        json_schema: {
+          name: "mealcheck_meal_plan",
+          strict: true,
+          schema: $schema[0]
+        }
       },
       messages: [
         {
@@ -103,7 +107,13 @@ validate_plan_shape() {
     (.days[0].meals | type == "array" and length == 3) and
     ([.days[0].meals[].name | ascii_downcase] | sort == ["breakfast", "dinner", "lunch"]) and
     ([.days[0].meals[].items[]] | length >= 6) and
+    (.shopping_list | type == "array") and
+    (.prep_notes | type == "array") and
     ([.. | objects | select(has("food")) | .food] | length >= 6) and
+    ([.. | objects | select(has("quantity") and .quantity != null) | .quantity] |
+      all(type == "number")) and
+    ([.. | objects | select(has("quantity_text") and .quantity_text != null) | .quantity_text] |
+      all(type == "string")) and
     ([.. | objects | select(has("unit") and .unit != null) | .unit] |
       all(. as $unit | ["g", "oz", "cup", "tbsp", "tsp", "serving"] | index($unit) != null))
   ' "$plan_path" >/dev/null
