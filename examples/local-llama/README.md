@@ -5,9 +5,10 @@ These files support the local llama.cpp model trial matrix.
 - `synthetic-meal-plan.txt` is a small synthetic meal-plan datapoint. It is
   designed to test whether a local model can normalize concrete meal-plan text
   into MealCheck JSON.
-- `meal-plan-response.schema.json` is an inline schema for llama.cpp
-  schema-constrained JSON decoding. It intentionally avoids `$ref` so it is
-  easier to pass directly to `llama-server`.
+- `meal-plan-response.schema.json` is an inline compact verifier schema for
+  llama.cpp schema-constrained JSON decoding. It intentionally avoids `$ref`
+  and omits optional `description`, `shopping_list`, and redundant resolved-item
+  fields to keep local generation latency bounded.
 
 This fixture is a smoke datapoint, not a full evaluation set. A model must pass
 this before it is worth testing larger synthetic or manually reviewed examples.

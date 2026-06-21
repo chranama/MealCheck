@@ -1,23 +1,13 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schema_version",
-    "plan_id",
-    "description",
-    "days",
-    "shopping_list",
-    "prep_notes"
-  ],
+  "required": ["schema_version", "plan_id", "days"],
   "properties": {
     "schema_version": {
       "type": "string",
       "enum": ["0.1"]
     },
     "plan_id": {
-      "type": "string"
-    },
-    "description": {
       "type": "string"
     },
     "days": {
@@ -49,87 +39,24 @@
                   "items": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["food"],
+                    "required": ["food", "quantity", "unit"],
                     "properties": {
                       "food": {
                         "type": "string"
                       },
                       "quantity": {
-                        "type": "number"
-                      },
-                      "quantity_text": {
-                        "type": "string"
+                        "type": "number",
+                        "exclusiveMinimum": 0
                       },
                       "unit": {
                         "type": "string",
                         "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
-                      },
-                      "preparation": {
-                        "type": "string"
-                      },
-                      "brand": {
-                        "type": "string"
-                      },
-                      "resolution_status": {
-                        "type": "string",
-                        "enum": ["pending", "unresolved"]
-                      },
-                      "unresolved_reason": {
-                        "type": "string",
-                        "enum": [
-                          "unknown_food",
-                          "vague_quantity",
-                          "unsupported_unit",
-                          "missing_conversion"
-                        ]
                       }
                     }
                   }
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "shopping_list": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["food"],
-        "properties": {
-          "food": {
-            "type": "string"
-          },
-          "quantity": {
-            "type": "number"
-          },
-          "quantity_text": {
-            "type": "string"
-          },
-          "unit": {
-            "type": "string",
-            "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
-          },
-          "preparation": {
-            "type": "string"
-          },
-          "brand": {
-            "type": "string"
-          },
-          "resolution_status": {
-            "type": "string",
-            "enum": ["pending", "unresolved"]
-          },
-          "unresolved_reason": {
-            "type": "string",
-            "enum": [
-              "unknown_food",
-              "vague_quantity",
-              "unsupported_unit",
-              "missing_conversion"
-            ]
           }
         }
       }

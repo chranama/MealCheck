@@ -2140,7 +2140,8 @@ Implemented:
 1. Added `examples/local-llama/synthetic-meal-plan.txt` as the first synthetic
    normalization datapoint.
 2. Added `examples/local-llama/meal-plan-response.schema.json` as an inline
-   schema for llama.cpp `response_format` constrained decoding.
+   compact verifier schema for llama.cpp `response_format` constrained
+   decoding.
 3. Added `examples/local-llama/README.md` with the manual `llama-server`
    command shape and model class ordering.
 4. Added `scripts/test-local-llama-structured-json.sh`, which:
@@ -2159,7 +2160,8 @@ Acceptance:
 - the harness passes at least three consecutive synthetic normalization runs
   for a candidate before that candidate advances
 - output includes valid MealCheck `schema_version: "0.1"`, one day, three
-  expected meals, ingredient-level items, and only supported units
+  expected meals, ingredient-level items, numeric quantities, and only
+  supported units
 - the deterministic MealCheck CLI can load and evaluate the candidate output
 - measured latency and system responsiveness are recorded before backend
   integration begins
