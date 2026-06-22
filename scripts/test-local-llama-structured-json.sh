@@ -18,7 +18,7 @@ PROMPT_FILE="${MEALCHECK_LLAMA_PROMPT_FILE:-$ROOT/examples/local-llama/synthetic
 SCHEMA_PATH="${MEALCHECK_LLAMA_SCHEMA_PATH:-$ROOT/examples/local-llama/meal-plan-response.schema.json}"
 OUTPUT_DIR="${MEALCHECK_LLAMA_OUTPUT_DIR:-/tmp/mealcheck-local-llama-$(date +%Y%m%d-%H%M%S)}"
 REPEATS="${MEALCHECK_LLAMA_REPEATS:-3}"
-MAX_TOKENS="${MEALCHECK_LLAMA_MAX_TOKENS:-600}"
+MAX_TOKENS="${MEALCHECK_LLAMA_MAX_TOKENS:-400}"
 CURL_MAX_TIME_SECONDS="${MEALCHECK_LLAMA_CURL_MAX_TIME_SECONDS:-300}"
 RUN_CHECKER="${MEALCHECK_LLAMA_RUN_CHECKER:-1}"
 
@@ -87,11 +87,11 @@ build_request() {
       messages: [
         {
           role: "system",
-          content: "You normalize meal-plan text into compact MealCheck verifier JSON only. Return exactly one minified JSON object. Do not use Markdown. Do not include line breaks, indentation, or spaces outside string values. Use only these fields: schema_version, plan_id, days, day, meals, name, items, food, quantity, unit, prep_notes. Do not include description, shopping_list, quantity_text, preparation, brand, resolution_status, or unresolved_reason. Allowed units are g, oz, cup, tbsp, tsp, and serving."
+          content: "You normalize meal-plan text into compact MealCheck verifier JSON only. Return exactly one minified JSON object. Do not use Markdown. Do not include line breaks, indentation, or spaces outside string values. Use only these fields: schema_version, plan_id, days, day, meals, name, items, food, quantity, unit. Do not include description, shopping_list, prep_notes, quantity_text, preparation, brand, resolution_status, or unresolved_reason. Allowed units are g, oz, cup, tbsp, tsp, and serving."
         },
         {
           role: "user",
-          content: ("Normalize this meal plan into the smallest valid minified MealCheck JSON object. The result must use schema_version 0.1, include exactly one day, include exactly three meals named breakfast, lunch, and dinner, and include only resolved food items with numeric quantity plus unit. Keep prep_notes as a top-level array if included.\n\n" + $meal_plan_text)
+          content: ("Normalize this meal plan into the smallest valid minified MealCheck JSON object. The result must use schema_version 0.1, include exactly one day, include exactly three meals named breakfast, lunch, and dinner, and include only resolved food items with numeric quantity plus unit. Do not include prep notes or optional fields.\n\n" + $meal_plan_text)
         }
       ]
     }'
@@ -109,7 +109,7 @@ validate_plan_shape() {
     ([.days[0].meals[].items[]] | length >= 6) and
     (has("description") | not) and
     (has("shopping_list") | not) and
-    ((has("prep_notes") | not) or (.prep_notes | type == "array")) and
+    (has("prep_notes") | not) and
     ([.. | objects | select(has("food")) | .food] | length >= 6) and
     ([.days[0].meals[].items[] | select((has("quantity") | not) or (has("unit") | not))] | length == 0) and
     ([.days[0].meals[].items[] | .quantity] |
@@ -143,7 +143,7 @@ write_checker_case() {
           max_added_sugar_g_per_meal: 10,
           max_saturated_fat_pct_calories: 10,
           calorie_tolerance_pct: 15,
-          requires_prep_safety_notes: true
+          requires_prep_safety_notes: false
         }
       },
       guideline_pack_id: "dga-2025-2030-us-adult-general-v1",

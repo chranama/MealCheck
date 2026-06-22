@@ -6,8 +6,9 @@ These files support the local llama.cpp model trial matrix.
   designed to test whether a local model can normalize concrete meal-plan text
   into MealCheck JSON.
 - `meal-plan-response.schema.json` is an inline compact verifier schema for
-  llama.cpp schema-constrained JSON decoding. It intentionally avoids `$ref`
-  and omits optional `description`, `shopping_list`, and redundant resolved-item
+  llama.cpp schema-constrained JSON decoding. It intentionally avoids `$ref`,
+  fixes the smoke case to one day and three meals, and omits optional
+  `description`, `shopping_list`, `prep_notes`, and redundant resolved-item
   fields to keep local generation latency bounded.
 - `scripts/test-local-llama-structured-json.sh` asks the model for minified JSON
   and prints content-byte and token-count metrics so latency changes are visible
