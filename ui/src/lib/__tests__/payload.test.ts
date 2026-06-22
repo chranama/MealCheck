@@ -7,6 +7,7 @@ import {
   INITIAL_MANUAL_ITEMS,
 } from "../../constants";
 import {
+  buildLocalModelRunPayload,
   buildQualificationPayload,
   buildManualPlan,
   buildRunPayload,
@@ -148,6 +149,25 @@ describe("payload", () => {
       generationPrompt: DEFAULT_GENERATION_PROMPT,
       repairJSON: true,
     })).toThrow("Provider model is required.");
+  });
+
+  it("builds local-model run payloads without provider credentials", () => {
+    const payload = buildLocalModelRunPayload({
+      text: " Day 1 breakfast: 1 cup oatmeal. ",
+      settings: draftSettings,
+    });
+
+    expect(payload).toMatchObject({
+      input_mode: "local_model",
+      candidate_text: "Day 1 breakfast: 1 cup oatmeal.",
+      settings: {
+        verification_constraints: {
+          allergies: ["peanuts", "shellfish"],
+        },
+      },
+    });
+    expect(payload).not.toHaveProperty("provider");
+    expect(payload).not.toHaveProperty("repair_json");
   });
 
   it("builds qualification payloads without provider keys when none are supplied", () => {

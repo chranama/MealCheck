@@ -9,7 +9,7 @@ import {
 } from "../../constants";
 import { cleanApiBase } from "../../lib/api";
 import { readableID } from "../../lib/format";
-import { buildQualificationPayload, buildRunPayload } from "../../lib/payload";
+import { buildLocalModelRunPayload, buildQualificationPayload, buildRunPayload } from "../../lib/payload";
 import type {
   BackendState,
   GenerationMode,
@@ -61,19 +61,35 @@ export function LiveWorkspace({
 
   const cleanBase = cleanApiBase(apiBase);
   const inviteRequired = backend.accessMode === "invite_required";
+  const isLocalModelHosted = backend.hostedMode === "local_model";
+  const localModelReady = Boolean(backend.localModel?.enabled && backend.localModel?.ready);
+  const localModelUnavailable = isLocalModelHosted && !localModelReady;
+  const candidateTextLimit = isLocalModelHosted
+    ? backend.localModel?.max_input_chars || backend.maxCandidateTextChars
+    : backend.maxCandidateTextChars;
+  const candidateTextLength = candidateText.length;
+  const candidateTextTooLong = Boolean(candidateTextLimit && candidateTextLength > candidateTextLimit);
   const allowOpenAICompatible = backend.accessMode !== "public_byok" || backend.publicOpenAICompatible;
   const isSubmitting = live.status === "queued" || live.status === "running";
   const isCheckingQualification = qualification.status === "checking";
   const healthBlocksSubmit = backend.kind === "offline" && Boolean(cleanBase);
   const canDeleteRun = Boolean(live.runID && live.status !== "deleted");
   const baseActionsEnabled = Boolean(cleanBase) && (!inviteRequired || Boolean(inviteToken.trim())) && !isSubmitting && !isCheckingQualification && !healthBlocksSubmit;
-  const canQualify = baseActionsEnabled && Boolean(candidateText.trim());
-  const canCreateRun = baseActionsEnabled;
+  const canQualify = !isLocalModelHosted && baseActionsEnabled && Boolean(candidateText.trim());
+  const canCreateRun = baseActionsEnabled && (
+    isLocalModelHosted
+      ? Boolean(candidateText.trim()) && !candidateTextTooLong && !localModelUnavailable
+      : true
+  );
   const createFeedback = createRunFeedback({
     apiBase: cleanBase,
+    candidateTextTooLong,
     hasInviteToken: Boolean(inviteToken.trim()),
     inviteRequired,
     healthBlocksSubmit,
+    isLocalModelHosted,
+    localModelUnavailable,
+    needsCandidateText: isLocalModelHosted && !candidateText.trim(),
     isBusy: isSubmitting || isCheckingQualification,
   });
 
@@ -86,15 +102,22 @@ export function LiveWorkspace({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
-      const payload = buildRunPayload({
-        mode,
-        settings,
-        provider,
-        generationPrompt,
-        repairJSON,
-      });
+      const payload = isLocalModelHosted
+        ? buildLocalModelRunPayload({
+          text: candidateText,
+          settings,
+        })
+        : buildRunPayload({
+          mode,
+          settings,
+          provider,
+          generationPrompt,
+          repairJSON,
+        });
       await onCreateRun(cleanBase, inviteToken, payload);
-      setProvider((current) => ({ ...current, api_key: "" }));
+      if (!isLocalModelHosted) {
+        setProvider((current) => ({ ...current, api_key: "" }));
+      }
     } catch (error) {
       onError(error);
     }
@@ -126,6 +149,7 @@ export function LiveWorkspace({
           createFeedback={createFeedback}
           live={live}
           qualification={qualification}
+          showQualify={!isLocalModelHosted}
           onQualify={handleQualify}
           onDelete={() => setConfirmDelete(true)}
         />
@@ -144,23 +168,31 @@ export function LiveWorkspace({
 
           <fieldset>
             <legend>Meal Plan Text</legend>
-            <CandidateTextForm candidateText={candidateText} setCandidateText={setCandidateText} />
-          </fieldset>
-
-          <fieldset>
-            <legend>Model Provider</legend>
-            <ProviderForm
-              provider={provider}
-              setProvider={setProvider}
-              repairJSON={repairJSON}
-              setRepairJSON={setRepairJSON}
-              mode={mode}
-              setMode={setMode}
-              allowOpenAICompatible={allowOpenAICompatible}
-              generationPrompt={generationPrompt}
-              setGenerationPrompt={setGenerationPrompt}
+            <CandidateTextForm
+              candidateText={candidateText}
+              limit={candidateTextLimit}
+              setCandidateText={setCandidateText}
             />
           </fieldset>
+
+          {isLocalModelHosted ? (
+            <LocalModelPanel backend={backend} candidateTextLength={candidateTextLength} candidateTextLimit={candidateTextLimit} />
+          ) : (
+            <fieldset>
+              <legend>Model Provider</legend>
+              <ProviderForm
+                provider={provider}
+                setProvider={setProvider}
+                repairJSON={repairJSON}
+                setRepairJSON={setRepairJSON}
+                mode={mode}
+                setMode={setMode}
+                allowOpenAICompatible={allowOpenAICompatible}
+                generationPrompt={generationPrompt}
+                setGenerationPrompt={setGenerationPrompt}
+              />
+            </fieldset>
+          )}
 
           <section className="verification-settings-section" aria-label="Verification settings">
             <details className="advanced-section verification-settings">
@@ -200,6 +232,7 @@ function RunActionStrip({
   createFeedback,
   live,
   qualification,
+  showQualify,
   onQualify,
   onDelete,
 }: {
@@ -209,6 +242,7 @@ function RunActionStrip({
   createFeedback: string;
   live: LiveState;
   qualification: QualificationState;
+  showQualify: boolean;
   onQualify: () => void;
   onDelete: () => void;
 }) {
@@ -219,15 +253,17 @@ function RunActionStrip({
         <p className="submit-feedback" id="create-run-feedback" role="status">{createFeedback}</p>
       </div>
       <div className="action-strip-actions">
-        <button
-          className="action-button action-button--secondary"
-          disabled={!canQualify}
-          id="qualify-button"
-          type="button"
-          onClick={onQualify}
-        >
-          {qualification.status === "checking" ? "Checking" : "Check Eligibility"}
-        </button>
+        {showQualify ? (
+          <button
+            className="action-button action-button--secondary"
+            disabled={!canQualify}
+            id="qualify-button"
+            type="button"
+            onClick={onQualify}
+          >
+            {qualification.status === "checking" ? "Checking" : "Check Eligibility"}
+          </button>
+        ) : null}
         <button
           aria-describedby="create-run-feedback"
           className="action-button action-button--primary"
@@ -254,21 +290,33 @@ function RunActionStrip({
 
 function createRunFeedback({
   apiBase,
+  candidateTextTooLong,
   hasInviteToken,
   inviteRequired,
   healthBlocksSubmit,
+  isLocalModelHosted,
+  localModelUnavailable,
+  needsCandidateText,
   isBusy,
 }: {
   apiBase: string;
+  candidateTextTooLong: boolean;
   hasInviteToken: boolean;
   inviteRequired: boolean;
   healthBlocksSubmit: boolean;
+  isLocalModelHosted: boolean;
+  localModelUnavailable: boolean;
+  needsCandidateText: boolean;
   isBusy: boolean;
 }) {
   if (isBusy) return "Request in progress.";
   if (!apiBase) return "Report creation needs a configured MealCheck service.";
   if (inviteRequired && !hasInviteToken) return "Enter your access code to start.";
   if (healthBlocksSubmit) return "Service is unavailable right now.";
+  if (localModelUnavailable) return "Local model is unavailable right now.";
+  if (needsCandidateText) return "Enter a meal plan to create a report.";
+  if (candidateTextTooLong) return "Meal plan text is over the local model limit.";
+  if (isLocalModelHosted) return "Ready to create a local-model MealCheck report.";
   return "Ready to check eligibility or create a MealCheck report.";
 }
 
@@ -344,16 +392,68 @@ function ConstraintsForm({ settings, setSettings }: { settings: SettingsDraft; s
 
 function CandidateTextForm({
   candidateText,
+  limit,
   setCandidateText,
 }: {
   candidateText: string;
+  limit?: number;
   setCandidateText: (value: string) => void;
 }) {
+  const overLimit = Boolean(limit && candidateText.length > limit);
   return (
     <section className="mode-section" id="candidate-text-section">
       <Field label="Meal plan text">
-        <textarea value={candidateText} rows={7} onChange={(event) => setCandidateText(event.target.value)} />
+        <textarea
+          aria-describedby={limit ? "candidate-text-counter" : undefined}
+          maxLength={limit ? limit + 1 : undefined}
+          value={candidateText}
+          rows={7}
+          onChange={(event) => setCandidateText(event.target.value)}
+        />
       </Field>
+      {limit ? (
+        <p className={`character-counter${overLimit ? " is-over-limit" : ""}`} id="candidate-text-counter">
+          {candidateText.length.toLocaleString()} / {limit.toLocaleString()} characters
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function LocalModelPanel({
+  backend,
+  candidateTextLength,
+  candidateTextLimit,
+}: {
+  backend: BackendState;
+  candidateTextLength: number;
+  candidateTextLimit?: number;
+}) {
+  const localModel = backend.localModel;
+  const ready = Boolean(localModel?.enabled && localModel?.ready);
+  const tone = ready ? "pass" : "warn";
+  const model = localModel?.model || "local model";
+  const limitText = candidateTextLimit
+    ? `${candidateTextLength.toLocaleString()} / ${candidateTextLimit.toLocaleString()} characters`
+    : `${candidateTextLength.toLocaleString()} characters`;
+  return (
+    <section className={`notice notice--${tone} local-model-panel`} aria-label="Local model status">
+      <strong>{ready ? "Local model ready" : "Local model unavailable"}</strong>
+      <p>{model}</p>
+      <dl className="local-model-facts">
+        <div>
+          <dt>Input</dt>
+          <dd>{limitText}</dd>
+        </div>
+        {localModel?.timeout_sec ? (
+          <div>
+            <dt>Timeout</dt>
+            <dd>{localModel.timeout_sec}s</dd>
+          </div>
+        ) : null}
+      </dl>
+      {localModel?.error ? <p>{localModel.error}</p> : null}
+      <p><a href="https://github.com/chranama/MealCheck">CLI/API and custom endpoint usage</a></p>
     </section>
   );
 }

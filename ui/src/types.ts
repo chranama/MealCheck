@@ -14,6 +14,7 @@ export type ReportTab = "checks" | "nutrition" | "foods" | "sources" | "report";
 export type RunStatus = "idle" | "queued" | "running" | "completed" | "failed" | "deleted" | string;
 export type CheckStatus = "pass" | "warn" | "block" | string;
 export type AccessMode = "public_byok" | "invite_required" | string;
+export type HostedMode = "byok" | "local_model" | string;
 
 export type RuntimeConfig = {
   api?: {
@@ -27,13 +28,18 @@ export type BackendState = {
   label: string;
   kind: "online" | "offline" | "idle";
   accessMode: AccessMode;
+  hostedMode: HostedMode;
   publicOpenAICompatible: boolean;
+  maxCandidateTextChars?: number;
+  maxGenerationPromptChars?: number;
+  localModel?: LocalModelHealth;
 };
 
 export type HealthResponse = {
   status: string;
   store: string;
   access_mode?: AccessMode;
+  hosted_mode?: HostedMode;
   queued_runs?: number;
   running_runs?: number;
   queue_size?: number;
@@ -42,7 +48,20 @@ export type HealthResponse = {
   public_openai_compatible?: boolean;
   max_candidate_text_chars?: number;
   max_generation_prompt_chars?: number;
+  local_model?: LocalModelHealth;
   policy?: Record<string, unknown>;
+};
+
+export type LocalModelHealth = {
+  enabled?: boolean;
+  ready?: boolean;
+  model?: string;
+  max_input_chars?: number;
+  max_output_tokens?: number;
+  timeout_sec?: number;
+  supported_days?: number;
+  supported_meals_per_day?: number;
+  error?: string;
 };
 
 export type DemoRun = {
@@ -303,6 +322,11 @@ export type RunPayload =
       provider: ProviderConfig;
       repair_json: boolean;
       generation_prompt: string;
+    }
+  | {
+      input_mode: "local_model";
+      settings: Settings;
+      candidate_text: string;
     };
 
 export type FieldProps = {

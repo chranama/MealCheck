@@ -126,6 +126,21 @@ export function buildQualificationPayload(args: {
   return payload;
 }
 
+export function buildLocalModelRunPayload(args: {
+  text: string;
+  settings: SettingsDraft;
+}): RunPayload {
+  const text = args.text.trim();
+  if (!text) {
+    throw new Error("Candidate meal plan text is required.");
+  }
+  return {
+    input_mode: "local_model",
+    settings: normalizeSettings(args.settings),
+    candidate_text: text,
+  };
+}
+
 export function buildRunPayload(args: {
   mode: GenerationMode;
   settings: SettingsDraft;

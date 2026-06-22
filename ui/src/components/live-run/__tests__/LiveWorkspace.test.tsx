@@ -9,12 +9,25 @@ const backend: BackendState = {
   label: "Online",
   kind: "online",
   accessMode: "public_byok",
+  hostedMode: "byok",
   publicOpenAICompatible: false,
 };
 
 const inviteBackend: BackendState = {
   ...backend,
   accessMode: "invite_required",
+};
+
+const localModelBackend: BackendState = {
+  ...backend,
+  hostedMode: "local_model",
+  localModel: {
+    enabled: true,
+    ready: true,
+    model: "Qwen3-0.6B-Q4_K_M.gguf",
+    max_input_chars: 4000,
+    timeout_sec: 90,
+  },
 };
 
 const live: LiveState = {
@@ -48,6 +61,60 @@ function renderWorkspace(overrides: Partial<Parameters<typeof LiveWorkspace>[0]>
 }
 
 describe("LiveWorkspace", () => {
+  it("shows a simplified local-model hosted workspace", () => {
+    renderWorkspace({ backend: localModelBackend });
+
+    expect(screen.getByText("Meal Plan Text")).toBeInTheDocument();
+    expect(screen.getByLabelText("Meal plan text")).toBeVisible();
+    expect(screen.getByText("Local model ready")).toBeInTheDocument();
+    expect(screen.getByText("Qwen3-0.6B-Q4_K_M.gguf")).toBeInTheDocument();
+    expect(screen.getAllByText(/\/ 4,000 characters/).length).toBeGreaterThan(0);
+    expect(screen.queryByText("Model Provider")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Provider")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("API key")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Check Eligibility" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create Report" })).toBeEnabled();
+  });
+
+  it("submits local-model hosted runs without client provider configuration", async () => {
+    const user = userEvent.setup();
+    const onCreateRun = vi.fn(async () => undefined);
+    renderWorkspace({ backend: localModelBackend, onCreateRun });
+
+    await user.click(screen.getByRole("button", { name: "Create Report" }));
+
+    expect(onCreateRun).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080",
+      "",
+      expect.objectContaining({
+        input_mode: "local_model",
+        candidate_text: expect.stringContaining("Day 1 breakfast"),
+        settings: expect.any(Object),
+      }),
+    );
+    const calls = onCreateRun.mock.calls as unknown as Array<[string, string, Record<string, unknown>]>;
+    const payload = calls[0][2];
+    expect(payload).not.toHaveProperty("provider");
+    expect(payload).not.toHaveProperty("repair_json");
+  });
+
+  it("blocks local-model report creation when the model is unavailable", () => {
+    renderWorkspace({
+      backend: {
+        ...localModelBackend,
+        localModel: {
+          ...localModelBackend.localModel,
+          ready: false,
+          error: "local model endpoint is not reachable",
+        },
+      },
+    });
+
+    expect(screen.getByText("Local model unavailable")).toBeInTheDocument();
+    expect(screen.getByText("local model endpoint is not reachable")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create Report" })).toBeDisabled();
+  });
+
   it("shows a text-first BYOK workspace with verification settings collapsed", () => {
     renderWorkspace();
 
@@ -167,6 +234,7 @@ describe("LiveWorkspace", () => {
         label: "Static demo",
         kind: "idle",
         accessMode: "public_byok",
+        hostedMode: "byok",
         publicOpenAICompatible: false,
       },
     });

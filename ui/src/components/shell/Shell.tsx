@@ -121,6 +121,9 @@ export function LiveSummary({
 }
 
 function serviceSummaryLabel(backend: BackendState, apiBase: string) {
+  if (backend.kind === "online" && backend.hostedMode === "local_model") {
+    return backend.localModel?.ready ? "Local model available" : "Local model unavailable";
+  }
   if (backend.kind === "online") return "Live checks available";
   if (apiBase) return "Service unavailable";
   return "Examples available";

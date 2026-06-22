@@ -40,6 +40,7 @@ const INITIAL_BACKEND: BackendState = {
   label: "Static demo",
   kind: "idle",
   accessMode: "public_byok",
+  hostedMode: "byok",
   publicOpenAICompatible: false,
 };
 
@@ -104,7 +105,11 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
         label: "Online",
         kind: "online",
         accessMode: health.access_mode || "public_byok",
+        hostedMode: health.hosted_mode || "byok",
         publicOpenAICompatible: Boolean(health.public_openai_compatible),
+        maxCandidateTextChars: health.max_candidate_text_chars,
+        maxGenerationPromptChars: health.max_generation_prompt_chars,
+        localModel: health.local_model,
       });
     } catch {
       setBackend({
@@ -112,6 +117,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
         label: "Unavailable",
         kind: "offline",
         accessMode: "public_byok",
+        hostedMode: "byok",
         publicOpenAICompatible: false,
       });
     }
