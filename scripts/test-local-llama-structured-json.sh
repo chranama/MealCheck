@@ -91,7 +91,7 @@ build_request() {
         },
         {
           role: "user",
-          content: ("Extract this one-day meal plan into the smallest valid compact JSON object. Use exactly b, l, and d. Each item must be [food, quantity, unit]. Include only resolved food items with numeric quantity plus unit. Do not include other keys or text.\n\n" + $meal_plan_text)
+          content: ("Extract this one-day meal plan into compact JSON. Use exactly b, l, and d. Convert every bullet item into exactly one [food, quantity, unit] tuple. Do not omit, merge, summarize, or invent items. Include only resolved food items with numeric quantity plus unit. Do not include other keys or text.\n\n" + $meal_plan_text)
         }
       ]
     }'
