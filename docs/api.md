@@ -1,13 +1,13 @@
 # API
 
-MealCheck exposes a small hosted API for public demo reports and public BYOK
-live meal-plan checks. The frontend should treat this API as asynchronous:
+MealCheck exposes a small hosted API for public demo reports and live meal-plan
+checks. The frontend should treat this API as asynchronous:
 creating a run queues work, and separate endpoints expose status, events,
 reports, and artifacts.
 
 The API is intended for a static frontend plus a small self-hosted backend. It
-does not run a local LLM. When a live generation run needs an LLM, the caller
-supplies a BYOK provider key in the request.
+can run either a server-owned local model or a BYOK model-provider path,
+depending on deployment configuration.
 
 ## Access Mode
 
@@ -46,6 +46,20 @@ can have expiry, revocation, and run limits.
 The server always adds an `X-Request-ID` response header. A client may send its
 own `X-Request-ID`; otherwise, the server assigns one.
 
+## Hosted Mode
+
+`MEALCHECK_HOSTED_MODE` controls the live model-backed product shape:
+
+- `local_model`: hosted live checks use the server-owned llama.cpp endpoint
+  configured with `MEALCHECK_LOCAL_MODEL_*`. Clients submit meal-plan text but
+  do not submit provider credentials or local endpoint URLs.
+- `byok`: hosted live checks use client-supplied BYOK provider credentials for
+  qualification normalization and generation.
+
+If unset, hosted mode defaults to `byok` for compatibility. Access mode and
+hosted mode are separate: `MEALCHECK_ACCESS_MODE=public_byok` still means the
+public policy gate is active, even when `MEALCHECK_HOSTED_MODE=local_model`.
+
 Provider API keys are supplied only on BYOK qualification and live
 generation requests. Treat them as one-run bearer secrets: the browser sends the
 key to the MealCheck backend, the backend uses it only for the requested
@@ -71,7 +85,7 @@ available.
 | `GET` | `/api/demo-runs/{demo_id}/report` | Fetch a static demo `report.json`. |
 | `GET` | `/api/demo-runs/{demo_id}/artifacts` | List static demo artifacts. |
 | `GET` | `/api/demo-runs/{demo_id}/artifacts/{path}` | Fetch one static demo artifact. |
-| `POST` | `/api/qualify` | Classify candidate text and optionally normalize it with BYOK. |
+| `POST` | `/api/qualify` | Classify candidate text and optionally normalize it with the configured hosted model path. |
 | `POST` | `/api/runs` | Queue a live meal-plan check. |
 | `GET` | `/api/runs/{run_id}` | Read live run status and summary. |
 | `GET` | `/api/runs/{run_id}/events` | Read live run events as an SSE stream. |
@@ -84,12 +98,14 @@ available.
 
 `POST /api/qualify` is the hosted preflight endpoint for pasted candidate text.
 It is synchronous and policy-limited. It answers whether the text is a meal plan
-eligible for verification, and it can use a BYOK provider to normalize detailed
-meal-plan text into MealCheck JSON.
+eligible for verification, and it can use the configured hosted model path to
+normalize detailed meal-plan text into MealCheck JSON.
 
 `provider` may be omitted when the text is already normalized MealCheck JSON or
 can be rejected deterministically as not eligible. `provider.model` and
-`provider.api_key` are required when the text needs BYOK normalization.
+`provider.api_key` are required in `byok` hosted mode when the text needs BYOK
+normalization. In `local_model` hosted mode, omit `provider`; the backend uses
+the server-owned local model and configured local-model limits.
 
 ```bash
 curl -fsS -X POST "http://127.0.0.1:8080/api/qualify" \
@@ -288,6 +304,48 @@ file workflow. The same normalized plan validation rules apply there:
   `g`, `oz`, `cup`, `tbsp`, `tsp`, `serving`.
 - Unquantified items must include `quantity_text`,
   `resolution_status: "unresolved"`, and `unresolved_reason`.
+
+### Hosted Local Model Run Request
+
+`input_mode: "local_model"` queues a live check that normalizes pasted
+meal-plan text through the server-owned local model. The current compact local
+contract supports exactly one day with breakfast, lunch, and dinner.
+
+Clients must omit `provider`; the backend injects the configured local model
+endpoint and model id.
+
+```json
+{
+  "input_mode": "local_model",
+  "candidate_text": "Breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.\nLunch: 4 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.\nDinner: 4 oz salmon, 1 cup sweet potato, and 1 cup spinach.",
+  "settings": {
+    "nutrition_targets": {
+      "calorie_target_kcal": 2000,
+      "protein_target_g": 98
+    },
+    "verification_constraints": {
+      "days": 1,
+      "meals_per_day": 3,
+      "allergies": ["peanuts"],
+      "excluded_foods": ["shellfish"],
+      "max_sodium_mg_per_day": 2300,
+      "max_added_sugar_g_per_meal": 10,
+      "max_saturated_fat_pct_calories": 10,
+      "calorie_tolerance_pct": 15,
+      "requires_prep_safety_notes": false
+    }
+  }
+}
+```
+
+Rules:
+
+- `MEALCHECK_LOCAL_MODEL_ENABLED=true` must be configured.
+- `MEALCHECK_LOCAL_MODEL_BASE_URL` must point to the private llama.cpp
+  OpenAI-compatible API, normally `http://127.0.0.1:11435/v1`.
+- `MEALCHECK_LOCAL_MODEL_NAME` must match the loaded llama.cpp model id.
+- `candidate_text` is bounded by `MEALCHECK_LOCAL_MODEL_MAX_INPUT_CHARS`.
+- `provider` is rejected in `local_model` requests.
 
 ### BYOK Targets Generation Request
 
@@ -498,6 +556,7 @@ Example response:
   "status": "ok",
   "store": "postgres",
   "access_mode": "public_byok",
+  "hosted_mode": "local_model",
   "queued_runs": 0,
   "running_runs": 0,
   "queue_size": 3,
@@ -506,6 +565,16 @@ Example response:
   "public_openai_compatible": false,
   "max_candidate_text_chars": 20000,
   "max_generation_prompt_chars": 4000,
+  "local_model": {
+    "enabled": true,
+    "ready": true,
+    "model": "Qwen3-0.6B-Q4_K_M.gguf",
+    "max_input_chars": 4000,
+    "max_output_tokens": 160,
+    "timeout_sec": 90,
+    "supported_days": 1,
+    "supported_meals_per_day": 3
+  },
   "policy": {
     "public_request_limit": 60,
     "public_request_window_sec": 60,

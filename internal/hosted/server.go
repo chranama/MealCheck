@@ -62,6 +62,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"status":                      "ok",
 		"store":                       s.Config.StoreKind,
 		"access_mode":                 accessMode(s.Config),
+		"hosted_mode":                 hostedMode(s.Config),
 		"queued_runs":                 stats.Queued,
 		"running_runs":                stats.Running,
 		"queue_size":                  s.Config.QueueSize,
@@ -70,6 +71,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"public_openai_compatible":    s.Config.PublicOpenAICompatible,
 		"max_candidate_text_chars":    s.Config.MaxCandidateTextChars,
 		"max_generation_prompt_chars": s.Config.MaxGenerationPromptChars,
+		"local_model":                 s.localModelHealth(r.Context()),
 		"policy": map[string]any{
 			"public_request_limit":      s.Config.PublicRequestLimit,
 			"public_request_window_sec": int(s.Config.PublicRequestWindow.Seconds()),
@@ -189,7 +191,11 @@ func (s *Server) handleQualify(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", "text is required", nil)
 		return
 	}
-	if err := validateTextLength("text", request.Text, s.Config.MaxCandidateTextChars); err != nil {
+	textLimit := s.Config.MaxCandidateTextChars
+	if hostedMode(s.Config) == HostedModeLocalModel {
+		textLimit = s.Config.LocalModelMaxInputChars
+	}
+	if err := validateTextLength("text", request.Text, textLimit); err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 		return
 	}
@@ -197,7 +203,21 @@ func (s *Server) handleQualify(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 		return
 	}
-	if providerSupplied {
+	if hostedMode(s.Config) == HostedModeLocalModel {
+		if providerSupplied {
+			writeError(w, r, http.StatusBadRequest, "invalid_request", "hosted local model mode does not accept client provider configuration", nil)
+			return
+		}
+		if err := validateLocalModelAvailable(s.Config); err != nil {
+			writeError(w, r, http.StatusServiceUnavailable, "local_model_unavailable", err.Error(), nil)
+			return
+		}
+		if err := validateLocalModelSettings(request.Settings); err != nil {
+			writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
+			return
+		}
+		request.Provider = localModelProviderConfig(s.Config)
+	} else if providerSupplied {
 		if err := validatePublicProviderPolicy(s.Config, request.Provider); err != nil {
 			writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 			return
@@ -347,7 +367,7 @@ func requestRunInput(config Config, request CreateRunRequest) (string, PendingRu
 		return "", PendingRunInput{}, false, fmt.Errorf("case_path cannot be combined with input_mode")
 	}
 
-	repairJSON := inputMode == "profile_generation" || inputMode == "prompt_generation"
+	repairJSON := inputMode == InputModeProfileGeneration || inputMode == InputModePromptGeneration
 	if request.RepairJSON != nil {
 		repairJSON = *request.RepairJSON
 	}
@@ -356,6 +376,7 @@ func requestRunInput(config Config, request CreateRunRequest) (string, PendingRu
 		Settings:         request.Settings,
 		CandidatePlan:    request.CandidatePlan,
 		GenerationPrompt: strings.TrimSpace(request.GenerationPrompt),
+		CandidateText:    strings.TrimSpace(request.CandidateText),
 		Provider:         normalizeProviderConfig(request.Provider),
 		RepairJSON:       repairJSON,
 	}
@@ -367,16 +388,22 @@ func requestRunInput(config Config, request CreateRunRequest) (string, PendingRu
 	}
 
 	switch inputMode {
-	case "manual_structured":
-		return "", PendingRunInput{}, false, fmt.Errorf("manual_structured is supported only by the local CLI/debug workflow; hosted live runs require BYOK generation")
-	case "profile_generation":
+	case InputModeManualStructured:
+		return "", PendingRunInput{}, false, fmt.Errorf("manual_structured is supported only by the local CLI/debug workflow; hosted live runs require model-backed generation")
+	case InputModeProfileGeneration:
+		if hostedMode(config) == HostedModeLocalModel {
+			return "", PendingRunInput{}, false, fmt.Errorf("profile_generation is disabled in hosted local model mode; use local_model candidate_text input")
+		}
 		if err := validateProviderConfig(pendingInput.Provider); err != nil {
 			return "", PendingRunInput{}, false, err
 		}
 		if err := validatePublicProviderPolicy(config, pendingInput.Provider); err != nil {
 			return "", PendingRunInput{}, false, err
 		}
-	case "prompt_generation":
+	case InputModePromptGeneration:
+		if hostedMode(config) == HostedModeLocalModel {
+			return "", PendingRunInput{}, false, fmt.Errorf("prompt_generation is disabled in hosted local model mode; use local_model candidate_text input")
+		}
 		if pendingInput.GenerationPrompt == "" {
 			return "", PendingRunInput{}, false, fmt.Errorf("generation_prompt is required for prompt_generation")
 		}
@@ -386,6 +413,24 @@ func requestRunInput(config Config, request CreateRunRequest) (string, PendingRu
 		if err := validatePublicProviderPolicy(config, pendingInput.Provider); err != nil {
 			return "", PendingRunInput{}, false, err
 		}
+	case InputModeLocalModel:
+		if err := validateLocalModelAvailable(config); err != nil {
+			return "", PendingRunInput{}, false, err
+		}
+		if hasProviderConfigFields(request.Provider) {
+			return "", PendingRunInput{}, false, fmt.Errorf("local_model uses the server-owned local model; omit provider")
+		}
+		if pendingInput.CandidateText == "" {
+			return "", PendingRunInput{}, false, fmt.Errorf("candidate_text is required for local_model")
+		}
+		if err := validateTextLength("candidate_text", pendingInput.CandidateText, config.LocalModelMaxInputChars); err != nil {
+			return "", PendingRunInput{}, false, err
+		}
+		if err := validateLocalModelSettings(pendingInput.Settings); err != nil {
+			return "", PendingRunInput{}, false, err
+		}
+		pendingInput.Provider = localModelProviderConfig(config)
+		pendingInput.RepairJSON = false
 	default:
 		return "", PendingRunInput{}, false, fmt.Errorf("unsupported input_mode %q", inputMode)
 	}
@@ -406,6 +451,7 @@ func pendingInputExpiresAt(config Config, run Run) time.Time {
 
 func hasDynamicRunFields(request CreateRunRequest) bool {
 	return request.CandidatePlan != nil ||
+		request.CandidateText != "" ||
 		hasSettingsFields(request.Settings) ||
 		request.GenerationPrompt != "" ||
 		request.Provider.Type != "" ||
@@ -435,7 +481,8 @@ func hasProviderConfigFields(config ProviderConfig) bool {
 	return config.Type != "" ||
 		config.BaseURL != "" ||
 		config.Model != "" ||
-		config.APIKey != ""
+		config.APIKey != "" ||
+		config.MaxTokens != 0
 }
 
 func normalizeProviderConfig(config ProviderConfig) ProviderConfig {
@@ -444,12 +491,14 @@ func normalizeProviderConfig(config ProviderConfig) ProviderConfig {
 		providerType = ProviderTypeOpenAICompatible
 	}
 	normalized := ProviderConfig{
-		Type:    providerType,
-		BaseURL: strings.TrimRight(strings.TrimSpace(config.BaseURL), "/"),
-		Model:   strings.TrimSpace(config.Model),
-		APIKey:  strings.TrimSpace(config.APIKey),
+		Type:      providerType,
+		BaseURL:   strings.TrimRight(strings.TrimSpace(config.BaseURL), "/"),
+		Model:     strings.TrimSpace(config.Model),
+		APIKey:    strings.TrimSpace(config.APIKey),
+		MaxTokens: config.MaxTokens,
+		Timeout:   config.Timeout,
 	}
-	if providerType != ProviderTypeOpenAICompatible {
+	if providerType != ProviderTypeOpenAICompatible && providerType != ProviderTypeLocalLlama {
 		normalized.BaseURL = ""
 	}
 	return normalized
@@ -457,12 +506,15 @@ func normalizeProviderConfig(config ProviderConfig) ProviderConfig {
 
 func validateProviderConfig(config ProviderConfig) error {
 	switch config.Type {
-	case ProviderTypeOpenAICompatible, ProviderTypeOpenAI, ProviderTypeAnthropic, ProviderTypeGemini:
+	case ProviderTypeOpenAICompatible, ProviderTypeOpenAI, ProviderTypeAnthropic, ProviderTypeGemini, ProviderTypeLocalLlama:
 	default:
 		return fmt.Errorf("unsupported provider type %q", config.Type)
 	}
 	if config.Model == "" {
 		return fmt.Errorf("provider model is required")
+	}
+	if config.Type == ProviderTypeLocalLlama {
+		return nil
 	}
 	if config.APIKey == "" {
 		return fmt.Errorf("provider api_key is required")
@@ -487,6 +539,7 @@ func isProviderConfigError(err error) bool {
 	message := err.Error()
 	return strings.HasPrefix(message, "unsupported provider type ") ||
 		message == "provider model is required" ||
+		message == "provider base_url is required" ||
 		message == "provider api_key is required"
 }
 
@@ -701,6 +754,15 @@ func (s *Server) enforcePublicRequestPolicy(w http.ResponseWriter, r *http.Reque
 	return nil
 }
 
+func hostedMode(config Config) string {
+	switch config.HostedMode {
+	case HostedModeBYOK, HostedModeLocalModel:
+		return config.HostedMode
+	default:
+		return HostedModeBYOK
+	}
+}
+
 func accessMode(config Config) string {
 	switch config.AccessMode {
 	case AccessModePublicBYOK, AccessModeInviteRequired:
@@ -711,6 +773,82 @@ func accessMode(config Config) string {
 		}
 		return AccessModePublicBYOK
 	}
+}
+
+func localModelProviderConfig(config Config) ProviderConfig {
+	return ProviderConfig{
+		Type:      ProviderTypeLocalLlama,
+		BaseURL:   strings.TrimRight(strings.TrimSpace(config.LocalModelBaseURL), "/"),
+		Model:     strings.TrimSpace(config.LocalModelName),
+		MaxTokens: config.LocalModelMaxOutputTokens,
+		Timeout:   config.LocalModelTimeout,
+	}
+}
+
+func validateLocalModelAvailable(config Config) error {
+	if !config.LocalModelEnabled {
+		return fmt.Errorf("local model provider is not enabled")
+	}
+	provider := localModelProviderConfig(config)
+	if provider.BaseURL == "" {
+		return fmt.Errorf("local model base URL is not configured")
+	}
+	if provider.Model == "" {
+		return fmt.Errorf("local model name is not configured")
+	}
+	return nil
+}
+
+func validateLocalModelSettings(settings checker.Settings) error {
+	constraints := settings.VerificationConstraints
+	if constraints.Days != 1 || constraints.MealsPerDay != 3 {
+		return fmt.Errorf("local_model currently supports exactly 1 day and 3 meals per day")
+	}
+	return nil
+}
+
+func (s *Server) localModelHealth(ctx context.Context) map[string]any {
+	modelName := strings.TrimSpace(s.Config.LocalModelName)
+	if modelName != "" {
+		modelName = filepath.Base(modelName)
+	}
+	status := map[string]any{
+		"enabled":                 s.Config.LocalModelEnabled,
+		"ready":                   false,
+		"model":                   modelName,
+		"max_input_chars":         s.Config.LocalModelMaxInputChars,
+		"max_output_tokens":       s.Config.LocalModelMaxOutputTokens,
+		"timeout_sec":             int(s.Config.LocalModelTimeout.Seconds()),
+		"supported_days":          1,
+		"supported_meals_per_day": 3,
+	}
+	if !s.Config.LocalModelEnabled {
+		return status
+	}
+	if err := validateLocalModelAvailable(s.Config); err != nil {
+		status["error"] = err.Error()
+		return status
+	}
+	baseURL := strings.TrimRight(strings.TrimSpace(s.Config.LocalModelBaseURL), "/")
+	readyCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+	req, err := http.NewRequestWithContext(readyCtx, http.MethodGet, baseURL+"/models", nil)
+	if err != nil {
+		status["error"] = "local model readiness request could not be built"
+		return status
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		status["error"] = "local model endpoint is not reachable"
+		return status
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		status["ready"] = true
+		return status
+	}
+	status["error"] = fmt.Sprintf("local model endpoint returned HTTP %d", resp.StatusCode)
+	return status
 }
 
 func requestClientIP(r *http.Request) string {

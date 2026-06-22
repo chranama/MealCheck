@@ -17,6 +17,7 @@ const (
 	ProviderTypeOpenAI           = "openai"
 	ProviderTypeAnthropic        = "anthropic"
 	ProviderTypeGemini           = "gemini"
+	ProviderTypeLocalLlama       = "local_llama"
 )
 
 type Provider interface {
@@ -53,7 +54,11 @@ func DefaultProviderFactory(config ProviderConfig) (Provider, error) {
 	if providerType == "" {
 		providerType = ProviderTypeOpenAICompatible
 	}
-	client := &http.Client{Timeout: 90 * time.Second}
+	timeout := 90 * time.Second
+	if providerType == ProviderTypeLocalLlama && config.Timeout > 0 {
+		timeout = config.Timeout
+	}
+	client := &http.Client{Timeout: timeout}
 	switch providerType {
 	case ProviderTypeOpenAICompatible:
 		return OpenAICompatibleProvider{Client: client}, nil
@@ -63,6 +68,8 @@ func DefaultProviderFactory(config ProviderConfig) (Provider, error) {
 		return AnthropicProvider{Client: client}, nil
 	case ProviderTypeGemini:
 		return GeminiProvider{Client: client}, nil
+	case ProviderTypeLocalLlama:
+		return LocalLlamaProvider{Client: client}, nil
 	default:
 		return nil, fmt.Errorf("unsupported provider type %q", providerType)
 	}
@@ -116,8 +123,18 @@ func (p OpenAIProvider) Complete(ctx context.Context, config ProviderConfig, mes
 	return completeOpenAIChat(ctx, p.Client, config, messages, p.BaseURL)
 }
 
+type LocalLlamaProvider struct {
+	Client  *http.Client
+	BaseURL string
+}
+
+func (p LocalLlamaProvider) Complete(ctx context.Context, config ProviderConfig, messages []ProviderMessage) (string, error) {
+	config.Type = ProviderTypeLocalLlama
+	return completeOpenAIChat(ctx, p.Client, config, messages, p.BaseURL)
+}
+
 func completeOpenAIChat(ctx context.Context, client *http.Client, config ProviderConfig, messages []ProviderMessage, baseURLOverride string) (string, error) {
-	if config.APIKey == "" {
+	if config.Type != ProviderTypeLocalLlama && config.APIKey == "" {
 		return "", fmt.Errorf("provider api_key is required")
 	}
 	if config.Model == "" {
@@ -125,7 +142,14 @@ func completeOpenAIChat(ctx context.Context, client *http.Client, config Provide
 	}
 	baseURL := strings.TrimRight(baseURLOverride, "/")
 	if baseURL == "" {
-		baseURL = "https://api.openai.com/v1"
+		baseURL = strings.TrimRight(config.BaseURL, "/")
+	}
+	if baseURL == "" {
+		if config.Type == ProviderTypeLocalLlama {
+			baseURL = "http://127.0.0.1:11435/v1"
+		} else {
+			baseURL = "https://api.openai.com/v1"
+		}
 	}
 	if client == nil {
 		client = http.DefaultClient
@@ -144,11 +168,30 @@ func completeOpenAIChat(ctx context.Context, client *http.Client, config Provide
 			},
 		}
 	}
+	if config.Type == ProviderTypeLocalLlama {
+		responseFormat = map[string]any{
+			"type": "json_schema",
+			"json_schema": map[string]any{
+				"name":   "mealcheck_compact_meal_plan",
+				"strict": true,
+				"schema": LocalLlamaCompactResponseSchema(),
+			},
+		}
+	}
 	payload := map[string]any{
 		"model":           config.Model,
 		"messages":        messages,
 		"temperature":     0,
 		"response_format": responseFormat,
+	}
+	if config.Type == ProviderTypeLocalLlama {
+		maxTokens := config.MaxTokens
+		if maxTokens <= 0 {
+			maxTokens = 160
+		}
+		payload["max_tokens"] = maxTokens
+		payload["stream"] = false
+		payload["chat_template_kwargs"] = map[string]any{"enable_thinking": false}
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -159,7 +202,9 @@ func completeOpenAIChat(ctx context.Context, client *http.Client, config Provide
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Authorization", "Bearer "+config.APIKey)
+	if config.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+config.APIKey)
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.Do(req)
@@ -547,6 +592,8 @@ func providerLabel(providerType string) string {
 		return "Anthropic"
 	case ProviderTypeGemini:
 		return "Gemini"
+	case ProviderTypeLocalLlama:
+		return "local llama"
 	case ProviderTypeOpenAICompatible, "":
 		return "OpenAI-compatible"
 	default:

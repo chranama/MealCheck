@@ -15,32 +15,50 @@ func ConfigFromEnv(root string) Config {
 	inviteToken := os.Getenv("MEALCHECK_INVITE_TOKEN")
 	inviteRequired := getenvBool("MEALCHECK_INVITE_REQUIRED", false)
 	return Config{
-		Root:                     root,
-		DataDir:                  dataDir,
-		ArtifactDir:              artifactDir,
-		Addr:                     getenv("MEALCHECK_ADDR", "127.0.0.1:8080"),
-		DatabaseURL:              os.Getenv("DATABASE_URL"),
-		StoreKind:                getenv("MEALCHECK_STORE", "postgres"),
-		AllowedOrigin:            os.Getenv("MEALCHECK_ALLOWED_ORIGIN"),
-		InviteToken:              inviteToken,
-		InviteRequired:           inviteRequired,
-		AccessMode:               accessModeFromEnv(inviteToken, inviteRequired),
-		PublicOpenAICompatible:   getenvBool("MEALCHECK_PUBLIC_OPENAI_COMPATIBLE", false),
-		PublicRequestLimit:       getenvInt("MEALCHECK_PUBLIC_REQUEST_LIMIT", 60),
-		PublicRequestWindow:      getenvDuration("MEALCHECK_PUBLIC_REQUEST_WINDOW", time.Minute),
-		PublicDailyRunLimit:      getenvInt("MEALCHECK_PUBLIC_DAILY_RUN_LIMIT", 20),
-		MaxCandidateTextChars:    getenvInt("MEALCHECK_MAX_CANDIDATE_TEXT_CHARS", 20_000),
-		MaxGenerationPromptChars: getenvInt("MEALCHECK_MAX_GENERATION_PROMPT_CHARS", 4_000),
-		QueueSize:                queueSize,
-		MaxCasesPerRun:           getenvInt("MEALCHECK_MAX_CASES_PER_RUN", 20),
-		MaxUploadBytes:           int64(getenvInt("MEALCHECK_MAX_UPLOAD_BYTES", 1_000_000)),
-		RunTimeout:               runTimeout,
-		PendingInputTTL:          getenvDuration("MEALCHECK_PENDING_INPUT_TTL", defaultPendingInputTTL(queueSize, runTimeout)),
-		Retention:                getenvDuration("MEALCHECK_RETENTION", 7*24*time.Hour),
-		WorkerPoll:               getenvDuration("MEALCHECK_WORKER_POLL", time.Second),
-		CleanupInterval:          getenvDuration("MEALCHECK_CLEANUP_INTERVAL", time.Hour),
-		DemoIndexPath:            filepath.Join(root, "ui", "public", "demo-runs", "index.json"),
-		DemoArtifactRoot:         filepath.Join(root, "ui", "public"),
+		Root:                      root,
+		DataDir:                   dataDir,
+		ArtifactDir:               artifactDir,
+		Addr:                      getenv("MEALCHECK_ADDR", "127.0.0.1:8080"),
+		DatabaseURL:               os.Getenv("DATABASE_URL"),
+		StoreKind:                 getenv("MEALCHECK_STORE", "postgres"),
+		AllowedOrigin:             os.Getenv("MEALCHECK_ALLOWED_ORIGIN"),
+		InviteToken:               inviteToken,
+		InviteRequired:            inviteRequired,
+		AccessMode:                accessModeFromEnv(inviteToken, inviteRequired),
+		HostedMode:                hostedModeFromEnv(),
+		PublicOpenAICompatible:    getenvBool("MEALCHECK_PUBLIC_OPENAI_COMPATIBLE", false),
+		PublicRequestLimit:        getenvInt("MEALCHECK_PUBLIC_REQUEST_LIMIT", 60),
+		PublicRequestWindow:       getenvDuration("MEALCHECK_PUBLIC_REQUEST_WINDOW", time.Minute),
+		PublicDailyRunLimit:       getenvInt("MEALCHECK_PUBLIC_DAILY_RUN_LIMIT", 20),
+		MaxCandidateTextChars:     getenvInt("MEALCHECK_MAX_CANDIDATE_TEXT_CHARS", 20_000),
+		MaxGenerationPromptChars:  getenvInt("MEALCHECK_MAX_GENERATION_PROMPT_CHARS", 4_000),
+		LocalModelEnabled:         getenvBool("MEALCHECK_LOCAL_MODEL_ENABLED", false),
+		LocalModelBaseURL:         getenv("MEALCHECK_LOCAL_MODEL_BASE_URL", "http://127.0.0.1:11435/v1"),
+		LocalModelName:            os.Getenv("MEALCHECK_LOCAL_MODEL_NAME"),
+		LocalModelTimeout:         getenvDuration("MEALCHECK_LOCAL_MODEL_TIMEOUT", 90*time.Second),
+		LocalModelMaxInputChars:   getenvInt("MEALCHECK_LOCAL_MODEL_MAX_INPUT_CHARS", 4_000),
+		LocalModelMaxOutputTokens: getenvInt("MEALCHECK_LOCAL_MODEL_MAX_OUTPUT_TOKENS", 160),
+		QueueSize:                 queueSize,
+		MaxCasesPerRun:            getenvInt("MEALCHECK_MAX_CASES_PER_RUN", 20),
+		MaxUploadBytes:            int64(getenvInt("MEALCHECK_MAX_UPLOAD_BYTES", 1_000_000)),
+		RunTimeout:                runTimeout,
+		PendingInputTTL:           getenvDuration("MEALCHECK_PENDING_INPUT_TTL", defaultPendingInputTTL(queueSize, runTimeout)),
+		Retention:                 getenvDuration("MEALCHECK_RETENTION", 7*24*time.Hour),
+		WorkerPoll:                getenvDuration("MEALCHECK_WORKER_POLL", time.Second),
+		CleanupInterval:           getenvDuration("MEALCHECK_CLEANUP_INTERVAL", time.Hour),
+		DemoIndexPath:             filepath.Join(root, "ui", "public", "demo-runs", "index.json"),
+		DemoArtifactRoot:          filepath.Join(root, "ui", "public"),
+	}
+}
+
+func hostedModeFromEnv() string {
+	switch value := os.Getenv("MEALCHECK_HOSTED_MODE"); value {
+	case HostedModeBYOK, HostedModeLocalModel:
+		return value
+	case "":
+		return HostedModeBYOK
+	default:
+		return HostedModeBYOK
 	}
 }
 

@@ -29,33 +29,52 @@ const (
 	AccessModeInviteRequired = "invite_required"
 )
 
+const (
+	HostedModeBYOK       = "byok"
+	HostedModeLocalModel = "local_model"
+)
+
+const (
+	InputModeManualStructured  = "manual_structured"
+	InputModeProfileGeneration = "profile_generation"
+	InputModePromptGeneration  = "prompt_generation"
+	InputModeLocalModel        = "local_model"
+)
+
 type Config struct {
-	Root                     string
-	DataDir                  string
-	ArtifactDir              string
-	Addr                     string
-	DatabaseURL              string
-	StoreKind                string
-	AllowedOrigin            string
-	InviteToken              string
-	InviteRequired           bool
-	AccessMode               string
-	PublicOpenAICompatible   bool
-	PublicRequestLimit       int
-	PublicRequestWindow      time.Duration
-	PublicDailyRunLimit      int
-	MaxCandidateTextChars    int
-	MaxGenerationPromptChars int
-	QueueSize                int
-	MaxCasesPerRun           int
-	MaxUploadBytes           int64
-	RunTimeout               time.Duration
-	PendingInputTTL          time.Duration
-	Retention                time.Duration
-	WorkerPoll               time.Duration
-	CleanupInterval          time.Duration
-	DemoIndexPath            string
-	DemoArtifactRoot         string
+	Root                      string
+	DataDir                   string
+	ArtifactDir               string
+	Addr                      string
+	DatabaseURL               string
+	StoreKind                 string
+	AllowedOrigin             string
+	InviteToken               string
+	InviteRequired            bool
+	AccessMode                string
+	HostedMode                string
+	PublicOpenAICompatible    bool
+	PublicRequestLimit        int
+	PublicRequestWindow       time.Duration
+	PublicDailyRunLimit       int
+	MaxCandidateTextChars     int
+	MaxGenerationPromptChars  int
+	LocalModelEnabled         bool
+	LocalModelBaseURL         string
+	LocalModelName            string
+	LocalModelTimeout         time.Duration
+	LocalModelMaxInputChars   int
+	LocalModelMaxOutputTokens int
+	QueueSize                 int
+	MaxCasesPerRun            int
+	MaxUploadBytes            int64
+	RunTimeout                time.Duration
+	PendingInputTTL           time.Duration
+	Retention                 time.Duration
+	WorkerPoll                time.Duration
+	CleanupInterval           time.Duration
+	DemoIndexPath             string
+	DemoArtifactRoot          string
 }
 
 type Run struct {
@@ -99,6 +118,7 @@ type CreateRunRequest struct {
 	InputMode        string           `json:"input_mode,omitempty"`
 	Settings         checker.Settings `json:"settings,omitempty"`
 	CandidatePlan    *checker.Plan    `json:"candidate_plan,omitempty"`
+	CandidateText    string           `json:"candidate_text,omitempty"`
 	GenerationPrompt string           `json:"generation_prompt,omitempty"`
 	Provider         ProviderConfig   `json:"provider,omitempty"`
 	RepairJSON       *bool            `json:"repair_json,omitempty"`
@@ -157,10 +177,12 @@ type APIError struct {
 }
 
 type ProviderConfig struct {
-	Type    string `json:"type,omitempty"`
-	BaseURL string `json:"base_url,omitempty"`
-	Model   string `json:"model,omitempty"`
-	APIKey  string `json:"api_key,omitempty"`
+	Type      string        `json:"type,omitempty"`
+	BaseURL   string        `json:"base_url,omitempty"`
+	Model     string        `json:"model,omitempty"`
+	APIKey    string        `json:"api_key,omitempty"`
+	MaxTokens int           `json:"max_tokens,omitempty"`
+	Timeout   time.Duration `json:"-"`
 }
 
 type RedactedProviderConfig struct {
@@ -174,6 +196,7 @@ type PendingRunInput struct {
 	Mode             string
 	Settings         checker.Settings
 	CandidatePlan    *checker.Plan
+	CandidateText    string
 	GenerationPrompt string
 	Provider         ProviderConfig
 	RepairJSON       bool

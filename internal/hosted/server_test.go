@@ -165,6 +165,92 @@ func TestProfileGenerationUsesBYOKProviderAndRedactsSecret(t *testing.T) {
 	}
 }
 
+func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.HostedMode = HostedModeLocalModel
+	config.LocalModelEnabled = true
+	config.LocalModelBaseURL = "http://127.0.0.1:11435/v1"
+	config.LocalModelName = "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf"
+	config.LocalModelMaxInputChars = 1_000
+	config.LocalModelMaxOutputTokens = 160
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	provider := &fakeProvider{responses: []string{compactLocalMealPlanJSON()}}
+	seeded := seededCase(t, root)
+	settings := localModelTestSettings(seeded.Settings)
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:     InputModeLocalModel,
+		Settings:      settings,
+		CandidateText: "Breakfast: 1 cup cooked oatmeal, 1 cup blueberries, 1 cup plain Greek yogurt.\nLunch: 4 oz chicken breast, 1 cup brown rice, 1 cup broccoli.\nDinner: 4 oz salmon, 1 cup sweet potato, 1 cup spinach.",
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		if config.Type != ProviderTypeLocalLlama {
+			t.Fatalf("provider type = %q, want %q", config.Type, ProviderTypeLocalLlama)
+		}
+		if config.APIKey != "" {
+			t.Fatalf("local provider api key = %q, want empty", config.APIKey)
+		}
+		if config.BaseURL != "http://127.0.0.1:11435/v1" {
+			t.Fatalf("local provider base URL = %q", config.BaseURL)
+		}
+		if config.Model != "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf" {
+			t.Fatalf("local provider model = %q", config.Model)
+		}
+		if config.MaxTokens != 160 {
+			t.Fatalf("local provider max tokens = %d, want 160", config.MaxTokens)
+		}
+		return provider, nil
+	}).ProcessOne(context.Background())
+	if err != nil {
+		t.Fatalf("process run: %v", err)
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+	if provider.calls != 1 {
+		t.Fatalf("provider calls = %d, want 1", provider.calls)
+	}
+
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	if run.Status != StatusCompleted {
+		t.Fatalf("run status = %q, want completed; error=%s", run.Status, run.Error)
+	}
+
+	var redacted RedactedProviderConfig
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "configs", "redacted-provider.json")), &redacted)
+	if redacted.Type != ProviderTypeLocalLlama {
+		t.Fatalf("redacted provider type = %q, want %q", redacted.Type, ProviderTypeLocalLlama)
+	}
+	if redacted.Model != "Qwen3-0.6B-Q4_K_M.gguf" {
+		t.Fatalf("redacted local model = %q, want basename only", redacted.Model)
+	}
+	if redacted.BaseURL != "" {
+		t.Fatalf("redacted local base URL = %q, want empty", redacted.BaseURL)
+	}
+	if redacted.APIKey != "not_applicable" {
+		t.Fatalf("redacted local api key = %q, want not_applicable", redacted.APIKey)
+	}
+
+	var events []NormalizationEvent
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "normalization-events.json")), &events)
+	if !hasNormalizationEvent(events, "json_decoded") {
+		t.Fatalf("normalization events missing json_decoded: %+v", events)
+	}
+}
+
 func TestProfileGenerationRedactsSuccessfulLLMOutputArtifact(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
@@ -353,6 +439,51 @@ func TestQualifyEndpointUsesBYOKProviderForTextNormalization(t *testing.T) {
 	}
 	if !response.Qualification.ProviderUsed {
 		t.Fatal("provider_used = false, want true")
+	}
+}
+
+func TestQualifyEndpointUsesHostedLocalModelWithoutClientProvider(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.HostedMode = HostedModeLocalModel
+	config.LocalModelEnabled = true
+	config.LocalModelBaseURL = "http://127.0.0.1:11435/v1"
+	config.LocalModelName = "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf"
+	store := NewMemoryStore()
+	server := NewServer(config, store)
+	seeded := seededCase(t, root)
+	provider := &fakeProvider{responses: []string{compactLocalMealPlanJSON()}}
+	server.ProviderFactory = func(config ProviderConfig) (Provider, error) {
+		if config.Type != ProviderTypeLocalLlama {
+			t.Fatalf("provider type = %q, want %q", config.Type, ProviderTypeLocalLlama)
+		}
+		if config.APIKey != "" {
+			t.Fatalf("local provider api key = %q, want empty", config.APIKey)
+		}
+		return provider, nil
+	}
+
+	body := marshalJSON(t, MealPlanQualificationRequest{
+		Text:     "Breakfast: 1 cup cooked oatmeal, 1 cup blueberries, 1 cup plain Greek yogurt.\nLunch: 4 oz chicken breast, 1 cup brown rice, 1 cup broccoli.\nDinner: 4 oz salmon, 1 cup sweet potato, 1 cup spinach.",
+		Settings: localModelTestSettings(seeded.Settings),
+	})
+	resp := doRequest(t, server, http.MethodPost, "/api/qualify", body)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("qualify status = %d, want 200 body=%s", resp.Code, resp.Body.String())
+	}
+	if provider.calls != 1 {
+		t.Fatalf("provider calls = %d, want 1", provider.calls)
+	}
+	var response QualifyMealPlanResponse
+	decodeJSON(t, resp.Body.Bytes(), &response)
+	if response.Qualification.Status != QualificationStatusEligibleForVerification {
+		t.Fatalf("qualification status = %q, want %q", response.Qualification.Status, QualificationStatusEligibleForVerification)
+	}
+	if !response.Qualification.ProviderUsed {
+		t.Fatal("provider_used = false, want true")
+	}
+	if response.Qualification.NormalizedPlan == nil {
+		t.Fatal("normalized plan missing")
 	}
 }
 
@@ -1072,6 +1203,61 @@ func TestOpenAICompatibleProviderKeepsJSONMode(t *testing.T) {
 	}
 }
 
+func TestLocalLlamaProviderUsesCompactSchemaWithoutAuthorization(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			t.Fatalf("path = %q, want /v1/chat/completions", r.URL.Path)
+		}
+		if got := r.Header.Get("Authorization"); got != "" {
+			t.Fatalf("authorization header = %q, want empty", got)
+		}
+		var payload map[string]any
+		decodeJSON(t, readAll(t, r), &payload)
+		if payload["model"] != "local-model" {
+			t.Fatalf("model = %v", payload["model"])
+		}
+		if payload["max_tokens"] != float64(128) {
+			t.Fatalf("max_tokens = %v, want 128", payload["max_tokens"])
+		}
+		format, ok := payload["response_format"].(map[string]any)
+		if !ok || format["type"] != "json_schema" {
+			t.Fatalf("response_format = %#v", payload["response_format"])
+		}
+		jsonSchema, ok := format["json_schema"].(map[string]any)
+		if !ok || jsonSchema["name"] != "mealcheck_compact_meal_plan" || jsonSchema["strict"] != true {
+			t.Fatalf("json_schema = %#v", format["json_schema"])
+		}
+		schema, ok := jsonSchema["schema"].(map[string]any)
+		if !ok {
+			t.Fatalf("schema = %#v", jsonSchema["schema"])
+		}
+		required, ok := schema["required"].([]any)
+		if !ok || len(required) != 3 {
+			t.Fatalf("compact schema required = %#v", schema["required"])
+		}
+		templateArgs, ok := payload["chat_template_kwargs"].(map[string]any)
+		if !ok || templateArgs["enable_thinking"] != false {
+			t.Fatalf("chat_template_kwargs = %#v", payload["chat_template_kwargs"])
+		}
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"{\"b\":[[\"oatmeal\",1,\"cup\"]],\"l\":[[\"chicken\",4,\"oz\"]],\"d\":[[\"salmon\",4,\"oz\"]]}"}}]}`))
+	}))
+	defer server.Close()
+
+	provider := LocalLlamaProvider{Client: server.Client()}
+	got, err := provider.Complete(context.Background(), ProviderConfig{
+		Type:      ProviderTypeLocalLlama,
+		BaseURL:   server.URL + "/v1",
+		Model:     "local-model",
+		MaxTokens: 128,
+	}, []ProviderMessage{{Role: "user", Content: "Plan."}})
+	if err != nil {
+		t.Fatalf("Complete error: %v", err)
+	}
+	if !strings.Contains(got, `"b"`) {
+		t.Fatalf("content = %q", got)
+	}
+}
+
 func TestAnthropicProviderRequestAndResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/messages" {
@@ -1349,6 +1535,49 @@ func TestHealthReportsPublicAccessPolicy(t *testing.T) {
 	}
 	if policy["public_daily_run_limit"] != float64(7) {
 		t.Fatalf("public_daily_run_limit = %v, want 7", policy["public_daily_run_limit"])
+	}
+}
+
+func TestHealthReportsHostedLocalModelMode(t *testing.T) {
+	root := repoRoot(t)
+	modelServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/models" {
+			t.Fatalf("local model health path = %q, want /models", r.URL.Path)
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"data": []map[string]string{{"id": "test-model"}}})
+	}))
+	t.Cleanup(modelServer.Close)
+
+	config := testConfig(t, root)
+	config.HostedMode = HostedModeLocalModel
+	config.LocalModelEnabled = true
+	config.LocalModelBaseURL = modelServer.URL
+	config.LocalModelName = "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf"
+	config.LocalModelMaxInputChars = 2048
+	config.LocalModelMaxOutputTokens = 128
+	server := NewServer(config, NewMemoryStore())
+
+	resp := doRequest(t, server, http.MethodGet, "/api/health", "")
+	if resp.Code != http.StatusOK {
+		t.Fatalf("health status = %d, want 200 body=%s", resp.Code, resp.Body.String())
+	}
+	var health map[string]any
+	decodeJSON(t, resp.Body.Bytes(), &health)
+	if health["hosted_mode"] != HostedModeLocalModel {
+		t.Fatalf("hosted_mode = %v, want %q", health["hosted_mode"], HostedModeLocalModel)
+	}
+	localModel, ok := health["local_model"].(map[string]any)
+	if !ok {
+		t.Fatalf("local_model missing or wrong type: %#v", health["local_model"])
+	}
+	if localModel["enabled"] != true || localModel["ready"] != true {
+		t.Fatalf("local_model health = %#v, want enabled and ready", localModel)
+	}
+	if localModel["model"] != "Qwen3-0.6B-Q4_K_M.gguf" {
+		t.Fatalf("local_model model = %v, want basename only", localModel["model"])
+	}
+	if localModel["max_input_chars"] != float64(2048) {
+		t.Fatalf("local_model max_input_chars = %v, want 2048", localModel["max_input_chars"])
 	}
 }
 
@@ -1820,6 +2049,17 @@ func testConfig(t *testing.T, root string) Config {
 		DemoIndexPath:            filepath.Join(root, "ui", "public", "demo-runs", "index.json"),
 		DemoArtifactRoot:         filepath.Join(root, "ui", "public"),
 	}
+}
+
+func localModelTestSettings(settings checker.Settings) checker.Settings {
+	settings.VerificationConstraints.Days = 1
+	settings.VerificationConstraints.MealsPerDay = 3
+	settings.VerificationConstraints.RequiresPrepSafetyNotes = false
+	return settings
+}
+
+func compactLocalMealPlanJSON() string {
+	return `{"b":[["cooked oatmeal",1,"cup"],["blueberries",1,"cup"],["plain Greek yogurt",1,"cup"]],"l":[["chicken breast",4,"oz"],["brown rice",1,"cup"],["broccoli",1,"cup"]],"d":[["salmon",4,"oz"],["sweet potato",1,"cup"],["spinach",1,"cup"]]}`
 }
 
 func repoRoot(t *testing.T) string {

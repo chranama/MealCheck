@@ -55,13 +55,13 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 	usedProvider := false
 
 	switch input.Mode {
-	case "manual_structured":
+	case InputModeManualStructured:
 		if input.CandidatePlan == nil {
 			return PreparedRun{}, fmt.Errorf("candidate_plan is required for manual_structured")
 		}
 		plan = *input.CandidatePlan
 		events = append(events, normalizationEvent("manual_plan_received", "manual structured meal plan received"))
-	case "profile_generation", "prompt_generation":
+	case InputModeProfileGeneration, InputModePromptGeneration:
 		var err error
 		provider, err = providerFactory(input.Provider)
 		if err != nil {
@@ -128,6 +128,38 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 			}
 			events = append(events, normalizationEvent("json_decoded", "provider output decoded as normalized meal-plan JSON"))
 		}
+	case InputModeLocalModel:
+		var err error
+		provider, err = providerFactory(input.Provider)
+		if err != nil {
+			return PreparedRun{}, err
+		}
+		providerRedacted = redactProvider(input.Provider)
+		usedProvider = true
+		messages, err := localModelExtractionMessages(input)
+		if err != nil {
+			return PreparedRun{}, err
+		}
+		llmOutput, err = provider.Complete(ctx, input.Provider, messages)
+		if err != nil {
+			events = append(events, normalizationEvent("provider_request_failed", "local model request failed before returning compact meal-plan JSON"))
+			return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+				FinalError: err,
+			})
+		}
+		initialOutput = llmOutput
+		events = append(events, normalizationEvent("llm_output_received", "local model returned compact meal-plan JSON"))
+		plan, err = DecodeLocalLlamaCompactPlan(llmOutput, "local-model-"+run.ID)
+		if err != nil {
+			initialErr = err
+			events = append(events, normalizationEvent("json_decode_failed", "local model output was not valid compact meal-plan JSON"))
+			return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+				InitialOutput: initialOutput,
+				InitialError:  initialErr,
+				FinalError:    initialErr,
+			})
+		}
+		events = append(events, normalizationEvent("json_decoded", "local model compact output decoded into normalized MealCheck JSON"))
 	default:
 		return PreparedRun{}, fmt.Errorf("unsupported input_mode %q", input.Mode)
 	}
@@ -286,7 +318,7 @@ func unsupportedUnitQuantityText(quantity *float64, unit string) string {
 }
 
 func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
-	if input.Mode == "prompt_generation" && strings.TrimSpace(input.GenerationPrompt) == "" {
+	if input.Mode == InputModePromptGeneration && strings.TrimSpace(input.GenerationPrompt) == "" {
 		return nil, fmt.Errorf("generation_prompt is required for prompt_generation")
 	}
 	constraints := input.Settings.VerificationConstraints
@@ -311,13 +343,42 @@ func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 		"required_shape": mealPlanShapeInstructions(constraints),
 		"alias_rules":    mealPlanAliasRules(),
 	}
-	if input.Mode == "prompt_generation" {
+	if input.Mode == InputModePromptGeneration {
 		payload["user_prompt"] = input.GenerationPrompt
 	}
 	payloadJSON, _ := json.MarshalIndent(payload, "", "  ")
 	return []ProviderMessage{
 		{Role: "system", Content: system},
 		{Role: "user", Content: string(payloadJSON)},
+	}, nil
+}
+
+func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, error) {
+	text := strings.TrimSpace(input.CandidateText)
+	if text == "" {
+		return nil, fmt.Errorf("candidate_text is required for local_model")
+	}
+	system := strings.Join([]string{
+		"Extract meal-plan ingredients into compact MealCheck local JSON only.",
+		"Return one minified JSON object.",
+		"Top-level keys: b, l, d.",
+		"b=breakfast, l=lunch, d=dinner.",
+		"Each meal is an array of [food, quantity, unit].",
+		"Allowed units: g, oz, cup, tbsp, tsp, serving.",
+	}, " ")
+	user := strings.Join([]string{
+		"Extract this one-day meal plan into compact JSON.",
+		"Use exactly b, l, and d.",
+		"Convert every bullet item into exactly one [food, quantity, unit] tuple.",
+		"Do not omit, merge, summarize, or invent items.",
+		"Include only resolved food items with numeric quantity plus unit.",
+		"Do not include other keys or text.",
+		"",
+		text,
+	}, "\n")
+	return []ProviderMessage{
+		{Role: "system", Content: system},
+		{Role: "user", Content: user},
 	}, nil
 }
 
@@ -487,6 +548,9 @@ func writeRuntimeCase(config Config, run Run, input PendingRunInput, plan checke
 	}
 	if input.GenerationPrompt != "" {
 		c.GenerationPrompt = input.GenerationPrompt
+	}
+	if input.CandidateText != "" {
+		c.GenerationPrompt = "[local_model candidate_text omitted from runtime case]"
 	}
 	if err := writeJSONFile(casePath, c); err != nil {
 		return "", err
@@ -669,6 +733,13 @@ func redactProvider(config ProviderConfig) RedactedProviderConfig {
 	providerType := config.Type
 	if providerType == "" {
 		providerType = ProviderTypeOpenAICompatible
+	}
+	if providerType == ProviderTypeLocalLlama {
+		return RedactedProviderConfig{
+			Type:   providerType,
+			Model:  filepath.Base(config.Model),
+			APIKey: "not_applicable",
+		}
 	}
 	return RedactedProviderConfig{
 		Type:    providerType,

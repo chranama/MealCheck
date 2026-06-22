@@ -64,6 +64,34 @@ func QualifyMealPlanText(ctx context.Context, providerFactory ProviderFactory, r
 		return MealPlanQualificationResult{}, err
 	}
 
+	if request.Provider.Type == ProviderTypeLocalLlama {
+		messages, messageErr := localModelExtractionMessages(PendingRunInput{
+			Mode:          InputModeLocalModel,
+			Settings:      request.Settings,
+			CandidateText: text,
+			Provider:      request.Provider,
+		})
+		if messageErr != nil {
+			return MealPlanQualificationResult{}, messageErr
+		}
+		output, err := provider.Complete(ctx, request.Provider, messages)
+		if err != nil {
+			return MealPlanQualificationResult{}, err
+		}
+		plan, decodeErr := DecodeLocalLlamaCompactPlan(output, defaultLocalLlamaPlanID)
+		if decodeErr != nil {
+			return MealPlanQualificationResult{
+				SchemaVersion: "0.1",
+				Status:        QualificationStatusMealPlanTooVague,
+				Reason:        "The candidate text looked like a meal plan, but the local model did not return compact MealCheck meal-plan JSON.",
+				MissingFields: []string{"normalized_plan"},
+				ProviderUsed:  true,
+			}, nil
+		}
+		result := qualificationResultForPlan(plan, false)
+		result.ProviderUsed = true
+		return result, nil
+	}
 	output, err := provider.Complete(ctx, request.Provider, qualificationMessages(request))
 	if err != nil {
 		return MealPlanQualificationResult{}, err

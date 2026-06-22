@@ -155,6 +155,9 @@ func clientIP(raddr string, headers map[string]string) string {
 }
 
 func validatePublicProviderPolicy(config Config, provider ProviderConfig) error {
+	if provider.Type == ProviderTypeLocalLlama {
+		return fmt.Errorf("local_llama is a server-owned provider; use input_mode local_model")
+	}
 	if accessMode(config) != AccessModePublicBYOK || provider.Type != ProviderTypeOpenAICompatible {
 		return nil
 	}

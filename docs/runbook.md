@@ -949,6 +949,15 @@ Supported BYOK provider types are `openai`, `anthropic`, `gemini`, and
 `openai_compatible`. Native providers use their official endpoints; set
 `base_url` only for OpenAI-compatible custom endpoints.
 
+Hosted local-model deployments should instead set
+`MEALCHECK_HOSTED_MODE=local_model` and configure
+`MEALCHECK_LOCAL_MODEL_BASE_URL`, `MEALCHECK_LOCAL_MODEL_NAME`,
+`MEALCHECK_LOCAL_MODEL_MAX_INPUT_CHARS`, and
+`MEALCHECK_LOCAL_MODEL_MAX_OUTPUT_TOKENS` in
+`/Users/chranama-server/MealCheck-data/mealcheck-server.env`. The backend owns
+the llama.cpp endpoint; clients should not send provider config in local-model
+mode.
+
 Provider failure:
 
 - check the run `error` field
