@@ -63,4 +63,7 @@ if [ -n "${LLAMA_EXTRA_ARGS:-}" ]; then
 fi
 
 log "starting llama-server model=$LLAMA_MODEL_PATH host=$LLAMA_HOST port=$LLAMA_PORT threads=$LLAMA_THREADS ctx=$LLAMA_CTX_SIZE gpu_layers=$LLAMA_GPU_LAYERS parallel=$LLAMA_PARALLEL"
-exec "${args[@]}" "${extra_args[@]}"
+if [ "${#extra_args[@]}" -gt 0 ]; then
+  exec "${args[@]}" "${extra_args[@]}"
+fi
+exec "${args[@]}"
