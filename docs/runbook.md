@@ -581,7 +581,9 @@ curl -fsS http://127.0.0.1:8080/api/health | jq .
 
 The local model service runs `llama-server` as a system `LaunchDaemon` with
 label `dev.mealcheck.llama`. It binds only to `127.0.0.1:11435`; do not expose
-this port through Cloudflare.
+this port through Cloudflare. Unlike the backend, tunnel, and maintenance
+daemons, this service uses launchd `ProcessType=Interactive` because local
+inference is CPU-bound and latency-sensitive.
 
 The committed defaults are the first production candidate for the MacBook:
 
