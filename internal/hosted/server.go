@@ -800,10 +800,6 @@ func validateLocalModelAvailable(config Config) error {
 }
 
 func validateLocalModelSettings(settings checker.Settings) error {
-	constraints := settings.VerificationConstraints
-	if constraints.Days != 1 || constraints.MealsPerDay != 3 {
-		return fmt.Errorf("local_model currently supports exactly 1 day and 3 meals per day")
-	}
 	return nil
 }
 
@@ -819,8 +815,8 @@ func (s *Server) localModelHealth(ctx context.Context) map[string]any {
 		"max_input_chars":         s.Config.LocalModelMaxInputChars,
 		"max_output_tokens":       s.Config.LocalModelMaxOutputTokens,
 		"timeout_sec":             int(s.Config.LocalModelTimeout.Seconds()),
-		"supported_days":          1,
-		"supported_meals_per_day": 3,
+		"supported_days":          7,
+		"supported_meals_per_day": 6,
 	}
 	if !s.Config.LocalModelEnabled {
 		return status

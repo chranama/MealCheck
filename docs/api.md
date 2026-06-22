@@ -246,16 +246,18 @@ The response is intentionally a job handle, not the final report:
 
 ### Request Modes
 
-`POST /api/runs` supports three hosted request shapes.
+`POST /api/runs` supports four hosted request shapes.
 
 | Mode | Fields | LLM Used | Purpose |
 |---|---|---:|---|
 | Checked-in case | `case_path` | no | Developer/demo compatibility for checked-in examples. |
+| `local_model` | `input_mode`, `settings`, `candidate_text` | yes | Normalize pasted meal-plan text with the server-owned local model, then verify it. |
 | `profile_generation` | `input_mode`, `settings`, `provider` | yes | Ask a provider to generate a plan from nutrition targets and verification constraints. |
 | `prompt_generation` | `input_mode`, `settings`, `generation_prompt`, `provider` | yes | Ask a provider to generate a plan from a user prompt plus nutrition targets and verification constraints. |
 
 `case_path` cannot be combined with `input_mode`. Hosted live requests should
-use `profile_generation` or `prompt_generation`. Structured JSON entry is
+use `local_model` in hosted local-model deployments, or `profile_generation`
+and `prompt_generation` in hosted BYOK deployments. Structured JSON entry is
 preserved in the local CLI/debug workflow, not the hosted `/api/runs` endpoint.
 
 ### Settings
@@ -308,8 +310,9 @@ file workflow. The same normalized plan validation rules apply there:
 ### Hosted Local Model Run Request
 
 `input_mode: "local_model"` queues a live check that normalizes pasted
-meal-plan text through the server-owned local model. The current compact local
-contract supports exactly one day with breakfast, lunch, and dinner.
+meal-plan text through the server-owned local model. The v3 compact local
+contract supports up to seven days and up to six meals per day by asking the
+model for rows in the form `[day, meal_code, food, quantity, unit]`.
 
 Clients must omit `provider`; the backend injects the configured local model
 endpoint and model id.
@@ -345,6 +348,10 @@ Rules:
   OpenAI-compatible API, normally `http://127.0.0.1:11435/v1`.
 - `MEALCHECK_LOCAL_MODEL_NAME` must match the loaded llama.cpp model id.
 - `candidate_text` is bounded by `MEALCHECK_LOCAL_MODEL_MAX_INPUT_CHARS`.
+- Local model output uses compact meal codes: `b` breakfast, `m` morning snack,
+  `l` lunch, `a` afternoon snack, `d` dinner, `s` snack, and `e` evening snack.
+  The backend expands these rows into canonical MealCheck JSON before
+  verification.
 - `provider` is rejected in `local_model` requests.
 
 ### BYOK Targets Generation Request
@@ -570,10 +577,10 @@ Example response:
     "ready": true,
     "model": "Qwen3-0.6B-Q4_K_M.gguf",
     "max_input_chars": 4000,
-    "max_output_tokens": 160,
+    "max_output_tokens": 512,
     "timeout_sec": 90,
-    "supported_days": 1,
-    "supported_meals_per_day": 3
+    "supported_days": 7,
+    "supported_meals_per_day": 6
   },
   "policy": {
     "public_request_limit": 60,

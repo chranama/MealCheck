@@ -1,56 +1,23 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["b", "l", "d"],
+  "required": ["i"],
   "properties": {
-    "b": {
+    "i": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "array",
         "items": [
           {
-            "type": "string"
-          },
-          {
-            "type": "number",
-            "exclusiveMinimum": 0
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7
           },
           {
             "type": "string",
-            "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
-          }
-        ],
-        "additionalItems": false
-      }
-    },
-    "l": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "array",
-        "items": [
-          {
-            "type": "string"
+            "enum": ["b", "m", "l", "a", "d", "s", "e"]
           },
-          {
-            "type": "number",
-            "exclusiveMinimum": 0
-          },
-          {
-            "type": "string",
-            "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
-          }
-        ],
-        "additionalItems": false
-      }
-    },
-    "d": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "array",
-        "items": [
           {
             "type": "string"
           },

@@ -1503,6 +1503,50 @@ Consequences:
   compact shape for old artifacts.
 - The public BYOK provider contracts remain canonical MealCheck JSON.
 
+## 2026-06-22: Local llama Compact Contract Uses Row V3
+
+Status: Accepted
+
+Decision:
+
+Replace the active local llama output schema with a row-oriented v3 contract:
+
+```json
+{
+  "i": [
+    [1, "b", "cooked oatmeal", 1, "cup"],
+    [1, "l", "grilled chicken breast", 4, "oz"],
+    [2, "d", "baked salmon", 4, "oz"]
+  ]
+}
+```
+
+Each row is `[day, meal_code, food, quantity, unit]`. Meal codes are short and
+bounded: `b` breakfast, `m` morning snack, `l` lunch, `a` afternoon snack, `d`
+dinner, `s` snack, and `e` evening snack. MealCheck-owned adapter code groups
+rows by day and meal code, orders them deterministically, and expands them into
+canonical verifier JSON.
+
+Reason:
+
+The v2 tuple contract was fast but hardcoded one day with breakfast, lunch, and
+dinner. Canonical JSON supports multiple days and variable meal counts but is
+too token-heavy for the resource-constrained local model path. The v3 row
+contract adds only two compact fields per item, day number and meal code, while
+avoiding repeated canonical keys such as `days`, `meals`, `items`, `food`,
+`quantity`, and `unit`.
+
+Consequences:
+
+- Hosted local model mode can represent multi-day and variable meal-count
+  requests without returning to canonical model output.
+- The local adapter remains the trusted schema owner and validates row shape,
+  day range, meal code, units, and positive quantities before verifier use.
+- v2 tuple output and older object-item compact output remain accepted for old
+  artifacts and trial comparisons.
+- Local model output caps need to be sized for the requested day and meal count;
+  one-day runs still finish as soon as compact JSON is complete.
+
 ## 2026-06-22: Local llama Runs As A Private launchd Service
 
 Status: Accepted

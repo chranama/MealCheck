@@ -6,14 +6,15 @@ These files support the local llama.cpp model trial matrix.
   designed to test whether a local model can extract concrete meal-plan
   ingredients.
 - `compact-meal-plan-response.schema.json` is the active local llama.cpp
-  response schema. It asks the model for only short meal keys (`b`, `l`, `d`)
-  and item tuples (`[food, quantity, unit]`), then the MealCheck adapter expands
-  that output into canonical verifier JSON. The adapter still accepts the
-  earlier object-item compact shape for old artifacts.
+  response schema. It asks the model for compact rows under `i`, where each
+  row is `[day, meal_code, food, quantity, unit]`, then the MealCheck adapter
+  expands that output into canonical verifier JSON. The adapter still accepts
+  the earlier v2 `b`/`l`/`d` tuple shape and object-item compact shape for old
+  artifacts.
 - `meal-plan-response.schema.json` is retained as the earlier direct-canonical
   schema for comparison when measuring contract size.
-- `scripts/test-local-llama-structured-json.sh` asks the model for minified v2
-  tuple JSON, expands it through `mealcheck local-llama normalize`, and prints
+- `scripts/test-local-llama-structured-json.sh` asks the model for minified v3
+  row JSON, expands it through `mealcheck local-llama normalize`, and prints
   content-byte and token-count metrics so latency changes are visible between
   model and quantization trials.
 

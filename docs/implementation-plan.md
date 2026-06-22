@@ -2330,3 +2330,55 @@ Acceptance:
 - `curl -fsS http://127.0.0.1:11435/v1/models | jq .` returns the loaded model
 - the local structured-output smoke script passes against the launchd-managed
   model service before backend local-provider integration is enabled
+
+## Milestone 27: Local llama V3 Row Contract
+
+Status: Implemented on 2026-06-22 for the local llama adapter, schema fixture,
+smoke harness prompt, backend local-model prompt, tests, and documentation.
+
+Purpose:
+
+The v2 compact tuple contract achieved low latency by asking the local model
+for only `b`, `l`, and `d` meal buckets with `[food, quantity, unit]` tuples.
+That contract was intentionally fast but fixed the hosted local model path to
+one day with breakfast, lunch, and dinner. MealCheck needs a compact contract
+that can represent multi-day and variable meal-count requests without going
+back to verbose canonical model output.
+
+Deliver:
+
+- a v3 compact row contract: `{"i":[[day, meal_code, food, quantity, unit]]}`
+- bounded meal codes for breakfast, snacks, lunch, and dinner
+- adapter grouping from compact rows into canonical `checker.Plan`
+- compatibility with v2 tuple output and older object-item compact artifacts
+- schema and prompt updates for llama.cpp constrained decoding
+- backend hosted local-model prompt updates using requested day and meal counts
+- tests covering v3 expansion, legacy compatibility, schema shape, and hosted
+  local provider requests
+
+Implemented:
+
+1. Added row decoding to `DecodeLocalLlamaCompactPlan`.
+2. Added strict row validation for day range, meal code, positive quantity, and
+   supported units.
+3. Added deterministic grouping and ordering by day and meal code before
+   canonical MealCheck expansion.
+4. Preserved v2 `b`/`l`/`d` tuple decoding and object-item compact decoding for
+   old artifacts.
+5. Updated `LocalLlamaCompactResponseSchema` and
+   `examples/local-llama/compact-meal-plan-response.schema.json` to emit the
+   v3 row schema.
+6. Updated `scripts/test-local-llama-structured-json.sh` and hosted
+   `local_model` prompts to ask for row output.
+7. Raised default local-model output token caps so multi-day row output can
+   complete while one-day runs still stop at completed JSON.
+
+Acceptance:
+
+- `mealcheck local-llama normalize` accepts v3 row JSON and emits canonical
+  MealCheck JSON.
+- v2 tuple JSON and older object-item compact JSON remain accepted.
+- malformed row output fails closed before checker execution.
+- `mealcheck local-llama schema` matches the checked-in active compact schema.
+- hosted `local_model` no longer hard-requires exactly one day and three meals.
+- backend and CLI tests pass before live server measurements.

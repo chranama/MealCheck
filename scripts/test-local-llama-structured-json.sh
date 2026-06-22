@@ -18,7 +18,7 @@ PROMPT_FILE="${MEALCHECK_LLAMA_PROMPT_FILE:-$ROOT/examples/local-llama/synthetic
 SCHEMA_PATH="${MEALCHECK_LLAMA_SCHEMA_PATH:-$ROOT/examples/local-llama/compact-meal-plan-response.schema.json}"
 OUTPUT_DIR="${MEALCHECK_LLAMA_OUTPUT_DIR:-/tmp/mealcheck-local-llama-$(date +%Y%m%d-%H%M%S)}"
 REPEATS="${MEALCHECK_LLAMA_REPEATS:-3}"
-MAX_TOKENS="${MEALCHECK_LLAMA_MAX_TOKENS:-160}"
+MAX_TOKENS="${MEALCHECK_LLAMA_MAX_TOKENS:-200}"
 CURL_MAX_TIME_SECONDS="${MEALCHECK_LLAMA_CURL_MAX_TIME_SECONDS:-300}"
 RUN_CHECKER="${MEALCHECK_LLAMA_RUN_CHECKER:-1}"
 
@@ -87,11 +87,11 @@ build_request() {
       messages: [
         {
           role: "system",
-          content: "Extract meal-plan ingredients into compact MealCheck local JSON only. Return one minified JSON object. Top-level keys: b, l, d. b=breakfast, l=lunch, d=dinner. Each meal is an array of [food, quantity, unit]. Allowed units: g, oz, cup, tbsp, tsp, serving."
+          content: "Extract meal-plan ingredients into compact MealCheck local JSON only. Return one minified JSON object. Shape: {\"i\":[[day,meal_code,food,quantity,unit]]}. Meal codes: b=breakfast, m=morning snack, l=lunch, a=afternoon snack, d=dinner, s=snack, e=evening snack. Allowed units: g, oz, cup, tbsp, tsp, serving."
         },
         {
           role: "user",
-          content: ("Extract this one-day meal plan into compact JSON. Use exactly b, l, and d. Convert every bullet item into exactly one [food, quantity, unit] tuple. Do not omit, merge, summarize, or invent items. Include only resolved food items with numeric quantity plus unit. Do not include other keys or text.\n\n" + $meal_plan_text)
+          content: ("Extract this meal plan into compact row JSON. Use day numbers 1..1. Each day must contain exactly 3 distinct meal code(s). Convert every bullet item into exactly one [day, meal_code, food, quantity, unit] tuple. Do not omit, merge, summarize, or invent items. Include only resolved food items with numeric quantity plus unit. Do not include other keys or text.\n\n" + $meal_plan_text)
         }
       ]
     }'

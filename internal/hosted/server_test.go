@@ -1232,14 +1232,14 @@ func TestLocalLlamaProviderUsesCompactSchemaWithoutAuthorization(t *testing.T) {
 			t.Fatalf("schema = %#v", jsonSchema["schema"])
 		}
 		required, ok := schema["required"].([]any)
-		if !ok || len(required) != 3 {
+		if !ok || len(required) != 1 || required[0] != "i" {
 			t.Fatalf("compact schema required = %#v", schema["required"])
 		}
 		templateArgs, ok := payload["chat_template_kwargs"].(map[string]any)
 		if !ok || templateArgs["enable_thinking"] != false {
 			t.Fatalf("chat_template_kwargs = %#v", payload["chat_template_kwargs"])
 		}
-		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"{\"b\":[[\"oatmeal\",1,\"cup\"]],\"l\":[[\"chicken\",4,\"oz\"]],\"d\":[[\"salmon\",4,\"oz\"]]}"}}]}`))
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"{\"i\":[[1,\"b\",\"oatmeal\",1,\"cup\"],[1,\"l\",\"chicken\",4,\"oz\"],[1,\"d\",\"salmon\",4,\"oz\"]]}"}}]}`))
 	}))
 	defer server.Close()
 
@@ -1253,7 +1253,7 @@ func TestLocalLlamaProviderUsesCompactSchemaWithoutAuthorization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Complete error: %v", err)
 	}
-	if !strings.Contains(got, `"b"`) {
+	if !strings.Contains(got, `"i"`) {
 		t.Fatalf("content = %q", got)
 	}
 }
@@ -2059,7 +2059,7 @@ func localModelTestSettings(settings checker.Settings) checker.Settings {
 }
 
 func compactLocalMealPlanJSON() string {
-	return `{"b":[["cooked oatmeal",1,"cup"],["blueberries",1,"cup"],["plain Greek yogurt",1,"cup"]],"l":[["chicken breast",4,"oz"],["brown rice",1,"cup"],["broccoli",1,"cup"]],"d":[["salmon",4,"oz"],["sweet potato",1,"cup"],["spinach",1,"cup"]]}`
+	return `{"i":[[1,"b","cooked oatmeal",1,"cup"],[1,"b","blueberries",1,"cup"],[1,"b","plain Greek yogurt",1,"cup"],[1,"l","chicken breast",4,"oz"],[1,"l","brown rice",1,"cup"],[1,"l","broccoli",1,"cup"],[1,"d","salmon",4,"oz"],[1,"d","sweet potato",1,"cup"],[1,"d","spinach",1,"cup"]]}`
 }
 
 func repoRoot(t *testing.T) string {

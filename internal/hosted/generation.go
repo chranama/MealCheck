@@ -358,18 +358,19 @@ func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, err
 	if text == "" {
 		return nil, fmt.Errorf("candidate_text is required for local_model")
 	}
+	constraints := input.Settings.VerificationConstraints
 	system := strings.Join([]string{
 		"Extract meal-plan ingredients into compact MealCheck local JSON only.",
 		"Return one minified JSON object.",
-		"Top-level keys: b, l, d.",
-		"b=breakfast, l=lunch, d=dinner.",
-		"Each meal is an array of [food, quantity, unit].",
+		"Shape: {\"i\":[[day,meal_code,food,quantity,unit]]}.",
+		"Meal codes: b=breakfast, m=morning snack, l=lunch, a=afternoon snack, d=dinner, s=snack, e=evening snack.",
 		"Allowed units: g, oz, cup, tbsp, tsp, serving.",
 	}, " ")
 	user := strings.Join([]string{
-		"Extract this one-day meal plan into compact JSON.",
-		"Use exactly b, l, and d.",
-		"Convert every bullet item into exactly one [food, quantity, unit] tuple.",
+		"Extract this meal plan into compact row JSON.",
+		fmt.Sprintf("Use day numbers 1..%d.", constraints.Days),
+		fmt.Sprintf("Each day must contain exactly %d distinct meal code(s).", constraints.MealsPerDay),
+		"Convert every bullet item into exactly one [day, meal_code, food, quantity, unit] tuple.",
 		"Do not omit, merge, summarize, or invent items.",
 		"Include only resolved food items with numeric quantity plus unit.",
 		"Do not include other keys or text.",

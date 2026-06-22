@@ -187,7 +187,7 @@ func completeOpenAIChat(ctx context.Context, client *http.Client, config Provide
 	if config.Type == ProviderTypeLocalLlama {
 		maxTokens := config.MaxTokens
 		if maxTokens <= 0 {
-			maxTokens = 160
+			maxTokens = 512
 		}
 		payload["max_tokens"] = maxTokens
 		payload["stream"] = false

@@ -37,7 +37,7 @@ func ConfigFromEnv(root string) Config {
 		LocalModelName:            os.Getenv("MEALCHECK_LOCAL_MODEL_NAME"),
 		LocalModelTimeout:         getenvDuration("MEALCHECK_LOCAL_MODEL_TIMEOUT", 90*time.Second),
 		LocalModelMaxInputChars:   getenvInt("MEALCHECK_LOCAL_MODEL_MAX_INPUT_CHARS", 4_000),
-		LocalModelMaxOutputTokens: getenvInt("MEALCHECK_LOCAL_MODEL_MAX_OUTPUT_TOKENS", 160),
+		LocalModelMaxOutputTokens: getenvInt("MEALCHECK_LOCAL_MODEL_MAX_OUTPUT_TOKENS", 512),
 		QueueSize:                 queueSize,
 		MaxCasesPerRun:            getenvInt("MEALCHECK_MAX_CASES_PER_RUN", 20),
 		MaxUploadBytes:            int64(getenvInt("MEALCHECK_MAX_UPLOAD_BYTES", 1_000_000)),

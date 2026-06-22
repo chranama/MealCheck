@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/chranama/MealCheck/internal/checker"
@@ -23,6 +24,10 @@ type localLlamaTuplePlan struct {
 	Dinner    []localLlamaTupleItem `json:"d"`
 }
 
+type localLlamaRowPlan struct {
+	Items []localLlamaRowItem `json:"i"`
+}
+
 type localLlamaCompactItem struct {
 	Food     string  `json:"f"`
 	Quantity float64 `json:"q"`
@@ -30,6 +35,14 @@ type localLlamaCompactItem struct {
 }
 
 type localLlamaTupleItem struct {
+	Food     string
+	Quantity float64
+	Unit     string
+}
+
+type localLlamaRowItem struct {
+	Day      int
+	MealCode string
 	Food     string
 	Quantity float64
 	Unit     string
@@ -55,6 +68,32 @@ func (item *localLlamaTupleItem) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (item *localLlamaRowItem) UnmarshalJSON(data []byte) error {
+	var values []json.RawMessage
+	if err := json.Unmarshal(data, &values); err != nil {
+		return fmt.Errorf("local llama row item must be [day, meal_code, food, quantity, unit]: %w", err)
+	}
+	if len(values) != 5 {
+		return fmt.Errorf("local llama row item must have exactly 5 values")
+	}
+	if err := json.Unmarshal(values[0], &item.Day); err != nil {
+		return fmt.Errorf("local llama row item day must be an integer: %w", err)
+	}
+	if err := json.Unmarshal(values[1], &item.MealCode); err != nil {
+		return fmt.Errorf("local llama row item meal_code must be a string: %w", err)
+	}
+	if err := json.Unmarshal(values[2], &item.Food); err != nil {
+		return fmt.Errorf("local llama row item food must be a string: %w", err)
+	}
+	if err := json.Unmarshal(values[3], &item.Quantity); err != nil {
+		return fmt.Errorf("local llama row item quantity must be a number: %w", err)
+	}
+	if err := json.Unmarshal(values[4], &item.Unit); err != nil {
+		return fmt.Errorf("local llama row item unit must be a string: %w", err)
+	}
+	return nil
+}
+
 // DecodeLocalLlamaCompactPlan expands the local llama compact extraction
 // contract into canonical MealCheck plan JSON.
 func DecodeLocalLlamaCompactPlan(text string, planID string) (checker.Plan, error) {
@@ -62,10 +101,22 @@ func DecodeLocalLlamaCompactPlan(text string, planID string) (checker.Plan, erro
 	if err != nil {
 		return checker.Plan{}, err
 	}
+	if localLlamaJSONUsesRowKeys(jsonText) {
+		return decodeLocalLlamaRowPlanJSON(jsonText, planID)
+	}
 	if localLlamaJSONUsesTupleKeys(jsonText) {
 		return decodeLocalLlamaTuplePlanJSON(jsonText, planID)
 	}
 	return decodeLocalLlamaLegacyCompactPlanJSON(jsonText, planID)
+}
+
+func localLlamaJSONUsesRowKeys(jsonText string) bool {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(jsonText), &fields); err != nil {
+		return false
+	}
+	_, hasItems := fields["i"]
+	return hasItems
 }
 
 func localLlamaJSONUsesTupleKeys(jsonText string) bool {
@@ -98,6 +149,20 @@ func decodeLocalLlamaLegacyCompactPlanJSON(jsonText string, planID string) (chec
 	return plan, nil
 }
 
+func decodeLocalLlamaRowPlanJSON(jsonText string, planID string) (checker.Plan, error) {
+	decoder := json.NewDecoder(strings.NewReader(jsonText))
+	decoder.DisallowUnknownFields()
+	var rowPlan localLlamaRowPlan
+	if err := decoder.Decode(&rowPlan); err != nil {
+		return checker.Plan{}, err
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return checker.Plan{}, fmt.Errorf("local llama row JSON contains multiple values")
+	}
+	return expandLocalLlamaRows(rowPlan.Items, planID)
+}
+
 func decodeLocalLlamaTuplePlanJSON(jsonText string, planID string) (checker.Plan, error) {
 	decoder := json.NewDecoder(strings.NewReader(jsonText))
 	decoder.DisallowUnknownFields()
@@ -115,6 +180,110 @@ func decodeLocalLlamaTuplePlanJSON(jsonText string, planID string) (checker.Plan
 		Lunch:     compactTupleItems(tuple.Lunch),
 		Dinner:    compactTupleItems(tuple.Dinner),
 	}, planID)
+}
+
+func expandLocalLlamaRows(rows []localLlamaRowItem, planID string) (checker.Plan, error) {
+	if len(rows) == 0 {
+		return checker.Plan{}, fmt.Errorf("local llama row JSON has no items")
+	}
+	if strings.TrimSpace(planID) == "" {
+		planID = defaultLocalLlamaPlanID
+	}
+
+	dayMeals := map[int]map[string][]localLlamaCompactItem{}
+	for _, row := range rows {
+		if row.Day < 1 || row.Day > 7 {
+			return checker.Plan{}, fmt.Errorf("local llama row day %d is outside supported range 1..7", row.Day)
+		}
+		mealCode := strings.TrimSpace(row.MealCode)
+		if _, ok := localLlamaMealName(mealCode); !ok {
+			return checker.Plan{}, fmt.Errorf("local llama row has unsupported meal code %q", row.MealCode)
+		}
+		if dayMeals[row.Day] == nil {
+			dayMeals[row.Day] = map[string][]localLlamaCompactItem{}
+		}
+		dayMeals[row.Day][mealCode] = append(dayMeals[row.Day][mealCode], localLlamaCompactItem{
+			Food:     row.Food,
+			Quantity: row.Quantity,
+			Unit:     row.Unit,
+		})
+	}
+
+	dayNumbers := make([]int, 0, len(dayMeals))
+	for day := range dayMeals {
+		dayNumbers = append(dayNumbers, day)
+	}
+	sort.Ints(dayNumbers)
+
+	days := make([]checker.PlanDay, 0, len(dayNumbers))
+	for _, dayNumber := range dayNumbers {
+		mealCodes := make([]string, 0, len(dayMeals[dayNumber]))
+		for mealCode := range dayMeals[dayNumber] {
+			mealCodes = append(mealCodes, mealCode)
+		}
+		sort.Slice(mealCodes, func(i, j int) bool {
+			return localLlamaMealRank(mealCodes[i]) < localLlamaMealRank(mealCodes[j])
+		})
+
+		meals := make([]checker.Meal, 0, len(mealCodes))
+		for _, mealCode := range mealCodes {
+			mealName, _ := localLlamaMealName(mealCode)
+			items, err := expandLocalLlamaCompactItems(mealName, dayMeals[dayNumber][mealCode])
+			if err != nil {
+				return checker.Plan{}, err
+			}
+			meals = append(meals, checker.Meal{Name: mealName, Items: items})
+		}
+		days = append(days, checker.PlanDay{Day: dayNumber, Meals: meals})
+	}
+
+	return checker.Plan{
+		SchemaVersion: "0.1",
+		PlanID:        planID,
+		Days:          days,
+	}, nil
+}
+
+func localLlamaMealName(code string) (string, bool) {
+	switch code {
+	case "b":
+		return "breakfast", true
+	case "m":
+		return "morning snack", true
+	case "l":
+		return "lunch", true
+	case "a":
+		return "afternoon snack", true
+	case "d":
+		return "dinner", true
+	case "s":
+		return "snack", true
+	case "e":
+		return "evening snack", true
+	default:
+		return "", false
+	}
+}
+
+func localLlamaMealRank(code string) int {
+	switch code {
+	case "b":
+		return 0
+	case "m":
+		return 1
+	case "l":
+		return 2
+	case "a":
+		return 3
+	case "d":
+		return 4
+	case "s":
+		return 5
+	case "e":
+		return 6
+	default:
+		return 99
+	}
 }
 
 func compactTupleItems(tupleItems []localLlamaTupleItem) []localLlamaCompactItem {
@@ -197,6 +366,15 @@ func LocalLlamaCompactResponseSchema() map[string]any {
 		"type": "array",
 		"items": []map[string]any{
 			{
+				"type":    "integer",
+				"minimum": 1,
+				"maximum": 7,
+			},
+			{
+				"type": "string",
+				"enum": []string{"b", "m", "l", "a", "d", "s", "e"},
+			},
+			{
 				"type": "string",
 			},
 			{
@@ -210,7 +388,7 @@ func LocalLlamaCompactResponseSchema() map[string]any {
 		},
 		"additionalItems": false,
 	}
-	mealItems := map[string]any{
+	rows := map[string]any{
 		"type":     "array",
 		"minItems": 1,
 		"items":    item,
@@ -218,11 +396,9 @@ func LocalLlamaCompactResponseSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
-		"required":             []string{"b", "l", "d"},
+		"required":             []string{"i"},
 		"properties": map[string]any{
-			"b": mealItems,
-			"l": mealItems,
-			"d": mealItems,
+			"i": rows,
 		},
 	}
 }
