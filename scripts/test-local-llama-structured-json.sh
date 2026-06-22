@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Run a local llama.cpp structured JSON smoke test for MealCheck.
+# Run a local llama.cpp compact JSON smoke test for MealCheck.
 #
 # This script assumes llama-server is already running locally, usually on the
 # deployed MacBook server at http://127.0.0.1:11435/v1. It does not download
@@ -15,10 +15,10 @@ BASE_URL="${LLAMA_BASE_URL:-http://127.0.0.1:11435/v1}"
 BASE_URL="${BASE_URL%/}"
 MODEL="${LLAMA_MODEL:-local-llama}"
 PROMPT_FILE="${MEALCHECK_LLAMA_PROMPT_FILE:-$ROOT/examples/local-llama/synthetic-meal-plan.txt}"
-SCHEMA_PATH="${MEALCHECK_LLAMA_SCHEMA_PATH:-$ROOT/examples/local-llama/meal-plan-response.schema.json}"
+SCHEMA_PATH="${MEALCHECK_LLAMA_SCHEMA_PATH:-$ROOT/examples/local-llama/compact-meal-plan-response.schema.json}"
 OUTPUT_DIR="${MEALCHECK_LLAMA_OUTPUT_DIR:-/tmp/mealcheck-local-llama-$(date +%Y%m%d-%H%M%S)}"
 REPEATS="${MEALCHECK_LLAMA_REPEATS:-3}"
-MAX_TOKENS="${MEALCHECK_LLAMA_MAX_TOKENS:-400}"
+MAX_TOKENS="${MEALCHECK_LLAMA_MAX_TOKENS:-220}"
 CURL_MAX_TIME_SECONDS="${MEALCHECK_LLAMA_CURL_MAX_TIME_SECONDS:-300}"
 RUN_CHECKER="${MEALCHECK_LLAMA_RUN_CHECKER:-1}"
 
@@ -79,7 +79,7 @@ build_request() {
       response_format: {
         type: "json_schema",
         json_schema: {
-          name: "mealcheck_meal_plan",
+          name: "mealcheck_compact_meal_plan",
           strict: true,
           schema: $schema[0]
         }
@@ -87,11 +87,11 @@ build_request() {
       messages: [
         {
           role: "system",
-          content: "You normalize meal-plan text into compact MealCheck verifier JSON only. Return exactly one minified JSON object. Do not use Markdown. Do not include line breaks, indentation, or spaces outside string values. Use only these fields: schema_version, plan_id, days, day, meals, name, items, food, quantity, unit. Do not include description, shopping_list, prep_notes, quantity_text, preparation, brand, resolution_status, or unresolved_reason. Allowed units are g, oz, cup, tbsp, tsp, and serving."
+          content: "You extract meal-plan ingredients into compact MealCheck local JSON only. Return exactly one minified JSON object. Do not use Markdown. Do not include line breaks, indentation, or spaces outside string values. The only top-level keys are breakfast, lunch, and dinner. Each meal is an array of item objects. Each item uses only f for food, q for numeric quantity, and u for unit. Allowed units are g, oz, cup, tbsp, tsp, and serving."
         },
         {
           role: "user",
-          content: ("Normalize this meal plan into the smallest valid minified MealCheck JSON object. The result must use schema_version 0.1, include exactly one day, include exactly three meals named breakfast, lunch, and dinner, and include only resolved food items with numeric quantity plus unit. Do not include prep notes or optional fields.\n\n" + $meal_plan_text)
+          content: ("Extract this one-day meal plan into the smallest valid compact JSON object. Include exactly breakfast, lunch, and dinner. Include only resolved food items with numeric quantity plus unit. Do not include schema_version, plan_id, days, day, meals, name, items, food, quantity, unit, prep notes, or optional fields.\n\n" + $meal_plan_text)
         }
       ]
     }'
@@ -189,6 +189,7 @@ run_trial() {
   local request_path="$run_dir/request.json"
   local response_path="$run_dir/response.json"
   local content_path="$run_dir/content.txt"
+  local compact_path="$run_dir/compact-plan.json"
   local plan_path="$run_dir/normalized-plan.json"
   local response start end duration content_bytes completion_tokens predicted_tokens predicted_per_second
 
@@ -221,9 +222,16 @@ run_trial() {
   predicted_tokens="$(jq -r '.timings.predicted_n // empty' "$response_path")"
   predicted_per_second="$(jq -r '.timings.predicted_per_second // empty' "$response_path")"
 
-  if ! jq . "$content_path" >"$plan_path" 2>"$run_dir/json-parse-error.txt"; then
+  if ! jq . "$content_path" >"$compact_path" 2>"$run_dir/json-parse-error.txt"; then
     echo "FAIL: model content was not JSON; see $content_path"
     record_summary "fail" "$index" "$duration" "message content was not JSON"
+    failures=$((failures + 1))
+    return 0
+  fi
+
+  if ! (cd "$ROOT" && go run ./cmd/mealcheck local-llama normalize --input "$compact_path" --out "$plan_path" --plan-id "local-llama-smoke") >"$run_dir/adapter-output.txt" 2>&1; then
+    echo "FAIL: compact JSON could not be adapted to MealCheck JSON; see $run_dir/adapter-output.txt"
+    record_summary "fail" "$index" "$duration" "compact adapter failed"
     failures=$((failures + 1))
     return 0
   fi
@@ -258,9 +266,7 @@ run_trial() {
 
 require_command curl
 require_command jq
-if [[ "$RUN_CHECKER" == "1" ]]; then
-  require_command go
-fi
+require_command go
 
 if [[ ! -f "$PROMPT_FILE" ]]; then
   echo "error: prompt file not found: $PROMPT_FILE" >&2
@@ -305,8 +311,8 @@ jq -s '
 ' "$OUTPUT_DIR/summary.jsonl"
 
 if [[ "$failures" -gt 0 ]]; then
-  echo "FAIL: $failures local llama structured JSON trial(s) failed"
+  echo "FAIL: $failures local llama compact JSON trial(s) failed"
   exit "$failures"
 fi
 
-echo "PASS: local llama structured JSON trials passed"
+echo "PASS: local llama compact JSON trials passed"

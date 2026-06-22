@@ -2167,3 +2167,66 @@ Acceptance:
   integration begins
 - models that fail schema, shape, latency, or memory criteria are not exposed in
   the hosted UI
+
+## Milestone 24: Compact Local llama Contract Adapter
+
+Status: Implemented on 2026-06-22 for the backend adapter, CLI helper, local
+llama smoke harness, tests, and documentation.
+
+Purpose:
+
+The direct canonical MealCheck JSON contract still requires small local models
+to spend tokens on structural field names such as `schema_version`, `days`,
+`meals`, `items`, `food`, `quantity`, and `unit`. Server measurements showed
+that lower quantization improved tokens per second but did not materially reduce
+wall-clock latency once output length and constrained decoding overhead
+dominated. The local model path should instead ask the model only for extracted
+meal content, then let trusted MealCheck code expand that compact output into
+canonical verifier JSON.
+
+Deliver:
+
+- a local llama compact output contract with meal keys and short item fields
+  only
+- a strict backend adapter that expands compact output into `checker.Plan`
+- a CLI helper that can run the adapter outside the hosted server
+- a compact llama.cpp response schema used by the local smoke harness
+- local smoke artifacts that preserve compact model output and normalized plan
+  output separately
+- tests covering adapter success, adapter rejection, schema shape, and CLI
+  expansion
+- documentation and decision-log entries for the compact-contract boundary
+
+Implemented:
+
+1. Added `internal/hosted/local_llama_contract.go` with
+   `DecodeLocalLlamaCompactPlan` and `LocalLlamaCompactResponseSchema`.
+2. Added strict compact decoding with unknown-field rejection, required
+   `breakfast`, `lunch`, and `dinner` meal keys, positive numeric quantities,
+   and the existing supported-unit set.
+3. Added canonical expansion to `checker.Plan` with
+   `schema_version: "0.1"`, a server-owned plan id, day `1`, and canonical meal
+   and food item fields.
+4. Added `mealcheck local-llama normalize` to adapt compact JSON into
+   `normalized-plan.json`.
+5. Added `mealcheck local-llama schema` to emit the compact response schema
+   used for llama.cpp constrained decoding.
+6. Added `examples/local-llama/compact-meal-plan-response.schema.json` and
+   updated the local llama smoke harness to request compact JSON, save
+   `compact-plan.json`, adapt it through the Go CLI, and run the existing
+   checker against canonical `normalized-plan.json`.
+7. Updated `examples/local-llama/README.md` and `docs/cli.md`.
+8. Added unit tests for the adapter and CLI helper.
+
+Acceptance:
+
+- compact model output never asks the model to emit canonical wrapper fields
+  such as `schema_version`, `plan_id`, `days`, `meals`, `items`, `food`,
+  `quantity`, or `unit`
+- adapter output is canonical MealCheck JSON accepted by the deterministic
+  checker
+- malformed compact output fails closed before checker execution
+- `mealcheck local-llama schema` matches the checked-in compact schema
+- the local smoke harness continues to write raw response, compact output,
+  normalized plan, checker output, token/byte metrics, and summary timing data
+- backend and CLI tests pass before live server measurements

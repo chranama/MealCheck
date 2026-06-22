@@ -1,0 +1,73 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["breakfast", "lunch", "dinner"],
+  "properties": {
+    "breakfast": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["f", "q", "u"],
+        "properties": {
+          "f": {
+            "type": "string"
+          },
+          "q": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "u": {
+            "type": "string",
+            "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
+          }
+        }
+      }
+    },
+    "lunch": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["f", "q", "u"],
+        "properties": {
+          "f": {
+            "type": "string"
+          },
+          "q": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "u": {
+            "type": "string",
+            "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
+          }
+        }
+      }
+    },
+    "dinner": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["f", "q", "u"],
+        "properties": {
+          "f": {
+            "type": "string"
+          },
+          "q": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "u": {
+            "type": "string",
+            "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
+          }
+        }
+      }
+    }
+  }
+}

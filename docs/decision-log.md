@@ -1417,3 +1417,50 @@ Consequences:
   rebuild or restart.
 - Installing or removing the poller requires a password-protected `sudo` step
   on the server because it manages `/Library/LaunchDaemons`.
+
+## 2026-06-22: Local llama Uses Compact Extraction Plus Trusted Expansion
+
+Status: Accepted
+
+Decision:
+
+Use a local-only compact extraction contract for llama.cpp model trials instead
+of asking small local models to emit full canonical MealCheck plan JSON.
+
+The compact model output contains only meal keys and short item fields:
+
+```json
+{
+  "breakfast": [{"f": "cooked oatmeal", "q": 1, "u": "cup"}],
+  "lunch": [{"f": "grilled chicken breast", "q": 4, "u": "oz"}],
+  "dinner": [{"f": "baked salmon", "q": 4, "u": "oz"}]
+}
+```
+
+MealCheck-owned backend code expands this compact output into canonical
+`schema_version: "0.1"` verifier JSON before validation. The public BYOK
+provider contracts remain canonical MealCheck JSON.
+
+Reason:
+
+MacBook server measurements showed that lower quantization increased tokens per
+second but did not materially reduce wall-clock latency when the model still
+had to generate canonical wrapper fields. The useful trust boundary is for the
+model to extract foods, quantities, and units, while deterministic MealCheck
+code owns schema wrappers, day/meal structure, and validation. This reduces the
+model token burden without weakening the verifier contract.
+
+Consequences:
+
+- Local llama smoke tests now measure compact extraction plus trusted adapter
+  expansion, not direct canonical JSON generation.
+- The compact adapter rejects unknown fields, missing meal keys, empty meal
+  arrays, nonpositive quantities, and unsupported units before checker
+  execution.
+- `mealcheck local-llama normalize` is the canonical local CLI path for turning
+  compact model output into `normalized-plan.json`.
+- `mealcheck local-llama schema` emits the schema used by llama.cpp constrained
+  decoding.
+- Hosted OpenAI, Anthropic, Gemini, and BYOK custom-provider flows continue to
+  use canonical MealCheck JSON until a local model is explicitly exposed as a
+  server-owned no-key provider.

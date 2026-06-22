@@ -44,6 +44,8 @@ The deployed MacBook layout uses:
 | `mealcheck validate` | Evaluate a case file and write the full artifact bundle. |
 | `mealcheck compare` | Exercise the baseline/candidate command surface and write a compare-mode bundle. |
 | `mealcheck decision` | Read an existing `decision.json` and apply MealCheck exit-code policy. |
+| `mealcheck local-llama normalize` | Expand compact local llama JSON into canonical MealCheck plan JSON. |
+| `mealcheck local-llama schema` | Print the compact local llama response schema. |
 | `mealcheck invite create` | Create a hosted API access code in Postgres. |
 | `mealcheck invite list` | List hosted API access-code metadata from Postgres. |
 | `mealcheck invite revoke` | Revoke a hosted API access code by id. |
@@ -55,6 +57,8 @@ usage:
   mealcheck validate --case <case.json> [--out artifacts/latest] [--strict]
   mealcheck compare --case <case.json> [--out artifacts/latest] [--strict]
   mealcheck decision [--strict] <decision.json>
+  mealcheck local-llama normalize --input compact.json [--out normalized-plan.json]
+  mealcheck local-llama schema
   mealcheck invite create --label <label> [--expires YYYY-MM-DD] [--max-runs N]
   mealcheck invite list
   mealcheck invite revoke <access-code-id>
@@ -170,6 +174,41 @@ Options:
 
 `decision` requires exactly one positional path to a `decision.json` file.
 Unknown fields in that file are rejected.
+
+## Local llama Adapter
+
+`local-llama` supports the local model feasibility harness. It does not start
+`llama-server` and does not call a remote provider.
+
+`local-llama schema` prints the compact JSON Schema used for llama.cpp
+schema-constrained decoding:
+
+```bash
+go run ./cmd/mealcheck local-llama schema
+```
+
+`local-llama normalize` expands compact model output into canonical MealCheck
+plan JSON:
+
+```bash
+go run ./cmd/mealcheck local-llama normalize \
+  --input /tmp/mealcheck-local-llama/run-1/compact-plan.json \
+  --out /tmp/mealcheck-local-llama/run-1/normalized-plan.json \
+  --plan-id local-llama-smoke
+```
+
+Compact input shape:
+
+```json
+{
+  "breakfast": [{"f": "cooked oatmeal", "q": 1, "u": "cup"}],
+  "lunch": [{"f": "grilled chicken breast", "q": 4, "u": "oz"}],
+  "dinner": [{"f": "baked salmon", "q": 4, "u": "oz"}]
+}
+```
+
+The adapter rejects unknown fields, missing meal keys, empty meal arrays,
+nonpositive quantities, and unsupported units.
 
 ## Artifact Bundle
 

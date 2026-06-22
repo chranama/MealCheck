@@ -34,6 +34,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runDecisionCommand(args[1:], stdout, stderr)
 	case "invite":
 		return runInviteCommand(args[1:], stdout, stderr)
+	case "local-llama":
+		return runLocalLlamaCommand(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		printUsage(stdout)
 		return 0
@@ -42,6 +44,81 @@ func run(args []string, stdout, stderr io.Writer) int {
 		printUsage(stderr)
 		return 2
 	}
+}
+
+func runLocalLlamaCommand(args []string, stdout, stderr io.Writer) int {
+	if len(args) == 0 {
+		printLocalLlamaUsage(stderr)
+		return 2
+	}
+	switch args[0] {
+	case "normalize":
+		return runLocalLlamaNormalizeCommand(args[1:], stdout, stderr)
+	case "schema":
+		return runLocalLlamaSchemaCommand(args[1:], stdout, stderr)
+	default:
+		fmt.Fprintf(stderr, "unknown local-llama command %q\n\n", args[0])
+		printLocalLlamaUsage(stderr)
+		return 2
+	}
+}
+
+func runLocalLlamaNormalizeCommand(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("local-llama normalize", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	inputPath := flags.String("input", "", "compact local llama JSON path")
+	outPath := flags.String("out", "", "canonical MealCheck plan JSON output path; stdout when empty")
+	planID := flags.String("plan-id", "local-llama-normalized", "canonical MealCheck plan_id")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+	if flags.NArg() != 0 {
+		fmt.Fprintln(stderr, "local-llama normalize does not accept positional arguments")
+		return 2
+	}
+	if *inputPath == "" {
+		fmt.Fprintln(stderr, "local-llama normalize requires --input")
+		return 2
+	}
+	input, err := os.ReadFile(*inputPath)
+	if err != nil {
+		fmt.Fprintf(stderr, "local-llama normalize failed: %v\n", err)
+		return 2
+	}
+	plan, err := hosted.DecodeLocalLlamaCompactPlan(string(input), *planID)
+	if err != nil {
+		fmt.Fprintf(stderr, "local-llama normalize failed: %v\n", err)
+		return 2
+	}
+	if *outPath == "" {
+		if err := writeJSON(stdout, plan); err != nil {
+			fmt.Fprintf(stderr, "local-llama normalize failed: %v\n", err)
+			return 2
+		}
+		return 0
+	}
+	if err := writeJSONPath(*outPath, plan); err != nil {
+		fmt.Fprintf(stderr, "local-llama normalize failed: %v\n", err)
+		return 2
+	}
+	return 0
+}
+
+func runLocalLlamaSchemaCommand(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("local-llama schema", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+	if flags.NArg() != 0 {
+		fmt.Fprintln(stderr, "local-llama schema does not accept positional arguments")
+		return 2
+	}
+	if err := writeJSON(stdout, hosted.LocalLlamaCompactResponseSchema()); err != nil {
+		fmt.Fprintf(stderr, "local-llama schema failed: %v\n", err)
+		return 2
+	}
+	return 0
 }
 
 func runInviteCommand(args []string, stdout, stderr io.Writer) int {
@@ -322,9 +399,17 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  mealcheck validate --case <case.json> [--out artifacts/latest] [--strict]")
 	fmt.Fprintln(w, "  mealcheck compare --case <case.json> [--out artifacts/latest] [--strict]")
 	fmt.Fprintln(w, "  mealcheck decision [--strict] <decision.json>")
+	fmt.Fprintln(w, "  mealcheck local-llama normalize --input compact.json [--out normalized-plan.json]")
+	fmt.Fprintln(w, "  mealcheck local-llama schema")
 	fmt.Fprintln(w, "  mealcheck invite create --label <label> [--expires YYYY-MM-DD] [--max-runs N]")
 	fmt.Fprintln(w, "  mealcheck invite list")
 	fmt.Fprintln(w, "  mealcheck invite revoke <access-code-id>")
+}
+
+func printLocalLlamaUsage(w io.Writer) {
+	fmt.Fprintln(w, "usage:")
+	fmt.Fprintln(w, "  mealcheck local-llama normalize --input compact.json [--out normalized-plan.json] [--plan-id ID]")
+	fmt.Fprintln(w, "  mealcheck local-llama schema")
 }
 
 func printInviteUsage(w io.Writer) {
@@ -332,4 +417,23 @@ func printInviteUsage(w io.Writer) {
 	fmt.Fprintln(w, "  mealcheck invite create --label <label> [--database-url URL] [--expires YYYY-MM-DD] [--expires-in 720h] [--max-runs N]")
 	fmt.Fprintln(w, "  mealcheck invite list [--database-url URL]")
 	fmt.Fprintln(w, "  mealcheck invite revoke [--database-url URL] <access-code-id>")
+}
+
+func writeJSON(w io.Writer, value any) error {
+	encoder := json.NewEncoder(w)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(value)
+}
+
+func writeJSONPath(path string, value any) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return writeJSON(f, value)
 }

@@ -3,19 +3,22 @@
 These files support the local llama.cpp model trial matrix.
 
 - `synthetic-meal-plan.txt` is a small synthetic meal-plan datapoint. It is
-  designed to test whether a local model can normalize concrete meal-plan text
-  into MealCheck JSON.
-- `meal-plan-response.schema.json` is an inline compact verifier schema for
-  llama.cpp schema-constrained JSON decoding. It intentionally avoids `$ref`,
-  fixes the smoke case to one day and three meals, and omits optional
-  `description`, `shopping_list`, `prep_notes`, and redundant resolved-item
-  fields to keep local generation latency bounded.
-- `scripts/test-local-llama-structured-json.sh` asks the model for minified JSON
-  and prints content-byte and token-count metrics so latency changes are visible
-  between model and quantization trials.
+  designed to test whether a local model can extract concrete meal-plan
+  ingredients.
+- `compact-meal-plan-response.schema.json` is the active local llama.cpp
+  response schema. It asks the model for only meal keys and compact item fields
+  (`f`, `q`, `u`), then the MealCheck adapter expands that output into canonical
+  verifier JSON.
+- `meal-plan-response.schema.json` is retained as the earlier direct-canonical
+  schema for comparison when measuring contract size.
+- `scripts/test-local-llama-structured-json.sh` asks the model for minified
+  compact JSON, expands it through `mealcheck local-llama normalize`, and prints
+  content-byte and token-count metrics so latency changes are visible between
+  model and quantization trials.
 
 This fixture is a smoke datapoint, not a full evaluation set. A model must pass
-this before it is worth testing larger synthetic or manually reviewed examples.
+the compact-output adapter flow before it is worth testing larger synthetic or
+manually reviewed examples.
 
 Manual server shape:
 

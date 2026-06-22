@@ -107,6 +107,55 @@ func TestDecisionCommandReturnsDecisionExit(t *testing.T) {
 	}
 }
 
+func TestLocalLlamaNormalizeCommandWritesCanonicalPlan(t *testing.T) {
+	dir := t.TempDir()
+	input := filepath.Join(dir, "compact.json")
+	out := filepath.Join(dir, "normalized-plan.json")
+	if err := os.WriteFile(input, []byte(`{"breakfast":[{"f":"cooked oatmeal","q":1,"u":"cup"}],"lunch":[{"f":"grilled chicken breast","q":4,"u":"oz"}],"dinner":[{"f":"baked salmon","q":4,"u":"oz"}]}`), 0o644); err != nil {
+		t.Fatalf("write compact input: %v", err)
+	}
+
+	code := run([]string{
+		"local-llama",
+		"normalize",
+		"--input", input,
+		"--out", out,
+		"--plan-id", "cli-compact-test",
+	}, &bytes.Buffer{}, &bytes.Buffer{})
+	if code != 0 {
+		t.Fatalf("local-llama normalize exit code = %d, want 0", code)
+	}
+
+	var plan struct {
+		SchemaVersion string `json:"schema_version"`
+		PlanID        string `json:"plan_id"`
+		Days          []struct {
+			Day   int `json:"day"`
+			Meals []struct {
+				Name  string `json:"name"`
+				Items []struct {
+					Food string   `json:"food"`
+					Qty  *float64 `json:"quantity"`
+					Unit string   `json:"unit"`
+				} `json:"items"`
+			} `json:"meals"`
+		} `json:"days"`
+	}
+	readJSON(t, out, &plan)
+	if plan.SchemaVersion != "0.1" {
+		t.Fatalf("schema_version = %q, want 0.1", plan.SchemaVersion)
+	}
+	if plan.PlanID != "cli-compact-test" {
+		t.Fatalf("plan_id = %q, want cli-compact-test", plan.PlanID)
+	}
+	if len(plan.Days) != 1 || len(plan.Days[0].Meals) != 3 {
+		t.Fatalf("plan days/meals = %d/%d, want 1/3", len(plan.Days), len(plan.Days[0].Meals))
+	}
+	if plan.Days[0].Meals[0].Items[0].Qty == nil {
+		t.Fatal("first item quantity = nil")
+	}
+}
+
 func TestInvalidCLIUsageReturnsConfigExit(t *testing.T) {
 	code := run([]string{"validate"}, &bytes.Buffer{}, &bytes.Buffer{})
 	if code != 2 {
