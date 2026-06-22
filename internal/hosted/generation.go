@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -153,6 +154,15 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		if err != nil {
 			initialErr = err
 			events = append(events, normalizationEvent("json_decode_failed", "local model output was not valid compact meal-plan JSON"))
+			return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+				InitialOutput: initialOutput,
+				InitialError:  initialErr,
+				FinalError:    initialErr,
+			})
+		}
+		if err := validateLocalModelExtractionCompleteness(plan, input.CandidateText); err != nil {
+			initialErr = err
+			events = append(events, normalizationEvent("item_count_failed", "local model output did not preserve the resolved source item count"))
 			return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
 				InitialOutput: initialOutput,
 				InitialError:  initialErr,
@@ -372,6 +382,7 @@ func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, err
 		fmt.Sprintf("Use day numbers 1..%d.", constraints.Days),
 		fmt.Sprintf("Each day must contain exactly %d distinct meal code(s).", constraints.MealsPerDay),
 		localLlamaMealCodeInstruction(constraints.MealsPerDay),
+		localLlamaItemCountInstruction(text),
 		"Convert every bullet item into exactly one [day, meal_code, food, quantity, unit] tuple.",
 		"Do not omit, merge, summarize, or invent items.",
 		"Include only resolved food items with numeric quantity plus unit.",
@@ -388,6 +399,48 @@ func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, err
 func localLlamaMealCodeInstruction(mealsPerDay int) string {
 	codes := localLlamaMealCodesForCount(mealsPerDay)
 	return fmt.Sprintf("Use exactly these meal codes for every day: %s. Do not use any other meal codes.", strings.Join(codes, ", "))
+}
+
+func localLlamaItemCountInstruction(text string) string {
+	expected := localLlamaExpectedResolvedItemCount(text)
+	if expected == 0 {
+		return "Preserve every resolved food item that has a numeric quantity plus supported unit."
+	}
+	return fmt.Sprintf("The source contains exactly %d resolved food item line(s); return exactly %d row(s).", expected, expected)
+}
+
+var localLlamaResolvedItemLinePattern = regexp.MustCompile(`(?i)^\s*(?:[-*]|\d+[.)])\s+(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s*(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|servings?)\b`)
+
+func localLlamaExpectedResolvedItemCount(text string) int {
+	count := 0
+	for _, line := range strings.Split(text, "\n") {
+		if localLlamaResolvedItemLinePattern.MatchString(line) {
+			count++
+		}
+	}
+	return count
+}
+
+func validateLocalModelExtractionCompleteness(plan checker.Plan, sourceText string) error {
+	expected := localLlamaExpectedResolvedItemCount(sourceText)
+	if expected == 0 {
+		return nil
+	}
+	got := countMealPlanItems(plan)
+	if got != expected {
+		return fmt.Errorf("local model extracted %d resolved food item(s); expected %d from source resolved food item lines", got, expected)
+	}
+	return nil
+}
+
+func countMealPlanItems(plan checker.Plan) int {
+	count := 0
+	for _, day := range plan.Days {
+		for _, meal := range day.Meals {
+			count += len(meal.Items)
+		}
+	}
+	return count
 }
 
 func localLlamaMealCodesForCount(mealsPerDay int) []string {

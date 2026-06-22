@@ -21,6 +21,7 @@ REPEATS="${MEALCHECK_LLAMA_REPEATS:-3}"
 MAX_TOKENS="${MEALCHECK_LLAMA_MAX_TOKENS:-200}"
 CURL_MAX_TIME_SECONDS="${MEALCHECK_LLAMA_CURL_MAX_TIME_SECONDS:-300}"
 RUN_CHECKER="${MEALCHECK_LLAMA_RUN_CHECKER:-1}"
+EXPECTED_ITEM_COUNT="${MEALCHECK_LLAMA_EXPECTED_ITEM_COUNT:-}"
 
 failures=0
 
@@ -66,6 +67,7 @@ build_request() {
   jq -n \
     --arg model "$MODEL" \
     --argjson max_tokens "$MAX_TOKENS" \
+    --argjson expected_item_count "$EXPECTED_ITEM_COUNT" \
     --rawfile meal_plan_text "$PROMPT_FILE" \
     --slurpfile schema "$SCHEMA_PATH" \
     '{
@@ -91,7 +93,7 @@ build_request() {
         },
         {
           role: "user",
-          content: ("Extract this meal plan into compact row JSON. Use day numbers 1..1. Each day must contain exactly 3 distinct meal code(s). Use exactly these meal codes for every day: b, l, d. Do not use m, a, s, or e. Convert every bullet item into exactly one [day, meal_code, food, quantity, unit] tuple. Do not omit, merge, summarize, or invent items. Include only resolved food items with numeric quantity plus unit. Do not include other keys or text.\n\n" + $meal_plan_text)
+          content: ("Extract this meal plan into compact row JSON. Use day numbers 1..1. Each day must contain exactly 3 distinct meal code(s). Use exactly these meal codes for every day: b, l, d. Do not use m, a, s, or e. The source contains exactly \($expected_item_count) resolved food item line(s); return exactly \($expected_item_count) row(s). Convert every bullet item into exactly one [day, meal_code, food, quantity, unit] tuple. Do not omit, merge, summarize, or invent items. Include only resolved food items with numeric quantity plus unit. Do not include other keys or text.\n\n" + $meal_plan_text)
         }
       ]
     }'
@@ -99,18 +101,18 @@ build_request() {
 
 validate_plan_shape() {
   local plan_path="$1"
-  jq -e '
+  jq -e --argjson expected_item_count "$EXPECTED_ITEM_COUNT" '
     .schema_version == "0.1" and
     (.plan_id | type == "string" and length > 0) and
     (.days | type == "array" and length == 1) and
     (.days[0].day == 1) and
     (.days[0].meals | type == "array" and length == 3) and
     ([.days[0].meals[].name | ascii_downcase] | sort == ["breakfast", "dinner", "lunch"]) and
-    ([.days[0].meals[].items[]] | length >= 6) and
+    ([.days[0].meals[].items[]] | length == $expected_item_count) and
     ((has("description") | not) or .description == "") and
     ((has("shopping_list") | not) or .shopping_list == null or (.shopping_list | type == "array" and length == 0)) and
     ((has("prep_notes") | not) or .prep_notes == null or (.prep_notes | type == "array" and length == 0)) and
-    ([.. | objects | select(has("food")) | .food] | length >= 6) and
+    ([.. | objects | select(has("food")) | .food] | length == $expected_item_count) and
     ([.days[0].meals[].items[] | select((has("quantity") | not) or (has("unit") | not))] | length == 0) and
     ([.days[0].meals[].items[] | .quantity] |
       all(type == "number")) and
@@ -276,6 +278,13 @@ if [[ ! -f "$SCHEMA_PATH" ]]; then
   echo "error: schema file not found: $SCHEMA_PATH" >&2
   exit 1
 fi
+if [[ -z "$EXPECTED_ITEM_COUNT" ]]; then
+  EXPECTED_ITEM_COUNT="$(grep -Ec '^[[:space:]]*[-*][[:space:]]+' "$PROMPT_FILE" || true)"
+fi
+if [[ "$EXPECTED_ITEM_COUNT" -le 0 ]]; then
+  echo "error: expected item count must be positive; set MEALCHECK_LLAMA_EXPECTED_ITEM_COUNT" >&2
+  exit 1
+fi
 
 mkdir -p "$OUTPUT_DIR"
 : >"$OUTPUT_DIR/summary.jsonl"
@@ -295,6 +304,7 @@ printf "schema_path=%s\n" "$SCHEMA_PATH"
 printf "output_dir=%s\n" "$OUTPUT_DIR"
 printf "repeats=%s\n" "$REPEATS"
 printf "run_checker=%s\n" "$RUN_CHECKER"
+printf "expected_item_count=%s\n" "$EXPECTED_ITEM_COUNT"
 
 for index in $(seq 1 "$REPEATS"); do
   run_trial "$index"
