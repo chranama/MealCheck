@@ -364,12 +364,14 @@ func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, err
 		"Return one minified JSON object.",
 		"Shape: {\"i\":[[day,meal_code,food,quantity,unit]]}.",
 		"Meal codes: b=breakfast, m=morning snack, l=lunch, a=afternoon snack, d=dinner, s=snack, e=evening snack.",
+		"When the user states the exact allowed meal codes, use only those meal codes.",
 		"Allowed units: g, oz, cup, tbsp, tsp, serving.",
 	}, " ")
 	user := strings.Join([]string{
 		"Extract this meal plan into compact row JSON.",
 		fmt.Sprintf("Use day numbers 1..%d.", constraints.Days),
 		fmt.Sprintf("Each day must contain exactly %d distinct meal code(s).", constraints.MealsPerDay),
+		localLlamaMealCodeInstruction(constraints.MealsPerDay),
 		"Convert every bullet item into exactly one [day, meal_code, food, quantity, unit] tuple.",
 		"Do not omit, merge, summarize, or invent items.",
 		"Include only resolved food items with numeric quantity plus unit.",
@@ -381,6 +383,30 @@ func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, err
 		{Role: "system", Content: system},
 		{Role: "user", Content: user},
 	}, nil
+}
+
+func localLlamaMealCodeInstruction(mealsPerDay int) string {
+	codes := localLlamaMealCodesForCount(mealsPerDay)
+	return fmt.Sprintf("Use exactly these meal codes for every day: %s. Do not use any other meal codes.", strings.Join(codes, ", "))
+}
+
+func localLlamaMealCodesForCount(mealsPerDay int) []string {
+	switch mealsPerDay {
+	case 1:
+		return []string{"d"}
+	case 2:
+		return []string{"b", "d"}
+	case 3:
+		return []string{"b", "l", "d"}
+	case 4:
+		return []string{"b", "l", "a", "d"}
+	case 5:
+		return []string{"b", "m", "l", "a", "d"}
+	case 6:
+		return []string{"b", "m", "l", "a", "d", "e"}
+	default:
+		return []string{"b", "l", "d"}
+	}
 }
 
 func repairMessages(input PendingRunInput, original string, decodeErr error) []ProviderMessage {

@@ -87,11 +87,11 @@ build_request() {
       messages: [
         {
           role: "system",
-          content: "Extract meal-plan ingredients into compact MealCheck local JSON only. Return one minified JSON object. Shape: {\"i\":[[day,meal_code,food,quantity,unit]]}. Meal codes: b=breakfast, m=morning snack, l=lunch, a=afternoon snack, d=dinner, s=snack, e=evening snack. Allowed units: g, oz, cup, tbsp, tsp, serving."
+          content: "Extract meal-plan ingredients into compact MealCheck local JSON only. Return one minified JSON object. Shape: {\"i\":[[day,meal_code,food,quantity,unit]]}. Meal codes: b=breakfast, m=morning snack, l=lunch, a=afternoon snack, d=dinner, s=snack, e=evening snack. When the user states the exact allowed meal codes, use only those meal codes. Allowed units: g, oz, cup, tbsp, tsp, serving."
         },
         {
           role: "user",
-          content: ("Extract this meal plan into compact row JSON. Use day numbers 1..1. Each day must contain exactly 3 distinct meal code(s). Convert every bullet item into exactly one [day, meal_code, food, quantity, unit] tuple. Do not omit, merge, summarize, or invent items. Include only resolved food items with numeric quantity plus unit. Do not include other keys or text.\n\n" + $meal_plan_text)
+          content: ("Extract this meal plan into compact row JSON. Use day numbers 1..1. Each day must contain exactly 3 distinct meal code(s). Use exactly these meal codes for every day: b, l, d. Do not use m, a, s, or e. Convert every bullet item into exactly one [day, meal_code, food, quantity, unit] tuple. Do not omit, merge, summarize, or invent items. Include only resolved food items with numeric quantity plus unit. Do not include other keys or text.\n\n" + $meal_plan_text)
         }
       ]
     }'
