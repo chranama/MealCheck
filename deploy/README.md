@@ -16,12 +16,16 @@ values only; public production hostnames are intentionally committed.
 | Backend binary | `/Users/chranama-server/MealCheck/bin/mealcheck-server` |
 | CLI binary | `/Users/chranama-server/MealCheck/bin/mealcheck` |
 | Environment file | `/Users/chranama-server/MealCheck-data/mealcheck-server.env` |
+| Local llama environment file | `/Users/chranama-server/MealCheck-data/mealcheck-llama.env` |
+| Local llama listen address | `127.0.0.1:11435` |
+| Local llama model | `/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf` |
 | Postgres database | `mealcheck` |
 | Postgres role | `mealcheck` |
 | Backend listen address | `127.0.0.1:8080` |
 | Frontend production URL | `https://mealcheck.dev` |
 | API production URL | `https://api.mealcheck.dev` |
 | Backend launchd label | `dev.mealcheck.server` |
+| Local llama launchd label | `dev.mealcheck.llama` |
 | Postgres launchd label | `dev.mealcheck.postgres` |
 | Tunnel launchd label | `dev.mealcheck.tunnel` |
 | Autodeploy launchd label | `dev.mealcheck.autodeploy` |
@@ -31,9 +35,17 @@ values only; public production hostnames are intentionally committed.
 ## Files
 
 - `macos/mealcheck-server.env.example`: production environment template.
+- `macos/mealcheck-llama.env.example`: local llama.cpp model service
+  environment template.
 - `macos/dev.mealcheck.server.plist.template`: `launchd` template for
   the backend API, worker, and cleanup process as a system `LaunchDaemon`
   running as `chranama-server`.
+- `macos/dev.mealcheck.llama.plist.template`: system `LaunchDaemon`
+  template for the local `llama-server`, bound to `127.0.0.1:11435`.
+- `macos/mealcheck-llama-server.sh`: wrapper that loads the llama service
+  environment and starts `llama-server` with measured CPU-only defaults.
+- `macos/install-mealcheck-llama-service.sh`: helper for installing,
+  restarting, stopping, and inspecting the llama LaunchDaemon.
 - `macos/dev.mealcheck.postgres.plist.template`: system `LaunchDaemon`
   template for Postgres `17`, started at boot but running as
   `chranama-server`.

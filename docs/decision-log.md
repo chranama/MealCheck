@@ -1502,3 +1502,44 @@ Consequences:
 - `mealcheck local-llama normalize` still accepts the earlier object-item
   compact shape for old artifacts.
 - The public BYOK provider contracts remain canonical MealCheck JSON.
+
+## 2026-06-22: Local llama Runs As A Private launchd Service
+
+Status: Accepted
+
+Decision:
+
+Run the hosted local model as a private system `LaunchDaemon` named
+`dev.mealcheck.llama`, bound to `127.0.0.1:11435`. The service uses
+`deploy/macos/mealcheck-llama-server.sh` to load a machine-local env file from
+`/Users/chranama-server/MealCheck-data/mealcheck-llama.env` before starting
+`llama-server`.
+
+Initial production-candidate runtime:
+
+```bash
+Qwen3-0.6B-Q4_K_M.gguf
+--threads 4
+--ctx-size 2048
+--gpu-layers 0
+--parallel 1
+--cache-ram 512
+```
+
+Reason:
+
+The MacBook deployment already uses direct macOS services rather than Docker or
+orchestration. Local model serving should follow the same operational shape:
+private localhost binding, launchd supervision, logs under
+`MealCheck-data/logs`, and machine-local env files for tunable values. The
+`2048` context default is less aggressive than the fastest short-input smoke
+setting and better matches expected heterogeneous web inputs.
+
+Consequences:
+
+- `llama-server` is not public; the backend is the only intended caller.
+- Model path and runtime flags are editable without changing the launchd plist.
+- CPU-only serving remains the accepted default because Intel Metal/iGPU
+  offload was slower and produced corrupted JSON in local trials.
+- The launchd service must pass local `/v1/models` and structured-output smoke
+  tests before the backend exposes local model verification publicly.

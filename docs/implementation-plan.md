@@ -2277,3 +2277,56 @@ Acceptance:
 - local smoke artifacts continue to preserve raw model content, compact JSON,
   normalized plan, checker output, token/byte metrics, and summary timing data
 - backend and CLI tests pass before live server measurements
+
+## Milestone 26: Local llama Server Service Deployment
+
+Status: Implemented on 2026-06-22 for the macOS service wrapper, launchd
+template, install helper, deployment docs, and runbook.
+
+Purpose:
+
+The hosted web product is moving toward a server-owned local model mode for the
+main public surface. The MacBook deployment therefore needs a supervised
+`llama-server` process that matches the direct macOS service shape already used
+by Postgres, the backend, the Cloudflare tunnel, and autodeploy.
+
+Deliver:
+
+- a `dev.mealcheck.llama` system `LaunchDaemon` template
+- an env-file-driven wrapper for starting `llama-server`
+- a non-secret llama service env template with measured CPU-only defaults
+- an install/manage helper for install, restart, stop, status, and logs
+- deployment documentation and runbook commands
+
+Implemented:
+
+1. Added `deploy/macos/mealcheck-llama.env.example` with the first production
+   candidate model path and runtime flags.
+2. Added `deploy/macos/mealcheck-llama-server.sh`, which loads
+   `/Users/chranama-server/MealCheck-data/mealcheck-llama.env`, validates the
+   binary/model paths, and execs `llama-server`.
+3. Added `deploy/macos/dev.mealcheck.llama.plist.template`, a system
+   LaunchDaemon bound to `127.0.0.1:11435` and running as `chranama-server`.
+4. Added `deploy/macos/install-mealcheck-llama-service.sh` for installing and
+   managing the service from the server checkout.
+5. Updated deployment docs and runbook instructions.
+
+Initial production-candidate defaults:
+
+```bash
+LLAMA_MODEL_PATH='/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf'
+LLAMA_CTX_SIZE='2048'
+LLAMA_THREADS='4'
+LLAMA_GPU_LAYERS='0'
+LLAMA_PARALLEL='1'
+LLAMA_CACHE_RAM='512'
+```
+
+Acceptance:
+
+- the plist lints with `plutil`
+- shell scripts pass syntax checks
+- the service starts under `system/dev.mealcheck.llama`
+- `curl -fsS http://127.0.0.1:11435/v1/models | jq .` returns the loaded model
+- the local structured-output smoke script passes against the launchd-managed
+  model service before backend local-provider integration is enabled

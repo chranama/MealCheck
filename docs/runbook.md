@@ -577,6 +577,76 @@ deploy/macos/wait-for-mealcheck-ready.sh
 curl -fsS http://127.0.0.1:8080/api/health | jq .
 ```
 
+## Local llama launchd Service
+
+The local model service runs `llama-server` as a system `LaunchDaemon` with
+label `dev.mealcheck.llama`. It binds only to `127.0.0.1:11435`; do not expose
+this port through Cloudflare.
+
+The committed defaults are the first production candidate for the MacBook:
+
+- model: `/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf`
+- threads: `4`
+- context: `2048`
+- GPU layers: `0`
+- parallel slots: `1`
+- prompt cache RAM: `512`
+
+Install the service:
+
+```bash
+cd /Users/chranama-server/MealCheck
+deploy/macos/install-mealcheck-llama-service.sh install
+```
+
+The installer creates `/Users/chranama-server/MealCheck-data/mealcheck-llama.env`
+from `deploy/macos/mealcheck-llama.env.example` only when the runtime file does
+not already exist. Review that file before treating the service as production:
+
+```bash
+nano /Users/chranama-server/MealCheck-data/mealcheck-llama.env
+```
+
+Restart:
+
+```bash
+deploy/macos/install-mealcheck-llama-service.sh restart
+```
+
+Stop:
+
+```bash
+deploy/macos/install-mealcheck-llama-service.sh stop
+```
+
+Status:
+
+```bash
+deploy/macos/install-mealcheck-llama-service.sh status
+```
+
+Logs:
+
+```bash
+deploy/macos/install-mealcheck-llama-service.sh logs
+```
+
+Health:
+
+```bash
+curl -fsS http://127.0.0.1:11435/v1/models | jq .
+```
+
+Local structured-output smoke test:
+
+```bash
+MODEL_ID="$(curl -fsS http://127.0.0.1:11435/v1/models | jq -r '.data[0].id')"
+
+LLAMA_MODEL="$MODEL_ID" \
+MEALCHECK_LLAMA_REPEATS=5 \
+./scripts/test-local-llama-structured-json.sh
+```
+
 ## Backend Autodeploy Poller
 
 The backend autodeploy poller is optional but recommended after the GitHub Pages

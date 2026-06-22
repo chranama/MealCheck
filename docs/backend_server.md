@@ -292,7 +292,11 @@ The MacBook should be configured as a server:
 Milestone 8 deployment templates:
 
 - `deploy/macos/mealcheck-server.env.example`
+- `deploy/macos/mealcheck-llama.env.example`
 - `deploy/macos/dev.mealcheck.server.plist.template`
+- `deploy/macos/dev.mealcheck.llama.plist.template`
+- `deploy/macos/mealcheck-llama-server.sh`
+- `deploy/macos/install-mealcheck-llama-service.sh`
 - `deploy/macos/dev.mealcheck.autodeploy.plist.template`
 - `deploy/macos/mealcheck-autodeploy.sh`
 - `deploy/macos/postgres-setup.sql.template`
