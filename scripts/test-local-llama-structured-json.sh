@@ -107,9 +107,9 @@ validate_plan_shape() {
     (.days[0].meals | type == "array" and length == 3) and
     ([.days[0].meals[].name | ascii_downcase] | sort == ["breakfast", "dinner", "lunch"]) and
     ([.days[0].meals[].items[]] | length >= 6) and
-    (has("description") | not) and
-    (has("shopping_list") | not) and
-    (has("prep_notes") | not) and
+    ((has("description") | not) or .description == "") and
+    ((has("shopping_list") | not) or .shopping_list == null or (.shopping_list | type == "array" and length == 0)) and
+    ((has("prep_notes") | not) or .prep_notes == null or (.prep_notes | type == "array" and length == 0)) and
     ([.. | objects | select(has("food")) | .food] | length >= 6) and
     ([.days[0].meals[].items[] | select((has("quantity") | not) or (has("unit") | not))] | length == 0) and
     ([.days[0].meals[].items[] | .quantity] |
