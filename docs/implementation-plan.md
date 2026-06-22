@@ -2230,3 +2230,50 @@ Acceptance:
 - the local smoke harness continues to write raw response, compact output,
   normalized plan, checker output, token/byte metrics, and summary timing data
 - backend and CLI tests pass before live server measurements
+
+## Milestone 25: Local llama V2 Tuple Contract Compression
+
+Status: Implemented on 2026-06-22 for the local llama adapter, CLI helper,
+smoke harness, schema fixture, tests, and documentation.
+
+Purpose:
+
+The first compact local llama contract removed canonical MealCheck wrapper
+fields, but the model still spent tokens on repeated meal names and item keys
+such as `breakfast`, `lunch`, `dinner`, `f`, `q`, and `u`. Server measurements
+showed the best stable CPU-only local path was near the hardware ceiling, so
+the next latency lever is reducing generated token count further.
+
+Deliver:
+
+- a v2 tuple contract with top-level `b`, `l`, and `d` meal keys
+- item tuples in the form `[food, quantity, unit]`
+- adapter support for both the active v2 tuple shape and older object-item
+  compact artifacts
+- a shorter llama.cpp schema and prompt used by the local smoke harness
+- a lower default local llama max-token cap appropriate for tuple output
+- tests and docs that make the active contract explicit
+
+Implemented:
+
+1. Updated `DecodeLocalLlamaCompactPlan` to detect tuple keys and decode the
+   v2 shape before expanding it into canonical `checker.Plan`.
+2. Preserved legacy object-item compact decoding for old local artifacts.
+3. Updated `LocalLlamaCompactResponseSchema` and
+   `examples/local-llama/compact-meal-plan-response.schema.json` to emit the
+   v2 tuple schema.
+4. Updated `scripts/test-local-llama-structured-json.sh` to prompt for `b`,
+   `l`, and `d` tuple output and lowered the default output cap from `220` to
+   `160` tokens.
+5. Updated adapter, CLI, schema, and documentation tests.
+
+Acceptance:
+
+- `mealcheck local-llama normalize` accepts v2 tuple JSON and emits canonical
+  MealCheck JSON
+- old object-item compact JSON remains accepted by the adapter
+- malformed tuple output fails closed before checker execution
+- `mealcheck local-llama schema` matches the checked-in active compact schema
+- local smoke artifacts continue to preserve raw model content, compact JSON,
+  normalized plan, checker output, token/byte metrics, and summary timing data
+- backend and CLI tests pass before live server measurements

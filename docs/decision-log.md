@@ -1464,3 +1464,41 @@ Consequences:
 - Hosted OpenAI, Anthropic, Gemini, and BYOK custom-provider flows continue to
   use canonical MealCheck JSON until a local model is explicitly exposed as a
   server-owned no-key provider.
+
+## 2026-06-22: Local llama Compact Contract Uses Tuple V2
+
+Status: Accepted
+
+Decision:
+
+Use a shorter v2 local-only contract for llama.cpp smoke tests:
+
+```json
+{
+  "b": [["cooked oatmeal", 1, "cup"]],
+  "l": [["grilled chicken breast", 4, "oz"]],
+  "d": [["baked salmon", 4, "oz"]]
+}
+```
+
+`b`, `l`, and `d` mean breakfast, lunch, and dinner. Each item tuple is
+`[food, quantity, unit]`. MealCheck-owned adapter code expands this into
+canonical `schema_version: "0.1"` verifier JSON before validation.
+
+Reason:
+
+CPU-only Qwen3-0.6B Q4 measurements showed stable structured output near
+`8-9s`, with token generation already close to the practical ceiling for the
+server. The remaining software-side latency lever is reducing the number of
+model-emitted structural tokens. Tuple output removes repeated item keys and
+shortens meal keys while keeping the deterministic MealCheck adapter as the
+schema owner.
+
+Consequences:
+
+- The active local llama schema now uses tuple output.
+- The local smoke harness defaults to the v2 tuple prompt and a lower output
+  cap.
+- `mealcheck local-llama normalize` still accepts the earlier object-item
+  compact shape for old artifacts.
+- The public BYOK provider contracts remain canonical MealCheck JSON.

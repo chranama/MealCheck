@@ -180,15 +180,16 @@ Unknown fields in that file are rejected.
 `local-llama` supports the local model feasibility harness. It does not start
 `llama-server` and does not call a remote provider.
 
-`local-llama schema` prints the compact JSON Schema used for llama.cpp
-schema-constrained decoding:
+`local-llama schema` prints the active compact JSON Schema used for llama.cpp
+schema-constrained decoding. The active schema is the v2 tuple contract:
 
 ```bash
 go run ./cmd/mealcheck local-llama schema
 ```
 
 `local-llama normalize` expands compact model output into canonical MealCheck
-plan JSON:
+plan JSON. It accepts both the active v2 tuple contract and the earlier
+object-item compact contract used by old local artifacts:
 
 ```bash
 go run ./cmd/mealcheck local-llama normalize \
@@ -197,13 +198,13 @@ go run ./cmd/mealcheck local-llama normalize \
   --plan-id local-llama-smoke
 ```
 
-Compact input shape:
+Active compact input shape:
 
 ```json
 {
-  "breakfast": [{"f": "cooked oatmeal", "q": 1, "u": "cup"}],
-  "lunch": [{"f": "grilled chicken breast", "q": 4, "u": "oz"}],
-  "dinner": [{"f": "baked salmon", "q": 4, "u": "oz"}]
+  "b": [["cooked oatmeal", 1, "cup"]],
+  "l": [["grilled chicken breast", 4, "oz"]],
+  "d": [["baked salmon", 4, "oz"]]
 }
 ```
 

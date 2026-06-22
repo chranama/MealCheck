@@ -18,7 +18,7 @@ PROMPT_FILE="${MEALCHECK_LLAMA_PROMPT_FILE:-$ROOT/examples/local-llama/synthetic
 SCHEMA_PATH="${MEALCHECK_LLAMA_SCHEMA_PATH:-$ROOT/examples/local-llama/compact-meal-plan-response.schema.json}"
 OUTPUT_DIR="${MEALCHECK_LLAMA_OUTPUT_DIR:-/tmp/mealcheck-local-llama-$(date +%Y%m%d-%H%M%S)}"
 REPEATS="${MEALCHECK_LLAMA_REPEATS:-3}"
-MAX_TOKENS="${MEALCHECK_LLAMA_MAX_TOKENS:-220}"
+MAX_TOKENS="${MEALCHECK_LLAMA_MAX_TOKENS:-160}"
 CURL_MAX_TIME_SECONDS="${MEALCHECK_LLAMA_CURL_MAX_TIME_SECONDS:-300}"
 RUN_CHECKER="${MEALCHECK_LLAMA_RUN_CHECKER:-1}"
 
@@ -87,11 +87,11 @@ build_request() {
       messages: [
         {
           role: "system",
-          content: "You extract meal-plan ingredients into compact MealCheck local JSON only. Return exactly one minified JSON object. Do not use Markdown. Do not include line breaks, indentation, or spaces outside string values. The only top-level keys are breakfast, lunch, and dinner. Each meal is an array of item objects. Each item uses only f for food, q for numeric quantity, and u for unit. Allowed units are g, oz, cup, tbsp, tsp, and serving."
+          content: "Extract meal-plan ingredients into compact MealCheck local JSON only. Return one minified JSON object. Top-level keys: b, l, d. b=breakfast, l=lunch, d=dinner. Each meal is an array of [food, quantity, unit]. Allowed units: g, oz, cup, tbsp, tsp, serving."
         },
         {
           role: "user",
-          content: ("Extract this one-day meal plan into the smallest valid compact JSON object. Include exactly breakfast, lunch, and dinner. Include only resolved food items with numeric quantity plus unit. Do not include schema_version, plan_id, days, day, meals, name, items, food, quantity, unit, prep notes, or optional fields.\n\n" + $meal_plan_text)
+          content: ("Extract this one-day meal plan into the smallest valid compact JSON object. Use exactly b, l, and d. Each item must be [food, quantity, unit]. Include only resolved food items with numeric quantity plus unit. Do not include other keys or text.\n\n" + $meal_plan_text)
         }
       ]
     }'

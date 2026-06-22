@@ -1,72 +1,69 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["breakfast", "lunch", "dinner"],
+  "required": ["b", "l", "d"],
   "properties": {
-    "breakfast": {
+    "b": {
       "type": "array",
       "minItems": 1,
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["f", "q", "u"],
-        "properties": {
-          "f": {
+        "type": "array",
+        "items": [
+          {
             "type": "string"
           },
-          "q": {
+          {
             "type": "number",
             "exclusiveMinimum": 0
           },
-          "u": {
+          {
             "type": "string",
             "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
           }
-        }
+        ],
+        "additionalItems": false
       }
     },
-    "lunch": {
+    "l": {
       "type": "array",
       "minItems": 1,
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["f", "q", "u"],
-        "properties": {
-          "f": {
+        "type": "array",
+        "items": [
+          {
             "type": "string"
           },
-          "q": {
+          {
             "type": "number",
             "exclusiveMinimum": 0
           },
-          "u": {
+          {
             "type": "string",
             "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
           }
-        }
+        ],
+        "additionalItems": false
       }
     },
-    "dinner": {
+    "d": {
       "type": "array",
       "minItems": 1,
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["f", "q", "u"],
-        "properties": {
-          "f": {
+        "type": "array",
+        "items": [
+          {
             "type": "string"
           },
-          "q": {
+          {
             "type": "number",
             "exclusiveMinimum": 0
           },
-          "u": {
+          {
             "type": "string",
             "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
           }
-        }
+        ],
+        "additionalItems": false
       }
     }
   }

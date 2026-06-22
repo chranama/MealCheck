@@ -17,10 +17,42 @@ type localLlamaCompactPlan struct {
 	Dinner    []localLlamaCompactItem `json:"dinner"`
 }
 
+type localLlamaTuplePlan struct {
+	Breakfast []localLlamaTupleItem `json:"b"`
+	Lunch     []localLlamaTupleItem `json:"l"`
+	Dinner    []localLlamaTupleItem `json:"d"`
+}
+
 type localLlamaCompactItem struct {
 	Food     string  `json:"f"`
 	Quantity float64 `json:"q"`
 	Unit     string  `json:"u"`
+}
+
+type localLlamaTupleItem struct {
+	Food     string
+	Quantity float64
+	Unit     string
+}
+
+func (item *localLlamaTupleItem) UnmarshalJSON(data []byte) error {
+	var values []json.RawMessage
+	if err := json.Unmarshal(data, &values); err != nil {
+		return fmt.Errorf("local llama tuple item must be [food, quantity, unit]: %w", err)
+	}
+	if len(values) != 3 {
+		return fmt.Errorf("local llama tuple item must have exactly 3 values")
+	}
+	if err := json.Unmarshal(values[0], &item.Food); err != nil {
+		return fmt.Errorf("local llama tuple item food must be a string: %w", err)
+	}
+	if err := json.Unmarshal(values[1], &item.Quantity); err != nil {
+		return fmt.Errorf("local llama tuple item quantity must be a number: %w", err)
+	}
+	if err := json.Unmarshal(values[2], &item.Unit); err != nil {
+		return fmt.Errorf("local llama tuple item unit must be a string: %w", err)
+	}
+	return nil
 }
 
 // DecodeLocalLlamaCompactPlan expands the local llama compact extraction
@@ -30,7 +62,24 @@ func DecodeLocalLlamaCompactPlan(text string, planID string) (checker.Plan, erro
 	if err != nil {
 		return checker.Plan{}, err
 	}
+	if localLlamaJSONUsesTupleKeys(jsonText) {
+		return decodeLocalLlamaTuplePlanJSON(jsonText, planID)
+	}
+	return decodeLocalLlamaLegacyCompactPlanJSON(jsonText, planID)
+}
 
+func localLlamaJSONUsesTupleKeys(jsonText string) bool {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(jsonText), &fields); err != nil {
+		return false
+	}
+	_, hasBreakfast := fields["b"]
+	_, hasLunch := fields["l"]
+	_, hasDinner := fields["d"]
+	return hasBreakfast || hasLunch || hasDinner
+}
+
+func decodeLocalLlamaLegacyCompactPlanJSON(jsonText string, planID string) (checker.Plan, error) {
 	decoder := json.NewDecoder(strings.NewReader(jsonText))
 	decoder.DisallowUnknownFields()
 	var compact localLlamaCompactPlan
@@ -47,6 +96,37 @@ func DecodeLocalLlamaCompactPlan(text string, planID string) (checker.Plan, erro
 		return checker.Plan{}, err
 	}
 	return plan, nil
+}
+
+func decodeLocalLlamaTuplePlanJSON(jsonText string, planID string) (checker.Plan, error) {
+	decoder := json.NewDecoder(strings.NewReader(jsonText))
+	decoder.DisallowUnknownFields()
+	var tuple localLlamaTuplePlan
+	if err := decoder.Decode(&tuple); err != nil {
+		return checker.Plan{}, err
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return checker.Plan{}, fmt.Errorf("local llama tuple JSON contains multiple values")
+	}
+
+	return expandLocalLlamaCompactPlan(localLlamaCompactPlan{
+		Breakfast: compactTupleItems(tuple.Breakfast),
+		Lunch:     compactTupleItems(tuple.Lunch),
+		Dinner:    compactTupleItems(tuple.Dinner),
+	}, planID)
+}
+
+func compactTupleItems(tupleItems []localLlamaTupleItem) []localLlamaCompactItem {
+	compactItems := make([]localLlamaCompactItem, 0, len(tupleItems))
+	for _, tuple := range tupleItems {
+		compactItems = append(compactItems, localLlamaCompactItem{
+			Food:     tuple.Food,
+			Quantity: tuple.Quantity,
+			Unit:     tuple.Unit,
+		})
+	}
+	return compactItems
 }
 
 func expandLocalLlamaCompactPlan(compact localLlamaCompactPlan, planID string) (checker.Plan, error) {
@@ -114,22 +194,21 @@ func expandLocalLlamaCompactItems(mealName string, compactItems []localLlamaComp
 
 func LocalLlamaCompactResponseSchema() map[string]any {
 	item := map[string]any{
-		"type":                 "object",
-		"additionalProperties": false,
-		"required":             []string{"f", "q", "u"},
-		"properties": map[string]any{
-			"f": map[string]any{
+		"type": "array",
+		"items": []map[string]any{
+			{
 				"type": "string",
 			},
-			"q": map[string]any{
+			{
 				"type":             "number",
 				"exclusiveMinimum": 0,
 			},
-			"u": map[string]any{
+			{
 				"type": "string",
 				"enum": []string{"g", "oz", "cup", "tbsp", "tsp", "serving"},
 			},
 		},
+		"additionalItems": false,
 	}
 	mealItems := map[string]any{
 		"type":     "array",
@@ -139,11 +218,11 @@ func LocalLlamaCompactResponseSchema() map[string]any {
 	return map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
-		"required":             []string{"breakfast", "lunch", "dinner"},
+		"required":             []string{"b", "l", "d"},
 		"properties": map[string]any{
-			"breakfast": mealItems,
-			"lunch":     mealItems,
-			"dinner":    mealItems,
+			"b": mealItems,
+			"l": mealItems,
+			"d": mealItems,
 		},
 	}
 }
