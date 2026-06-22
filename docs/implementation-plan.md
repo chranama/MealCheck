@@ -2347,10 +2347,12 @@ back to verbose canonical model output.
 
 Deliver:
 
-- a v3 compact row contract: `{"i":[[day, meal_code, food, quantity, unit]]}`
+- a compact row contract: `{"i":[[source_item_id, day, meal_code, food, quantity, unit]]}`
 - bounded meal codes for breakfast, snacks, lunch, and dinner
+- source item IDs so adapter code can detect omitted or duplicated source rows
 - adapter grouping from compact rows into canonical `checker.Plan`
-- compatibility with v2 tuple output and older object-item compact artifacts
+- compatibility with v3 row output, v2 tuple output, and older object-item
+  compact artifacts
 - schema and prompt updates for llama.cpp constrained decoding
 - backend hosted local-model prompt updates using requested day and meal counts
 - tests covering v3 expansion, legacy compatibility, schema shape, and hosted
@@ -2367,18 +2369,22 @@ Implemented:
    old artifacts.
 5. Updated `LocalLlamaCompactResponseSchema` and
    `examples/local-llama/compact-meal-plan-response.schema.json` to emit the
-   v3 row schema.
+   source-ID row schema.
 6. Updated `scripts/test-local-llama-structured-json.sh` and hosted
    `local_model` prompts to ask for row output.
 7. Raised default local-model output token caps so multi-day row output can
    complete while one-day runs still stop at completed JSON.
+8. Strengthened the row contract with source item IDs after live tests showed
+   the small local model could otherwise omit source lines while preserving
+   valid JSON shape.
 
 Acceptance:
 
-- `mealcheck local-llama normalize` accepts v3 row JSON and emits canonical
+- `mealcheck local-llama normalize` accepts source-ID row JSON and emits canonical
   MealCheck JSON.
-- v2 tuple JSON and older object-item compact JSON remain accepted.
+- v3 row JSON, v2 tuple JSON, and older object-item compact JSON remain accepted.
 - malformed row output fails closed before checker execution.
+- missing or duplicated source item IDs fail closed before checker execution.
 - `mealcheck local-llama schema` matches the checked-in active compact schema.
 - hosted `local_model` no longer hard-requires exactly one day and three meals.
 - backend and CLI tests pass before live server measurements.

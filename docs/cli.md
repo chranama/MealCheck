@@ -181,16 +181,16 @@ Unknown fields in that file are rejected.
 `llama-server` and does not call a remote provider.
 
 `local-llama schema` prints the active compact JSON Schema used for llama.cpp
-schema-constrained decoding. The active schema is the v3 row contract:
+schema-constrained decoding. The active schema is the source-ID row contract:
 
 ```bash
 go run ./cmd/mealcheck local-llama schema
 ```
 
 `local-llama normalize` expands compact model output into canonical MealCheck
-plan JSON. It accepts the active v3 row contract, the earlier v2 `b`/`l`/`d`
-tuple contract, and the first object-item compact contract used by old local
-artifacts:
+plan JSON. It accepts the active source-ID row contract, the earlier v3
+`[day, meal_code, food, quantity, unit]` row contract, the v2 `b`/`l`/`d` tuple
+contract, and the first object-item compact contract used by old local artifacts:
 
 ```bash
 go run ./cmd/mealcheck local-llama normalize \
@@ -204,17 +204,18 @@ Active compact input shape:
 ```json
 {
   "i": [
-    [1, "b", "cooked oatmeal", 1, "cup"],
-    [1, "l", "grilled chicken breast", 4, "oz"],
-    [1, "d", "baked salmon", 4, "oz"]
+    [1, 1, "b", "cooked oatmeal", 1, "cup"],
+    [2, 1, "l", "grilled chicken breast", 4, "oz"],
+    [3, 1, "d", "baked salmon", 4, "oz"]
   ]
 }
 ```
 
-Each row is `[day, meal_code, food, quantity, unit]`. Meal codes are `b`
-breakfast, `m` morning snack, `l` lunch, `a` afternoon snack, `d` dinner, `s`
-snack, and `e` evening snack. The adapter rejects unknown fields, malformed
-rows, unsupported meal codes, nonpositive quantities, and unsupported units.
+Each active row is `[source_item_id, day, meal_code, food, quantity, unit]`.
+Meal codes are `b` breakfast, `m` morning snack, `l` lunch, `a` afternoon snack,
+`d` dinner, `s` snack, and `e` evening snack. The adapter rejects unknown
+fields, malformed rows, missing or duplicate source item IDs, unsupported meal
+codes, nonpositive quantities, and unsupported units.
 
 ## Artifact Bundle
 

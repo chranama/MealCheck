@@ -41,11 +41,12 @@ type localLlamaTupleItem struct {
 }
 
 type localLlamaRowItem struct {
-	Day      int
-	MealCode string
-	Food     string
-	Quantity float64
-	Unit     string
+	SourceItemID int
+	Day          int
+	MealCode     string
+	Food         string
+	Quantity     float64
+	Unit         string
 }
 
 func (item *localLlamaTupleItem) UnmarshalJSON(data []byte) error {
@@ -71,24 +72,31 @@ func (item *localLlamaTupleItem) UnmarshalJSON(data []byte) error {
 func (item *localLlamaRowItem) UnmarshalJSON(data []byte) error {
 	var values []json.RawMessage
 	if err := json.Unmarshal(data, &values); err != nil {
-		return fmt.Errorf("local llama row item must be [day, meal_code, food, quantity, unit]: %w", err)
+		return fmt.Errorf("local llama row item must be [source_item_id, day, meal_code, food, quantity, unit]: %w", err)
 	}
-	if len(values) != 5 {
-		return fmt.Errorf("local llama row item must have exactly 5 values")
+	if len(values) != 5 && len(values) != 6 {
+		return fmt.Errorf("local llama row item must have exactly 5 legacy values or 6 source-id values")
 	}
-	if err := json.Unmarshal(values[0], &item.Day); err != nil {
+	offset := 0
+	if len(values) == 6 {
+		if err := json.Unmarshal(values[0], &item.SourceItemID); err != nil {
+			return fmt.Errorf("local llama row item source_item_id must be an integer: %w", err)
+		}
+		offset = 1
+	}
+	if err := json.Unmarshal(values[offset], &item.Day); err != nil {
 		return fmt.Errorf("local llama row item day must be an integer: %w", err)
 	}
-	if err := json.Unmarshal(values[1], &item.MealCode); err != nil {
+	if err := json.Unmarshal(values[offset+1], &item.MealCode); err != nil {
 		return fmt.Errorf("local llama row item meal_code must be a string: %w", err)
 	}
-	if err := json.Unmarshal(values[2], &item.Food); err != nil {
+	if err := json.Unmarshal(values[offset+2], &item.Food); err != nil {
 		return fmt.Errorf("local llama row item food must be a string: %w", err)
 	}
-	if err := json.Unmarshal(values[3], &item.Quantity); err != nil {
+	if err := json.Unmarshal(values[offset+3], &item.Quantity); err != nil {
 		return fmt.Errorf("local llama row item quantity must be a number: %w", err)
 	}
-	if err := json.Unmarshal(values[4], &item.Unit); err != nil {
+	if err := json.Unmarshal(values[offset+4], &item.Unit); err != nil {
 		return fmt.Errorf("local llama row item unit must be a string: %w", err)
 	}
 	return nil
@@ -189,6 +197,9 @@ func expandLocalLlamaRows(rows []localLlamaRowItem, planID string) (checker.Plan
 	if strings.TrimSpace(planID) == "" {
 		planID = defaultLocalLlamaPlanID
 	}
+	if err := validateLocalLlamaSourceItemIDs(rows); err != nil {
+		return checker.Plan{}, err
+	}
 
 	dayMeals := map[int]map[string][]localLlamaCompactItem{}
 	for _, row := range rows {
@@ -242,6 +253,36 @@ func expandLocalLlamaRows(rows []localLlamaRowItem, planID string) (checker.Plan
 		PlanID:        planID,
 		Days:          days,
 	}, nil
+}
+
+func validateLocalLlamaSourceItemIDs(rows []localLlamaRowItem) error {
+	withSourceID := 0
+	seen := make(map[int]bool, len(rows))
+	for _, row := range rows {
+		if row.SourceItemID == 0 {
+			continue
+		}
+		withSourceID++
+		if row.SourceItemID < 1 {
+			return fmt.Errorf("local llama row source_item_id %d is outside supported range 1..N", row.SourceItemID)
+		}
+		if seen[row.SourceItemID] {
+			return fmt.Errorf("local llama row source_item_id %d is duplicated", row.SourceItemID)
+		}
+		seen[row.SourceItemID] = true
+	}
+	if withSourceID == 0 {
+		return nil
+	}
+	if withSourceID != len(rows) {
+		return fmt.Errorf("local llama rows must either all include source_item_id or all use the legacy row shape")
+	}
+	for id := 1; id <= len(rows); id++ {
+		if !seen[id] {
+			return fmt.Errorf("local llama row source_item_id %d is missing", id)
+		}
+	}
+	return nil
 }
 
 func localLlamaMealName(code string) (string, bool) {
@@ -363,8 +404,14 @@ func expandLocalLlamaCompactItems(mealName string, compactItems []localLlamaComp
 
 func LocalLlamaCompactResponseSchema() map[string]any {
 	item := map[string]any{
-		"type": "array",
+		"type":     "array",
+		"minItems": 6,
+		"maxItems": 6,
 		"items": []map[string]any{
+			{
+				"type":    "integer",
+				"minimum": 1,
+			},
 			{
 				"type":    "integer",
 				"minimum": 1,

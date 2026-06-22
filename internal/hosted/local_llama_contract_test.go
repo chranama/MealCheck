@@ -10,12 +10,12 @@ import (
 func TestDecodeLocalLlamaCompactPlanExpandsCanonicalPlan(t *testing.T) {
 	plan, err := DecodeLocalLlamaCompactPlan(`{
 		"i":[
-			[1,"b","cooked oatmeal",1,"cup"],
-			[1,"l","grilled chicken breast",4,"oz"],
-			[1,"d","baked salmon",4,"oz"],
-			[2,"b","plain Greek yogurt",1,"cup"],
-			[2,"l","brown rice",1,"cup"],
-			[2,"d","spinach",1,"cup"]
+			[1,1,"b","cooked oatmeal",1,"cup"],
+			[2,1,"l","grilled chicken breast",4,"oz"],
+			[3,1,"d","baked salmon",4,"oz"],
+			[4,2,"b","plain Greek yogurt",1,"cup"],
+			[5,2,"l","brown rice",1,"cup"],
+			[6,2,"d","spinach",1,"cup"]
 		]
 	}`, "compact-test")
 	if err != nil {
@@ -44,6 +44,25 @@ func TestDecodeLocalLlamaCompactPlanExpandsCanonicalPlan(t *testing.T) {
 		if meals[index].Items[0].Quantity == nil {
 			t.Fatalf("meal %s item quantity = nil", wantName)
 		}
+	}
+}
+
+func TestDecodeLocalLlamaCompactPlanAcceptsLegacyV3Rows(t *testing.T) {
+	plan, err := DecodeLocalLlamaCompactPlan(`{
+		"i":[
+			[1,"b","cooked oatmeal",1,"cup"],
+			[1,"l","grilled chicken breast",4,"oz"],
+			[1,"d","baked salmon",4,"oz"]
+		]
+	}`, "legacy-row-compact-test")
+	if err != nil {
+		t.Fatalf("DecodeLocalLlamaCompactPlan legacy row error: %v", err)
+	}
+	if plan.PlanID != "legacy-row-compact-test" {
+		t.Fatalf("plan_id = %q, want legacy-row-compact-test", plan.PlanID)
+	}
+	if len(plan.Days) != 1 || len(plan.Days[0].Meals) != 3 {
+		t.Fatalf("plan days/meals = %d/%d, want 1/3", len(plan.Days), len(plan.Days[0].Meals))
 	}
 }
 
@@ -88,19 +107,31 @@ func TestDecodeLocalLlamaCompactPlanRejectsInvalidShape(t *testing.T) {
 	}{
 		{
 			name: "row unknown top level field",
-			text: `{"i":[[1,"b","oatmeal",1,"cup"]],"x":[]}`,
+			text: `{"i":[[1,1,"b","oatmeal",1,"cup"]],"x":[]}`,
 		},
 		{
 			name: "row tuple has wrong length",
-			text: `{"i":[[1,"b","oatmeal",1,"cup","extra"]]}`,
+			text: `{"i":[[1,1,"b","oatmeal",1,"cup","extra","extra"]]}`,
+		},
+		{
+			name: "row source item id duplicated",
+			text: `{"i":[[1,1,"b","oatmeal",1,"cup"],[1,1,"l","rice",1,"cup"]]}`,
+		},
+		{
+			name: "row source item id missing",
+			text: `{"i":[[1,1,"b","oatmeal",1,"cup"],[3,1,"l","rice",1,"cup"]]}`,
+		},
+		{
+			name: "row mixes source id and legacy shapes",
+			text: `{"i":[[1,1,"b","oatmeal",1,"cup"],[1,"l","rice",1,"cup"]]}`,
 		},
 		{
 			name: "row unsupported meal code",
-			text: `{"i":[[1,"x","oatmeal",1,"cup"]]}`,
+			text: `{"i":[[1,1,"x","oatmeal",1,"cup"]]}`,
 		},
 		{
 			name: "row day out of range",
-			text: `{"i":[[8,"b","oatmeal",1,"cup"]]}`,
+			text: `{"i":[[1,8,"b","oatmeal",1,"cup"]]}`,
 		},
 		{
 			name: "v2 unknown top level field",
@@ -145,14 +176,17 @@ func TestLocalLlamaCompactResponseSchemaUsesCompactFields(t *testing.T) {
 	properties := schema["properties"].(map[string]any)
 	items := properties["i"].(map[string]any)
 	item := items["items"].(map[string]any)
+	if item["minItems"] != 6 || item["maxItems"] != 6 {
+		t.Fatalf("row min/max items = %v/%v, want 6/6", item["minItems"], item["maxItems"])
+	}
 	tuple := item["items"].([]map[string]any)
-	if len(tuple) != 5 {
-		t.Fatalf("tuple length = %d, want 5", len(tuple))
+	if len(tuple) != 6 {
+		t.Fatalf("tuple length = %d, want 6", len(tuple))
 	}
-	if tuple[0]["type"] != "integer" || tuple[1]["type"] != "string" || tuple[2]["type"] != "string" || tuple[3]["type"] != "number" || tuple[4]["type"] != "string" {
-		t.Fatalf("tuple item types = %#v, want integer/string/string/number/string", tuple)
+	if tuple[0]["type"] != "integer" || tuple[1]["type"] != "integer" || tuple[2]["type"] != "string" || tuple[3]["type"] != "string" || tuple[4]["type"] != "number" || tuple[5]["type"] != "string" {
+		t.Fatalf("tuple item types = %#v, want integer/integer/string/string/number/string", tuple)
 	}
-	mealCodes := tuple[1]["enum"].([]string)
+	mealCodes := tuple[2]["enum"].([]string)
 	if len(mealCodes) < 6 {
 		t.Fatalf("meal code enum = %#v, want at least 6 codes", mealCodes)
 	}

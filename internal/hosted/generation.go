@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -372,23 +373,26 @@ func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, err
 	system := strings.Join([]string{
 		"Extract meal-plan ingredients into compact MealCheck local JSON only.",
 		"Return one minified JSON object.",
-		"Shape: {\"i\":[[day,meal_code,food,quantity,unit]]}.",
+		"Shape: {\"i\":[[source_item_id,day,meal_code,food,quantity,unit]]}.",
 		"Meal codes: b=breakfast, m=morning snack, l=lunch, a=afternoon snack, d=dinner, s=snack, e=evening snack.",
 		"When the user states the exact allowed meal codes, use only those meal codes.",
 		"Allowed units: g, oz, cup, tbsp, tsp, serving.",
 	}, " ")
 	user := strings.Join([]string{
 		"Extract this meal plan into compact row JSON.",
+		"Use only the numbered source items below.",
 		fmt.Sprintf("Use day numbers 1..%d.", constraints.Days),
 		fmt.Sprintf("Each day must contain exactly %d distinct meal code(s).", constraints.MealsPerDay),
 		localLlamaMealCodeInstruction(constraints.MealsPerDay),
 		localLlamaItemCountInstruction(text),
-		"Convert every bullet item into exactly one [day, meal_code, food, quantity, unit] tuple.",
+		"Convert every numbered source item into exactly one [source_item_id, day, meal_code, food, quantity, unit] tuple.",
+		"Copy each source_item_id exactly once in ascending order; do not skip or duplicate source_item_id values.",
+		"Use the provided day and meal_code values for each numbered source item.",
 		"Do not omit, merge, summarize, or invent items.",
-		"Include only resolved food items with numeric quantity plus unit.",
+		"Parse only food, numeric quantity, and unit from each source_text.",
 		"Do not include other keys or text.",
 		"",
-		text,
+		localLlamaSourceItemsPromptBlock(text),
 	}, "\n")
 	return []ProviderMessage{
 		{Role: "system", Content: system},
@@ -402,23 +406,112 @@ func localLlamaMealCodeInstruction(mealsPerDay int) string {
 }
 
 func localLlamaItemCountInstruction(text string) string {
-	expected := localLlamaExpectedResolvedItemCount(text)
+	expected := len(localLlamaResolvedSourceItems(text))
 	if expected == 0 {
 		return "Preserve every resolved food item that has a numeric quantity plus supported unit."
 	}
 	return fmt.Sprintf("The source contains exactly %d resolved food item line(s); return exactly %d row(s).", expected, expected)
 }
 
-var localLlamaResolvedItemLinePattern = regexp.MustCompile(`(?i)^\s*(?:[-*]|\d+[.)])\s+(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s*(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|servings?)\b`)
+type localLlamaSourceItem struct {
+	ID       int
+	Day      int
+	MealCode string
+	Text     string
+}
+
+var (
+	localLlamaResolvedItemLinePattern = regexp.MustCompile(`(?i)^\s*(?:[-*]|\d+[.)])\s+(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s*(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|servings?)\b`)
+	localLlamaSourceItemMarkerPattern = regexp.MustCompile(`^\s*(?:[-*]|\d+[.)])\s+`)
+	localLlamaDayHeadingPattern       = regexp.MustCompile(`(?i)\bday\s*([1-7])\b`)
+)
 
 func localLlamaExpectedResolvedItemCount(text string) int {
-	count := 0
-	for _, line := range strings.Split(text, "\n") {
-		if localLlamaResolvedItemLinePattern.MatchString(line) {
-			count++
-		}
+	return len(localLlamaResolvedSourceItems(text))
+}
+
+func localLlamaSourceItemsPromptBlock(text string) string {
+	sourceItems := localLlamaResolvedSourceItems(text)
+	if len(sourceItems) == 0 {
+		return "Source meal plan text:\n" + text
 	}
-	return count
+	var b strings.Builder
+	b.WriteString("Numbered resolved source items:\n")
+	for _, item := range sourceItems {
+		mealCode := item.MealCode
+		if mealCode == "" {
+			mealCode = "infer"
+		}
+		fmt.Fprintf(&b, "%d | day=%d | meal_code=%s | source_text=%s\n", item.ID, item.Day, mealCode, item.Text)
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
+
+func localLlamaResolvedSourceItems(text string) []localLlamaSourceItem {
+	var items []localLlamaSourceItem
+	currentDay := 1
+	currentMealCode := ""
+	for _, line := range strings.Split(text, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		isItemLine := localLlamaResolvedItemLinePattern.MatchString(line)
+		if !isItemLine {
+			if day := localLlamaDayFromHeading(trimmed); day > 0 {
+				currentDay = day
+			}
+			if mealCode := localLlamaMealCodeFromHeading(trimmed); mealCode != "" {
+				currentMealCode = mealCode
+			}
+			continue
+		}
+		items = append(items, localLlamaSourceItem{
+			ID:       len(items) + 1,
+			Day:      currentDay,
+			MealCode: currentMealCode,
+			Text:     localLlamaCleanSourceItemLine(line),
+		})
+	}
+	return items
+}
+
+func localLlamaDayFromHeading(line string) int {
+	matches := localLlamaDayHeadingPattern.FindStringSubmatch(line)
+	if len(matches) != 2 {
+		return 0
+	}
+	day, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return 0
+	}
+	return day
+}
+
+func localLlamaMealCodeFromHeading(line string) string {
+	heading := strings.ToLower(strings.TrimSpace(strings.TrimSuffix(line, ":")))
+	switch {
+	case strings.Contains(heading, "breakfast"):
+		return "b"
+	case strings.Contains(heading, "morning snack"):
+		return "m"
+	case strings.Contains(heading, "lunch"):
+		return "l"
+	case strings.Contains(heading, "afternoon snack"):
+		return "a"
+	case strings.Contains(heading, "dinner"):
+		return "d"
+	case strings.Contains(heading, "evening snack"):
+		return "e"
+	case strings.Contains(heading, "snack"):
+		return "s"
+	default:
+		return ""
+	}
+}
+
+func localLlamaCleanSourceItemLine(line string) string {
+	return strings.TrimSpace(localLlamaSourceItemMarkerPattern.ReplaceAllString(line, ""))
 }
 
 func validateLocalModelExtractionCompleteness(plan checker.Plan, sourceText string) error {

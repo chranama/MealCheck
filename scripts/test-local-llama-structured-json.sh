@@ -22,6 +22,7 @@ MAX_TOKENS="${MEALCHECK_LLAMA_MAX_TOKENS:-200}"
 CURL_MAX_TIME_SECONDS="${MEALCHECK_LLAMA_CURL_MAX_TIME_SECONDS:-300}"
 RUN_CHECKER="${MEALCHECK_LLAMA_RUN_CHECKER:-1}"
 EXPECTED_ITEM_COUNT="${MEALCHECK_LLAMA_EXPECTED_ITEM_COUNT:-}"
+SOURCE_ITEMS_PATH="$OUTPUT_DIR/source-items.txt"
 
 failures=0
 
@@ -39,6 +40,42 @@ print_section() {
 
 curl_llama() {
   curl -sS --fail-with-body --max-time "$CURL_MAX_TIME_SECONDS" "$@"
+}
+
+write_source_items() {
+  awk '
+    function meal_code(line, normalized) {
+      normalized = tolower(line)
+      sub(/^[[:space:]]*/, "", normalized)
+      sub(/[[:space:]]*:?[[:space:]]*$/, "", normalized)
+      if (normalized ~ /breakfast/) return "b"
+      if (normalized ~ /morning snack/) return "m"
+      if (normalized ~ /lunch/) return "l"
+      if (normalized ~ /afternoon snack/) return "a"
+      if (normalized ~ /dinner/) return "d"
+      if (normalized ~ /evening snack/) return "e"
+      if (normalized ~ /snack/) return "s"
+      return ""
+    }
+    BEGIN {
+      id = 0
+      day = 1
+      meal = ""
+    }
+    {
+      line = $0
+      if (line ~ /^[[:space:]]*[-*][[:space:]]+([0-9]+([.][0-9]+)?|[0-9]+[[:space:]]*\/[[:space:]]*[0-9]+|[0-9]+[[:space:]]+[0-9]+[[:space:]]*\/[[:space:]]*[0-9]+)[[:space:]]*(g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|servings?)([[:space:]]|$)/) {
+        id++
+        sub(/^[[:space:]]*[-*][[:space:]]+/, "", line)
+        printf "%d | day=%d | meal_code=%s | source_text=%s\n", id, day, meal, line
+      } else {
+        code = meal_code(line)
+        if (code != "") {
+          meal = code
+        }
+      }
+    }
+  ' "$PROMPT_FILE" >"$SOURCE_ITEMS_PATH"
 }
 
 record_summary() {
@@ -68,7 +105,7 @@ build_request() {
     --arg model "$MODEL" \
     --argjson max_tokens "$MAX_TOKENS" \
     --argjson expected_item_count "$EXPECTED_ITEM_COUNT" \
-    --rawfile meal_plan_text "$PROMPT_FILE" \
+    --rawfile source_items_text "$SOURCE_ITEMS_PATH" \
     --slurpfile schema "$SCHEMA_PATH" \
     '{
       model: $model,
@@ -89,14 +126,23 @@ build_request() {
       messages: [
         {
           role: "system",
-          content: "Extract meal-plan ingredients into compact MealCheck local JSON only. Return one minified JSON object. Shape: {\"i\":[[day,meal_code,food,quantity,unit]]}. Meal codes: b=breakfast, m=morning snack, l=lunch, a=afternoon snack, d=dinner, s=snack, e=evening snack. When the user states the exact allowed meal codes, use only those meal codes. Allowed units: g, oz, cup, tbsp, tsp, serving."
+          content: "Extract meal-plan ingredients into compact MealCheck local JSON only. Return one minified JSON object. Shape: {\"i\":[[source_item_id,day,meal_code,food,quantity,unit]]}. Meal codes: b=breakfast, m=morning snack, l=lunch, a=afternoon snack, d=dinner, s=snack, e=evening snack. When the user states the exact allowed meal codes, use only those meal codes. Allowed units: g, oz, cup, tbsp, tsp, serving."
         },
         {
           role: "user",
-          content: ("Extract this meal plan into compact row JSON. Use day numbers 1..1. Each day must contain exactly 3 distinct meal code(s). Use exactly these meal codes for every day: b, l, d. Do not use m, a, s, or e. The source contains exactly \($expected_item_count) resolved food item line(s); return exactly \($expected_item_count) row(s). Convert every bullet item into exactly one [day, meal_code, food, quantity, unit] tuple. Do not omit, merge, summarize, or invent items. Include only resolved food items with numeric quantity plus unit. Do not include other keys or text.\n\n" + $meal_plan_text)
+          content: ("Extract this meal plan into compact row JSON. Use only the numbered source items below. Use day numbers 1..1. Each day must contain exactly 3 distinct meal code(s). Use exactly these meal codes for every day: b, l, d. Do not use m, a, s, or e. The source contains exactly \($expected_item_count) resolved food item line(s); return exactly \($expected_item_count) row(s). Convert every numbered source item into exactly one [source_item_id, day, meal_code, food, quantity, unit] tuple. Copy each source_item_id exactly once in ascending order; do not skip or duplicate source_item_id values. Use the provided day and meal_code values for each numbered source item. Parse only food, numeric quantity, and unit from each source_text. Do not omit, merge, summarize, or invent items. Do not include other keys or text.\n\nNumbered resolved source items:\n" + $source_items_text)
         }
       ]
     }'
+}
+
+validate_compact_shape() {
+  local compact_path="$1"
+  jq -e --argjson expected_item_count "$EXPECTED_ITEM_COUNT" '
+    (.i | type == "array" and length == $expected_item_count) and
+    ([.i[] | length] | all(. == 6)) and
+    ([.i[][0]] | sort == [range(1; $expected_item_count + 1)])
+  ' "$compact_path" >/dev/null
 }
 
 validate_plan_shape() {
@@ -231,6 +277,13 @@ run_trial() {
     return 0
   fi
 
+  if ! validate_compact_shape "$compact_path"; then
+    echo "FAIL: model JSON did not preserve source item IDs; see $compact_path"
+    record_summary "fail" "$index" "$duration" "source item ID coverage failed"
+    failures=$((failures + 1))
+    return 0
+  fi
+
   if ! (cd "$ROOT" && go run ./cmd/mealcheck local-llama normalize --input "$compact_path" --out "$plan_path" --plan-id "local-llama-smoke") >"$run_dir/adapter-output.txt" 2>&1; then
     echo "FAIL: compact JSON could not be adapted to MealCheck JSON; see $run_dir/adapter-output.txt"
     record_summary "fail" "$index" "$duration" "compact adapter failed"
@@ -278,15 +331,17 @@ if [[ ! -f "$SCHEMA_PATH" ]]; then
   echo "error: schema file not found: $SCHEMA_PATH" >&2
   exit 1
 fi
+
+mkdir -p "$OUTPUT_DIR"
+write_source_items
 if [[ -z "$EXPECTED_ITEM_COUNT" ]]; then
-  EXPECTED_ITEM_COUNT="$(grep -Ec '^[[:space:]]*[-*][[:space:]]+' "$PROMPT_FILE" || true)"
+  EXPECTED_ITEM_COUNT="$(wc -l <"$SOURCE_ITEMS_PATH" | tr -d ' ')"
 fi
 if [[ "$EXPECTED_ITEM_COUNT" -le 0 ]]; then
   echo "error: expected item count must be positive; set MEALCHECK_LLAMA_EXPECTED_ITEM_COUNT" >&2
   exit 1
 fi
 
-mkdir -p "$OUTPUT_DIR"
 : >"$OUTPUT_DIR/summary.jsonl"
 
 print_section "local llama health"
@@ -305,6 +360,7 @@ printf "output_dir=%s\n" "$OUTPUT_DIR"
 printf "repeats=%s\n" "$REPEATS"
 printf "run_checker=%s\n" "$RUN_CHECKER"
 printf "expected_item_count=%s\n" "$EXPECTED_ITEM_COUNT"
+printf "source_items_path=%s\n" "$SOURCE_ITEMS_PATH"
 
 for index in $(seq 1 "$REPEATS"); do
   run_trial "$index"

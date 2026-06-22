@@ -310,9 +310,11 @@ file workflow. The same normalized plan validation rules apply there:
 ### Hosted Local Model Run Request
 
 `input_mode: "local_model"` queues a live check that normalizes pasted
-meal-plan text through the server-owned local model. The v3 compact local
-contract supports up to seven days and up to six meals per day by asking the
-model for rows in the form `[day, meal_code, food, quantity, unit]`.
+meal-plan text through the server-owned local model. The compact local contract
+supports up to seven days and up to six meals per day by asking the model for
+rows in the form `[source_item_id, day, meal_code, food, quantity, unit]`. The
+backend numbers resolved source item lines before prompting the model, then
+rejects outputs with missing or duplicated source item IDs.
 
 Clients must omit `provider`; the backend injects the configured local model
 endpoint and model id.

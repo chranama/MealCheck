@@ -1514,27 +1514,31 @@ Replace the active local llama output schema with a row-oriented v3 contract:
 ```json
 {
   "i": [
-    [1, "b", "cooked oatmeal", 1, "cup"],
-    [1, "l", "grilled chicken breast", 4, "oz"],
-    [2, "d", "baked salmon", 4, "oz"]
+    [1, 1, "b", "cooked oatmeal", 1, "cup"],
+    [2, 1, "l", "grilled chicken breast", 4, "oz"],
+    [3, 2, "d", "baked salmon", 4, "oz"]
   ]
 }
 ```
 
-Each row is `[day, meal_code, food, quantity, unit]`. Meal codes are short and
-bounded: `b` breakfast, `m` morning snack, `l` lunch, `a` afternoon snack, `d`
-dinner, `s` snack, and `e` evening snack. MealCheck-owned adapter code groups
-rows by day and meal code, orders them deterministically, and expands them into
-canonical verifier JSON.
+Each active row is `[source_item_id, day, meal_code, food, quantity, unit]`.
+Meal codes are short and bounded: `b` breakfast, `m` morning snack, `l` lunch,
+`a` afternoon snack, `d` dinner, `s` snack, and `e` evening snack. MealCheck
+numbers resolved source item lines before prompting the local model, then
+MealCheck-owned adapter code rejects missing or duplicated source item IDs,
+groups rows by day and meal code, orders them deterministically, and expands
+them into canonical verifier JSON.
 
 Reason:
 
 The v2 tuple contract was fast but hardcoded one day with breakfast, lunch, and
 dinner. Canonical JSON supports multiple days and variable meal counts but is
-too token-heavy for the resource-constrained local model path. The v3 row
-contract adds only two compact fields per item, day number and meal code, while
+too token-heavy for the resource-constrained local model path. The row contract
+adds compact source item ID, day number, and meal code fields per item while
 avoiding repeated canonical keys such as `days`, `meals`, `items`, `food`,
-`quantity`, and `unit`.
+`quantity`, and `unit`. Source item IDs were added after live tests showed that
+the small local model could otherwise omit items while preserving valid meal
+shape.
 
 Consequences:
 

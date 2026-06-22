@@ -34,6 +34,10 @@ func TestLocalModelExtractionMessagesIncludeResolvedItemCount(t *testing.T) {
 	for _, want := range []string{
 		"Use exactly these meal codes for every day: b, l, d.",
 		"The source contains exactly 3 resolved food item line(s); return exactly 3 row(s).",
+		"Convert every numbered source item into exactly one [source_item_id, day, meal_code, food, quantity, unit] tuple.",
+		"1 | day=1 | meal_code=b | source_text=1 cup oatmeal",
+		"2 | day=1 | meal_code=b | source_text=1/2 cup blueberries",
+		"3 | day=1 | meal_code=l | source_text=4 oz chicken",
 	} {
 		if !strings.Contains(userPrompt, want) {
 			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)

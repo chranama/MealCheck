@@ -111,7 +111,7 @@ func TestLocalLlamaNormalizeCommandWritesCanonicalPlan(t *testing.T) {
 	dir := t.TempDir()
 	input := filepath.Join(dir, "compact.json")
 	out := filepath.Join(dir, "normalized-plan.json")
-	if err := os.WriteFile(input, []byte(`{"i":[[1,"b","cooked oatmeal",1,"cup"],[1,"l","grilled chicken breast",4,"oz"],[1,"d","baked salmon",4,"oz"]]}`), 0o644); err != nil {
+	if err := os.WriteFile(input, []byte(`{"i":[[1,1,"b","cooked oatmeal",1,"cup"],[2,1,"l","grilled chicken breast",4,"oz"],[3,1,"d","baked salmon",4,"oz"]]}`), 0o644); err != nil {
 		t.Fatalf("write compact input: %v", err)
 	}
 
