@@ -2564,3 +2564,50 @@ Acceptance:
 - UI typecheck, test, and build pass.
 - deployed server env files are updated manually or over SSH, then
   `dev.mealcheck.server` and `dev.mealcheck.llama` are restarted.
+
+## Milestone 32: Graceful Non-Meal-Plan Failure Modes
+
+Status: Implemented on 2026-06-23.
+
+Purpose:
+
+Make hosted local-model verification fail gracefully when the pasted input is
+not a verifiable meal plan, both before model invocation and after model
+normalization failures.
+
+Deliver:
+
+- pre-model qualification fast-fail for obvious non-meal-plan text
+- pre-model refusal for vague meal outlines with no quantities or units
+- pre-model refusal for recipe-like text that needs day/meal decomposition
+- structured `422 meal_plan_not_verifiable` API response with qualification
+  details
+- UI rendering that treats structured qualification refusal as expected feedback
+  rather than a generic API error
+- friendly post-model failed-run messages that do not expose compact JSON,
+  parser, model-path, or source-item internals
+- debug artifacts that preserve sanitized model/decode details for operators
+- synthetic qualification-failure fixtures alongside the acceptable-input
+  robustness dataset
+
+Implemented:
+
+1. Reused the deterministic meal-plan classifier in hosted `local_model` run
+   creation before queueing.
+2. Added a typed qualification rejection error so the run endpoint can return a
+   structured `422` without string matching.
+3. Added local-model-specific post-model failure wrapping that preserves
+   `debug/normalization-failure.json` while storing a user-facing run error.
+4. Added frontend API parsing for qualification details inside error envelopes.
+5. Added documentation and synthetic failure cases for invalid, vague, and
+   recipe-like inputs.
+
+Acceptance:
+
+- obvious non-meal-plan local-model requests return `422` and do not queue a
+  run.
+- fast-failed requests report `provider_used: false`.
+- local-model decode/completeness failures store a friendly public run error.
+- redacted debug artifacts still include the detailed normalization failure
+  lifecycle.
+- focused backend and frontend tests pass.

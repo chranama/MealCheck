@@ -34,6 +34,17 @@ type MealPlanQualificationResult struct {
 	Canonicalized  bool          `json:"canonicalized,omitempty"`
 }
 
+type qualificationRejectionError struct {
+	Qualification MealPlanQualificationResult
+}
+
+func (e qualificationRejectionError) Error() string {
+	if e.Qualification.Reason != "" {
+		return e.Qualification.Reason
+	}
+	return "candidate text is not ready for verification"
+}
+
 func QualifyStructuredMealPlanText(text string) MealPlanQualificationResult {
 	return qualifyMealPlanJSON(text)
 }
@@ -150,6 +161,15 @@ func classifyCandidateMealPlanText(text string) MealPlanQualificationResult {
 		return qualificationResult(QualificationStatusMealPlanTooVague, "The text resembles a meal plan but lacks ingredient quantities and units needed for verification.", []string{"quantities", "units"})
 	}
 	return qualificationResult(QualificationStatusEligibleForVerification, "The text appears to contain meal structure and ingredient quantities; a BYOK provider can attempt normalization into MealCheck JSON.", nil)
+}
+
+func isTerminalQualificationFailure(result MealPlanQualificationResult) bool {
+	switch result.Status {
+	case QualificationStatusNotMealPlan, QualificationStatusMealPlanTooVague, QualificationStatusRecipeOrMenuNeedsDecompose:
+		return true
+	default:
+		return false
+	}
 }
 
 func qualificationMessages(request MealPlanQualificationRequest) []ProviderMessage {

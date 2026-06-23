@@ -86,6 +86,20 @@ Not acceptable for this dataset:
 Inputs outside this boundary should be tested as qualification failures or
 `eligible_with_unresolved_items` cases, not as successful normalization cases.
 
+Qualification failure classes:
+
+- `not_meal_plan`: text does not describe days, meals, recipes, or
+  ingredient-level meal-plan content.
+- `meal_plan_too_vague`: text resembles a meal plan, but lacks numeric
+  quantities or supported units needed for verification.
+- `recipe_or_menu_needs_decomposition`: text is recipe-like, but is not
+  decomposed into day, meal, ingredient, quantity, and unit fields.
+
+Hosted local-model run creation should fast-fail these cases before queueing a
+run or calling the model. If an input passes preflight but model normalization
+still fails, the public run error should stay user-facing and guidance-oriented;
+debug artifacts may retain sanitized model and parser details for operators.
+
 ## Dataset
 
 The first synthetic acceptable-input dataset lives at:
@@ -107,6 +121,14 @@ It includes:
 
 The dataset intentionally avoids invalid examples. It should remain small
 enough to read and diagnose by hand.
+
+A companion qualification-failure set lives at:
+
+```text
+examples/meal-plan-input-robustness/failure-manifest.json
+```
+
+That set is for pre-model refusal behavior, not successful normalization.
 
 ## Evaluation Expectations
 

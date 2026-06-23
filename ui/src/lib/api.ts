@@ -2,6 +2,7 @@ import type {
   ArtifactListResponse,
   CreateRunResponse,
   HealthResponse,
+  MealPlanQualificationResult,
   QualifyMealPlanPayload,
   QualifyMealPlanResponse,
   ReportArtifacts,
@@ -48,6 +49,28 @@ export class ApiError extends Error {
     }
     return `HTTP ${status}: ${bodyText}`;
   }
+}
+
+export function qualificationFromApiError(errorLike: unknown): MealPlanQualificationResult | null {
+  if (!(errorLike instanceof ApiError)) return null;
+  const root = objectRecord(errorLike.bodyJson);
+  const error = objectRecord(root?.error);
+  const details = objectRecord(error?.details);
+  const qualification = objectRecord(details?.qualification);
+  if (!qualification) return null;
+  if (
+    typeof qualification.schema_version !== "string" ||
+    typeof qualification.status !== "string" ||
+    typeof qualification.reason !== "string" ||
+    typeof qualification.provider_used !== "boolean"
+  ) {
+    return null;
+  }
+  return qualification as MealPlanQualificationResult;
+}
+
+function objectRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
 
 export function cleanApiBase(base: unknown): string {

@@ -1,0 +1,28 @@
+{
+  "schema_version": "0.1",
+  "dataset_id": "meal-plan-input-qualification-failures-v1",
+  "purpose": "Synthetic user inputs that should fail meal-plan qualification before model normalization.",
+  "cases": [
+    {
+      "id": "non_meal_meeting_agenda",
+      "file": "failure-cases/non-meal-meeting-agenda.txt",
+      "title": "Non-meal meeting agenda request",
+      "expected_status": "not_meal_plan",
+      "expected_provider_used": false
+    },
+    {
+      "id": "vague_meal_outline",
+      "file": "failure-cases/vague-meal-outline.txt",
+      "title": "Meal labels without quantities",
+      "expected_status": "meal_plan_too_vague",
+      "expected_provider_used": false
+    },
+    {
+      "id": "recipe_needs_decomposition",
+      "file": "failure-cases/recipe-needs-decomposition.txt",
+      "title": "Recipe-like text without meal-plan structure",
+      "expected_status": "recipe_or_menu_needs_decomposition",
+      "expected_provider_used": false
+    }
+  ]
+}

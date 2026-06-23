@@ -1,0 +1,7 @@
+Please draft a short meeting agenda for tomorrow afternoon.
+
+Topics:
+- sprint planning
+- budget review
+- design feedback
+- next steps

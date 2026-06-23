@@ -20,6 +20,9 @@ unbatched whole-plan fallback.
 - `manifest.json`: case metadata, expected item counts, day counts, and coverage
   tags.
 - `cases/*.txt`: synthetic user-submitted meal-plan text.
+- `failure-manifest.json`: qualification-failure metadata for inputs that should
+  be refused before model normalization.
+- `failure-cases/*.txt`: synthetic invalid, vague, or recipe-like user inputs.
 
 ## Use
 
@@ -36,6 +39,7 @@ Suggested progression:
 3. Use the multi-day and snack cases for hosted local-model regression,
    especially after changes to day-section splitting or the unbatched fallback.
 
-The dataset does not include intentionally invalid inputs. Invalid and vague
-inputs belong in qualification tests, not in this acceptable-input normalization
-set.
+The acceptable-input manifest does not include intentionally invalid inputs.
+Invalid and vague inputs belong in qualification tests, not in the successful
+normalization set. The separate `failure-manifest.json` tracks representative
+fast-fail cases and their expected qualification statuses.

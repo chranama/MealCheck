@@ -251,6 +251,86 @@ func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
 	}
 }
 
+func TestLocalModelRunFastFailsNonVerifiableTextBeforeQueue(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.HostedMode = HostedModeLocalModel
+	config.LocalModelEnabled = true
+	config.LocalModelBaseURL = "http://127.0.0.1:11435/v1"
+	config.LocalModelName = "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf"
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	settings := localModelTestSettings(seededCase(t, root).Settings)
+
+	tests := []struct {
+		name       string
+		text       string
+		wantStatus string
+	}{
+		{
+			name:       "non meal text",
+			text:       "Please draft a short meeting agenda for tomorrow afternoon.",
+			wantStatus: QualificationStatusNotMealPlan,
+		},
+		{
+			name:       "vague meal outline",
+			text:       "Breakfast: oatmeal\nLunch: salad\nDinner: chicken bowl",
+			wantStatus: QualificationStatusMealPlanTooVague,
+		},
+		{
+			name:       "recipe needs decomposition",
+			text:       "Make a healthy chicken bowl with rice, vegetables, and sauce. Cook until warm.",
+			wantStatus: QualificationStatusRecipeOrMenuNeedsDecompose,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body := marshalJSON(t, CreateRunRequest{
+				InputMode:     InputModeLocalModel,
+				Settings:      settings,
+				CandidateText: tt.text,
+			})
+			resp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+			if resp.Code != http.StatusUnprocessableEntity {
+				t.Fatalf("create status = %d, want 422 body=%s", resp.Code, resp.Body.String())
+			}
+			var errorResponse ErrorResponse
+			decodeJSON(t, resp.Body.Bytes(), &errorResponse)
+			if errorResponse.Error.Code != "meal_plan_not_verifiable" {
+				t.Fatalf("error code = %q, want meal_plan_not_verifiable", errorResponse.Error.Code)
+			}
+			qualificationValue, ok := errorResponse.Error.Details["qualification"]
+			if !ok {
+				t.Fatalf("error details missing qualification: %+v", errorResponse.Error.Details)
+			}
+			qualificationBytes, err := json.Marshal(qualificationValue)
+			if err != nil {
+				t.Fatalf("marshal qualification detail: %v", err)
+			}
+			var qualification MealPlanQualificationResult
+			decodeJSON(t, qualificationBytes, &qualification)
+			if qualification.Status != tt.wantStatus {
+				t.Fatalf("qualification status = %q, want %q", qualification.Status, tt.wantStatus)
+			}
+			if qualification.ProviderUsed {
+				t.Fatal("provider_used = true, want false")
+			}
+			if pending.Count() != 0 {
+				t.Fatalf("pending count = %d, want 0", pending.Count())
+			}
+			stats, err := store.Stats(context.Background())
+			if err != nil {
+				t.Fatalf("store stats: %v", err)
+			}
+			if stats.Queued != 0 || stats.Running != 0 {
+				t.Fatalf("store stats queued/running = %d/%d, want 0/0", stats.Queued, stats.Running)
+			}
+		})
+	}
+}
+
 func TestLocalModelRunDecomposesClearMultiDayInput(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
@@ -328,6 +408,71 @@ func TestLocalModelRunDecomposesClearMultiDayInput(t *testing.T) {
 	}
 	if got := countMealPlanItems(plan); got != 18 {
 		t.Fatalf("plan item count = %d, want 18", got)
+	}
+}
+
+func TestLocalModelRunReportsFriendlyPostModelNormalizationFailure(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.HostedMode = HostedModeLocalModel
+	config.LocalModelEnabled = true
+	config.LocalModelBaseURL = "http://127.0.0.1:11435/v1"
+	config.LocalModelName = "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf"
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	provider := &fakeProvider{responses: []string{"this is not compact json"}}
+	settings := localModelTestSettings(seededCase(t, root).Settings)
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:     InputModeLocalModel,
+		Settings:      settings,
+		CandidateText: "Breakfast: 1 cup cooked oatmeal, 1 cup blueberries, 1 cup plain Greek yogurt.\nLunch: 4 oz chicken breast, 1 cup brown rice, 1 cup broccoli.\nDinner: 4 oz salmon, 1 cup sweet potato, 1 cup spinach.",
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		return provider, nil
+	}).ProcessOne(context.Background())
+	if err == nil {
+		t.Fatal("process run error = nil, want normalization failure")
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+	if provider.calls != 1 {
+		t.Fatalf("provider calls = %d, want 1", provider.calls)
+	}
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	if run.Status != StatusFailed {
+		t.Fatalf("run status = %q, want failed", run.Status)
+	}
+	for _, want := range []string{"could not normalize", "day labels", "meal labels", "quantities"} {
+		if !strings.Contains(run.Error, want) {
+			t.Fatalf("run error = %q, want %q", run.Error, want)
+		}
+	}
+	for _, absent := range []string{"compact", "JSON", "source item", "invalid character"} {
+		if strings.Contains(run.Error, absent) {
+			t.Fatalf("run error = %q, should not expose %q", run.Error, absent)
+		}
+	}
+	debugBytes := readFile(t, filepath.Join(run.ArtifactDir, "debug", "normalization-failure.json"))
+	var debug normalizationFailureArtifact
+	decodeJSON(t, debugBytes, &debug)
+	if !hasNormalizationEvent(debug.NormalizationEvents, "json_decode_failed") || !hasNormalizationEvent(debug.NormalizationEvents, "normalization_graceful_failed") {
+		t.Fatalf("debug events missing graceful local model failure events: %+v", debug.NormalizationEvents)
+	}
+	if !strings.Contains(debug.FinalError, "no JSON object found") {
+		t.Fatalf("debug final error = %q, want decode detail", debug.FinalError)
 	}
 }
 

@@ -189,7 +189,7 @@ func prepareLocalModelExtraction(ctx context.Context, config Config, provider Pr
 	output, plan, stage, err := requestLocalModelExtraction(ctx, provider, input.Provider, input, "local-model-"+run.ID)
 	if err != nil {
 		events = append(events, localModelFailureEvent(stage))
-		return checker.Plan{}, output, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+		return checker.Plan{}, output, events, writeLocalModelNormalizationFailureAndReturn(config, run, input, events, normalizationFailureDebug{
 			InitialOutput: output,
 			InitialError:  err,
 			FinalError:    err,
@@ -214,7 +214,7 @@ func prepareDecomposedLocalModelExtraction(ctx context.Context, config Config, p
 		if err != nil {
 			err = fmt.Errorf("day %d local model extraction failed: %w", section.Day, err)
 			events = append(events, localModelFailureEvent(stage))
-			return checker.Plan{}, combinedOutput, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+			return checker.Plan{}, combinedOutput, events, writeLocalModelNormalizationFailureAndReturn(config, run, input, events, normalizationFailureDebug{
 				InitialOutput: combinedOutput,
 				InitialError:  err,
 				FinalError:    err,
@@ -223,7 +223,7 @@ func prepareDecomposedLocalModelExtraction(ctx context.Context, config Config, p
 		if len(plan.Days) != 1 {
 			err := fmt.Errorf("day %d local model extraction returned %d day object(s), want 1", section.Day, len(plan.Days))
 			events = append(events, normalizationEvent("plan_constraints_failed", "per-day local model output did not preserve one day"))
-			return checker.Plan{}, combinedOutput, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+			return checker.Plan{}, combinedOutput, events, writeLocalModelNormalizationFailureAndReturn(config, run, input, events, normalizationFailureDebug{
 				InitialOutput: combinedOutput,
 				InitialError:  err,
 				FinalError:    err,
@@ -242,7 +242,7 @@ func prepareDecomposedLocalModelExtraction(ctx context.Context, config Config, p
 	combinedOutput := formatLocalModelSegmentOutputs(outputs, true)
 	if err := validateLocalModelExtractionCompleteness(plan, input.CandidateText); err != nil {
 		events = append(events, localModelFailureEvent(localModelFailureCompleteness))
-		return checker.Plan{}, combinedOutput, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+		return checker.Plan{}, combinedOutput, events, writeLocalModelNormalizationFailureAndReturn(config, run, input, events, normalizationFailureDebug{
 			InitialOutput: combinedOutput,
 			InitialError:  err,
 			FinalError:    err,
@@ -1087,6 +1087,33 @@ func writeNormalizationFailureAndReturn(config Config, run Run, provider Provide
 		return fmt.Errorf("%w; additionally failed to write normalization debug artifact: %v", finalErr, err)
 	}
 	return finalErr
+}
+
+func writeLocalModelNormalizationFailureAndReturn(config Config, run Run, input PendingRunInput, events []NormalizationEvent, failure normalizationFailureDebug) error {
+	result := classifyCandidateMealPlanText(input.CandidateText)
+	if isTerminalQualificationFailure(result) {
+		events = append(events, normalizationEvent("qualification_failed_post_model", "candidate text was classified as not ready for verification after local model normalization failed"))
+	} else {
+		events = append(events, normalizationEvent("normalization_graceful_failed", "local model output could not be normalized into a verifiable meal plan"))
+	}
+	if failure.FinalError == nil {
+		failure.FinalError = failure.InitialError
+	}
+	if failure.FinalError == nil {
+		failure.FinalError = fmt.Errorf("local model output failed normalization")
+	}
+	publicMessage := localModelPublicFailureMessage(result)
+	if err := writeNormalizationFailureDebug(config, run, input.Provider, events, failure); err != nil {
+		return fmt.Errorf("%s; additionally failed to write normalization debug artifact: %v", publicMessage, err)
+	}
+	return fmt.Errorf("%s", publicMessage)
+}
+
+func localModelPublicFailureMessage(result MealPlanQualificationResult) string {
+	if isTerminalQualificationFailure(result) && strings.TrimSpace(result.Reason) != "" {
+		return result.Reason
+	}
+	return "MealCheck could not normalize this text into a verifiable meal plan. Use clear day labels, meal labels, food names, numeric quantities, and supported units."
 }
 
 func writeNormalizationFailureDebug(config Config, run Run, provider ProviderConfig, events []NormalizationEvent, failure normalizationFailureDebug) error {

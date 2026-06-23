@@ -376,6 +376,33 @@ Rules:
   verification.
 - `provider` is rejected in `local_model` requests.
 
+Before queueing a `local_model` run, the backend applies a deterministic
+meal-plan qualification preflight. Obvious non-meal text, meal-like text without
+quantities or units, and recipe-like text that has not been decomposed into
+day/meal/ingredient rows return `422` and do not call the model:
+
+```json
+{
+  "error": {
+    "code": "meal_plan_not_verifiable",
+    "message": "The text does not describe days, meals, recipes, or ingredient-level meal-plan content.",
+    "details": {
+      "qualification": {
+        "schema_version": "0.1",
+        "status": "not_meal_plan",
+        "reason": "The text does not describe days, meals, recipes, or ingredient-level meal-plan content.",
+        "missing_fields": ["meal_plan_content"],
+        "provider_used": false
+      }
+    }
+  }
+}
+```
+
+If local-model normalization fails after preflight, the run may still fail, but
+the public run error is phrased as user guidance. Sanitized parser and model
+details are preserved in `debug/normalization-failure.json` for operators.
+
 ### BYOK Targets Generation Request
 
 ```bash

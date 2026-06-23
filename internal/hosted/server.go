@@ -298,6 +298,13 @@ func (s *Server) createRun(w http.ResponseWriter, r *http.Request) {
 
 	casePath, pendingInput, hasPending, err := requestRunInput(s.Config, request)
 	if err != nil {
+		var qualificationErr qualificationRejectionError
+		if errors.As(err, &qualificationErr) {
+			writeError(w, r, http.StatusUnprocessableEntity, "meal_plan_not_verifiable", qualificationErr.Error(), map[string]any{
+				"qualification": qualificationErr.Qualification,
+			})
+			return
+		}
 		writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 		return
 	}
@@ -428,6 +435,10 @@ func requestRunInput(config Config, request CreateRunRequest) (string, PendingRu
 		}
 		if err := validateLocalModelSettings(pendingInput.Settings); err != nil {
 			return "", PendingRunInput{}, false, err
+		}
+		qualification := classifyCandidateMealPlanText(pendingInput.CandidateText)
+		if isTerminalQualificationFailure(qualification) {
+			return "", PendingRunInput{}, false, qualificationRejectionError{Qualification: qualification}
 		}
 		pendingInput.Provider = localModelProviderConfig(config)
 		pendingInput.RepairJSON = false

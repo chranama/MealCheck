@@ -6,6 +6,7 @@ import {
   fetchHealth,
   joinUrl,
   qualifyMealPlan,
+  qualificationFromApiError,
   requestJSON,
 } from "../api";
 import { DEFAULT_SETTINGS } from "../../constants";
@@ -186,5 +187,37 @@ describe("api", () => {
     expect(error.status).toBe(500);
     expect(error.bodyText).toBe("server failed");
     expect(error.message).toBe("HTTP 500: server failed");
+  });
+
+  it("extracts qualification details from run creation errors", () => {
+    const error = new ApiError(422, "not verifiable", {
+      error: {
+        code: "meal_plan_not_verifiable",
+        message: "The text does not describe a meal plan.",
+        details: {
+          qualification: {
+            schema_version: "0.1",
+            status: "not_meal_plan",
+            reason: "The text does not describe days, meals, recipes, or ingredient-level meal-plan content.",
+            missing_fields: ["meal_plan_content"],
+            provider_used: false,
+          },
+        },
+      },
+    });
+
+    expect(qualificationFromApiError(error)).toMatchObject({
+      status: "not_meal_plan",
+      provider_used: false,
+    });
+  });
+
+  it("ignores non-qualification API errors", () => {
+    const error = new ApiError(500, "server failed", {
+      error: { code: "store_error", message: "database unavailable" },
+    });
+
+    expect(qualificationFromApiError(error)).toBeNull();
+    expect(qualificationFromApiError(new Error("network failed"))).toBeNull();
   });
 });

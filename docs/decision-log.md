@@ -1769,3 +1769,35 @@ Consequences:
   before calling llama.cpp.
 - If live seven-day snack-inclusive tests require more room, that should be a
   separate experimental tier rather than the public default.
+
+## 2026-06-23: Hosted Local Model Fails Gracefully For Non-Meal Inputs
+
+Status: Accepted
+
+Decision:
+
+Hosted `local_model` run creation applies deterministic meal-plan qualification
+before queueing a run. Inputs that are clearly not meal plans, are meal-like but
+lack quantities or units, or are recipe-like without day/meal decomposition
+return `422 meal_plan_not_verifiable` with a structured qualification result.
+These requests do not call the local model and do not create queued runs.
+
+If an input passes preflight but local-model normalization later fails, the run
+still fails, but the public error is a guidance-oriented message. Sanitized model
+output, parser errors, and normalization events remain in
+`debug/normalization-failure.json` for debugging.
+
+Reason:
+
+The public hosted product should behave like a meal-plan verifier, not a parser
+debugging tool. Obvious non-meal inputs should stop quickly and explain what is
+missing. Borderline failures after the model runs should avoid leaking compact
+contract, parser, or source-item implementation details into the consumer UI.
+
+Consequences:
+
+- Fast-failed inputs avoid queue and local-model capacity.
+- The frontend can reuse the qualification notice for expected refusal states.
+- Operators still have redacted debug artifacts for post-model failures.
+- The preflight must remain conservative so plausible meal plans are sent to the
+  model rather than incorrectly rejected.

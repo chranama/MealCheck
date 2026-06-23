@@ -8,6 +8,7 @@ import {
   fetchRun,
   loadLiveArtifacts as loadLiveArtifactsForRun,
   qualifyMealPlan,
+  qualificationFromApiError,
 } from "./lib/api";
 import { configuredApiBase } from "./lib/runtime_config";
 import { LiveWorkspace } from "./components/live-run/LiveWorkspace";
@@ -112,6 +113,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     setArtifacts(null);
     setActiveTab("checks");
     setError("");
+    setQualification(INITIAL_QUALIFICATION);
     setLive({
       runID: "",
       status: "queued",
@@ -120,7 +122,29 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
       artifactItems: [],
     });
 
-    const created = await createRun(cleanBase, inviteToken, payload);
+    let created: Awaited<ReturnType<typeof createRun>>;
+    try {
+      created = await createRun(cleanBase, inviteToken, payload);
+    } catch (error) {
+      const qualificationResult = qualificationFromApiError(error);
+      if (qualificationResult) {
+        const message = qualificationMessage(qualificationResult);
+        setQualification({
+          status: "completed",
+          message,
+          result: qualificationResult,
+        });
+        setLive({
+          runID: "",
+          status: "failed",
+          message: "MealCheck could not start a report because this input is not ready for verification.",
+          events: [],
+          artifactItems: [],
+        });
+        return;
+      }
+      throw error;
+    }
     setLive((current) => ({
       ...current,
       runID: created.run_id,
