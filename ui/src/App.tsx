@@ -271,6 +271,9 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
       </main>
 
       <footer className="site-footer">
+        <a href="/about.html">
+          About MealCheck
+        </a>
         <a href="https://github.com/chranama/MealCheck" target="_blank" rel="noreferrer">
           View MealCheck on GitHub
         </a>
