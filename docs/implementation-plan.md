@@ -2490,3 +2490,40 @@ Acceptance:
 - the seeded proof remains inspectable from the repository.
 - backend demo endpoints and checked-in fixtures can remain for compatibility,
   tests, and developer workflows.
+
+## Milestone 30: Per-Day Local-Model Extraction
+
+Status: Implemented on 2026-06-23.
+
+Purpose:
+
+Reduce local-model output pressure and improve multi-day robustness by
+decomposing clear multi-day natural-language inputs before they reach the small
+llama.cpp model.
+
+Deliver:
+
+- detect unambiguous `Day N` sections for every requested hosted local-model day
+- rewrite each section into a one-day extraction prompt
+- call the server-owned local model once per day
+- restore original day numbers and merge canonical MealCheck plan days
+- preserve the existing whole-plan fallback for ambiguous inputs
+- record normalization events when decomposition is used
+
+Implemented:
+
+1. Added per-day local-model extraction orchestration in the hosted backend.
+2. Added conservative day-section detection that requires complete day coverage
+   and at least one resolved source item per section.
+3. Reused the compact row contract for each one-day call and merged decoded
+   canonical day plans before deterministic verification.
+4. Kept total source-item count validation after the merge so omitted rows still
+   fail closed.
+5. Documented the behavior in the API docs and decision log.
+
+Acceptance:
+
+- `go test ./...` passes.
+- clear two-day local-model input creates one provider call per day.
+- normalized output preserves original day numbers and total item count.
+- ambiguous multi-day text falls back to whole-plan extraction.

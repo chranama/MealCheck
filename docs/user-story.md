@@ -86,6 +86,21 @@ A verifiable meal plan must answer:
 - what quantities and units are attached to those foods
 - which items are unresolved when quantities or foods cannot be normalized
 
+For multi-day natural-language input, the preferred shape is explicit
+day-labeled sections:
+
+```text
+Day 1 breakfast: 1 cup oatmeal, 0.5 cup blueberries.
+Day 1 lunch: 4 oz chicken breast, 1 cup brown rice.
+Day 2 breakfast: 2 eggs, 1 cup orange segments.
+Day 2 lunch: 4 oz tuna, 2 cups mixed greens.
+```
+
+Clear day labels support the hosted local-model decomposition path. Ambiguous
+multi-day input remains valid only if it can be normalized without guessing; the
+backend falls back to unbatched whole-plan extraction when day boundaries are
+not clear enough to split.
+
 Not eligible:
 
 ```text

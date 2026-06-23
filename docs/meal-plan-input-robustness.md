@@ -40,6 +40,19 @@ Required:
 - enough line, sentence, or delimiter structure to associate each food item
   with the correct day and meal
 
+Ideal multi-day format:
+
+- start each day with an explicit label such as `Day 1`, `Day 2`, and `Day 3`
+- keep day labels contiguous and in order for the requested verification window
+- group breakfast, lunch, dinner, and any snacks under the day they belong to
+- keep each food item close to its quantity and unit
+- avoid cross-day shorthand such as "repeat yesterday's lunch" or "same snacks"
+
+Clear `Day N` sections let the hosted local-model path decompose a multi-day
+input into one model call per day, then merge the normalized days back into one
+canonical plan. If the day boundaries are ambiguous or incomplete, the backend
+uses the unbatched whole-plan fallback instead of silently guessing.
+
 Supported unit vocabulary for the first robustness dataset:
 
 - `g` or grams
@@ -115,8 +128,9 @@ valid meal plan may still fail nutrition, allergen, or prep-safety checks.
 
 Public copy should stay non-technical. It should say that MealCheck works best
 with plans that list days, meals, foods or ingredients, and approximate amounts.
-It should not mention schemas, compact rows, model contracts, APIs, or internal
-adapters.
+For multi-day plans, it should encourage clear `Day 1`, `Day 2`, and `Day 3`
+style labels. It should not mention schemas, compact rows, model contracts,
+APIs, batching, fallback paths, or internal adapters.
 
 ## Future Dataset Slices
 

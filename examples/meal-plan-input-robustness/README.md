@@ -9,6 +9,12 @@ Each case should satisfy the internal "good meal plan" boundary documented in
 and units clearly enough that MealCheck can normalize the text before running
 deterministic verification.
 
+For multi-day cases, prefer explicit `Day 1`, `Day 2`, and `Day 3` labels with
+meals and ingredient quantities grouped under the matching day. That shape
+exercises the hosted local-model per-day decomposition path. Ambiguous but still
+acceptable multi-day text should be tracked separately because it exercises the
+unbatched whole-plan fallback.
+
 ## Files
 
 - `manifest.json`: case metadata, expected item counts, day counts, and coverage
@@ -27,8 +33,8 @@ Suggested progression:
 2. Run each one-day, three-meal case through the existing local llama smoke
    script by setting `MEALCHECK_LLAMA_PROMPT_FILE`, or use
    `scripts/test-meal-plan-input-robustness.sh`.
-3. Use the multi-day and snack cases for hosted local-model regression once the
-   harness supports per-case expected days and meal-code sets.
+3. Use the multi-day and snack cases for hosted local-model regression,
+   especially after changes to day-section splitting or the unbatched fallback.
 
 The dataset does not include intentionally invalid inputs. Invalid and vague
 inputs belong in qualification tests, not in this acceptable-input normalization

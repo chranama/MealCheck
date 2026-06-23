@@ -316,20 +316,40 @@ rows in the form `[source_item_id, day, meal_code, food, quantity, unit]`. The
 backend numbers resolved source item lines before prompting the model, then
 rejects outputs with missing or duplicated source item IDs.
 
+When the text has clear `Day N` sections for every requested day, the backend
+splits the input into per-day extraction calls before it reaches the local
+model. Each day is normalized with a smaller one-day prompt, then the backend
+restores the original day number and merges the days into one canonical
+MealCheck plan. Ambiguous day boundaries fall back to the whole-plan compact
+contract.
+
+For best results, multi-day `candidate_text` should label every requested day
+explicitly and keep foods, quantities, and units under the matching day:
+
+```text
+Day 1 breakfast: 1 cup cooked oatmeal, 0.5 cup blueberries, and 1 cup plain Greek yogurt.
+Day 1 lunch: 4 oz grilled chicken breast, 1 cup brown rice, and 1 cup steamed broccoli.
+Day 2 breakfast: 2 eggs, 1 cup whole wheat toast, and 1 cup orange segments.
+Day 2 lunch: 4 oz tuna, 2 cups mixed greens, and 1 tsp vinaigrette.
+```
+
+The unbatched fallback is intentionally preserved for clients that send
+acceptable but less regular meal-plan text.
+
 Clients must omit `provider`; the backend injects the configured local model
 endpoint and model id.
 
 ```json
 {
   "input_mode": "local_model",
-  "candidate_text": "Breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.\nLunch: 4 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.\nDinner: 4 oz salmon, 1 cup sweet potato, and 1 cup spinach.",
+  "candidate_text": "Day 1 breakfast: 1 cup cooked oatmeal, 0.5 cup blueberries, and 1 cup plain Greek yogurt.\nDay 1 lunch: 4 oz grilled chicken breast, 1 cup brown rice, and 1 cup steamed broccoli.\nDay 1 dinner: 4 oz baked salmon, 1 serving sweet potato, and 1 tbsp olive oil.\nDay 2 breakfast: 2 eggs, 1 cup whole wheat toast, and 1 cup orange segments.\nDay 2 lunch: 4 oz tuna, 2 cups mixed greens, and 1 tsp vinaigrette.\nDay 2 dinner: 5 oz turkey meatballs, 1 cup whole wheat pasta, and 1 cup tomato sauce.\nDay 3 breakfast: 1 cup cottage cheese, 1 serving pineapple, and 1 cup whole grain cereal.\nDay 3 lunch: 4 oz tofu, 1 cup soba noodles, and 1 cup bok choy.\nDay 3 dinner: 5 oz lean beef, 1 cup roasted carrots, and 1 cup barley.",
   "settings": {
     "nutrition_targets": {
       "calorie_target_kcal": 2000,
       "protein_target_g": 98
     },
     "verification_constraints": {
-      "days": 1,
+      "days": 3,
       "meals_per_day": 3,
       "allergies": ["peanuts"],
       "excluded_foods": ["shellfish"],

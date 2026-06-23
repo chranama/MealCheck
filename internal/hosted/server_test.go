@@ -251,6 +251,86 @@ func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
 	}
 }
 
+func TestLocalModelRunDecomposesClearMultiDayInput(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.HostedMode = HostedModeLocalModel
+	config.LocalModelEnabled = true
+	config.LocalModelBaseURL = "http://127.0.0.1:11435/v1"
+	config.LocalModelName = "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf"
+	config.LocalModelMaxInputChars = 2_000
+	config.LocalModelMaxOutputTokens = 160
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	provider := &fakeProvider{responses: []string{compactLocalMealPlanJSON(), compactLocalMealPlanJSON()}}
+	seeded := seededCase(t, root)
+	settings := localModelTestSettings(seeded.Settings)
+	settings.VerificationConstraints.Days = 2
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode: InputModeLocalModel,
+		Settings:  settings,
+		CandidateText: strings.Join([]string{
+			"Day 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.",
+			"Day 1 lunch: 4 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.",
+			"Day 1 dinner: 4 oz salmon, 1 cup sweet potato, and 1 cup spinach.",
+			"Day 2 breakfast: 2 eggs, 1 cup whole wheat toast, and 1 cup orange segments.",
+			"Day 2 lunch: 4 oz tuna, 2 cups mixed greens, and 1 tsp vinaigrette.",
+			"Day 2 dinner: 5 oz turkey meatballs, 1 cup whole wheat pasta, and 1 cup tomato sauce.",
+		}, "\n"),
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		return provider, nil
+	}).ProcessOne(context.Background())
+	if err != nil {
+		t.Fatalf("process run: %v", err)
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+	if provider.calls != 2 {
+		t.Fatalf("provider calls = %d, want one per day", provider.calls)
+	}
+	if strings.Contains(provider.messages[1][1].Content, "Day 2") {
+		t.Fatalf("second provider prompt was not rewritten for one-day extraction:\n%s", provider.messages[1][1].Content)
+	}
+	if !strings.Contains(provider.messages[1][1].Content, "Use day numbers 1..1.") {
+		t.Fatalf("second provider prompt missing one-day constraint:\n%s", provider.messages[1][1].Content)
+	}
+
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	if run.Status != StatusCompleted {
+		t.Fatalf("run status = %q, want completed; error=%s", run.Status, run.Error)
+	}
+	var events []NormalizationEvent
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "normalization-events.json")), &events)
+	if !hasNormalizationEvent(events, "local_model_decomposed") || !hasNormalizationEvent(events, "json_decoded") {
+		t.Fatalf("normalization events missing decomposition lifecycle: %+v", events)
+	}
+	var plan checker.Plan
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "normalized-plan.json")), &plan)
+	if len(plan.Days) != 2 {
+		t.Fatalf("plan days = %d, want 2", len(plan.Days))
+	}
+	if plan.Days[0].Day != 1 || plan.Days[1].Day != 2 {
+		t.Fatalf("plan day numbers = %d/%d, want 1/2", plan.Days[0].Day, plan.Days[1].Day)
+	}
+	if got := countMealPlanItems(plan); got != 18 {
+		t.Fatalf("plan item count = %d, want 18", got)
+	}
+}
+
 func TestProfileGenerationRedactsSuccessfulLLMOutputArtifact(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)

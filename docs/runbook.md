@@ -259,7 +259,7 @@ curl -X POST http://127.0.0.1:8080/api/runs \
   -H 'Content-Type: application/json' \
   -d '{
     "input_mode": "local_model",
-    "candidate_text": "Day 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.\nDay 1 lunch: 6 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.\nDay 1 dinner: 6 oz salmon, 1 cup sweet potato, and 1 cup spinach.",
+    "candidate_text": "Day 1 breakfast: 1 cup cooked oatmeal, 0.5 cup blueberries, and 1 cup plain Greek yogurt.\nDay 1 lunch: 4 oz grilled chicken breast, 1 cup brown rice, and 1 cup steamed broccoli.\nDay 1 dinner: 4 oz baked salmon, 1 serving sweet potato, and 1 tbsp olive oil.\nDay 2 breakfast: 2 eggs, 1 cup whole wheat toast, and 1 cup orange segments.\nDay 2 lunch: 4 oz tuna, 2 cups mixed greens, and 1 tsp vinaigrette.\nDay 2 dinner: 5 oz turkey meatballs, 1 cup whole wheat pasta, and 1 cup tomato sauce.\nDay 3 breakfast: 1 cup cottage cheese, 1 serving pineapple, and 1 cup whole grain cereal.\nDay 3 lunch: 4 oz tofu, 1 cup soba noodles, and 1 cup bok choy.\nDay 3 dinner: 5 oz lean beef, 1 cup roasted carrots, and 1 cup barley.",
     "settings": {
       "nutrition_targets": {
         "calorie_target_kcal": 2000,

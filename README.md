@@ -53,6 +53,11 @@ The hosted website is a bounded local-model verification demo: paste a concise
 ingredient-level meal plan and receive a source-backed report. The downloaded
 repository is the higher-control local verifier/debug surface, the BYOK/custom
 endpoint surface, and the intended base for future agent-tool integration.
+Multi-day hosted inputs work best when each day is labeled explicitly, such as
+`Day 1`, `Day 2`, and `Day 3`, with meals and ingredient amounts grouped under
+the correct day. Clear day sections let the backend process each day in a
+smaller local-model call; ambiguous multi-day text falls back to the unbatched
+whole-plan path.
 
 The tightened product direction adds first-class meal-plan qualification before
 verification: candidate text may be not a meal plan, too vague, recipe-like but

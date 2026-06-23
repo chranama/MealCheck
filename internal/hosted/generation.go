@@ -138,39 +138,10 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		}
 		providerRedacted = redactProvider(input.Provider)
 		usedProvider = true
-		messages, err := localModelExtractionMessages(input)
+		plan, llmOutput, events, err = prepareLocalModelExtraction(ctx, config, provider, run, input, events)
 		if err != nil {
 			return PreparedRun{}, err
 		}
-		llmOutput, err = provider.Complete(ctx, input.Provider, messages)
-		if err != nil {
-			events = append(events, normalizationEvent("provider_request_failed", "local model request failed before returning compact meal-plan JSON"))
-			return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
-				FinalError: err,
-			})
-		}
-		initialOutput = llmOutput
-		events = append(events, normalizationEvent("llm_output_received", "local model returned compact meal-plan JSON"))
-		plan, err = DecodeLocalLlamaCompactPlan(llmOutput, "local-model-"+run.ID)
-		if err != nil {
-			initialErr = err
-			events = append(events, normalizationEvent("json_decode_failed", "local model output was not valid compact meal-plan JSON"))
-			return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
-				InitialOutput: initialOutput,
-				InitialError:  initialErr,
-				FinalError:    initialErr,
-			})
-		}
-		if err := validateLocalModelExtractionCompleteness(plan, input.CandidateText); err != nil {
-			initialErr = err
-			events = append(events, normalizationEvent("item_count_failed", "local model output did not preserve the resolved source item count"))
-			return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
-				InitialOutput: initialOutput,
-				InitialError:  initialErr,
-				FinalError:    initialErr,
-			})
-		}
-		events = append(events, normalizationEvent("json_decoded", "local model compact output decoded into normalized MealCheck JSON"))
 	default:
 		return PreparedRun{}, fmt.Errorf("unsupported input_mode %q", input.Mode)
 	}
@@ -196,6 +167,134 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		RedactedProvider:    providerRedacted,
 		UsedProvider:        usedProvider,
 	}, nil
+}
+
+type localModelSegmentOutput struct {
+	Day    int    `json:"day,omitempty"`
+	Output string `json:"output"`
+}
+
+type localModelExtractionFailureStage string
+
+const (
+	localModelFailureProvider     localModelExtractionFailureStage = "provider"
+	localModelFailureDecode       localModelExtractionFailureStage = "decode"
+	localModelFailureCompleteness localModelExtractionFailureStage = "completeness"
+)
+
+func prepareLocalModelExtraction(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, events []NormalizationEvent) (checker.Plan, string, []NormalizationEvent, error) {
+	if sections, ok := localModelDaySections(input.CandidateText, input.Settings.VerificationConstraints.Days); ok && len(sections) > 1 {
+		return prepareDecomposedLocalModelExtraction(ctx, config, provider, run, input, sections, events)
+	}
+	output, plan, stage, err := requestLocalModelExtraction(ctx, provider, input.Provider, input, "local-model-"+run.ID)
+	if err != nil {
+		events = append(events, localModelFailureEvent(stage))
+		return checker.Plan{}, output, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+			InitialOutput: output,
+			InitialError:  err,
+			FinalError:    err,
+		})
+	}
+	events = append(events, normalizationEvent("llm_output_received", "local model returned compact meal-plan JSON"))
+	events = append(events, normalizationEvent("json_decoded", "local model compact output decoded into normalized MealCheck JSON"))
+	return plan, output, events, nil
+}
+
+func prepareDecomposedLocalModelExtraction(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, sections []localModelDaySection, events []NormalizationEvent) (checker.Plan, string, []NormalizationEvent, error) {
+	events = append(events, normalizationEvent("local_model_decomposed", fmt.Sprintf("candidate text was split into %d per-day local model extraction calls", len(sections))))
+	outputs := make([]localModelSegmentOutput, 0, len(sections))
+	days := make([]checker.PlanDay, 0, len(sections))
+	for _, section := range sections {
+		sectionInput := input
+		sectionInput.CandidateText = section.Text
+		sectionInput.Settings.VerificationConstraints.Days = 1
+		output, plan, stage, err := requestLocalModelExtraction(ctx, provider, input.Provider, sectionInput, fmt.Sprintf("local-model-%s-day-%d", run.ID, section.Day))
+		outputs = append(outputs, localModelSegmentOutput{Day: section.Day, Output: output})
+		combinedOutput := formatLocalModelSegmentOutputs(outputs, true)
+		if err != nil {
+			err = fmt.Errorf("day %d local model extraction failed: %w", section.Day, err)
+			events = append(events, localModelFailureEvent(stage))
+			return checker.Plan{}, combinedOutput, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+				InitialOutput: combinedOutput,
+				InitialError:  err,
+				FinalError:    err,
+			})
+		}
+		if len(plan.Days) != 1 {
+			err := fmt.Errorf("day %d local model extraction returned %d day object(s), want 1", section.Day, len(plan.Days))
+			events = append(events, normalizationEvent("plan_constraints_failed", "per-day local model output did not preserve one day"))
+			return checker.Plan{}, combinedOutput, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+				InitialOutput: combinedOutput,
+				InitialError:  err,
+				FinalError:    err,
+			})
+		}
+		day := plan.Days[0]
+		day.Day = section.Day
+		days = append(days, day)
+		events = append(events, normalizationEvent("llm_output_received", fmt.Sprintf("local model returned compact meal-plan JSON for day %d", section.Day)))
+	}
+	plan := checker.Plan{
+		SchemaVersion: "0.1",
+		PlanID:        "local-model-" + run.ID,
+		Days:          days,
+	}
+	combinedOutput := formatLocalModelSegmentOutputs(outputs, true)
+	if err := validateLocalModelExtractionCompleteness(plan, input.CandidateText); err != nil {
+		events = append(events, localModelFailureEvent(localModelFailureCompleteness))
+		return checker.Plan{}, combinedOutput, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
+			InitialOutput: combinedOutput,
+			InitialError:  err,
+			FinalError:    err,
+		})
+	}
+	events = append(events, normalizationEvent("json_decoded", "per-day local model compact outputs decoded and merged into normalized MealCheck JSON"))
+	return plan, combinedOutput, events, nil
+}
+
+func requestLocalModelExtraction(ctx context.Context, provider Provider, providerConfig ProviderConfig, input PendingRunInput, planID string) (string, checker.Plan, localModelExtractionFailureStage, error) {
+	messages, err := localModelExtractionMessages(input)
+	if err != nil {
+		return "", checker.Plan{}, localModelFailureDecode, err
+	}
+	output, err := provider.Complete(ctx, providerConfig, messages)
+	if err != nil {
+		return output, checker.Plan{}, localModelFailureProvider, err
+	}
+	plan, err := DecodeLocalLlamaCompactPlan(output, planID)
+	if err != nil {
+		return output, checker.Plan{}, localModelFailureDecode, err
+	}
+	if err := validateLocalModelExtractionCompleteness(plan, input.CandidateText); err != nil {
+		return output, checker.Plan{}, localModelFailureCompleteness, err
+	}
+	return output, plan, "", nil
+}
+
+func localModelFailureEvent(stage localModelExtractionFailureStage) NormalizationEvent {
+	switch stage {
+	case localModelFailureProvider:
+		return normalizationEvent("provider_request_failed", "local model request failed before returning compact meal-plan JSON")
+	case localModelFailureCompleteness:
+		return normalizationEvent("item_count_failed", "local model output did not preserve the resolved source item count")
+	default:
+		return normalizationEvent("json_decode_failed", "local model output was not valid compact meal-plan JSON")
+	}
+}
+
+func formatLocalModelSegmentOutputs(outputs []localModelSegmentOutput, decomposed bool) string {
+	if !decomposed && len(outputs) == 1 {
+		return outputs[0].Output
+	}
+	payload := map[string]any{
+		"mode":    "per_day",
+		"outputs": outputs,
+	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return ""
+	}
+	return string(b)
 }
 
 func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, plan checker.Plan, llmOutput string, initialOutput string, initialErr error, repairOutput string, repairErr error, repairAttempted bool, events []NormalizationEvent) (checker.Plan, string, string, error, bool, []NormalizationEvent, error) {
@@ -420,6 +519,11 @@ type localLlamaSourceItem struct {
 	Text     string
 }
 
+type localModelDaySection struct {
+	Day  int
+	Text string
+}
+
 var (
 	localLlamaResolvedItemLinePattern = regexp.MustCompile(`(?i)^\s*(?:[-*]|\d+[.)])\s+(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s*(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|servings?)\b`)
 	localLlamaInlineItemPattern       = regexp.MustCompile(`(?i)^\s*((?:\d+(?:\.\d+)?)|(?:\d+\s*/\s*\d+)|(?:\d+\s+\d+\s*/\s*\d+))\s+((?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|servings?)\s+)?(.+?)\s*$`)
@@ -431,6 +535,82 @@ var (
 
 func localLlamaExpectedResolvedItemCount(text string) int {
 	return len(localLlamaResolvedSourceItems(text))
+}
+
+func localModelDaySections(text string, expectedDays int) ([]localModelDaySection, bool) {
+	if expectedDays <= 1 {
+		return nil, false
+	}
+	lines := strings.Split(strings.TrimSpace(text), "\n")
+	if len(lines) == 0 {
+		return nil, false
+	}
+
+	var sections []localModelDaySection
+	var current strings.Builder
+	currentDay := 0
+	seen := map[int]bool{}
+	sawDayMarker := false
+
+	flush := func() bool {
+		if currentDay == 0 {
+			return true
+		}
+		sectionText := strings.TrimSpace(current.String())
+		if sectionText == "" || localLlamaExpectedResolvedItemCount(sectionText) == 0 {
+			return false
+		}
+		sections = append(sections, localModelDaySection{Day: currentDay, Text: sectionText})
+		seen[currentDay] = true
+		current.Reset()
+		return true
+	}
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			if currentDay != 0 {
+				current.WriteString("\n")
+			}
+			continue
+		}
+		day := localLlamaDayFromHeading(trimmed)
+		if day > 0 {
+			sawDayMarker = true
+			if day > expectedDays {
+				return nil, false
+			}
+			if currentDay == 0 {
+				currentDay = day
+			} else if day != currentDay {
+				if seen[day] || !flush() {
+					return nil, false
+				}
+				currentDay = day
+			}
+			line = localLlamaRewriteDayHeading(line, 1)
+		} else if currentDay == 0 {
+			return nil, false
+		}
+		current.WriteString(line)
+		current.WriteString("\n")
+	}
+	if !sawDayMarker || !flush() {
+		return nil, false
+	}
+	if len(sections) != expectedDays {
+		return nil, false
+	}
+	for day := 1; day <= expectedDays; day++ {
+		if !seen[day] {
+			return nil, false
+		}
+	}
+	return sections, true
+}
+
+func localLlamaRewriteDayHeading(line string, day int) string {
+	return localLlamaDayHeadingPattern.ReplaceAllString(line, fmt.Sprintf("Day %d", day))
 }
 
 func localLlamaSourceItemsPromptBlock(text string) string {

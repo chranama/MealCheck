@@ -473,14 +473,14 @@ Hosted local-model verification:
 ```json
 {
   "input_mode": "local_model",
-  "candidate_text": "Day 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.",
+  "candidate_text": "Day 1 breakfast: 1 cup cooked oatmeal, 0.5 cup blueberries, and 1 cup plain Greek yogurt.\nDay 1 lunch: 4 oz grilled chicken breast, 1 cup brown rice, and 1 cup steamed broccoli.\nDay 1 dinner: 4 oz baked salmon, 1 serving sweet potato, and 1 tbsp olive oil.\nDay 2 breakfast: 2 eggs, 1 cup whole wheat toast, and 1 cup orange segments.\nDay 2 lunch: 4 oz tuna, 2 cups mixed greens, and 1 tsp vinaigrette.\nDay 2 dinner: 5 oz turkey meatballs, 1 cup whole wheat pasta, and 1 cup tomato sauce.\nDay 3 breakfast: 1 cup cottage cheese, 1 serving pineapple, and 1 cup whole grain cereal.\nDay 3 lunch: 4 oz tofu, 1 cup soba noodles, and 1 cup bok choy.\nDay 3 dinner: 5 oz lean beef, 1 cup roasted carrots, and 1 cup barley.",
   "settings": {
     "nutrition_targets": {
       "calorie_target_kcal": 2000,
       "protein_target_g": 98
     },
     "verification_constraints": {
-      "days": 1,
+      "days": 3,
       "meals_per_day": 3,
       "allergies": ["peanuts"],
       "excluded_foods": ["shellfish"],
@@ -564,6 +564,10 @@ Rules:
   verification belongs to CLI/local case files.
 - `local_model` requires `candidate_text`, rejects `provider`, and uses the
   configured server-owned local model provider.
+- Multi-day `local_model` inputs work best with explicit `Day N` labels for
+  every requested day. Clear day sections are split into one local-model call
+  per day and merged afterward; ambiguous day boundaries use the unbatched
+  whole-plan fallback.
 - `profile_generation` and `prompt_generation` require a BYOK provider with
   `model` and `api_key`.
 - Hosted and CLI case contracts use `settings.nutrition_targets` and

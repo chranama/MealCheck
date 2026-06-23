@@ -1699,3 +1699,35 @@ Consequences:
 - GitHub cannot execute arbitrary app HTML inside README, so the repo artifact
   is a standalone HTML file that can be viewed as source, opened locally, or
   served through GitHub Pages if that is enabled later.
+
+## 2026-06-23: Local Model Splits Clear Multi-Day Inputs Per Day
+
+Status: Accepted
+
+Decision:
+
+When hosted `local_model` input has unambiguous `Day N` boundaries for every
+requested day, MealCheck splits the candidate text into per-day extraction
+calls before sending it to llama.cpp. Each section is rewritten as a one-day
+prompt, normalized through the compact local row contract, restored to its
+original day number, merged into one canonical MealCheck plan, and then checked
+through the existing deterministic verifier. Ambiguous or incomplete day
+coverage falls back to the existing whole-plan local-model extraction path.
+
+Reason:
+
+Live multi-day tests showed that three-day inputs were not close to the
+`2048` context limit, but were close to the local model's output token cap.
+Per-day extraction bounds each model call, improves failure isolation, and
+makes longer hosted inputs more feasible on the small CPU-only llama.cpp
+deployment without immediately raising context or output limits.
+
+Consequences:
+
+- Clear multi-day hosted local-model submissions make one model call per day.
+- The backend continues to validate total extracted item count after merging.
+- Normalization events include `local_model_decomposed` when this path is used.
+- Ambiguous day structure remains supported through the previous whole-plan
+  path rather than being rejected solely because decomposition failed.
+- With one llama slot, latency may not fall linearly, but output-cap pressure
+  and schema drift risk are reduced.

@@ -103,6 +103,45 @@ func TestLocalModelExtractionMessagesPreservesAndInsideFoodNames(t *testing.T) {
 	}
 }
 
+func TestLocalModelDaySectionsRewritesEachDayForSingleDayExtraction(t *testing.T) {
+	sections, ok := localModelDaySections(strings.Join([]string{
+		"Day 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.",
+		"Day 1 lunch: 4 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.",
+		"Day 1 dinner: 4 oz salmon, 1 cup sweet potato, and 1 cup spinach.",
+		"Day 2 breakfast: 2 eggs, 1 cup whole wheat toast, and 1 cup orange segments.",
+		"Day 2 lunch: 4 oz tuna, 2 cups mixed greens, and 1 tsp vinaigrette.",
+		"Day 2 dinner: 5 oz turkey meatballs, 1 cup whole wheat pasta, and 1 cup tomato sauce.",
+	}, "\n"), 2)
+	if !ok {
+		t.Fatal("localModelDaySections ok = false, want true")
+	}
+	if len(sections) != 2 {
+		t.Fatalf("sections length = %d, want 2", len(sections))
+	}
+	if sections[0].Day != 1 || sections[1].Day != 2 {
+		t.Fatalf("section days = %d/%d, want 1/2", sections[0].Day, sections[1].Day)
+	}
+	if strings.Contains(sections[1].Text, "Day 2") {
+		t.Fatalf("second section was not rewritten for one-day extraction:\n%s", sections[1].Text)
+	}
+	if !strings.Contains(sections[1].Text, "Day 1 breakfast") {
+		t.Fatalf("second section missing rewritten day marker:\n%s", sections[1].Text)
+	}
+	if got := localLlamaExpectedResolvedItemCount(sections[1].Text); got != 9 {
+		t.Fatalf("second section resolved item count = %d, want 9", got)
+	}
+}
+
+func TestLocalModelDaySectionsRejectsAmbiguousDayCoverage(t *testing.T) {
+	_, ok := localModelDaySections(strings.Join([]string{
+		"Day 1 breakfast: 1 cup cooked oatmeal.",
+		"Day 3 breakfast: 1 cup cooked oatmeal.",
+	}, "\n"), 3)
+	if ok {
+		t.Fatal("localModelDaySections ok = true, want false for missing day 2")
+	}
+}
+
 func TestValidateLocalModelExtractionCompletenessRejectsOmittedItems(t *testing.T) {
 	source := strings.Join([]string{
 		"Breakfast:",

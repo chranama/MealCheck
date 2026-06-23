@@ -400,17 +400,21 @@ function CandidateTextForm({
   setCandidateText: (value: string) => void;
 }) {
   const overLimit = Boolean(limit && candidateText.length > limit);
+  const describedBy = ["candidate-text-guidance", limit ? "candidate-text-counter" : ""].filter(Boolean).join(" ");
   return (
     <section className="mode-section" id="candidate-text-section">
       <Field label="Meal plan text">
         <textarea
-          aria-describedby={limit ? "candidate-text-counter" : undefined}
+          aria-describedby={describedBy}
           maxLength={limit ? limit + 1 : undefined}
           value={candidateText}
           rows={7}
           onChange={(event) => setCandidateText(event.target.value)}
         />
       </Field>
+      <p className="field-help" id="candidate-text-guidance">
+        For multi-day plans, use clear labels like Day 1, Day 2, and Day 3 with meals and amounts listed under each day.
+      </p>
       {limit ? (
         <p className={`character-counter${overLimit ? " is-over-limit" : ""}`} id="candidate-text-counter">
           {candidateText.length.toLocaleString()} / {limit.toLocaleString()} characters
