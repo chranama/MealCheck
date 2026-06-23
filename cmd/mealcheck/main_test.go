@@ -170,6 +170,7 @@ func TestInvalidCLIUsageReturnsConfigExit(t *testing.T) {
 func requiredArtifactPaths() []string {
 	return []string{
 		"decision.json",
+		"recommendation.json",
 		"report.json",
 		"report.html",
 		"report.pdf",

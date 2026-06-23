@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/chranama/MealCheck/internal/checker"
+	"github.com/chranama/MealCheck/internal/recommend"
 )
 
 type BundleOptions struct {
@@ -98,6 +99,7 @@ func WriteBundle(opts BundleOptions) (BundleResult, error) {
 	evaluation := checker.Evaluate(c, plan, catalog)
 	decision := evaluation.DecisionDocument(c)
 	decision.ArtifactPaths["case"] = opts.CasePath
+	decision.ArtifactPaths["recommendation"] = "recommendation.json"
 
 	if err := os.RemoveAll(outDir); err != nil {
 		return BundleResult{}, err
@@ -117,12 +119,14 @@ func WriteBundle(opts BundleOptions) (BundleResult, error) {
 	report := buildReport(c, evaluation)
 	failures := failedChecks(evaluation.Checks)
 	metrics := buildMetrics(evaluation)
+	recommendation := recommend.Generate(c, plan, catalog, evaluation)
 
 	writes := []struct {
 		path string
 		data any
 	}{
 		{"decision.json", decision},
+		{"recommendation.json", recommendation},
 		{"report.json", report},
 		{"daily-totals.json", evaluation.DailyTotals},
 		{"resolved-foods.json", evaluation.ResolvedItems},
@@ -184,6 +188,7 @@ func WriteBundle(opts BundleOptions) (BundleResult, error) {
 		},
 		Artifacts: []string{
 			"decision.json",
+			"recommendation.json",
 			"report.json",
 			"report.html",
 			"report.pdf",

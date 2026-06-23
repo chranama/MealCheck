@@ -316,6 +316,7 @@ The shared evidence bundle should be:
 ```text
 artifacts/<run-id>/
   decision.json
+  recommendation.json
   report.json
   report.html
   report.md
@@ -346,6 +347,8 @@ artifacts/<run-id>/
 Responsibilities:
 
 - `decision.json`: final machine-readable decision.
+- `recommendation.json`: deterministic modified-plan recommendation attempt,
+  available only when the modified plan re-evaluates to `pass`.
 - `report.json`: structured report data for UI rendering.
 - `report.html`: public reviewer view.
 - `report.md`: lightweight text report for terminals and PRs.

@@ -2611,3 +2611,51 @@ Acceptance:
 - redacted debug artifacts still include the detailed normalization failure
   lifecycle.
 - focused backend and frontend tests pass.
+
+## Milestone 33: Deterministic Plan Recommendations
+
+Status: Implemented on 2026-06-23.
+
+Purpose:
+
+For `block` and `warn` results, MealCheck should attempt to provide a concrete
+modified meal plan when a safe deterministic edit is available. The feature
+must support the product story without turning MealCheck into a generative meal
+planner: recommendations are explicit edits of the submitted plan, and they are
+published only when the modified plan re-evaluates to `pass`.
+
+Deliver:
+
+- backend recommendation generator with no model calls
+- structured `recommendation.json` artifact in every bundle
+- conservative unavailable response when no bounded edit is available
+- explicit change list for available recommendations
+- projected checker decision for the modified plan
+- artifact wiring through `decision.json` and `manifest.json`
+- documentation of recommendation principles and artifact boundary
+
+Implemented:
+
+1. Added `internal/recommend` with deterministic recommendation generation.
+2. Supported initial edit classes for prep-safety notes, allergen/excluded-food
+   substitutions, and missing vegetable coverage.
+3. Required the modified plan to pass `checker.Evaluate` before returning an
+   available recommendation.
+4. Refused recommendations for missing meal structure and unresolved quantities
+   instead of guessing nutrition-critical details.
+5. Added `recommendation.json` to artifact bundle generation, manifests, CLI
+   artifact expectations, and `decision.json` artifact paths.
+6. Added `docs/plan_recommendation.md` and linked it from the docs index,
+   README, CLI docs, and contracts.
+
+Acceptance:
+
+- `go test ./...` passes.
+- passing source plans produce an unavailable recommendation because no edit is
+  needed.
+- unsupported or unresolved source plans produce an unavailable recommendation
+  without leaking a modified plan.
+- supported deterministic edits produce an available recommendation only when
+  the projected decision is `pass`.
+- generated artifact bundles include `recommendation.json` and list it in
+  `manifest.json`.

@@ -1801,3 +1801,40 @@ Consequences:
 - Operators still have redacted debug artifacts for post-model failures.
 - The preflight must remain conservative so plausible meal plans are sent to the
   model rather than incorrectly rejected.
+
+## 2026-06-23: Recommendations Are Deterministic And Verification-Gated
+
+Status: Accepted
+
+Decision:
+
+MealCheck may emit a modified-plan recommendation for `block` or `warn`
+results, but only through deterministic backend edits. The recommendation
+backend must not call the local model, BYOK providers, or any other model
+endpoint. A recommendation is available only when the modified plan is
+re-evaluated through the checker and the projected decision is `pass`.
+
+If MealCheck cannot make a bounded edit, it returns an unavailable
+recommendation with a reason and the remaining failed or warning checks.
+
+Reason:
+
+The product promise is verification, not generative meal planning. A plausible
+model-authored repair could look helpful while still failing rules, inventing
+quantities, or changing the submitted plan too broadly. Deterministic edits keep
+the feature auditable, explainable, and aligned with the checker. Requiring a
+projected `pass` prevents the UI or API from presenting unverified advice as a
+successful repair path.
+
+Consequences:
+
+- Every artifact bundle includes `recommendation.json`.
+- Available recommendations include explicit changes, a modified canonical
+  plan, and a projected decision document.
+- Unavailable recommendations omit modified plans and projected decisions.
+- Missing meal structure and unresolved quantities remain user/model-input
+  problems; MealCheck does not guess them.
+- Initial supported edits are intentionally narrow: prep-safety note addition,
+  allergen/excluded-food substitution, and vegetable coverage addition.
+- Nutrient rebalancing can be added later only if it can be expressed as a
+  bounded deterministic rule and re-verified to `pass`.

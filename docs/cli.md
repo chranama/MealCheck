@@ -225,6 +225,7 @@ and hosted worker.
 ```text
 artifacts/latest/
   decision.json
+  recommendation.json
   report.json
   report.html
   report.pdf
@@ -258,6 +259,7 @@ Important files:
 | File | Purpose |
 |---|---|
 | `decision.json` | Machine-readable decision, risk, failed checks, unresolved items, and artifact links. |
+| `recommendation.json` | Deterministic modified-plan recommendation attempt, or an unavailable reason. |
 | `report.json` | Full machine-readable report. |
 | `report.md` | Human-readable report. |
 | `report.html` | Browser-readable report. |

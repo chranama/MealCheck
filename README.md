@@ -69,6 +69,7 @@ undecomposed, eligible, or eligible with unresolved items.
 - [Documentation Index](docs/README.md)
 - [Product](docs/product.md)
 - [User Story](docs/user-story.md)
+- [Plan Recommendation](docs/plan_recommendation.md)
 - [Nutritional Guidelines](docs/nutritional-guidelines.md)
 - [Privacy And Safety](docs/privacy-and-safety.md)
 - [Contracts](docs/contracts.md)
