@@ -119,6 +119,9 @@ Day 1 / Lunch / broccoli / 1 / cup
 Eligible plans may still contain unresolved foods or quantities, but those
 uncertainties must be explicit rather than silently guessed.
 
+The internal acceptable-input boundary and synthetic normalization dataset are
+defined in [Meal Plan Input Robustness](meal-plan-input-robustness.md).
+
 ## Internal Meal Plan Contract
 
 MealCheck evaluates structured JSON, not natural language.

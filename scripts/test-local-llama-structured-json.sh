@@ -44,6 +44,14 @@ curl_llama() {
 
 write_source_items() {
   awk '
+    function day_from_heading(line, lower) {
+      lower = tolower(line)
+      if (lower ~ /day[[:space:]]*[1-7]/) {
+        sub(/^.*day[[:space:]]*/, "", lower)
+        return substr(lower, 1, 1) + 0
+      }
+      return 0
+    }
     function meal_code(line, normalized) {
       normalized = tolower(line)
       sub(/^[[:space:]]*/, "", normalized)
@@ -57,6 +65,33 @@ write_source_items() {
       if (normalized ~ /snack/) return "s"
       return ""
     }
+    function is_resolved_item(line) {
+      return line ~ /^[[:space:]]*([-*]|[0-9]+[.)])[[:space:]]+([0-9]+([.][0-9]+)?|[0-9]+[[:space:]]*\/[[:space:]]*[0-9]+|[0-9]+[[:space:]]+[0-9]+[[:space:]]*\/[[:space:]]*[0-9]+)[[:space:]]*(g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|servings?)([[:space:]]|$)/
+    }
+    function is_inline_item(text) {
+      return text ~ /^[[:space:]]*([0-9]+([.][0-9]+)?|[0-9]+[[:space:]]*\/[[:space:]]*[0-9]+|[0-9]+[[:space:]]+[0-9]+[[:space:]]*\/[[:space:]]*[0-9]+)[[:space:]]+(g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|servings?)([[:space:]]|$)/
+    }
+    function emit_item(text) {
+      id++
+      sub(/^[[:space:]]*/, "", text)
+      sub(/[[:space:]]*$/, "", text)
+      printf "%d | day=%d | meal_code=%s | source_text=%s\n", id, day, meal, text
+    }
+    function emit_inline_items(line, rest, parts, count, i, phrase) {
+      if (index(line, ":") == 0) return
+      rest = line
+      sub(/^[^:]*:[[:space:]]*/, "", rest)
+      if (rest == "") return
+      gsub(/;[[:space:]]*/, ", ", rest)
+      gsub(/[[:space:]]+and[[:space:]]+/, ", ", rest)
+      count = split(rest, parts, ",")
+      for (i = 1; i <= count; i++) {
+        phrase = parts[i]
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", phrase)
+        gsub(/[.]$/, "", phrase)
+        if (is_inline_item(phrase)) emit_item(phrase)
+      }
+    }
     BEGIN {
       id = 0
       day = 1
@@ -64,15 +99,20 @@ write_source_items() {
     }
     {
       line = $0
-      if (line ~ /^[[:space:]]*[-*][[:space:]]+([0-9]+([.][0-9]+)?|[0-9]+[[:space:]]*\/[[:space:]]*[0-9]+|[0-9]+[[:space:]]+[0-9]+[[:space:]]*\/[[:space:]]*[0-9]+)[[:space:]]*(g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|servings?)([[:space:]]|$)/) {
-        id++
+      next_day = day_from_heading(line)
+      if (next_day > 0) {
+        day = next_day
+      }
+      code = meal_code(line)
+      if (code != "") {
+        meal = code
+      }
+      if (is_resolved_item(line)) {
         sub(/^[[:space:]]*[-*][[:space:]]+/, "", line)
-        printf "%d | day=%d | meal_code=%s | source_text=%s\n", id, day, meal, line
+        sub(/^[[:space:]]*[0-9]+[.)][[:space:]]+/, "", line)
+        emit_item(line)
       } else {
-        code = meal_code(line)
-        if (code != "") {
-          meal = code
-        }
+        emit_inline_items(line)
       }
     }
   ' "$PROMPT_FILE" >"$SOURCE_ITEMS_PATH"

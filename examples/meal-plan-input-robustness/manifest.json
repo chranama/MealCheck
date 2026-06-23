@@ -1,0 +1,96 @@
+{
+  "schema_version": "0.1",
+  "dataset_id": "meal-plan-input-robustness-v1",
+  "purpose": "Synthetic acceptable meal-plan text inputs for normalization robustness testing.",
+  "max_input_chars": 4000,
+  "case_contract": {
+    "days_required": true,
+    "meals_required": true,
+    "foods_required": true,
+    "numeric_quantities_required": true,
+    "supported_units": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
+  },
+  "cases": [
+    {
+      "id": "one_day_canonical_bullets",
+      "file": "cases/one-day-canonical-bullets.txt",
+      "title": "One-day canonical bullets",
+      "expected_days": 1,
+      "expected_meals_per_day": 3,
+      "expected_meal_codes_by_day": {
+        "1": ["b", "l", "d"]
+      },
+      "expected_item_count": 9,
+      "smoke_harness_compatible": true,
+      "coverage_tags": ["one_day", "three_meals", "bullets", "fractions", "supported_units"]
+    },
+    {
+      "id": "one_day_inline_sentences",
+      "file": "cases/one-day-inline-sentences.txt",
+      "title": "One-day inline sentences",
+      "expected_days": 1,
+      "expected_meals_per_day": 3,
+      "expected_meal_codes_by_day": {
+        "1": ["b", "l", "d"]
+      },
+      "expected_item_count": 9,
+      "smoke_harness_compatible": true,
+      "coverage_tags": ["one_day", "three_meals", "inline_text", "commas", "supported_units"]
+    },
+    {
+      "id": "one_day_numbered_items",
+      "file": "cases/one-day-numbered-items.txt",
+      "title": "One-day numbered items",
+      "expected_days": 1,
+      "expected_meals_per_day": 3,
+      "expected_meal_codes_by_day": {
+        "1": ["b", "l", "d"]
+      },
+      "expected_item_count": 9,
+      "smoke_harness_compatible": true,
+      "coverage_tags": ["one_day", "three_meals", "numbered_items", "decimals", "supported_units"]
+    },
+    {
+      "id": "two_day_bullets",
+      "file": "cases/two-day-bullets.txt",
+      "title": "Two-day bullet plan",
+      "expected_days": 2,
+      "expected_meals_per_day": 3,
+      "expected_meal_codes_by_day": {
+        "1": ["b", "l", "d"],
+        "2": ["b", "l", "d"]
+      },
+      "expected_item_count": 18,
+      "smoke_harness_compatible": false,
+      "coverage_tags": ["two_day", "three_meals", "bullets", "day_headings", "supported_units"]
+    },
+    {
+      "id": "one_day_with_snacks",
+      "file": "cases/one-day-with-snacks.txt",
+      "title": "One-day plan with snacks",
+      "expected_days": 1,
+      "expected_meals_per_day": 6,
+      "expected_meal_codes_by_day": {
+        "1": ["b", "m", "l", "a", "d", "e"]
+      },
+      "expected_item_count": 12,
+      "smoke_harness_compatible": false,
+      "coverage_tags": ["one_day", "six_meals", "snacks", "supported_units"]
+    },
+    {
+      "id": "three_day_compact",
+      "file": "cases/three-day-compact.txt",
+      "title": "Three-day compact plan",
+      "expected_days": 3,
+      "expected_meals_per_day": 3,
+      "expected_meal_codes_by_day": {
+        "1": ["b", "l", "d"],
+        "2": ["b", "l", "d"],
+        "3": ["b", "l", "d"]
+      },
+      "expected_item_count": 27,
+      "smoke_harness_compatible": false,
+      "coverage_tags": ["three_day", "three_meals", "compact_text", "supported_units", "nearer_input_limit"]
+    }
+  ]
+}
