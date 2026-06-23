@@ -28,7 +28,10 @@ fi
 
 mkdir -p "$OUTPUT_ROOT"
 
-mapfile -t cases < <(jq -r '
+cases=()
+while IFS= read -r row; do
+  cases+=("$row")
+done < <(jq -r '
   .cases[]
   | select(.smoke_harness_compatible == true)
   | [.id, .file, .expected_item_count]
