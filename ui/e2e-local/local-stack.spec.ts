@@ -5,17 +5,17 @@ const providerKey = "local-e2e-provider-key";
 
 test.describe.configure({ mode: "serial" });
 
-test("renders the live run homepage without an API base and can open a seeded report", async ({ page }) => {
+test("renders the live run homepage without an API base", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("heading", { level: 1, name: "MealCheck" })).toBeVisible();
   await expect(page.locator(".brand-mark")).toBeVisible();
   await expect(page.locator("#live-workspace")).toBeVisible();
   await expect(page.locator(".live-action-strip")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Check a meal plan" })).toBeVisible();
   await expect(page.locator(".mode-icon")).toHaveCount(0);
   await expect(page.locator(".nav-icon")).toHaveCount(0);
   await expect(page.locator(".pipeline-graphic")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /New meal check/ })).toHaveClass(/is-active/);
   await expect(page.getByLabel("Service URL")).toHaveCount(0);
   await expect(page.locator("#backend-guidance")).toHaveCount(0);
   await expect(page.getByText("Service ready")).toHaveCount(0);
@@ -24,13 +24,8 @@ test("renders the live run homepage without an API base and can open a seeded re
   await expect(page.getByText("Model Provider", { exact: true })).toBeVisible();
   await expect(page.getByText("Verification Settings")).toBeVisible();
   await expect(page.getByText("Advanced constraints")).toBeHidden();
-  await expect(page.getByRole("button", { name: /Three-day peanut allergy check/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Three-day peanut allergy check/ })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Checks" })).toHaveCount(0);
-
-  await page.getByRole("button", { name: /Three-day peanut allergy check/ }).click();
-  await expect(page.getByRole("tab", { name: "Checks" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Nutrition" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Report" })).toBeVisible();
 });
 
 test("qualifies a real local candidate meal plan through the fake provider", async ({ page }) => {
