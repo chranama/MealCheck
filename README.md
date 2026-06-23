@@ -39,7 +39,9 @@ The deployed MVP shape is:
 - private llama.cpp local model service on the MacBook backend
 - hosted live verification through the server-owned local model
 - seeded proof artifacts preserved in the repository, including
-  [a standalone HTML report](docs/seeded-report.html)
+  [a rendered HTML report](https://chranama.github.io/MealCheck/seeded-report.html)
+  served by GitHub Pages from the
+  [checked-in source file](docs/seeded-report.html)
 - BYOK OpenAI, Anthropic, Gemini, and custom OpenAI-compatible providers
   preserved for repo/CLI/API and self-hosted deployments
 - structured manual JSON verification preserved in the local CLI/debug path
