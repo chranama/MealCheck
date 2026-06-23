@@ -1731,3 +1731,41 @@ Consequences:
   path rather than being rejected solely because decomposition failed.
 - With one llama slot, latency may not fall linearly, but output-cap pressure
   and schema drift risk are reduced.
+
+## 2026-06-23: Hosted Local Model Allows Seven-Day Unbatched Fallback
+
+Status: Accepted
+
+Decision:
+
+Keep per-day extraction as the preferred path for clear multi-day input, but
+raise the fallback capacity for acceptable multi-day text that cannot be
+decomposed safely:
+
+```bash
+MEALCHECK_LOCAL_MODEL_MAX_INPUT_CHARS='6000'
+MEALCHECK_LOCAL_MODEL_MAX_OUTPUT_TOKENS='1536'
+MEALCHECK_LOCAL_MODEL_TIMEOUT='240s'
+LLAMA_CTX_SIZE='4096'
+```
+
+Continue using `Qwen3-0.6B-Q4_K_M.gguf`, CPU-only serving, four threads, one
+llama slot, and `512` MB prompt cache.
+
+Reason:
+
+The measured three-day compact inputs were small on the input side but close to
+the old output token cap when run unbatched. A concise seven-day, three-meal
+plan should fit more reliably with a `4096` context and a `1536` output cap,
+while still preserving the stricter per-day path for well-formatted `Day N`
+plans.
+
+Consequences:
+
+- The hosted UI can advertise a `6000` character local-model limit.
+- Unbatched seven-day fallback attempts may take substantially longer than
+  per-day extraction and are allowed up to `240s`.
+- The backend should still reject inputs above the configured character limit
+  before calling llama.cpp.
+- If live seven-day snack-inclusive tests require more room, that should be a
+  separate experimental tier rather than the public default.

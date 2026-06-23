@@ -600,9 +600,9 @@ Example response:
     "enabled": true,
     "ready": true,
     "model": "Qwen3-0.6B-Q4_K_M.gguf",
-    "max_input_chars": 4000,
-    "max_output_tokens": 512,
-    "timeout_sec": 90,
+    "max_input_chars": 6000,
+    "max_output_tokens": 1536,
+    "timeout_sec": 240,
     "supported_days": 7,
     "supported_meals_per_day": 6
   },

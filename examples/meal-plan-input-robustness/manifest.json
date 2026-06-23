@@ -2,7 +2,7 @@
   "schema_version": "0.1",
   "dataset_id": "meal-plan-input-robustness-v1",
   "purpose": "Synthetic acceptable meal-plan text inputs for normalization robustness testing.",
-  "max_input_chars": 4000,
+  "max_input_chars": 6000,
   "case_contract": {
     "days_required": true,
     "meals_required": true,

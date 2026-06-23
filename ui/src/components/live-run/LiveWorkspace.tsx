@@ -413,7 +413,7 @@ function CandidateTextForm({
         />
       </Field>
       <p className="field-help" id="candidate-text-guidance">
-        For multi-day plans, use clear labels like Day 1, Day 2, and Day 3 with meals and amounts listed under each day.
+        For multi-day plans, use clear labels like Day 1 and Day 2 with meals and amounts listed under each day.
       </p>
       {limit ? (
         <p className={`character-counter${overLimit ? " is-over-limit" : ""}`} id="candidate-text-counter">

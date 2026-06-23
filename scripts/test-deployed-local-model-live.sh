@@ -298,7 +298,7 @@ check_rejections() {
   fi
 
   print_section "oversized input rejection"
-  max_input="$(printf "%s\n" "$HEALTH_JSON" | jq -r '.local_model.max_input_chars // 4000')"
+  max_input="$(printf "%s\n" "$HEALTH_JSON" | jq -r '.local_model.max_input_chars // 6000')"
   oversized_text="$(printf 'x%.0s' $(seq 1 $((max_input + 1))))"
   oversized_body="$(jq -n \
     --arg candidate_text "$oversized_text" \

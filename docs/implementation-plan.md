@@ -2319,7 +2319,7 @@ Initial production-candidate defaults:
 
 ```bash
 LLAMA_MODEL_PATH='/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf'
-LLAMA_CTX_SIZE='2048'
+LLAMA_CTX_SIZE='4096'
 LLAMA_THREADS='4'
 LLAMA_GPU_LAYERS='0'
 LLAMA_PARALLEL='1'
@@ -2527,3 +2527,40 @@ Acceptance:
 - clear two-day local-model input creates one provider call per day.
 - normalized output preserves original day numbers and total item count.
 - ambiguous multi-day text falls back to whole-plan extraction.
+
+## Milestone 31: Seven-Day Unbatched Fallback Capacity
+
+Status: Implemented on 2026-06-23.
+
+Purpose:
+
+Keep per-day extraction as the preferred path for clear `Day N` inputs, while
+raising the hosted local-model fallback limits enough to attempt concise
+seven-day plans when day boundaries cannot be safely decomposed.
+
+Deliver:
+
+- raise hosted local-model candidate text limit from `4000` to `6000`
+  characters
+- raise hosted local-model output cap from `512` to `1536` tokens
+- raise hosted local-model timeout from `90s` to `240s`
+- raise llama.cpp service context from `2048` to `4096`
+- keep `Qwen3-0.6B-Q4_K_M.gguf`, CPU-only serving, four threads, one slot, and
+  `512` MB prompt cache
+- keep the public UI example short by showing two day-labeled days
+
+Implemented:
+
+1. Updated backend defaults and macOS deployment env examples.
+2. Updated the llama service wrapper and env template to default to
+   `LLAMA_CTX_SIZE=4096`.
+3. Updated API, runbook, robustness manifest, and UI tests to advertise the new
+   hosted local-model limits.
+4. Shortened the hosted UI default meal-plan text from three days to two days.
+
+Acceptance:
+
+- `go test ./...` passes.
+- UI typecheck, test, and build pass.
+- deployed server env files are updated manually or over SSH, then
+  `dev.mealcheck.server` and `dev.mealcheck.llama` are restarted.

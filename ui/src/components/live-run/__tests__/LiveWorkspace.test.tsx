@@ -25,8 +25,8 @@ const localModelBackend: BackendState = {
     enabled: true,
     ready: true,
     model: "Qwen3-0.6B-Q4_K_M.gguf",
-    max_input_chars: 4000,
-    timeout_sec: 90,
+    max_input_chars: 6000,
+    timeout_sec: 240,
   },
 };
 
@@ -68,7 +68,7 @@ describe("LiveWorkspace", () => {
     expect(screen.getByLabelText("Meal plan text")).toBeVisible();
     expect(screen.getByText("Local model ready")).toBeInTheDocument();
     expect(screen.getByText("Qwen3-0.6B-Q4_K_M.gguf")).toBeInTheDocument();
-    expect(screen.getAllByText(/\/ 4,000 characters/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/\/ 6,000 characters/).length).toBeGreaterThan(0);
     expect(screen.queryByText("Model Provider")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Provider")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("API key")).not.toBeInTheDocument();

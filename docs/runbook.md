@@ -583,7 +583,7 @@ The committed defaults are the first production candidate for the MacBook:
 
 - model: `/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf`
 - threads: `4`
-- context: `2048`
+- context: `4096`
 - GPU layers: `0`
 - parallel slots: `1`
 - prompt cache RAM: `512`
