@@ -47,6 +47,7 @@ MealCheck should make the check bounded, source-linked, and inspectable.
   for provider experiments and custom endpoints.
 - Verify normalized structured JSON locally through the CLI for debugging and
   regression cases.
+- Inspect the seeded proof as a static repository artifact.
 - Check declared allergens, exclusions, nutrition targets, and verification
   constraints.
 - Check calculated nutrition totals against configured guideline-derived
@@ -85,22 +86,25 @@ backend behavior should be reached through the MacBook-hosted API.
 Live hosted normalization uses the server-owned local model and strict resource
 limits. BYOK generation or repair belongs in local/API/self-hosted workflows.
 
-The hosted website should expose three primary surfaces:
+The hosted website should expose one primary workflow plus a repo/local path:
 
-- `Demo Reports`: public seeded reports and artifacts
 - `New Meal Check`: policy-limited local-model normalization and deterministic
   verification of pasted meal plans
-- `Run Locally`: instructions for CLI/backend, BYOK/custom providers, and
-  future agent-tool integration
+- `Run Locally`: documentation links for CLI/backend, BYOK/custom providers,
+  seeded proof artifacts, and future agent-tool integration
 
 Structured manual JSON entry is not a primary hosted workflow. It belongs in
 the local CLI and development workflow where it supports fixtures, debugging,
 regression tests, and agent-generated structured inputs.
 
+Seeded examples should remain checked-in fixtures and repo documentation
+artifacts. They should not appear as a separate example-run block in the hosted
+website's main workflow.
+
 ## In Scope
 
 - Healthy-adult seeded scenarios.
-- Public seeded report demos.
+- Static seeded report artifact in the repository.
 - Policy-limited public local-model verification of pasted meal-plan text.
 - Meal-plan qualification before verification.
 - Local CLI structured JSON verification for debugging and regression cases.
@@ -130,7 +134,8 @@ regression tests, and agent-generated structured inputs.
 
 MealCheck is useful when:
 
-- a new user can inspect a seeded report quickly
+- a new user can inspect the hosted verifier quickly
+- a developer can inspect the seeded proof from the repository
 - failures are tied to concrete evidence
 - unresolved foods and uncertain matches are visible
 - deterministic checks are separated from LLM-generated explanations

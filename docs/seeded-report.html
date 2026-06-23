@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MealCheck Seeded Report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7f8;
+      --surface: #ffffff;
+      --ink: #172a35;
+      --muted: #617580;
+      --line: #dde6ea;
+      --brand: #1f6f8b;
+      --brand-strong: #123a52;
+      --danger: #b23b32;
+      --danger-bg: #f9e5e2;
+      --warn: #8a6200;
+      --warn-bg: #f7e9c3;
+      --info-bg: #ddeaf0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.55 "IBM Plex Sans", "Avenir Next", Avenir, Aptos, "Segoe UI", system-ui, sans-serif;
+    }
+    main {
+      width: min(980px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 56px;
+    }
+    header,
+    section {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 16px 36px rgba(23, 42, 53, 0.08);
+    }
+    header {
+      padding: 28px;
+      margin-bottom: 18px;
+    }
+    section {
+      padding: 24px;
+      margin-top: 18px;
+    }
+    h1,
+    h2 {
+      margin: 0;
+      color: var(--brand-strong);
+      font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      line-height: 1.1;
+    }
+    h1 { font-size: clamp(2rem, 5vw, 3rem); }
+    h2 { font-size: 1.45rem; }
+    p { margin: 12px 0 0; }
+    ul { margin: 14px 0 0; padding-left: 22px; }
+    li { margin: 8px 0; }
+    code {
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: var(--info-bg);
+      color: var(--brand-strong);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.92em;
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--info-bg);
+      color: var(--brand);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .pill--block {
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+    .pill--warn {
+      background: var(--warn-bg);
+      color: var(--warn);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .metric {
+      min-height: 90px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f7fafb;
+    }
+    .metric strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.25rem;
+    }
+    .muted { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Seeded verification artifact</p>
+      <h1>MealCheck Report</h1>
+      <p class="muted">A checked-in, static report for the seeded three-day peanut-allergy proof case.</p>
+      <div class="meta" aria-label="Report metadata">
+        <span class="pill">seeded-3-day-peanut-allergy</span>
+        <span class="pill pill--block">decision block</span>
+        <span class="pill">dga-2025-2030-us-adult-general-v1</span>
+      </div>
+    </header>
+
+    <section>
+      <h2>Summary</h2>
+      <p>The candidate plan has blocking issues and should be revised before use.</p>
+    </section>
+
+    <section>
+      <h2>Checks Requiring Attention</h2>
+      <ul>
+        <li><code>quantities_resolvable</code> block: The candidate includes unresolved food quantities or units.</li>
+        <li><code>allergens_absent</code> block: The candidate includes a declared allergen.</li>
+        <li><code>calories_within_tolerance</code> warn: One or more days are outside the configured calorie tolerance.</li>
+        <li><code>sodium_under_limit</code> warn: One or more days exceed the configured sodium limit.</li>
+        <li><code>prep_safety_mentions_present</code> warn: Prep notes do not mention prompt refrigeration or leftover handling.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Unresolved Foods</h2>
+      <ul>
+        <li>Day 2 lunch: <code>seasoning blend</code> has a vague quantity.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Daily Totals</h2>
+      <div class="grid">
+        <div class="metric">
+          <span class="muted">Day 1</span>
+          <strong>1572.6 kcal</strong>
+          <span>132.9 g protein, 465.0 mg sodium</span>
+        </div>
+        <div class="metric">
+          <span class="muted">Day 2</span>
+          <strong>1746.6 kcal</strong>
+          <span>101.6 g protein, 5558.2 mg sodium</span>
+        </div>
+        <div class="metric">
+          <span class="muted">Day 3</span>
+          <strong>1301.0 kcal</strong>
+          <span>108.9 g protein, 347.3 mg sodium</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Disclaimer</h2>
+      <p>MealCheck checks bounded guideline-derived rules. It does not provide medical nutrition advice.</p>
+    </section>
+  </main>
+</body>
+</html>

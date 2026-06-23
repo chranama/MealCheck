@@ -1,25 +1,10 @@
 import type {
   Citations,
   Decision,
-  DemoIndex,
   Manifest,
   Report,
   ReportArtifacts,
 } from "../../types";
-
-export function demoIndex(): DemoIndex {
-  return {
-    schema_version: "0.1",
-    demo_runs: [
-      {
-        id: "seeded-pass",
-        title: "Seeded Pass",
-        summary: "A small passing demo.",
-        base_path: "/demo-runs/seeded-pass",
-      },
-    ],
-  };
-}
 
 export function decision(overrides: Partial<Decision> = {}): Decision {
   return {

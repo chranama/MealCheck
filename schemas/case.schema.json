@@ -8,8 +8,7 @@
     "schema_version",
     "case_id",
     "input_mode",
-    "profile",
-    "constraints",
+    "settings",
     "guideline_pack_id",
     "guideline_pack_path",
     "nutrient_catalog_id",
@@ -29,11 +28,8 @@
       "type": "string",
       "enum": ["manual_structured", "profile_generation", "prompt_generation"]
     },
-    "profile": {
-      "$ref": "#/$defs/profile"
-    },
-    "constraints": {
-      "$ref": "#/$defs/constraints"
+    "settings": {
+      "$ref": "#/$defs/settings"
     },
     "guideline_pack_id": {
       "type": "string",
@@ -74,34 +70,24 @@
     }
   },
   "$defs": {
-    "profile": {
+    "settings": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["age", "sex", "height_cm", "weight_kg", "activity_level"],
+      "required": ["nutrition_targets", "verification_constraints"],
       "properties": {
-        "age": {
-          "type": "integer",
-          "minimum": 18
+        "nutrition_targets": {
+          "$ref": "#/$defs/nutrition_targets"
         },
-        "sex": {
-          "type": "string",
-          "enum": ["male", "female"]
-        },
-        "height_cm": {
-          "type": "number",
-          "exclusiveMinimum": 0
-        },
-        "weight_kg": {
-          "type": "number",
-          "exclusiveMinimum": 0
-        },
-        "activity_level": {
-          "type": "string",
-          "enum": ["inactive", "low_active", "moderate", "active", "very_active"]
-        },
-        "goal": {
-          "type": "string"
-        },
+        "verification_constraints": {
+          "$ref": "#/$defs/verification_constraints"
+        }
+      }
+    },
+    "nutrition_targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["calorie_target_kcal", "protein_target_g"],
+      "properties": {
         "calorie_target_kcal": {
           "type": "integer",
           "minimum": 1
@@ -112,10 +98,20 @@
         }
       }
     },
-    "constraints": {
+    "verification_constraints": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["days", "meals_per_day"],
+      "required": [
+        "days",
+        "meals_per_day",
+        "allergies",
+        "excluded_foods",
+        "max_sodium_mg_per_day",
+        "max_added_sugar_g_per_meal",
+        "max_saturated_fat_pct_calories",
+        "calorie_tolerance_pct",
+        "requires_prep_safety_notes"
+      ],
       "properties": {
         "days": {
           "type": "integer",
@@ -141,9 +137,6 @@
             "minLength": 1
           }
         },
-        "diet_pattern": {
-          "type": "string"
-        },
         "max_sodium_mg_per_day": {
           "type": "integer",
           "minimum": 1
@@ -161,9 +154,6 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 100
-        },
-        "requires_shopping_list": {
-          "type": "boolean"
         },
         "requires_prep_safety_notes": {
           "type": "boolean"

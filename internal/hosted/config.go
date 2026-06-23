@@ -46,8 +46,8 @@ func ConfigFromEnv(root string) Config {
 		Retention:                 getenvDuration("MEALCHECK_RETENTION", 7*24*time.Hour),
 		WorkerPoll:                getenvDuration("MEALCHECK_WORKER_POLL", time.Second),
 		CleanupInterval:           getenvDuration("MEALCHECK_CLEANUP_INTERVAL", time.Hour),
-		DemoIndexPath:             filepath.Join(root, "ui", "public", "demo-runs", "index.json"),
-		DemoArtifactRoot:          filepath.Join(root, "ui", "public"),
+		DemoIndexPath:             filepath.Join(root, "examples", "seeded-3-day-peanut-allergy", "artifacts", "demo-runs", "index.json"),
+		DemoArtifactRoot:          filepath.Join(root, "examples", "seeded-3-day-peanut-allergy", "artifacts"),
 	}
 }
 

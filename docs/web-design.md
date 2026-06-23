@@ -1,8 +1,8 @@
 # Web Design
 
 This document defines the first web design system for MealCheck. It is scoped to
-the static frontend in `ui/` and the current MVP product surface: public seeded
-reports plus access-code-gated live runs through a backend API.
+the static frontend in `ui/` and the current MVP product surface: hosted
+local-model verification through a backend API.
 
 MealCheck is a client-facing verification product, not an internal operations
 dashboard. The homepage should help a reviewer answer one question quickly:
@@ -12,7 +12,7 @@ dashboard. The homepage should help a reviewer answer one question quickly:
 
 ### 1. Make The Live Check The Product
 
-The homepage should prioritize the live verification workflow. Demos, reports,
+The homepage should prioritize the live verification workflow. Repo artifacts
 and explanatory material support the product, but they are not the default job.
 This keeps the first screen focused and limits choice overload.
 
@@ -28,9 +28,9 @@ disclosures.
 ### 3. Make System State Impossible To Miss
 
 Because the frontend is static and the backend is optional at page load, service
-state must be visible in both the shell and the live-run workspace. Example,
-ready, and unavailable states should each have distinct copy, color, and next
-action affordances.
+state must be visible in both the shell and the live-run workspace. Ready and
+unavailable states should each have distinct copy, color, and next action
+affordances.
 
 ### 4. Separate Outcome From Evidence
 
@@ -61,9 +61,9 @@ Use accent color only to clarify status and primary action.
 ### 8. Treat Static Deployment As A First-Class Constraint
 
 The page must remain useful when hosted as static files. Runtime API
-configuration should be visible. Demos must work offline. Live-run controls must
-degrade clearly when no backend is configured or the backend is unavailable. No
-provider key or access code may be persisted.
+configuration should be visible. Live-run controls must degrade clearly when no
+backend is configured or the backend is unavailable. No provider key or access
+code may be persisted.
 
 ### 9. Give Immediate Feedback
 
@@ -283,7 +283,7 @@ Design implications:
 - The first page must be useful before any authenticated or personalized state
   exists.
 - Backend availability is a runtime condition, not a page-loading dependency.
-- Seeded demos must remain usable when the backend is offline.
+- The hosted page must remain coherent when the backend is offline.
 - Live-run controls can call the configured API, but the UI cannot assume the
   API is healthy.
 - Public configuration belongs in `config.json`, build-time public environment
@@ -320,13 +320,13 @@ First-viewport priorities:
 2. New meal check navigation as the active primary surface.
 3. A concise summary showing readiness and service availability.
 4. A compact action/status strip with the primary report action visible.
-5. The live-check form, starting with access, meal-plan text, and provider
-   settings.
+5. The live-check form, starting with meal-plan text and any required access
+   controls for private deployments.
 6. A companion results panel.
-7. Seeded demo navigation as a secondary path.
 
-Seeded reports are examples and public proof artifacts. They remain available
-from navigation, but they should not be the default homepage state.
+Seeded reports are examples and public proof artifacts. They should live in the
+repository as fixtures or standalone HTML docs, not as a hosted navigation block
+on the primary website.
 
 ## Page Anatomy
 
@@ -338,7 +338,7 @@ MealCheck
 
 Left navigation                  Main workspace
 New meal check                   Live summary
-Examples                         Report form
+                                 Report form
                                  Results
                                  Report surface when available
 ```
@@ -392,7 +392,7 @@ Navigation:
 
 - New meal check appears first.
 - The active navigation item gets a clear accent and border.
-- Examples remain visible but secondary.
+- Do not add example-run navigation to the hosted primary workflow.
 
 Top bar:
 
@@ -440,7 +440,8 @@ Reports:
 - Text must not overlap or overflow its control on mobile or desktop.
 - Buttons must have clear disabled states.
 - Tables and wide artifact areas must support horizontal scrolling.
-- Static demo content must render without a backend API base.
+- The page must render a clear disabled or unavailable state without a backend
+  API base.
 
 ## Milestone 9 Acceptance
 
@@ -455,11 +456,11 @@ Web design hardening is accepted when:
   colors
 - source, evidence, and artifact graphics reinforce the audit-console identity
   without decorative imagery
-- the static page remains useful without backend access
-- seeded demos remain reachable through navigation
+- the static page remains coherent without backend access
+- seeded proof artifacts remain reachable from the repository
 - service health is not presented as a standalone client-facing box
-- example and unavailable service states are communicated through disabled
-  actions or error feedback without hiding seeded demos
+- unavailable service states are communicated through disabled actions or error
+  feedback
 - report creation gives immediate disabled or error feedback before an invalid
   request is submitted
 - destructive report deletion requires an explicit confirmation

@@ -524,7 +524,9 @@ traversal are rejected.
 
 ## Demo Runs
 
-Demo endpoints serve prebuilt public artifacts from the static frontend bundle.
+Demo endpoints serve prebuilt repository artifacts for developer compatibility
+and seeded proof inspection. The hosted frontend no longer loads these endpoints
+as part of its primary website flow.
 They do not enqueue backend work and do not require an access code.
 
 ```bash

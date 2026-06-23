@@ -294,8 +294,8 @@ func smokeConfig(root, workDir string) hosted.Config {
 		Retention:        7 * 24 * time.Hour,
 		WorkerPoll:       time.Millisecond,
 		CleanupInterval:  time.Hour,
-		DemoIndexPath:    filepath.Join(root, "ui", "public", "demo-runs", "index.json"),
-		DemoArtifactRoot: filepath.Join(root, "ui", "public"),
+		DemoIndexPath:    filepath.Join(root, "examples", "seeded-3-day-peanut-allergy", "artifacts", "demo-runs", "index.json"),
+		DemoArtifactRoot: filepath.Join(root, "examples", "seeded-3-day-peanut-allergy", "artifacts"),
 	}
 }
 

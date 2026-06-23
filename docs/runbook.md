@@ -863,8 +863,8 @@ Use the accepted production URLs once Milestone 11 Cloudflare routing is in
 place.
 
 - Open `https://mealcheck.dev` from outside the home network.
-- Confirm the seeded report loads without login, provider keys, or backend
-  access.
+- Confirm the page opens directly on the new meal-check workflow without an
+  examples block.
 - Confirm the frontend shows backend health when
   `https://api.mealcheck.dev/api/health` is online.
 - Create a public local-model run through the UI or API.
@@ -1204,7 +1204,8 @@ Required operational commands:
 Required web smoke tests:
 
 - open the production frontend URL from outside the home network
-- inspect the seeded report without logging in or using a provider key
+- confirm the hosted page exposes the local-model meal-check workflow without
+  seeded example navigation
 - verify the frontend shows backend health when the API is online
 - submit one public local-model run through the web UI or documented API command
 - verify provider config and oversized input are rejected for local-model runs

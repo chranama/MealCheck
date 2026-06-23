@@ -15,13 +15,13 @@ The MVP should include:
 - MacBook-hosted backend through Cloudflare Tunnel.
 - Local CLI deployment for reviewers who want to run the seeded proof without
   the hosted backend.
-- Seeded public demo that requires no credentials and no live model calls.
+- Seeded proof artifact that requires no credentials and no live model calls.
 - One healthy-adult meal-plan scenario.
 - Versioned guideline pack snapshot.
 - Local fixture nutrient catalog sufficient for the seeded scenario.
 - Strict normalized meal-plan schema.
-- Hosted surfaces for public seeded demos, local-model verification, and
-  local/agent-tool guidance.
+- Hosted surface for local-model verification, with repo/local guidance for
+  seeded proof artifacts and advanced use.
 - Server-owned local-model normalization as the hosted live path.
 - BYOK profile-only generation, prompt-based generation, qualification,
   normalization, and bounded JSON repair as repo/API/CLI and self-hosted
@@ -59,8 +59,8 @@ The web-deployed MVP is complete only when the above is available as a
 long-standing public web deployment:
 
 - Cloudflare Pages serves the frontend from `ui/` at a stable public URL.
-- The seeded public report loads from that URL without login, provider keys, or
-  a running backend.
+- The hosted website opens directly on the local-model verification workflow
+  without example-run navigation.
 - The frontend can call a public API hostname exposed through Cloudflare Tunnel
   and show backend health.
 - The MacBook backend runs under process supervision, restarts after reboot, and
@@ -72,10 +72,9 @@ long-standing public web deployment:
   user.
 - The runbook documents deployment, start, stop, restart, health check, logs,
   tunnel status, smoke tests, backup, and cleanup commands.
-- A smoke test from outside the home network can inspect the seeded report,
-  check backend health, create a hosted local-model live run, observe
-  completion, and verify provider config is rejected for hosted local-model
-  requests.
+- A smoke test from outside the home network can check backend health, create a
+  hosted local-model live run, observe completion, and verify provider config is
+  rejected for hosted local-model requests.
 
 The local CLI-deployed MVP is complete when a reviewer can install or build a
 local `mealcheck` command and run the seeded proof without network access,
@@ -543,23 +542,24 @@ Deliver:
 Acceptance:
 
 - frontend can be deployed as static files
-- seeded report remains inspectable if backend is offline
+- seeded report remains inspectable from the repository if backend is offline
 - no secrets or live provider calls are required
 
 Current status:
 
 - Milestone 3 originally shipped as a no-build static frontend and is now
-  superseded by the Milestone 6 Vite/React frontend
+  superseded by the Milestone 6 Vite/React frontend and the Milestone 29
+  hosted example removal
 - seeded artifact bundle exists under
-  `ui/public/demo-runs/seeded-3-day-peanut-allergy/`
-- the frontend renders the seeded decision, check details, evidence, daily
-  nutrition totals, resolved and unresolved foods, source references, and
-  artifact links
-- backend health state is shown as static-demo by default and can call
+  `examples/seeded-3-day-peanut-allergy/artifacts/demo-runs/`
+- `docs/seeded-report.html` renders the seeded decision, check details,
+  nutrition totals, unresolved foods, and disclaimer as a standalone repo
+  artifact
+- backend health state is shown for the live workflow and can call
   `/api/health` when an API base URL is configured
 - local preview now uses the Vite development server
 - no frontend secrets, model calls, or backend dependency are required for the
-  seeded report
+  repository seeded report
 
 ## Milestone 4: Hosted Wrapper
 
@@ -2448,3 +2448,45 @@ Acceptance:
   and restarts the backend.
 - hosted UI renders without visible API key/provider controls in local-model
   mode.
+
+## Milestone 29: Hosted Example Removal And Repo HTML Report
+
+Status: Implemented on 2026-06-22.
+
+Purpose:
+
+The hosted website should present the local-model meal-check workflow directly,
+without a secondary example-run block competing with the core product. The
+seeded proof remains useful, but it belongs in the repository as a fixture,
+static HTML artifact, and CLI/debug proof path.
+
+Deliver:
+
+- remove seeded example navigation from the hosted React shell
+- stop boot-time loading of `demo-runs/index.json` from the frontend app
+- add a standalone checked-in HTML report under `docs/`
+- move the seeded artifact bundle out of Vite `public/` assets
+- update current product/user-story/runbook docs to describe seeded proof as a
+  repo artifact rather than a hosted website block
+
+Implemented:
+
+1. Simplified `App.tsx` so it always opens on the live local-model workflow and
+   no longer loads the demo index.
+2. Simplified `Sidebar` to a single active `New meal check` entry.
+3. Moved the seeded artifact bundle from `ui/public/demo-runs` to
+   `examples/seeded-3-day-peanut-allergy/artifacts/demo-runs` so Cloudflare
+   Pages no longer publishes it as a website asset.
+4. Added `docs/seeded-report.html` as a self-contained static HTML report for
+   the seeded proof case.
+5. Updated README, docs index, product, user-story, runbook, and current MVP
+   plan language.
+
+Acceptance:
+
+- production UI has no visible `Examples` block.
+- frontend build does not need the seeded demo index for initial render.
+- frontend build output does not contain `demo-runs`.
+- the seeded proof remains inspectable from the repository.
+- backend demo endpoints and checked-in fixtures can remain for compatibility,
+  tests, and developer workflows.

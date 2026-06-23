@@ -1666,3 +1666,36 @@ Consequences:
   introduces another quantified item.
 - Missing or duplicated compact rows still fail closed before checker
   execution.
+
+## 2026-06-22: Hosted Website Removes Example Run Navigation
+
+Status: Accepted
+
+Decision:
+
+Remove the seeded example-run block from the hosted website and keep the public
+homepage focused on the local-model meal-check workflow. Preserve the seeded
+proof as repository material, including a standalone checked-in HTML report at
+`docs/seeded-report.html`. Move the seeded artifact bundle out of Vite
+`public/` assets so it is not published by the frontend build.
+
+Reason:
+
+The hosted website's job is now clear: paste a meal plan and get a verification
+report from the server-owned local model. A visible example-run block adds a
+second task and makes the first screen feel like a demo browser instead of a
+tool. The seeded proof is still valuable for auditability and development, but
+GitHub/repo documentation is a better place for that static artifact.
+
+Consequences:
+
+- The React app no longer loads `demo-runs/index.json` during boot.
+- The sidebar has one active action: `New meal check`.
+- The seeded bundle lives under
+  `examples/seeded-3-day-peanut-allergy/artifacts/demo-runs` for backend
+  compatibility and fixture checks.
+- Checked-in seeded artifacts can remain for tests, backend compatibility, and
+  developer workflows.
+- GitHub cannot execute arbitrary app HTML inside README, so the repo artifact
+  is a standalone HTML file that can be viewed as source, opened locally, or
+  served through GitHub Pages if that is enabled later.

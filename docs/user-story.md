@@ -28,10 +28,10 @@ Example user:
 
 MealCheck has three intended surfaces:
 
-- Hosted website: public seeded demo reports plus policy-limited local-model
-  verification of pasted meal-plan text.
+- Hosted website: policy-limited local-model verification of pasted meal-plan
+  text.
 - Downloaded repo: trusted local verifier, local backend, BYOK/custom provider
-  surface, and debugging surface.
+  surface, seeded proof artifact, and debugging surface.
 - CLI: structured JSON validation, fixture regression, artifact inspection, and
   future agent-tool integration.
 
@@ -309,10 +309,12 @@ exceeds the configured sodium limit. The plan should be revised before use.
 The tightened MVP user story is supported when:
 
 - a public Cloudflare Pages frontend loads from a stable URL
-- the seeded report is inspectable from the public frontend without login,
-  network calls to the MacBook backend, model API keys, or paid inference
-- hosted navigation exposes demo reports, local-model verification, and local-run
-  instructions
+- the seeded report is inspectable from the repository without login, network
+  calls to the MacBook backend, model API keys, or paid inference
+- hosted navigation exposes the local-model verification workflow without
+  example-run setup before the core task
+- the seeded proof remains inspectable from the repository as a static HTML
+  report and CLI fixture
 - hosted live verification does not require provider API keys and is bounded by
   public request/rate/run policies
 - hosted live verification does not present structured manual entry as the

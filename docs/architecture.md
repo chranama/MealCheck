@@ -90,12 +90,13 @@ The CLI proves the artifact contract before service mode grows.
 ### Static Frontend
 
 The first live frontend is a small Vite/React app under `ui/`. It builds to
-static assets for Cloudflare Pages, reads checked-in seeded artifact bundles
-from `ui/public/demo-runs/`, renders decision details, daily nutrition totals,
-food resolution, source references, and artifact links, and shows backend
+static assets for Cloudflare Pages, opens on the hosted local-model meal-check
+workflow, renders decision details, daily nutrition totals, food resolution,
+source references, and artifact links for completed live runs, and shows backend
 health when an API base URL is configured.
 
-The seeded frontend must remain useful when the hosted backend is offline.
+The seeded proof remains available as checked-in repository artifacts rather
+than a hosted navigation block.
 
 The Milestone 6 frontend follows the useful parts of the
 `llm-extraction-platform` UI architecture:
@@ -227,8 +228,8 @@ The production frontend should call the backend through a public API base URL.
 That value is safe to expose in frontend build output. Secrets, provider keys,
 database URLs, and tunnel credentials must never be embedded in the frontend.
 
-If the backend is offline, the static frontend should still load and show seeded
-demo reports, cached examples, or a clear backend-unavailable state.
+If the backend is offline, the static frontend should still load and show a
+clear backend-unavailable state.
 
 For the first live demo, Cloudflare Pages should use `ui` as the project root,
 run the Vite build, and publish `ui/dist`.

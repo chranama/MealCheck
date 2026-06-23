@@ -9,7 +9,6 @@ export type QualificationStatus =
   | "eligible_for_verification"
   | "eligible_with_unresolved_items"
   | string;
-export type ViewMode = "demo" | "live";
 export type ReportTab = "checks" | "nutrition" | "foods" | "sources" | "report";
 export type RunStatus = "idle" | "queued" | "running" | "completed" | "failed" | "deleted" | string;
 export type CheckStatus = "pass" | "warn" | "block" | string;
@@ -62,18 +61,6 @@ export type LocalModelHealth = {
   supported_days?: number;
   supported_meals_per_day?: number;
   error?: string;
-};
-
-export type DemoRun = {
-  id: string;
-  title: string;
-  summary: string;
-  base_path: string;
-};
-
-export type DemoIndex = {
-  schema_version?: string;
-  demo_runs?: DemoRun[];
 };
 
 export type DecisionCheck = {

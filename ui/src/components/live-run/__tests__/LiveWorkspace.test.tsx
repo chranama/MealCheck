@@ -231,7 +231,7 @@ describe("LiveWorkspace", () => {
       apiBase: "",
       backend: {
         online: false,
-        label: "Static demo",
+        label: "Not configured",
         kind: "idle",
         accessMode: "public_byok",
         hostedMode: "byok",

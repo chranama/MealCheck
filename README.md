@@ -19,16 +19,16 @@ It answers one practical question:
 - Resolves foods and portions against a nutrient catalog.
 - Applies deterministic checks from a versioned guideline pack.
 - Produces a `pass`, `warn`, or `block` decision with evidence.
-- Supports seeded public demos, server-local model verification, BYOK/custom
-  endpoint verification for local/API users, and local structured JSON
+- Supports server-local model verification, seeded repo proof artifacts,
+  BYOK/custom endpoint verification for local/API users, and local structured JSON
   verification.
 
 ## Current Shape
 
 The project has a Vite/React frontend and hosted API. It has seeded fixtures,
 JSON Schemas, a small local nutrient catalog, a checker core, a local CLI that
-writes the artifact bundle, a static frontend with seeded demos and a hosted
-local-model verification workflow, a hosted API/worker wrapper, and local/API
+writes the artifact bundle, a static frontend with a hosted local-model
+verification workflow, a hosted API/worker wrapper, and local/API
 bring-your-own-key generation and repair paths.
 
 The deployed MVP shape is:
@@ -37,8 +37,9 @@ The deployed MVP shape is:
 - MacBook-hosted backend exposed through Cloudflare Tunnel at
   `https://api.mealcheck.dev`
 - private llama.cpp local model service on the MacBook backend
-- public seeded demos without maintainer-paid model calls
 - hosted live verification through the server-owned local model
+- seeded proof artifacts preserved in the repository, including
+  [a standalone HTML report](docs/seeded-report.html)
 - BYOK OpenAI, Anthropic, Gemini, and custom OpenAI-compatible providers
   preserved for repo/CLI/API and self-hosted deployments
 - structured manual JSON verification preserved in the local CLI/debug path

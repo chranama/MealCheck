@@ -1,8 +1,6 @@
 import type {
   ArtifactListResponse,
   CreateRunResponse,
-  DemoIndex,
-  DemoRun,
   HealthResponse,
   QualifyMealPlanPayload,
   QualifyMealPlanResponse,
@@ -91,10 +89,6 @@ export async function requestJSON<T>(base: string, path: string, options: Reques
   throw new ApiError(response.status, `Non-JSON response: ${preview}`, null);
 }
 
-export async function loadStaticJSON<T>(path: string): Promise<T> {
-  return requestJSON<T>("", path, { method: "GET" });
-}
-
 export async function checkHealth(base: string): Promise<boolean> {
   try {
     await fetchHealth(base);
@@ -122,36 +116,6 @@ export async function fetchHealth(base: string): Promise<HealthResponse> {
   } finally {
     window.clearTimeout(timeout);
   }
-}
-
-export async function loadDemoIndex(): Promise<DemoIndex> {
-  return loadStaticJSON<DemoIndex>("/demo-runs/index.json");
-}
-
-export async function loadDemoArtifacts(demo: DemoRun): Promise<ReportArtifacts> {
-  const base = demo.base_path;
-  const [decision, report, totals, resolved, unresolved, manifest, pack, citations] = await Promise.all([
-    loadStaticJSON(`${base}/decision.json`),
-    loadStaticJSON(`${base}/report.json`),
-    loadStaticJSON(`${base}/daily-totals.json`),
-    loadStaticJSON(`${base}/resolved-foods.json`),
-    loadStaticJSON(`${base}/unresolved-foods.json`),
-    loadStaticJSON(`${base}/manifest.json`),
-    loadStaticJSON(`${base}/guideline-pack/pack.json`),
-    loadStaticJSON(`${base}/guideline-pack/citations.json`),
-  ]);
-  return {
-    base,
-    decision,
-    report,
-    totals,
-    resolved,
-    unresolved,
-    manifest,
-    pack,
-    citations,
-    artifactItems: null,
-  } as ReportArtifacts;
 }
 
 export async function createRun(base: string, inviteToken: string, payload: RunPayload): Promise<CreateRunResponse> {

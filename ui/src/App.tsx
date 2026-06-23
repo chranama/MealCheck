@@ -6,8 +6,6 @@ import {
   fetchHealth,
   fetchEvents,
   fetchRun,
-  loadDemoArtifacts,
-  loadDemoIndex,
   loadLiveArtifacts as loadLiveArtifactsForRun,
   qualifyMealPlan,
 } from "./lib/api";
@@ -16,14 +14,11 @@ import { LiveWorkspace } from "./components/live-run/LiveWorkspace";
 import { ReportSurface } from "./components/report/ReportSurface";
 import { BrandMark } from "./components/brand/BrandMark";
 import {
-  EmptySummary,
   LiveSummary,
-  ReportSummary,
   Sidebar,
 } from "./components/shell/Shell";
 import type {
   BackendState,
-  DemoRun,
   LiveState,
   MealPlanQualificationResult,
   QualificationState,
@@ -32,12 +27,11 @@ import type {
   ReportTab,
   RunPayload,
   RuntimeConfig,
-  ViewMode,
 } from "./types";
 
 const INITIAL_BACKEND: BackendState = {
   online: false,
-  label: "Static demo",
+  label: "Not configured",
   kind: "idle",
   accessMode: "public_byok",
   hostedMode: "byok",
@@ -60,12 +54,8 @@ const INITIAL_QUALIFICATION: QualificationState = {
 
 export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig }) {
   const [activeTab, setActiveTab] = useState<ReportTab>("checks");
-  const [view, setView] = useState<ViewMode>("live");
   const [apiBase, setApiBase] = useState(() => configuredApiBase(runtimeConfig));
   const [backend, setBackend] = useState<BackendState>(INITIAL_BACKEND);
-  const [demos, setDemos] = useState<DemoRun[]>([]);
-  const [selectedDemoID, setSelectedDemoID] = useState("");
-  const [reportTitle, setReportTitle] = useState("");
   const [artifacts, setArtifacts] = useState<ReportArtifacts | null>(null);
   const [error, setError] = useState("");
   const [live, setLive] = useState<LiveState>(INITIAL_LIVE);
@@ -73,20 +63,8 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
   const pollRef = useRef<number | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function boot() {
-      await updateBackendHealth(apiBase);
-      const index = await loadDemoIndex();
-      if (cancelled) return;
-
-      const demoRuns = index.demo_runs || [];
-      setDemos(demoRuns);
-    }
-
-    boot().catch(showError);
+    updateBackendHealth(apiBase).catch(showError);
     return () => {
-      cancelled = true;
       stopLivePolling();
     };
   }, []);
@@ -123,23 +101,9 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     }
   }
 
-  async function loadDemo(demo: DemoRun) {
-    stopLivePolling();
-    setError("");
-    setView("demo");
-    setSelectedDemoID(demo.id);
-    setReportTitle(demo.title);
-    const nextArtifacts = await loadDemoArtifacts(demo);
-    setActiveTab("checks");
-    setArtifacts(nextArtifacts);
-  }
-
   function showLiveWorkspace() {
     setError("");
-    setView("live");
-    setSelectedDemoID("");
     setArtifacts(null);
-    setReportTitle(live.runID ? `MealCheck Report ${live.runID}` : "MealCheck Report");
   }
 
   async function createLiveRun(base: string, inviteToken: string, payload: RunPayload) {
@@ -247,7 +211,6 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
   async function loadLiveArtifacts(base: string, runID: string) {
     const nextArtifacts = await loadLiveArtifactsForRun(base, runID);
     const artifactItems = nextArtifacts.artifactItems || [];
-    setReportTitle(`MealCheck Report ${runID}`);
     setLive((current) => ({ ...current, artifactItems }));
     setArtifacts(nextArtifacts);
   }
@@ -275,8 +238,6 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     setLive((current) => ({ ...current, status: "failed", message }));
   }
 
-  const selectedDemo = demos.find((demo) => demo.id === selectedDemoID) || null;
-
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -291,35 +252,21 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
       </header>
 
       <main className="main-layout">
-        <Sidebar
-          demos={demos}
-          selectedDemoID={selectedDemo?.id || ""}
-          view={view}
-          onSelectDemo={(demo) => loadDemo(demo).catch(showError)}
-          onLive={showLiveWorkspace}
-        />
+        <Sidebar onLive={showLiveWorkspace} />
 
         <section className="workspace" aria-live="polite">
-          {view === "live" ? (
-            <LiveSummary apiBase={apiBase} backend={backend} live={live} />
-          ) : artifacts ? (
-            <ReportSummary reportTitle={reportTitle} artifacts={artifacts} />
-          ) : (
-            <EmptySummary />
-          )}
+          <LiveSummary apiBase={apiBase} backend={backend} live={live} />
 
-          {view === "live" ? (
-            <LiveWorkspace
-              apiBase={apiBase}
-              backend={backend}
-              live={live}
-              qualification={qualification}
-              onCreateRun={createLiveRun}
-              onQualify={qualifyCandidate}
-              onDeleteRun={deleteLiveRun}
-              onError={showError}
-            />
-          ) : null}
+          <LiveWorkspace
+            apiBase={apiBase}
+            backend={backend}
+            live={live}
+            qualification={qualification}
+            onCreateRun={createLiveRun}
+            onQualify={qualifyCandidate}
+            onDeleteRun={deleteLiveRun}
+            onError={showError}
+          />
 
           {error ? <section className="panel error-state" role="alert">{error}</section> : null}
 
