@@ -176,7 +176,7 @@ export function LiveWorkspace({
           </fieldset>
 
           {isLocalModelHosted ? (
-            <LocalModelPanel backend={backend} candidateTextLength={candidateTextLength} candidateTextLimit={candidateTextLimit} />
+            <LocalModelPanel backend={backend} />
           ) : (
             <fieldset>
               <legend>Model Provider</legend>
@@ -426,37 +426,14 @@ function CandidateTextForm({
 
 function LocalModelPanel({
   backend,
-  candidateTextLength,
-  candidateTextLimit,
 }: {
   backend: BackendState;
-  candidateTextLength: number;
-  candidateTextLimit?: number;
 }) {
-  const localModel = backend.localModel;
-  const ready = Boolean(localModel?.enabled && localModel?.ready);
+  const ready = Boolean(backend.localModel?.enabled && backend.localModel?.ready);
   const tone = ready ? "pass" : "warn";
-  const model = localModel?.model || "local model";
-  const limitText = candidateTextLimit
-    ? `${candidateTextLength.toLocaleString()} / ${candidateTextLimit.toLocaleString()} characters`
-    : `${candidateTextLength.toLocaleString()} characters`;
   return (
     <section className={`notice notice--${tone} local-model-panel`} aria-label="Local model status">
       <strong>{ready ? "Local model ready" : "Local model unavailable"}</strong>
-      <p>{model}</p>
-      <dl className="local-model-facts">
-        <div>
-          <dt>Input</dt>
-          <dd>{limitText}</dd>
-        </div>
-        {localModel?.timeout_sec ? (
-          <div>
-            <dt>Timeout</dt>
-            <dd>{localModel.timeout_sec}s</dd>
-          </div>
-        ) : null}
-      </dl>
-      {localModel?.error ? <p>{localModel.error}</p> : null}
       <p><a href="https://github.com/chranama/MealCheck">CLI/API and custom endpoint usage</a></p>
     </section>
   );

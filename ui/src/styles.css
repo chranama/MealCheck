@@ -811,35 +811,6 @@ a:focus-visible {
   font-weight: 900;
 }
 
-.local-model-facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 8px 14px;
-  margin: 10px 0 0;
-}
-
-.local-model-facts div {
-  display: grid;
-  gap: 3px;
-}
-
-.local-model-facts dt,
-.local-model-facts dd {
-  margin: 0;
-}
-
-.local-model-facts dt {
-  font-family: var(--font-audit);
-  font-size: 0.72rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.local-model-facts dd {
-  color: var(--ink);
-  font-weight: 800;
-}
-
 .notice--info {
   border-color: var(--line-strong);
   background: var(--info-bg);

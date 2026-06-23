@@ -67,7 +67,14 @@ describe("LiveWorkspace", () => {
     expect(screen.getByText("Meal Plan Text")).toBeInTheDocument();
     expect(screen.getByLabelText("Meal plan text")).toBeVisible();
     expect(screen.getByText("Local model ready")).toBeInTheDocument();
-    expect(screen.getByText("Qwen3-0.6B-Q4_K_M.gguf")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "CLI/API and custom endpoint usage" })).toHaveAttribute(
+      "href",
+      "https://github.com/chranama/MealCheck",
+    );
+    expect(screen.queryByText("Qwen3-0.6B-Q4_K_M.gguf")).not.toBeInTheDocument();
+    expect(screen.queryByText("Input")).not.toBeInTheDocument();
+    expect(screen.queryByText("Timeout")).not.toBeInTheDocument();
+    expect(screen.queryByText("240s")).not.toBeInTheDocument();
     expect(screen.getAllByText(/\/ 6,000 characters/).length).toBeGreaterThan(0);
     expect(screen.queryByText("Model Provider")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Provider")).not.toBeInTheDocument();
@@ -111,7 +118,7 @@ describe("LiveWorkspace", () => {
     });
 
     expect(screen.getByText("Local model unavailable")).toBeInTheDocument();
-    expect(screen.getByText("local model endpoint is not reachable")).toBeInTheDocument();
+    expect(screen.queryByText("local model endpoint is not reachable")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create Report" })).toBeDisabled();
   });
 
