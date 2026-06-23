@@ -26,7 +26,8 @@ Initial responsibilities:
 - store run metadata and job state
 - write artifact bundles to local filesystem storage
 - expose public seeded demo reports
-- accept controlled live BYOK runs with strict limits
+- accept controlled live local-model runs with strict limits
+- keep BYOK/custom provider paths available for repo/API/self-hosted use
 - clean up expired metadata and artifacts
 
 The backend must not become a separate nutrition platform with different
@@ -49,9 +50,9 @@ Avoid initially:
 - Kubernetes
 - Docker as a required production dependency
 - Redis unless the queue becomes too complex for Postgres-backed state
-- local LLM inference
+- public exposure of the private llama.cpp service
 - direct router port forwarding
-- anonymous live inference paid for by the maintainer
+- anonymous maintainer-paid external model-provider inference
 - executing arbitrary user code or scraping arbitrary websites
 
 ## Frontend Boundary
@@ -327,7 +328,10 @@ The server is ready for MVP web acceptance when:
 - Postgres and artifact storage use final paths outside the Git checkout
 - `MEALCHECK_ALLOWED_ORIGIN` is set to the production frontend origin
 - the `LaunchDaemon` mode is verified after reboot or manual restart
-- `MEALCHECK_ACCESS_MODE=public_byok` is configured for the public BYOK surface
+- `MEALCHECK_ACCESS_MODE=public_byok` and
+  `MEALCHECK_HOSTED_MODE=local_model` are configured for the public hosted
+  local-model surface
+- `dev.mealcheck.llama` runs a private llama.cpp service on `127.0.0.1:11435`
 - public request/rate/run policy limits are configured for the hosted hardware
 - invite-required mode has been tested as a private deployment fallback
 - Cloudflare Tunnel maps the public API hostname to the local API service
@@ -336,11 +340,12 @@ The server is ready for MVP web acceptance when:
 - `dev.mealcheck.autodeploy` can fast-forward the server checkout from GitHub
   and restart the backend when backend code changes
 - Cloudflare Pages can call the public API hostname and display health
-- BYOK qualification, live BYOK run creation, status polling or SSE, report
-  retrieval, artifact listing, and deletion work through the public path
+- local-model live run creation, status polling or SSE, report retrieval,
+  artifact listing, deletion, provider-config rejection, and oversized-input
+  rejection work through the public path
 - cleanup enforces the 7-day retention policy
-- public smoke tests verify that provider keys are not present in database
-  fields, logs, reports, or artifact bundles
+- public smoke tests verify that provider credentials are not accepted in
+  hosted local-model requests
 - runbook commands cover deployment, start, stop, restart, logs, health,
   tunnel status, backup, cleanup, and live-run deletion
 
@@ -349,10 +354,11 @@ Production acceptance was recorded on 2026-06-15:
 - `https://mealcheck.dev` serves the accepted static frontend.
 - `https://api.mealcheck.dev/api/health` returns `status: ok` with Postgres
   storage, queue limits, and `retention_days: 7`.
-- live run creation is public BYOK and policy-limited.
+- live run creation is public and policy-limited.
 - public manual live run creation, report retrieval, artifact listing, deletion,
   backup capture, retention verification, CORS verification, and fake-key BYOK
-  redaction checks were completed.
+  redaction checks were completed before the hosted product moved to local
+  model mode.
 
 ## Open Decisions
 

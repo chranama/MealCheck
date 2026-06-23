@@ -4,10 +4,11 @@ MealCheck answers one verification question:
 
 `Does this meal plan satisfy declared constraints and source-backed checks well enough to use, or should it be revised?`
 
-For the hosted product, the plan is generated, normalized, or repaired through
-MealCheck's bring-your-own-key LLM flow. Structured JSON entry remains available
-in the downloaded repository and CLI for local verification, debugging,
-regression cases, and future agent-tool integration.
+For the hosted product, the user pastes a concise ingredient-level meal plan and
+MealCheck normalizes it through the server-owned local model before deterministic
+verification. BYOK/custom provider flows and structured JSON entry remain
+available in the downloaded repository and API/CLI for local verification,
+debugging, regression cases, and future agent-tool integration.
 
 ## Problem
 
@@ -41,10 +42,9 @@ MealCheck should make the check bounded, source-linked, and inspectable.
   inference.
 - Determine whether model output or pasted text qualifies as a verifiable meal
   plan.
-- Generate a structured meal plan from nutrition targets and verification
-  constraints through bring-your-own-key execution.
-- Generate a structured meal plan from a user prompt plus nutrition targets and
-  verification constraints through bring-your-own-key execution.
+- Verify pasted ingredient-level meal-plan text through the hosted local model.
+- Use BYOK/custom providers from the repo API/CLI or a self-hosted deployment
+  for provider experiments and custom endpoints.
 - Verify normalized structured JSON locally through the CLI for debugging and
   regression cases.
 - Check declared allergens, exclusions, nutrition targets, and verification
@@ -63,7 +63,8 @@ MealCheck is:
 - source-pack-driven rather than vague-health-advice-driven
 - strict-schema-oriented
 - fixed-cost-friendly
-- local-first with a hosted demonstration and BYOK verification wrapper
+- local-model-hosted for the public demo, with BYOK/custom endpoints kept in
+  the repo/API/CLI power-user surface
 - agent-tool-ready for users who already formulate plans in an LLM environment
 - honest about uncertainty and unresolved foods
 
@@ -81,16 +82,16 @@ credentials, model API keys, or paid inference calls.
 The public frontend should be a static site hosted on Cloudflare Pages. Live
 backend behavior should be reached through the MacBook-hosted API.
 
-Live LLM generation or repair should require bring-your-own-key execution and
-strict resource limits.
+Live hosted normalization uses the server-owned local model and strict resource
+limits. BYOK generation or repair belongs in local/API/self-hosted workflows.
 
 The hosted website should expose three primary surfaces:
 
 - `Demo Reports`: public seeded reports and artifacts
-- `BYOK Verify`: policy-limited public qualification, generation or
-  normalization, and deterministic verification
-- `Run Locally`: instructions for local CLI/backend use and future agent-tool
-  integration
+- `New Meal Check`: policy-limited local-model normalization and deterministic
+  verification of pasted meal plans
+- `Run Locally`: instructions for CLI/backend, BYOK/custom providers, and
+  future agent-tool integration
 
 Structured manual JSON entry is not a primary hosted workflow. It belongs in
 the local CLI and development workflow where it supports fixtures, debugging,
@@ -100,8 +101,7 @@ regression tests, and agent-generated structured inputs.
 
 - Healthy-adult seeded scenarios.
 - Public seeded report demos.
-- Policy-limited public BYOK targets-only generation and prompt-based
-  generation.
+- Policy-limited public local-model verification of pasted meal-plan text.
 - Meal-plan qualification before verification.
 - Local CLI structured JSON verification for debugging and regression cases.
 - Strict meal-plan schema.
@@ -110,7 +110,7 @@ regression tests, and agent-generated structured inputs.
 - Deterministic checks for structure, allergens, exclusions, nutrient limits,
   food-group coverage, meal-prep safety, and regression against baseline.
 - Evidence artifacts and human-readable reports.
-- A constrained hosted BYOK service mode.
+- A constrained hosted local-model service mode.
 
 ## Out Of Scope
 
@@ -137,8 +137,8 @@ MealCheck is useful when:
 - source-pack versions are visible in reports
 - generated artifacts are stable enough for the hosted UI and local CLI
 - the hosted public surface is inspectable without secrets or live paid calls
-- public BYOK users can test whether generated or pasted content
-  qualifies as a verifiable meal plan
+- public hosted users can test whether pasted ingredient-level content
+  qualifies as a verifiable meal plan and can be checked
 - the Cloudflare Pages frontend remains useful when the MacBook backend is
   offline
 - the MacBook backend can run behind Cloudflare Tunnel as a bounded,

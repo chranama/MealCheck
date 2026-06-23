@@ -251,14 +251,15 @@ Revoke one access code by its public ID:
 /Users/chranama-server/MealCheck/bin/mealcheck invite revoke <INVITE_ID>
 ```
 
-In public BYOK mode, omit the access-code header. Do not commit real provider
-keys or access codes:
+In public hosted local-model mode, omit the access-code header and provider
+credentials:
 
 ```bash
 curl -X POST http://127.0.0.1:8080/api/runs \
   -H 'Content-Type: application/json' \
   -d '{
-    "input_mode": "profile_generation",
+    "input_mode": "local_model",
+    "candidate_text": "Day 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.\nDay 1 lunch: 6 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.\nDay 1 dinner: 6 oz salmon, 1 cup sweet potato, and 1 cup spinach.",
     "settings": {
       "nutrition_targets": {
         "calorie_target_kcal": 2000,
@@ -273,23 +274,16 @@ curl -X POST http://127.0.0.1:8080/api/runs \
         "max_added_sugar_g_per_meal": 10,
         "max_saturated_fat_pct_calories": 10,
         "calorie_tolerance_pct": 15,
-        "requires_prep_safety_notes": true
+        "requires_prep_safety_notes": false
       }
-    },
-    "provider": {
-      "type": "openai",
-      "model": "gpt-example",
-      "api_key": "replace-with-user-key"
-    },
-    "repair_json": true
+    }
   }'
 ```
 
 Avoid initially:
 
 - Kubernetes
-- local LLM inference
-- anonymous live inference
+- public exposure of the private llama.cpp port
 - Redis unless the queue needs it
 - direct router port forwarding
 - arbitrary user code execution
@@ -873,14 +867,12 @@ place.
   access.
 - Confirm the frontend shows backend health when
   `https://api.mealcheck.dev/api/health` is online.
-- Create a public BYOK qualification request through the UI or API.
-- Create a public BYOK generation run through the UI or API.
+- Create a public local-model run through the UI or API.
 - Observe status/events until `completed` or `failed`.
 - Fetch `GET /api/runs/<RUN_ID>/report`.
 - Fetch `GET /api/runs/<RUN_ID>/artifacts`.
-- Verify `configs/redacted-provider.json` contains `api_key: "redacted"` for
-  BYOK runs.
-- Verify provider keys do not appear in service logs or artifact files.
+- Verify client-supplied provider config is rejected for `local_model` runs.
+- Verify oversized candidate text is rejected before model execution.
 - Delete the run and confirm report/artifact URLs no longer work.
 - Verify a disallowed browser origin does not receive
   `Access-Control-Allow-Origin`.
@@ -1017,7 +1009,58 @@ normalization and BYOK generation. Hosted structured manual entry is no longer
 part of the public web surface; use CLI/local case files for structured JSON
 debugging.
 
+## Deployed Local-Model Live Test
+
+Run the deployed local-model test from the repository root:
+
+```bash
+MEALCHECK_DEPLOYED_API_URL=https://api.mealcheck.dev \
+  scripts/test-deployed-local-model-live.sh
+```
+
+The public repo script does not require model-provider API keys. It checks that
+the deployed `/api/health` endpoint reports `hosted_mode: "local_model"` with a
+ready local model, submits one short ingredient-level meal plan through
+`input_mode: "local_model"`, polls the run to completion, fetches
+`optional/normalization-events.json`, `normalized-plan.json`, and
+`decision.json`, and verifies the normalized plan contains the expected
+breakfast/lunch/dinner meal structure and item count.
+
+The script also verifies hosted local-model policy behavior:
+
+- `provider` config is rejected for `local_model` requests
+- oversized candidate text is rejected before llama.cpp is called
+- created deployed runs are deleted by default after artifact inspection
+
+Optional knobs:
+
+- `MEALCHECK_DEPLOYED_API_URL` defaults to `https://api.mealcheck.dev`.
+- `MEALCHECK_DEPLOYED_INVITE_TOKEN` supports private invite-required
+  deployments.
+- `MEALCHECK_DELETE_RUNS` defaults to `1`; set `0` to keep deployed runs for
+  manual inspection.
+- `MEALCHECK_DEPLOYED_OUTPUT_DIR` overrides the local directory used for fetched
+  artifacts. The default is under `/tmp`.
+- `MEALCHECK_POLL_ATTEMPTS` and `MEALCHECK_POLL_SLEEP_SECONDS` tune polling.
+
+If the deployed local model reports the wrong context size or model path, update
+the server-local env file and restart the launchd service from the server:
+
+```bash
+ssh mealcheck-server
+cd /Users/chranama-server/MealCheck
+nano /Users/chranama-server/MealCheck-data/mealcheck-llama.env
+deploy/macos/install-mealcheck-llama-service.sh restart
+curl -fsS http://127.0.0.1:11435/v1/models | jq .
+```
+
+The restart command uses `sudo` internally and may prompt for the server user
+password.
+
 ## Deployed BYOK Live Test
+
+This is now an advanced provider-regression test for repo/API/self-hosted BYOK
+behavior, not the primary hosted `mealcheck.dev` product smoke test.
 
 Run the deployed live BYOK test from the repository root:
 
@@ -1163,13 +1206,10 @@ Required web smoke tests:
 - open the production frontend URL from outside the home network
 - inspect the seeded report without logging in or using a provider key
 - verify the frontend shows backend health when the API is online
-- submit one public BYOK qualification request through the web UI or
-  documented API command
-- create one public BYOK generation run through the web UI or documented
-  API command
+- submit one public local-model run through the web UI or documented API command
+- verify provider config and oversized input are rejected for local-model runs
 - observe run events through completion or failure
 - fetch the report and artifact list for the live run
-- verify persisted artifacts contain `redacted` provider config only
 - delete the live run and verify the report/artifacts are no longer available
 
 ## Source-Pack Update Process

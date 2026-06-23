@@ -6,7 +6,8 @@ or hosted service code.
 ## MVP Definition
 
 The MVP is a public, inspectable meal-plan verification demo with a constrained
-live BYOK path.
+hosted local-model path. BYOK and custom model-provider paths remain available
+for repo/API/CLI users and self-hosted deployments.
 
 The MVP should include:
 
@@ -19,17 +20,19 @@ The MVP should include:
 - Versioned guideline pack snapshot.
 - Local fixture nutrient catalog sufficient for the seeded scenario.
 - Strict normalized meal-plan schema.
-- Hosted surfaces for public seeded demos, invite-gated BYOK verification, and
+- Hosted surfaces for public seeded demos, local-model verification, and
   local/agent-tool guidance.
+- Server-owned local-model normalization as the hosted live path.
 - BYOK profile-only generation, prompt-based generation, qualification,
-  normalization, and bounded JSON repair as the hosted live path.
+  normalization, and bounded JSON repair as repo/API/CLI and self-hosted
+  capabilities.
 - Local CLI structured JSON validation for debugging, fixtures, regression
   cases, and agent-generated structured inputs.
 - Deterministic checks for structure, allergens, nutrient limits, unresolved
   foods, and baseline-versus-candidate regression.
 - Human-readable report and machine-readable artifacts.
-- BYOK path behind an access gate for optional generation and bounded JSON
-  repair.
+- Public hosted local-model path behind request, rate, input-size, queue,
+  timeout, and retention policy gates.
 - One worker and explicit resource limits.
 
 The MVP excludes:
@@ -37,7 +40,6 @@ The MVP excludes:
 - medical diet recommendations
 - disease-specific guidance
 - broad FoodData Central search as a required live dependency
-- local model serving
 - anonymous maintainer-paid inference
 - multi-user collaboration
 - account history dashboards
@@ -65,13 +67,15 @@ long-standing public web deployment:
   uses Postgres plus filesystem artifact storage outside the Git checkout.
 - The public API exposes only the intended HTTP surface and uses CORS limited to
   the production frontend origin.
-- Live BYOK runs are invite-gated, bounded by the configured queue, upload,
-  timeout, and retention limits, and can be deleted by the user.
+- Live local-model runs are public, bounded by the configured request, queue,
+  upload, input-text, timeout, and retention limits, and can be deleted by the
+  user.
 - The runbook documents deployment, start, stop, restart, health check, logs,
   tunnel status, smoke tests, backup, and cleanup commands.
 - A smoke test from outside the home network can inspect the seeded report,
-  check backend health, create an invite-gated live run, observe completion, and
-  verify no provider keys appear in persisted artifacts.
+  check backend health, create a hosted local-model live run, observe
+  completion, and verify provider config is rejected for hosted local-model
+  requests.
 
 The local CLI-deployed MVP is complete when a reviewer can install or build a
 local `mealcheck` command and run the seeded proof without network access,
@@ -2388,3 +2392,59 @@ Acceptance:
 - `mealcheck local-llama schema` matches the checked-in active compact schema.
 - hosted `local_model` no longer hard-requires exactly one day and three meals.
 - backend and CLI tests pass before live server measurements.
+
+## Milestone 28: Hosted Local-Model Product Rollout
+
+Status: Implemented on 2026-06-22 for the repository, frontend contract,
+backend prompt hardening, deployed smoke script, and documentation. Final
+production acceptance requires restarting the deployed backend/llama services
+after pulling this milestone on the MacBook host.
+
+Purpose:
+
+The public website should be a no-key MealCheck demonstration: paste a concise
+ingredient-level meal plan, normalize it through the server-owned local
+llama.cpp model, and run deterministic verification. BYOK and custom model
+providers remain important, but they belong to the repo/API/CLI and self-hosted
+power-user surface rather than the first hosted workflow.
+
+Deliver:
+
+- hosted UI without provider selector or API key field when
+  `MEALCHECK_HOSTED_MODE=local_model`
+- default pasted meal-plan example using supported quantity units
+- backend local-model prompt support for inline meal-plan lines such as
+  `Day 1 breakfast: 1 cup oatmeal, 1 cup berries, and 1 cup yogurt`
+- deployed live smoke script that does not require provider keys
+- docs that position `mealcheck.dev` as a bounded local-model demo and the repo
+  as the BYOK/custom-provider/debug surface
+- runbook commands for deployed local-model smoke testing
+
+Implemented:
+
+1. Simplified the hosted UI in local-model mode so the primary workflow is meal
+   plan text, local model status, report creation, and results.
+2. Updated README, product, user-story, API, contracts, privacy/safety,
+   architecture, backend-server, and runbook docs to reflect hosted local model
+   mode.
+3. Added `scripts/test-deployed-local-model-live.sh`, which checks deployed
+   health, submits a local-model run, fetches key artifacts, validates meal
+   structure and item count, verifies provider config rejection, verifies
+   oversized-input rejection, and deletes created runs by default.
+4. Hardened backend local-model source extraction so inline meal descriptions
+   are converted into numbered source item rows before prompting the small local
+   model.
+5. Preserved food names containing `and` while still splitting inline phrases
+   when `and` introduces another quantified item.
+
+Acceptance:
+
+- `go test ./...` passes.
+- frontend unit tests, typecheck, and build pass.
+- `bash -n scripts/test-deployed-local-model-live.sh` passes.
+- deployed `/api/health` reports `hosted_mode: "local_model"` and ready
+  `local_model` metadata.
+- deployed local-model smoke passes after the MacBook host pulls this milestone
+  and restarts the backend.
+- hosted UI renders without visible API key/provider controls in local-model
+  mode.

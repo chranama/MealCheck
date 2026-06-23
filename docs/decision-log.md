@@ -1591,3 +1591,78 @@ Consequences:
   offload was slower and produced corrupted JSON in local trials.
 - The launchd service must pass local `/v1/models` and structured-output smoke
   tests before the backend exposes local model verification publicly.
+
+## 2026-06-22: Hosted Website Uses Server-Owned Local Model
+
+Status: Accepted
+
+Decision:
+
+Make `mealcheck.dev` a no-key hosted local-model verifier. The public website
+should not ask for a model provider, API key, custom endpoint, or provider
+model id. Users paste concise ingredient-level meal-plan text; the backend
+uses its private llama.cpp service to normalize that text into compact rows,
+expands those rows into canonical MealCheck JSON, and runs deterministic
+verification.
+
+BYOK OpenAI, Anthropic, Gemini, and OpenAI-compatible custom endpoints remain
+supported in the codebase as repo/API/CLI and self-hosted capabilities, not as
+the primary public website workflow.
+
+Reason:
+
+Requiring users to bring API keys made the hosted UX feel like a technical test
+harness instead of a verification product. The local llama.cpp work produced a
+usable bounded path on the deployed MacBook, especially after compact row output
+and launchd scheduling tuning. A no-key hosted demo is easier to explain,
+reduces provider-key handling risk, and still leaves the repo as the higher
+control path for users who want custom providers or local agent integration.
+
+Consequences:
+
+- `MEALCHECK_HOSTED_MODE=local_model` is the intended hosted production mode.
+- The hosted UI hides BYOK provider/API-key controls in local-model mode.
+- Hosted `local_model` requests reject client-supplied `provider` config.
+- Public smoke testing should use `scripts/test-deployed-local-model-live.sh`;
+  BYOK live scripts are now provider-regression tools.
+- Hosted inputs need conservative local-model limits, clear busy/unavailable
+  errors, and deletion/retention controls because server CPU is the bounded
+  resource.
+- BYOK docs should remain available, but framed as repo/API/CLI or self-hosted
+  usage.
+
+## 2026-06-22: Local Model Prompts Number Inline Source Items
+
+Status: Accepted
+
+Decision:
+
+Before prompting the local model, MealCheck should resolve concise inline meal
+lines into explicit numbered source item rows. For example:
+
+```text
+Day 1 breakfast: 1 cup oatmeal, 1 cup berries, and 1 cup yogurt.
+```
+
+becomes three source rows with stable source item IDs, day, meal code, and
+source text. The local model must return one compact row for every source item
+ID.
+
+Reason:
+
+The deployed local-model smoke test showed that concise natural meal text could
+otherwise produce valid JSON while omitting items. The v3 row contract already
+detects missing source IDs, but the backend also needs to give the model an
+explicit item inventory when the user enters inline meal descriptions rather
+than bullet lists.
+
+Consequences:
+
+- Hosted local-model prompts include a source inventory and exact item-count
+  instruction when the backend can resolve inline item phrases.
+- The parser defaults count-only phrases such as `1 banana` to `serving` so
+  they remain verifiable while still using supported units.
+- The inline splitter preserves food names containing `and` unless `and`
+  introduces another quantified item.
+- Missing or duplicated compact rows still fail closed before checker
+  execution.

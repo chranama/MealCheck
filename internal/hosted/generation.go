@@ -422,6 +422,9 @@ type localLlamaSourceItem struct {
 
 var (
 	localLlamaResolvedItemLinePattern = regexp.MustCompile(`(?i)^\s*(?:[-*]|\d+[.)])\s+(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s*(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|servings?)\b`)
+	localLlamaInlineItemPattern       = regexp.MustCompile(`(?i)^\s*((?:\d+(?:\.\d+)?)|(?:\d+\s*/\s*\d+)|(?:\d+\s+\d+\s*/\s*\d+))\s+((?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|servings?)\s+)?(.+?)\s*$`)
+	localLlamaInlineAndItemBoundary   = regexp.MustCompile(`(?i)\s+\band\s+((?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s+)`)
+	localLlamaInlineLeadingAnd        = regexp.MustCompile(`(?i)^\s*and\s+`)
 	localLlamaSourceItemMarkerPattern = regexp.MustCompile(`^\s*(?:[-*]|\d+[.)])\s+`)
 	localLlamaDayHeadingPattern       = regexp.MustCompile(`(?i)\bday\s*([1-7])\b`)
 )
@@ -464,6 +467,10 @@ func localLlamaResolvedSourceItems(text string) []localLlamaSourceItem {
 			if mealCode := localLlamaMealCodeFromHeading(trimmed); mealCode != "" {
 				currentMealCode = mealCode
 			}
+			inlineItems := localLlamaInlineSourceItems(trimmed, currentDay, currentMealCode, len(items)+1)
+			if len(inlineItems) > 0 {
+				items = append(items, inlineItems...)
+			}
 			continue
 		}
 		items = append(items, localLlamaSourceItem{
@@ -474,6 +481,109 @@ func localLlamaResolvedSourceItems(text string) []localLlamaSourceItem {
 		})
 	}
 	return items
+}
+
+func localLlamaInlineSourceItems(line string, day int, mealCode string, startID int) []localLlamaSourceItem {
+	if !strings.Contains(line, ":") {
+		return nil
+	}
+	_, remainder, found := strings.Cut(line, ":")
+	if !found {
+		return nil
+	}
+	remainder = strings.TrimSpace(remainder)
+	if remainder == "" {
+		return nil
+	}
+	var items []localLlamaSourceItem
+	for _, phrase := range localLlamaSplitInlineItemPhrases(remainder) {
+		sourceText, ok := localLlamaNormalizeInlineItemPhrase(phrase)
+		if !ok {
+			continue
+		}
+		items = append(items, localLlamaSourceItem{
+			ID:       startID + len(items),
+			Day:      day,
+			MealCode: mealCode,
+			Text:     sourceText,
+		})
+	}
+	return items
+}
+
+func localLlamaSplitInlineItemPhrases(text string) []string {
+	normalized := strings.ReplaceAll(text, ";", ",")
+	parts := strings.Split(normalized, ",")
+	phrases := make([]string, 0, len(parts))
+	for _, part := range parts {
+		for _, subpart := range localLlamaSplitInlineAndQuantified(part) {
+			phrase := strings.TrimSpace(strings.Trim(subpart, "."))
+			phrase = localLlamaInlineLeadingAnd.ReplaceAllString(phrase, "")
+			if phrase != "" {
+				phrases = append(phrases, phrase)
+			}
+		}
+	}
+	return phrases
+}
+
+func localLlamaSplitInlineAndQuantified(part string) []string {
+	remaining := strings.TrimSpace(part)
+	if remaining == "" {
+		return nil
+	}
+	var phrases []string
+	for {
+		matches := localLlamaInlineAndItemBoundary.FindStringSubmatchIndex(remaining)
+		if len(matches) == 0 {
+			return append(phrases, remaining)
+		}
+		if left := strings.TrimSpace(remaining[:matches[0]]); left != "" {
+			phrases = append(phrases, left)
+		}
+		remaining = strings.TrimSpace(remaining[matches[2]:])
+		if remaining == "" {
+			return phrases
+		}
+	}
+}
+
+func localLlamaNormalizeInlineItemPhrase(phrase string) (string, bool) {
+	matches := localLlamaInlineItemPattern.FindStringSubmatch(strings.TrimSpace(phrase))
+	if len(matches) != 4 {
+		return "", false
+	}
+	quantity := strings.Join(strings.Fields(matches[1]), " ")
+	unit := strings.TrimSpace(matches[2])
+	food := strings.TrimSpace(matches[3])
+	if quantity == "" || food == "" {
+		return "", false
+	}
+	if unit == "" {
+		unit = "serving"
+	}
+	unit = localLlamaNormalizeSourceUnit(unit)
+	return strings.TrimSpace(quantity + " " + unit + " " + food), true
+}
+
+func localLlamaNormalizeSourceUnit(unit string) string {
+	normalized := strings.ToLower(strings.TrimSpace(unit))
+	switch normalized {
+	case "gram", "grams":
+		return "g"
+	case "ounce", "ounces":
+		return "oz"
+	case "cups":
+		return "cup"
+	case "tablespoon", "tablespoons":
+		return "tbsp"
+	case "teaspoon", "teaspoons":
+		return "tsp"
+	case "servings":
+		return "serving"
+	default:
+		return normalized
+	}
 }
 
 func localLlamaDayFromHeading(line string) int {

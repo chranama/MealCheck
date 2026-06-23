@@ -64,4 +64,4 @@ export const INITIAL_MANUAL_ITEMS: ManualItem[] = [
 
 export const DEFAULT_GENERATION_PROMPT = "Create a simple three-day high-protein meal-prep plan. Avoid peanuts and shellfish.";
 export const DEFAULT_PREP_NOTES = "Refrigerate cooked foods within 2 hours.\nReheat leftovers until steaming.";
-export const DEFAULT_CANDIDATE_TEXT = "Day 1 breakfast: 1 cup cooked oatmeal, 1 banana, and 1 cup plain Greek yogurt.\nDay 1 lunch: 6 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.\nDay 1 dinner: 6 oz salmon, 1 medium sweet potato, and 1 cup spinach.";
+export const DEFAULT_CANDIDATE_TEXT = "Day 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.\nDay 1 lunch: 6 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.\nDay 1 dinner: 6 oz salmon, 1 cup sweet potato, and 1 cup spinach.";

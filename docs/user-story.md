@@ -17,8 +17,9 @@ Example user:
 
 - adult healthy-user scenario
 - no clinical diet requirements
-- comfortable managing temporary, scoped model-provider API keys
-- may use OpenAI, Anthropic, Gemini, or an OpenAI-compatible endpoint
+- can paste concise ingredient-level meal-plan text into the hosted site
+- may use OpenAI, Anthropic, Gemini, or an OpenAI-compatible endpoint when
+  running the repo/API/CLI locally or in a self-hosted deployment
 - wants a three-day or seven-day meal plan checked
 - wants MealCheck to verify the plan, not provide medical nutrition advice
 - may run the repo locally or use MealCheck as a future agent-callable tool
@@ -27,9 +28,10 @@ Example user:
 
 MealCheck has three intended surfaces:
 
-- Hosted website: public seeded demo reports plus policy-limited public BYOK
-  qualification and verification.
-- Downloaded repo: trusted local verifier, local backend, and debugging surface.
+- Hosted website: public seeded demo reports plus policy-limited local-model
+  verification of pasted meal-plan text.
+- Downloaded repo: trusted local verifier, local backend, BYOK/custom provider
+  surface, and debugging surface.
 - CLI: structured JSON validation, fixture regression, artifact inspection, and
   future agent-tool integration.
 
@@ -61,8 +63,8 @@ The MVP assumes:
 - the user is an adult
 - the user is not asking for disease-specific, pediatric, pregnancy, or
   therapeutic nutrition guidance
-- hosted model-backed live work requires BYOK provider credentials and is
-  bounded by public request and run policies
+- hosted model-backed live work uses the server-owned local model and is bounded
+  by public request and run policies
 - the selected guideline pack is `dga-2025-2030-us-adult-general-v1`
 - all verification modes eventually produce a normalized JSON meal plan
 - nutrient values are calculated from MealCheck's resolver, not trusted from the
@@ -157,17 +159,12 @@ Minimal internal shape:
 }
 ```
 
-## Hosted BYOK Flow
+## Hosted Local-Model Flow
 
-1. The user opens the hosted BYOK verification surface.
-2. The user pastes candidate meal-plan text to qualify.
-3. The user enters model provider settings when BYOK normalization or
-   generation is needed:
-   - provider type
-   - model ID
-   - API key
-   - custom base URL only for OpenAI-compatible providers in local/private
-     deployments or explicitly enabled hosted deployments
+1. The user opens the hosted MealCheck verification surface.
+2. The user pastes concise ingredient-level meal-plan text.
+3. MealCheck uses the server-owned local model to normalize the pasted text into
+   compact MealCheck rows, then expands those rows into canonical verifier JSON.
 4. If defaults are not sufficient, the user opens Verification Settings and
    adjusts nutrition targets:
    - calorie target
@@ -182,12 +179,12 @@ Minimal internal shape:
    - saturated fat limit
    - calorie tolerance
    - prep-safety-notes requirement
-6. The user supplies either:
-   - a BYOK generation prompt
-   - targets-only generation intent
-   - pasted candidate meal-plan text for qualification/normalization
-7. MealCheck can qualify pasted candidate content before a report run.
-8. For generation modes, MealCheck creates a normalized JSON plan and verifies
+6. MealCheck creates a normalized JSON plan and verifies it with deterministic
+   checks.
+
+BYOK provider settings are not part of the hosted website flow. They remain
+available through the repo API/CLI or self-hosted deployments for users who want
+OpenAI, Anthropic, Gemini, or custom OpenAI-compatible endpoint experiments.
    it deterministically.
 9. MealCheck creates an artifact bundle and report for completed runs.
 10. The user sees the qualification result, decision, failed checks, unresolved
@@ -314,10 +311,10 @@ The tightened MVP user story is supported when:
 - a public Cloudflare Pages frontend loads from a stable URL
 - the seeded report is inspectable from the public frontend without login,
   network calls to the MacBook backend, model API keys, or paid inference
-- hosted navigation exposes demo reports, BYOK verification, and local-run
+- hosted navigation exposes demo reports, local-model verification, and local-run
   instructions
-- hosted live verification requires BYOK provider credentials for model-backed
-  work and is bounded by public request/rate/run policies
+- hosted live verification does not require provider API keys and is bounded by
+  public request/rate/run policies
 - hosted live verification does not present structured manual entry as the
   primary workflow
 - a reviewer can build or install the local CLI from a fresh checkout and run
@@ -331,11 +328,12 @@ The tightened MVP user story is supported when:
 - a qualification step can distinguish content that is not a meal plan, too
   vague to verify, recipe-like but undecomposed, eligible, or eligible with
   unresolved items
-- policy-limited BYOK runs can be created, monitored, viewed, and deleted through
-  the web surface or documented API commands
+- policy-limited local-model runs can be created, monitored, viewed, and
+  deleted through the web surface or documented API commands
 - BYOK flows disclose that provider keys transit the MealCheck backend, and
   that nutrition targets, verification constraints, prompt text, and generated
-  meal-plan content are sent to the user's selected provider
+  meal-plan content are sent to the user's selected provider when those flows
+  are used from the repo/API/CLI or self-hosted deployments
 - every verification mode produces auditable JSON before deterministic checks
 - MealCheck calculates nutrition totals from resolver data
 - failed checks include evidence and source references

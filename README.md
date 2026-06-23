@@ -10,41 +10,46 @@ It answers one practical question:
 
 ## What It Does
 
-- Accepts meal plans generated, normalized, or repaired through a BYOK model
-  path, plus structured JSON cases in the local CLI/debug workflow.
+- Accepts concise ingredient-level meal plans through the hosted local-model
+  path, plus BYOK/custom-provider and structured JSON workflows in the local
+  CLI/API/debug surfaces.
 - Defines a qualification boundary for whether candidate content is specific
   enough to become a verifiable meal plan.
 - Normalizes the plan into a strict meal-plan schema.
 - Resolves foods and portions against a nutrient catalog.
 - Applies deterministic checks from a versioned guideline pack.
 - Produces a `pass`, `warn`, or `block` decision with evidence.
-- Supports seeded public demos, constrained bring-your-own-key verification,
-  and local structured JSON verification.
+- Supports seeded public demos, server-local model verification, BYOK/custom
+  endpoint verification for local/API users, and local structured JSON
+  verification.
 
 ## Current Shape
 
 The project has a Vite/React frontend and hosted API. It has seeded fixtures,
 JSON Schemas, a small local nutrient catalog, a checker core, a local CLI that
-writes the artifact bundle, a static frontend with seeded demos and live BYOK
-workflows, a hosted API/worker wrapper, and invite-gated bring-your-own-key
-generation and repair.
+writes the artifact bundle, a static frontend with seeded demos and a hosted
+local-model verification workflow, a hosted API/worker wrapper, and local/API
+bring-your-own-key generation and repair paths.
 
 The deployed MVP shape is:
 
 - static frontend on Cloudflare Pages at `https://mealcheck.dev`
 - MacBook-hosted backend exposed through Cloudflare Tunnel at
   `https://api.mealcheck.dev`
-- no local LLM inference
+- private llama.cpp local model service on the MacBook backend
 - public seeded demos without maintainer-paid model calls
-- live generation and bounded repair only through bring-your-own-key execution
+- hosted live verification through the server-owned local model
+- BYOK OpenAI, Anthropic, Gemini, and custom OpenAI-compatible providers
+  preserved for repo/CLI/API and self-hosted deployments
 - structured manual JSON verification preserved in the local CLI/debug path
 
 The Cloudflare Pages frontend is connected
 to the GitHub repository and automatically deploys from `main`.
 
-The hosted website is a demonstration and BYOK verification playground. The
-downloaded repository is the higher-control local verifier/debug surface and the
-intended base for future agent-tool integration.
+The hosted website is a bounded local-model verification demo: paste a concise
+ingredient-level meal plan and receive a source-backed report. The downloaded
+repository is the higher-control local verifier/debug surface, the BYOK/custom
+endpoint surface, and the intended base for future agent-tool integration.
 
 The tightened product direction adds first-class meal-plan qualification before
 verification: candidate text may be not a meal plan, too vague, recipe-like but

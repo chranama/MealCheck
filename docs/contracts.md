@@ -58,12 +58,16 @@ Example:
 
 ## Input Modes
 
-MealCheck has three MVP case input modes. The hosted website exposes only the
-BYOK generation modes plus checked-in demo compatibility; `manual_structured`
-is preserved for CLI/local debugging and regression fixtures.
+MealCheck has four model-backed or case-file input modes. The hosted website
+uses `local_model` plus checked-in demo compatibility. BYOK generation modes
+remain available for repo/API/local and self-hosted deployments;
+`manual_structured` is preserved for CLI/local debugging and regression
+fixtures.
 
 - `manual_structured`: a local/debug case supplies normalized meal-plan JSON.
   No LLM is required.
+- `local_model`: hosted pasted meal-plan text is normalized by the
+  server-owned local llama.cpp model, then verified.
 - `profile_generation`: the user supplies nutrition targets and verification
   constraints; MealCheck builds the LLM prompt and requires JSON output.
 - `prompt_generation`: the user supplies nutrition targets, verification
@@ -454,13 +458,39 @@ Qualification statuses are `not_meal_plan`, `meal_plan_too_vague`,
 compliance; it only determines whether content can become normalized meal-plan
 JSON for verification.
 
-`POST /api/runs` supports three hosted request shapes.
+`POST /api/runs` supports four hosted request shapes.
 
 Checked-in demo or fixture case:
 
 ```json
 {
   "case_path": "examples/seeded-3-day-peanut-allergy/case.json"
+}
+```
+
+Hosted local-model verification:
+
+```json
+{
+  "input_mode": "local_model",
+  "candidate_text": "Day 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.",
+  "settings": {
+    "nutrition_targets": {
+      "calorie_target_kcal": 2000,
+      "protein_target_g": 98
+    },
+    "verification_constraints": {
+      "days": 1,
+      "meals_per_day": 3,
+      "allergies": ["peanuts"],
+      "excluded_foods": ["shellfish"],
+      "max_sodium_mg_per_day": 2300,
+      "max_added_sugar_g_per_meal": 10,
+      "max_saturated_fat_pct_calories": 10,
+      "calorie_tolerance_pct": 15,
+      "requires_prep_safety_notes": false
+    }
+  }
 }
 ```
 
@@ -532,6 +562,8 @@ Rules:
 - `case_path` cannot be combined with `input_mode`.
 - Hosted `/api/runs` rejects `input_mode: "manual_structured"`; structured JSON
   verification belongs to CLI/local case files.
+- `local_model` requires `candidate_text`, rejects `provider`, and uses the
+  configured server-owned local model provider.
 - `profile_generation` and `prompt_generation` require a BYOK provider with
   `model` and `api_key`.
 - Hosted and CLI case contracts use `settings.nutrition_targets` and

@@ -3,7 +3,8 @@
 MealCheck has two layers:
 
 1. A local checker engine and CLI.
-2. A hosted BYOK wrapper that schedules runs and serves reports.
+2. A hosted wrapper that can run the server-owned local model, schedule runs,
+   and serve reports.
 
 The hosted layer must wrap the same engine and artifact contract. It should not
 create a second product model.
@@ -50,13 +51,15 @@ artifact generation.
 Input-mode handling supports the shared local case contract:
 
 - manual structured case files without an LLM
-- targets-only LLM generation
-- prompt-based LLM generation
+- hosted local-model normalization
+- targets-only BYOK LLM generation
+- prompt-based BYOK LLM generation
 
-All three paths must produce the same normalized JSON meal-plan artifact before
-verification starts. The hosted API exposes checked-in case compatibility plus
-BYOK qualification and generation; hosted manual structured entry is not part of
-the public web surface.
+All paths must produce the same normalized JSON meal-plan artifact before
+verification starts. The public hosted API exposes checked-in case compatibility
+plus local-model normalization; BYOK qualification and generation remain
+available for repo/API/local and self-hosted deployments. Hosted manual
+structured entry is not part of the public web surface.
 
 ### Guideline Pack
 
@@ -168,7 +171,7 @@ The implementation includes a Postgres-backed store and applies its initial
 schema at server startup. Tests use an in-memory store to avoid requiring local
 Postgres for the normal development suite.
 
-## Hosted BYOK Flow
+## Hosted Local-Model Flow
 
 ```text
 browser
@@ -177,16 +180,20 @@ browser
   -> MacBook-hosted API
   -> run queue
   -> worker
-  -> optional remote model APIs using user-provided keys
+  -> private local llama.cpp service
   -> local deterministic checker
   -> artifact bundle
   -> report/events/artifact endpoints
 ```
 
-Keys are accepted only for live BYOK runs. Public demo runs should replay seeded
-or cached artifacts. Hosted BYOK requires trusting the MealCheck backend
-process because keys briefly exist in request and process memory before being
-sent to the selected provider.
+Public demo runs should replay seeded or cached artifacts. Hosted local-model
+runs do not ask the user for provider API keys; the backend injects its private
+localhost llama.cpp endpoint and rejects client-supplied provider config in
+`local_model` mode.
+
+BYOK flows still exist for repo/API/local and self-hosted deployments. Those
+flows require trusting the MealCheck backend process because keys briefly exist
+in request and process memory before being sent to the selected provider.
 
 Milestone 5 implements this as an in-memory pending-input map shared by the API
 handler and the worker. The database stores only run metadata and the generated
@@ -243,7 +250,7 @@ Default resource envelope:
 - max 5 to 10 minute run duration
 - short artifact retention
 - no Kubernetes
-- no local LLM inference as a primary path
+- private localhost llama.cpp inference only through the backend
 - local fixture nutrient catalog for public seeded runs
 
 ## Internet Exposure

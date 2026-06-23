@@ -39,8 +39,10 @@ MealCheck may receive:
 - verification constraints: days, meals per day, allergies, excluded foods,
   nutrient limits, calorie tolerance, and prep-safety requirement
 - meal-plan data: foods, quantities, units, prep notes, and shopping lists
-- prompts: custom user prompts for prompt-based generation
-- provider credentials: model API keys supplied for BYOK runs
+- prompts: custom user prompts for prompt-based generation in BYOK/API/local
+  deployments
+- provider credentials: model API keys supplied for BYOK runs outside the
+  hosted local-model website flow
 - operational metadata: run ID, status, timestamps, decision, and artifact paths
 
 MealCheck should not request:
@@ -77,10 +79,16 @@ Default rules:
 
 ## Third-Party Disclosure
 
+Hosted local-model verification sends pasted meal-plan text and settings only
+to the private llama.cpp service running on the MealCheck backend host. It does
+not ask the user for model-provider credentials and does not send data to
+OpenAI, Anthropic, Gemini, or custom model endpoints.
+
 Local structured case-file verification can run without sending settings or
 plan data to an LLM provider.
 
-BYOK LLM modes send data to the user's selected provider:
+BYOK LLM modes in repo/API/local or self-hosted workflows send data to the
+user's selected provider:
 
 - qualification normalization sends pasted candidate meal-plan text, nutrition
   targets, and verification constraints when a provider is needed
@@ -93,8 +101,8 @@ BYOK LLM modes send data to the user's selected provider:
 The MVP provider choices are OpenAI, Anthropic, Gemini, and custom
 OpenAI-compatible endpoints.
 
-The UI must disclose this before a BYOK qualification or generation request
-starts.
+Any BYOK UI or API client must disclose this before a BYOK qualification or
+generation request starts.
 
 MealCheck should not send user settings, prompt, or meal-plan data to
 analytics, advertising, or tracking services.
@@ -184,22 +192,21 @@ input unless it is already visible in the user's current report view.
 Default hosted retention:
 
 - seeded demo reports: retained until replaced by a new seeded artifact set
-- live BYOK run metadata: 7 days
-- live BYOK artifacts: 7 days
+- live local-model run metadata: 7 days
+- live local-model artifacts: 7 days
 - logs: shortest practical operational window; target 7 to 14 days
 - provider credentials: never persisted
 
 Expired artifacts and metadata should be deleted by a cleanup job.
 
-The implementation should support user-triggered deletion before public live
-BYOK access ships.
+The implementation should support user-triggered deletion for public live runs.
 
 ## Report Visibility
 
 Default visibility:
 
 - seeded demo reports are public
-- live BYOK reports are private
+- live local-model reports are private
 - shareable live reports require an explicit share action
 
 Shared reports should not expose provider keys, admin metadata, internal file
@@ -223,10 +230,10 @@ Public visitors may not:
 - view user-provided API keys
 - access admin endpoints
 
-Public hosted live BYOK runs may operate without access codes when policy gates
-are enabled. Private or self-hosted deployments may still require a per-user
-access code or stronger auth gate. Admin operations should require a separate
-admin credential.
+Public hosted live local-model runs may operate without access codes when
+policy gates are enabled. Private or self-hosted deployments may still require
+a per-user access code or stronger auth gate. Admin operations should require a
+separate admin credential.
 
 ## Legal And Compliance Notes
 
@@ -267,7 +274,8 @@ The service may continue with a warning when:
 Before public hosted live runs ship, implementation should include:
 
 - non-medical-use disclaimer in the UI and report
-- explicit BYOK third-party disclosure
+- explicit hosted local-model disclosure and BYOK third-party disclosure for
+  repo/API/local or self-hosted provider flows
 - backend secret and artifact redaction tests
 - log redaction policy or tests if structured request logging is added
 - private-by-default live reports
