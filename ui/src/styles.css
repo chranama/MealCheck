@@ -154,7 +154,31 @@ h1 {
 .main-layout {
   display: grid;
   grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
-  min-height: calc(100vh - 88px);
+  min-height: calc(100vh - 88px - 56px);
+}
+
+.site-footer {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 56px;
+  padding: 16px clamp(18px, 4vw, 48px);
+  border-top: 1px solid var(--line);
+  background: var(--surface-strong);
+  color: var(--muted);
+  font-family: var(--font-audit);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.site-footer a {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.site-footer a:hover,
+.site-footer a:focus-visible {
+  color: var(--brand-strong);
+  text-decoration: underline;
 }
 
 .sidebar {
