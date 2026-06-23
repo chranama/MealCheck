@@ -13,10 +13,7 @@ import { configuredApiBase } from "./lib/runtime_config";
 import { LiveWorkspace } from "./components/live-run/LiveWorkspace";
 import { ReportSurface } from "./components/report/ReportSurface";
 import { BrandMark } from "./components/brand/BrandMark";
-import {
-  LiveSummary,
-  Sidebar,
-} from "./components/shell/Shell";
+import { LiveSummary } from "./components/shell/Shell";
 import type {
   BackendState,
   LiveState,
@@ -99,11 +96,6 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
         publicOpenAICompatible: false,
       });
     }
-  }
-
-  function showLiveWorkspace() {
-    setError("");
-    setArtifacts(null);
   }
 
   async function createLiveRun(base: string, inviteToken: string, payload: RunPayload) {
@@ -252,8 +244,6 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
       </header>
 
       <main className="main-layout">
-        <Sidebar onLive={showLiveWorkspace} />
-
         <section className="workspace" aria-live="polite">
           <LiveSummary apiBase={apiBase} backend={backend} live={live} />
 

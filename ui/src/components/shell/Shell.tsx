@@ -1,29 +1,6 @@
 import type { BackendState, LiveState } from "../../types";
 import { liveStatusTone, readableID } from "../../lib/format";
 
-export function Sidebar({
-  onLive,
-}: {
-  onLive: () => void;
-}) {
-  return (
-    <aside className="sidebar" aria-label="MealCheck navigation">
-      <div className="sidebar-heading">
-        <span>Start</span>
-      </div>
-      <button
-        className="demo-button live-entry-button is-active"
-        id="live-entry-button"
-        type="button"
-        onClick={onLive}
-      >
-        <strong>New meal check</strong>
-        <span>Use your own meal plan</span>
-      </button>
-    </aside>
-  );
-}
-
 export function LiveSummary({
   apiBase,
   backend,
