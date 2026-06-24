@@ -1,0 +1,134 @@
+{
+  "schema_version": "0.1",
+  "dataset_id": "wweia-nhanes-real-recalls-v1",
+  "catalog_id": "fixture-catalog-v1",
+  "catalog_food_count": 151,
+  "total_cases": 100,
+  "total_food_items": 815,
+  "resolved_items": 496,
+  "unresolved_items": 319,
+  "resolved_rate": 0.6086,
+  "cases_with_mismatches": 0,
+  "category_summary": [
+    {
+      "category": "wweia_common_recall_day",
+      "cases": 30,
+      "food_items": 314,
+      "resolved_items": 246,
+      "unresolved_items": 68,
+      "resolved_rate": 0.7834
+    },
+    {
+      "category": "wweia_high_sodium",
+      "cases": 20,
+      "food_items": 310,
+      "resolved_items": 104,
+      "unresolved_items": 206,
+      "resolved_rate": 0.3355
+    },
+    {
+      "category": "wweia_low_protein",
+      "cases": 10,
+      "food_items": 100,
+      "resolved_items": 55,
+      "unresolved_items": 45,
+      "resolved_rate": 0.55
+    },
+    {
+      "category": "wweia_resolved_eating_occasion",
+      "cases": 40,
+      "food_items": 91,
+      "resolved_items": 91,
+      "unresolved_items": 0,
+      "resolved_rate": 1
+    }
+  ],
+  "top_unresolved_foods": [
+    {
+      "value": "water, tap",
+      "count": 16
+    },
+    {
+      "value": "coffee, instant, reconstituted",
+      "count": 12
+    },
+    {
+      "value": "apple juice, 100%",
+      "count": 7
+    },
+    {
+      "value": "wine, white",
+      "count": 7
+    },
+    {
+      "value": "water, carbonated, plain",
+      "count": 6
+    },
+    {
+      "value": "pasta with tomato-based sauce and meat, home recipe",
+      "count": 4
+    },
+    {
+      "value": "roll, white, soft",
+      "count": 4
+    },
+    {
+      "value": "sugar, white, granulated or lump",
+      "count": 4
+    },
+    {
+      "value": "wine, red",
+      "count": 4
+    },
+    {
+      "value": "beer",
+      "count": 3
+    },
+    {
+      "value": "bread, white, toasted",
+      "count": 3
+    },
+    {
+      "value": "cheese, nfs",
+      "count": 3
+    },
+    {
+      "value": "coffee creamer, liquid, flavored",
+      "count": 3
+    },
+    {
+      "value": "crackers, saltine",
+      "count": 3
+    },
+    {
+      "value": "green peas, frozen, cooked, no added fat",
+      "count": 3
+    },
+    {
+      "value": "ham sandwich on white, with cheese",
+      "count": 3
+    },
+    {
+      "value": "rice, white, cooked, no added fat",
+      "count": 3
+    },
+    {
+      "value": "soft drink, pepper type",
+      "count": 3
+    },
+    {
+      "value": "yogurt, greek, low fat milk, fruit",
+      "count": 3
+    },
+    {
+      "value": "cheese flavored corn snacks (cheetos)",
+      "count": 2
+    }
+  ],
+  "top_unresolved_units": [
+    {
+      "value": "g",
+      "count": 319
+    }
+  ]
+}

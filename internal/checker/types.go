@@ -91,6 +91,14 @@ type CatalogFood struct {
 	UnitConversions  map[string]float64 `json:"unit_conversions"`
 	Allergens        []string           `json:"allergens"`
 	FoodGroups       []string           `json:"food_groups"`
+	SourceRefs       []CatalogSourceRef `json:"source_refs,omitempty"`
+}
+
+type CatalogSourceRef struct {
+	Source   string `json:"source"`
+	SourceID string `json:"source_id,omitempty"`
+	DataType string `json:"data_type,omitempty"`
+	Note     string `json:"note,omitempty"`
 }
 
 type Nutrients struct {

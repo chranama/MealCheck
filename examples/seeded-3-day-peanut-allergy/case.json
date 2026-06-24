@@ -32,7 +32,9 @@
       "quantities_resolvable"
     ],
     "expected_warn_checks": [
+      "calories_within_tolerance",
       "sodium_under_limit",
+      "protein_minimum_met",
       "prep_safety_mentions_present"
     ]
   },

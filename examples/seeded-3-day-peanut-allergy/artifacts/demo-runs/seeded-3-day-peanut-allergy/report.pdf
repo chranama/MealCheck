@@ -12,7 +12,7 @@ endobj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 5 0 obj
-<< /Length 1089 >>
+<< /Length 1163 >>
 stream
 BT
 /F1 12 Tf
@@ -42,6 +42,8 @@ T*
 T*
 (WARN: One or more days exceed the configured sodium limit.) Tj
 T*
+(WARN: One or more days are below the configured protein minimum.) Tj
+T*
 (WARN: Prep notes do not mention prompt refrigeration or leftover handling.) Tj
 T*
 () Tj
@@ -54,11 +56,11 @@ T*
 T*
 (Daily Totals) Tj
 T*
-(Day 1: 1572.6 kcal, 132.9 g protein, 465.0 mg sodium) Tj
+(Day 1: 1741.3 kcal, 138.3 g protein, 2392.8 mg sodium) Tj
 T*
-(Day 2: 1746.6 kcal, 101.6 g protein, 5558.2 mg sodium) Tj
+(Day 2: 1275.0 kcal, 90.5 g protein, 5052.9 mg sodium) Tj
 T*
-(Day 3: 1301.0 kcal, 108.9 g protein, 347.3 mg sodium) Tj
+(Day 3: 1430.2 kcal, 119.3 g protein, 3077.3 mg sodium) Tj
 T*
 () Tj
 T*
@@ -82,5 +84,5 @@ xref
 trailer
 << /Size 6 /Root 1 0 R >>
 startxref
-1451
+1525
 %%EOF

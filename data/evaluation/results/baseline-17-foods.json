@@ -1,0 +1,848 @@
+{
+  "schema_version": "0.1",
+  "dataset_id": "fndds-grounded-meal-plans-v1",
+  "catalog_id": "fixture-catalog-v1",
+  "catalog_food_count": 17,
+  "total_cases": 100,
+  "total_food_items": 900,
+  "resolved_items": 296,
+  "unresolved_items": 604,
+  "resolved_rate": 0.3289,
+  "cases_with_mismatches": 87,
+  "category_summary": [
+    {
+      "category": "allergen_risk",
+      "cases": 10,
+      "food_items": 90,
+      "resolved_items": 50,
+      "unresolved_items": 40,
+      "resolved_rate": 0.5556
+    },
+    {
+      "category": "balanced_common",
+      "cases": 20,
+      "food_items": 180,
+      "resolved_items": 60,
+      "unresolved_items": 120,
+      "resolved_rate": 0.3333
+    },
+    {
+      "category": "high_added_sugar",
+      "cases": 10,
+      "food_items": 90,
+      "resolved_items": 10,
+      "unresolved_items": 80,
+      "resolved_rate": 0.1111
+    },
+    {
+      "category": "high_sodium",
+      "cases": 10,
+      "food_items": 90,
+      "resolved_items": 15,
+      "unresolved_items": 75,
+      "resolved_rate": 0.1667
+    },
+    {
+      "category": "long_tail_unresolved",
+      "cases": 8,
+      "food_items": 72,
+      "resolved_items": 40,
+      "unresolved_items": 32,
+      "resolved_rate": 0.5556
+    },
+    {
+      "category": "low_protein",
+      "cases": 10,
+      "food_items": 90,
+      "resolved_items": 10,
+      "unresolved_items": 80,
+      "resolved_rate": 0.1111
+    },
+    {
+      "category": "vague_quantity",
+      "cases": 7,
+      "food_items": 63,
+      "resolved_items": 41,
+      "unresolved_items": 22,
+      "resolved_rate": 0.6508
+    },
+    {
+      "category": "vegan",
+      "cases": 10,
+      "food_items": 90,
+      "resolved_items": 30,
+      "unresolved_items": 60,
+      "resolved_rate": 0.3333
+    },
+    {
+      "category": "vegetarian",
+      "cases": 15,
+      "food_items": 135,
+      "resolved_items": 40,
+      "unresolved_items": 95,
+      "resolved_rate": 0.2963
+    }
+  ],
+  "top_unresolved_foods": [
+    {
+      "value": "quinoa",
+      "count": 25
+    },
+    {
+      "value": "banana",
+      "count": 23
+    },
+    {
+      "value": "kale",
+      "count": 22
+    },
+    {
+      "value": "white rice",
+      "count": 22
+    },
+    {
+      "value": "cucumber",
+      "count": 18
+    },
+    {
+      "value": "boiled egg",
+      "count": 17
+    },
+    {
+      "value": "carrots",
+      "count": 17
+    },
+    {
+      "value": "tofu",
+      "count": 16
+    },
+    {
+      "value": "romaine lettuce",
+      "count": 15
+    },
+    {
+      "value": "strawberries",
+      "count": 15
+    },
+    {
+      "value": "corn tortilla",
+      "count": 13
+    },
+    {
+      "value": "green beans",
+      "count": 10
+    },
+    {
+      "value": "pancakes",
+      "count": 10
+    },
+    {
+      "value": "tomato",
+      "count": 10
+    },
+    {
+      "value": "lentils",
+      "count": 9
+    },
+    {
+      "value": "barley",
+      "count": 8
+    },
+    {
+      "value": "cabbage",
+      "count": 8
+    },
+    {
+      "value": "chickpeas",
+      "count": 8
+    },
+    {
+      "value": "granola",
+      "count": 8
+    },
+    {
+      "value": "hummus",
+      "count": 8
+    }
+  ],
+  "top_unresolved_units": [
+    {
+      "value": "serving",
+      "count": 569
+    },
+    {
+      "value": "tbsp",
+      "count": 28
+    },
+    {
+      "value": "(missing)",
+      "count": 7
+    }
+  ],
+  "mismatches": [
+    {
+      "case_id": "balanced_common-002",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-003",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 9, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-004",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-006",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-007",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 9, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-008",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-010",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-011",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 9, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-012",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-014",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-015",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 9, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-016",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-018",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-019",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 9, want 0"
+      ]
+    },
+    {
+      "case_id": "balanced_common-020",
+      "category": "balanced_common",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-021",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 4, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-022",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-023",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-024",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 4, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-025",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-026",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-027",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 4, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-028",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-029",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-030",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 4, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-031",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-032",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-033",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 4, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-034",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "vegetarian-035",
+      "category": "vegetarian",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "vegan-036",
+      "category": "vegan",
+      "messages": [
+        "unresolved_count = 3, want 0"
+      ]
+    },
+    {
+      "case_id": "vegan-037",
+      "category": "vegan",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "vegan-038",
+      "category": "vegan",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "vegan-039",
+      "category": "vegan",
+      "messages": [
+        "unresolved_count = 3, want 0"
+      ]
+    },
+    {
+      "case_id": "vegan-040",
+      "category": "vegan",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "vegan-041",
+      "category": "vegan",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "vegan-042",
+      "category": "vegan",
+      "messages": [
+        "unresolved_count = 3, want 0"
+      ]
+    },
+    {
+      "case_id": "vegan-043",
+      "category": "vegan",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "vegan-044",
+      "category": "vegan",
+      "messages": [
+        "unresolved_count = 8, want 0"
+      ]
+    },
+    {
+      "case_id": "vegan-045",
+      "category": "vegan",
+      "messages": [
+        "unresolved_count = 3, want 0"
+      ]
+    },
+    {
+      "case_id": "high_sodium-046",
+      "category": "high_sodium",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "high_sodium-047",
+      "category": "high_sodium",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 8, want 0",
+        "check sodium_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_sodium-048",
+      "category": "high_sodium",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "high_sodium-049",
+      "category": "high_sodium",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 8, want 0",
+        "check sodium_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_sodium-050",
+      "category": "high_sodium",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "high_sodium-051",
+      "category": "high_sodium",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 8, want 0",
+        "check sodium_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_sodium-052",
+      "category": "high_sodium",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "high_sodium-053",
+      "category": "high_sodium",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 8, want 0",
+        "check sodium_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_sodium-054",
+      "category": "high_sodium",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "high_sodium-055",
+      "category": "high_sodium",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 8, want 0",
+        "check sodium_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_added_sugar-056",
+      "category": "high_added_sugar",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 9, want 0",
+        "check added_sugar_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_added_sugar-057",
+      "category": "high_added_sugar",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0",
+        "check added_sugar_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_added_sugar-058",
+      "category": "high_added_sugar",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 9, want 0",
+        "check added_sugar_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_added_sugar-059",
+      "category": "high_added_sugar",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0",
+        "check added_sugar_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_added_sugar-060",
+      "category": "high_added_sugar",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 9, want 0",
+        "check added_sugar_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_added_sugar-061",
+      "category": "high_added_sugar",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0",
+        "check added_sugar_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_added_sugar-062",
+      "category": "high_added_sugar",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 9, want 0",
+        "check added_sugar_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_added_sugar-063",
+      "category": "high_added_sugar",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0",
+        "check added_sugar_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_added_sugar-064",
+      "category": "high_added_sugar",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 9, want 0",
+        "check added_sugar_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "high_added_sugar-065",
+      "category": "high_added_sugar",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0",
+        "check added_sugar_under_limit = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "allergen_risk-066",
+      "category": "allergen_risk",
+      "messages": [
+        "unresolved_count = 2, want 0",
+        "check allergens_absent = \"pass\", want block"
+      ]
+    },
+    {
+      "case_id": "allergen_risk-067",
+      "category": "allergen_risk",
+      "messages": [
+        "unresolved_count = 6, want 0"
+      ]
+    },
+    {
+      "case_id": "allergen_risk-068",
+      "category": "allergen_risk",
+      "messages": [
+        "unresolved_count = 2, want 0",
+        "check allergens_absent = \"pass\", want block"
+      ]
+    },
+    {
+      "case_id": "allergen_risk-069",
+      "category": "allergen_risk",
+      "messages": [
+        "unresolved_count = 6, want 0"
+      ]
+    },
+    {
+      "case_id": "allergen_risk-070",
+      "category": "allergen_risk",
+      "messages": [
+        "unresolved_count = 2, want 0",
+        "check allergens_absent = \"pass\", want block"
+      ]
+    },
+    {
+      "case_id": "allergen_risk-071",
+      "category": "allergen_risk",
+      "messages": [
+        "unresolved_count = 6, want 0"
+      ]
+    },
+    {
+      "case_id": "allergen_risk-072",
+      "category": "allergen_risk",
+      "messages": [
+        "unresolved_count = 2, want 0",
+        "check allergens_absent = \"pass\", want block"
+      ]
+    },
+    {
+      "case_id": "allergen_risk-073",
+      "category": "allergen_risk",
+      "messages": [
+        "unresolved_count = 6, want 0"
+      ]
+    },
+    {
+      "case_id": "allergen_risk-074",
+      "category": "allergen_risk",
+      "messages": [
+        "unresolved_count = 2, want 0",
+        "check allergens_absent = \"pass\", want block"
+      ]
+    },
+    {
+      "case_id": "allergen_risk-075",
+      "category": "allergen_risk",
+      "messages": [
+        "unresolved_count = 6, want 0"
+      ]
+    },
+    {
+      "case_id": "low_protein-076",
+      "category": "low_protein",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "low_protein-077",
+      "category": "low_protein",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 9, want 0",
+        "check protein_minimum_met = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "low_protein-078",
+      "category": "low_protein",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "low_protein-079",
+      "category": "low_protein",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 9, want 0",
+        "check protein_minimum_met = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "low_protein-080",
+      "category": "low_protein",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "low_protein-081",
+      "category": "low_protein",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 9, want 0",
+        "check protein_minimum_met = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "low_protein-082",
+      "category": "low_protein",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "low_protein-083",
+      "category": "low_protein",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 9, want 0",
+        "check protein_minimum_met = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "low_protein-084",
+      "category": "low_protein",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 7, want 0"
+      ]
+    },
+    {
+      "case_id": "low_protein-085",
+      "category": "low_protein",
+      "messages": [
+        "decision = \"block\", want \"warn\"",
+        "unresolved_count = 9, want 0",
+        "check protein_minimum_met = \"pass\", want warn"
+      ]
+    },
+    {
+      "case_id": "long_tail_unresolved-087",
+      "category": "long_tail_unresolved",
+      "messages": [
+        "unresolved_count = 7, want 1"
+      ]
+    },
+    {
+      "case_id": "long_tail_unresolved-089",
+      "category": "long_tail_unresolved",
+      "messages": [
+        "unresolved_count = 7, want 1"
+      ]
+    },
+    {
+      "case_id": "long_tail_unresolved-091",
+      "category": "long_tail_unresolved",
+      "messages": [
+        "unresolved_count = 7, want 1"
+      ]
+    },
+    {
+      "case_id": "long_tail_unresolved-093",
+      "category": "long_tail_unresolved",
+      "messages": [
+        "unresolved_count = 7, want 1"
+      ]
+    },
+    {
+      "case_id": "vague_quantity-095",
+      "category": "vague_quantity",
+      "messages": [
+        "unresolved_count = 6, want 1"
+      ]
+    },
+    {
+      "case_id": "vague_quantity-097",
+      "category": "vague_quantity",
+      "messages": [
+        "unresolved_count = 6, want 1"
+      ]
+    },
+    {
+      "case_id": "vague_quantity-099",
+      "category": "vague_quantity",
+      "messages": [
+        "unresolved_count = 6, want 1"
+      ]
+    }
+  ]
+}

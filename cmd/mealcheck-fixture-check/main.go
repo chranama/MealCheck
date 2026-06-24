@@ -61,11 +61,19 @@ func run(root string) error {
 		return err
 	}
 
+	if err := validateNutrientCatalogQuality(root); err != nil {
+		return err
+	}
+
 	if err := validateExpectedDecision(root); err != nil {
 		return err
 	}
 
 	if err := validateStaticDemo(root); err != nil {
+		return err
+	}
+
+	if err := validateEvaluationDataset(root); err != nil {
 		return err
 	}
 
@@ -285,6 +293,182 @@ func validateStaticDemo(root string) error {
 	return nil
 }
 
+func validateNutrientCatalogQuality(root string) error {
+	catalog, err := readObject(filepath.Join(root, "data/nutrients/fixture-catalog-v1.json"))
+	if err != nil {
+		return err
+	}
+	foods := objectSlice(catalog, "foods")
+	if len(foods) < 100 {
+		return fmt.Errorf("fixture nutrient catalog has %d foods, want at least 100", len(foods))
+	}
+
+	allowedAllergens := map[string]bool{
+		"milk": true, "eggs": true, "fish": true, "crustacean shellfish": true,
+		"tree nuts": true, "peanuts": true, "wheat": true, "soybeans": true, "sesame": true,
+	}
+	allowedGroups := map[string]bool{
+		"beverages": true, "condiments": true, "dairy": true, "fats": true, "fruits": true,
+		"protein": true, "refined_grains": true, "snacks": true, "vegetables": true, "whole_grains": true,
+	}
+	labels := map[string]string{}
+	ids := map[string]bool{}
+	for _, food := range foods {
+		foodID := mustString(food, "food_id")
+		if ids[foodID] {
+			return fmt.Errorf("duplicate catalog food_id %s", foodID)
+		}
+		ids[foodID] = true
+
+		name := mustString(food, "name")
+		if err := registerCatalogLabel(labels, foodID, name); err != nil {
+			return err
+		}
+		for _, alias := range stringSlice(food, "aliases") {
+			if err := registerCatalogLabel(labels, foodID, alias); err != nil {
+				return err
+			}
+		}
+
+		conversions, ok := food["unit_conversions"].(map[string]any)
+		if !ok || len(conversions) == 0 {
+			return fmt.Errorf("catalog food %s must define unit_conversions", foodID)
+		}
+		if grams, ok := conversions["g"].(float64); !ok || grams <= 0 {
+			return fmt.Errorf("catalog food %s must define a positive g conversion", foodID)
+		}
+		for unit, value := range conversions {
+			number, ok := value.(float64)
+			if !ok || number <= 0 {
+				return fmt.Errorf("catalog food %s has invalid conversion for %s", foodID, unit)
+			}
+		}
+
+		groups := stringSlice(food, "food_groups")
+		if len(groups) == 0 {
+			return fmt.Errorf("catalog food %s must define at least one food group", foodID)
+		}
+		for _, group := range groups {
+			if !allowedGroups[group] {
+				return fmt.Errorf("catalog food %s has invalid food group %s", foodID, group)
+			}
+		}
+		for _, allergen := range stringSlice(food, "allergens") {
+			if !allowedAllergens[allergen] {
+				return fmt.Errorf("catalog food %s has invalid allergen %s", foodID, allergen)
+			}
+		}
+		for _, source := range objectSlice(food, "source_refs") {
+			if _, err := stringField(source, "source"); err != nil {
+				return fmt.Errorf("catalog food %s has invalid source_refs: %w", foodID, err)
+			}
+		}
+	}
+	return nil
+}
+
+func registerCatalogLabel(labels map[string]string, foodID, label string) error {
+	key := normalizeLabel(label)
+	if key == "" {
+		return fmt.Errorf("catalog food %s has an empty name or alias", foodID)
+	}
+	if existing := labels[key]; existing != "" && existing != foodID {
+		return fmt.Errorf("catalog label %q is used by both %s and %s", label, existing, foodID)
+	}
+	labels[key] = foodID
+	return nil
+}
+
+func validateEvaluationDataset(root string) error {
+	if err := validateEvaluationDatasetFile(root, "data/evaluation/fndds-grounded-meal-plans-v1.json", "fndds-grounded-meal-plans-v1", []string{
+		"balanced_common", "vegetarian", "vegan", "high_sodium", "high_added_sugar",
+		"allergen_risk", "low_protein", "long_tail_unresolved", "vague_quantity",
+	}); err != nil {
+		return err
+	}
+
+	if err := validateEvaluationDatasetFile(root, "data/evaluation/wweia-nhanes-real-recalls-v1.json", "wweia-nhanes-real-recalls-v1", []string{
+		"wweia_common_recall_day", "wweia_high_sodium", "wweia_low_protein", "wweia_resolved_eating_occasion",
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateEvaluationDatasetFile(root, datasetPath, datasetID string, requiredCategories []string) error {
+	dataset, err := readObject(filepath.Join(root, datasetPath))
+	if err != nil {
+		return err
+	}
+	if got := mustString(dataset, "schema_version"); got != "0.1" {
+		return fmt.Errorf("%s schema_version = %q, want 0.1", datasetPath, got)
+	}
+	if got := mustString(dataset, "dataset_id"); got != datasetID {
+		return fmt.Errorf("%s dataset_id = %q, want %s", datasetPath, got, datasetID)
+	}
+	if got := mustString(dataset, "catalog_path"); got != "data/nutrients/fixture-catalog-v1.json" {
+		return fmt.Errorf("%s catalog_path = %q, want data/nutrients/fixture-catalog-v1.json", datasetPath, got)
+	}
+	if len(objectSlice(dataset, "source_refs")) == 0 {
+		return fmt.Errorf("%s must define source_refs", datasetPath)
+	}
+	cases := objectSlice(dataset, "cases")
+	if len(cases) != 100 {
+		return fmt.Errorf("%s has %d cases, want 100", datasetPath, len(cases))
+	}
+
+	seenCaseIDs := map[string]bool{}
+	categories := map[string]int{}
+	for _, c := range cases {
+		caseID := mustString(c, "case_id")
+		if seenCaseIDs[caseID] {
+			return fmt.Errorf("%s has duplicate case_id %s", datasetPath, caseID)
+		}
+		seenCaseIDs[caseID] = true
+		category := mustString(c, "category")
+		categories[category]++
+		if _, err := stringField(c, "source_text"); err != nil {
+			return fmt.Errorf("%s case %s: %w", datasetPath, caseID, err)
+		}
+		if datasetID == "wweia-nhanes-real-recalls-v1" && len(objectSlice(c, "source_refs")) == 0 {
+			return fmt.Errorf("%s case %s must define source_refs", datasetPath, caseID)
+		}
+		if datasetID == "wweia-nhanes-real-recalls-v1" {
+			metrics, ok := c["source_metrics"].(map[string]any)
+			if !ok {
+				return fmt.Errorf("%s case %s must define source_metrics", datasetPath, caseID)
+			}
+			if _, err := numericField(metrics, "food_items"); err != nil {
+				return fmt.Errorf("%s case %s source_metrics: %w", datasetPath, caseID, err)
+			}
+			if _, err := numericField(metrics, "known_local_items"); err != nil {
+				return fmt.Errorf("%s case %s source_metrics: %w", datasetPath, caseID, err)
+			}
+		}
+		expected, ok := c["expected"].(map[string]any)
+		if !ok {
+			return fmt.Errorf("%s case %s must define expected outcomes", datasetPath, caseID)
+		}
+		if _, ok := expected["unresolved_count"].(float64); !ok {
+			return fmt.Errorf("%s case %s expected.unresolved_count must be present", datasetPath, caseID)
+		}
+		plan, ok := c["plan"].(map[string]any)
+		if !ok {
+			return fmt.Errorf("%s case %s must define a plan", datasetPath, caseID)
+		}
+		if !planHasAnyFood(plan) {
+			return fmt.Errorf("%s case %s plan must contain food items", datasetPath, caseID)
+		}
+	}
+
+	for _, category := range requiredCategories {
+		if categories[category] == 0 {
+			return fmt.Errorf("%s is missing category %s", datasetPath, category)
+		}
+	}
+	return nil
+}
+
 func readJSON(path string, v any) error {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -308,6 +492,14 @@ func stringField(doc map[string]any, field string) (string, error) {
 	value, ok := doc[field].(string)
 	if !ok || value == "" {
 		return "", fmt.Errorf("field %s must be a non-empty string", field)
+	}
+	return value, nil
+}
+
+func numericField(doc map[string]any, field string) (float64, error) {
+	value, ok := doc[field].(float64)
+	if !ok {
+		return 0, fmt.Errorf("field %s must be a number", field)
 	}
 	return value, nil
 }
@@ -381,4 +573,15 @@ func walkFoodItems(plan map[string]any, predicate func(map[string]any) bool) boo
 		}
 	}
 	return false
+}
+
+func planHasAnyFood(plan map[string]any) bool {
+	return walkFoodItems(plan, func(item map[string]any) bool {
+		_, ok := item["food"].(string)
+		return ok
+	})
+}
+
+func normalizeLabel(value string) string {
+	return strings.Join(strings.Fields(strings.ToLower(strings.TrimSpace(value))), " ")
 }

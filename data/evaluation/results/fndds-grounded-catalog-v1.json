@@ -1,0 +1,114 @@
+{
+  "schema_version": "0.1",
+  "dataset_id": "fndds-grounded-meal-plans-v1",
+  "catalog_id": "fixture-catalog-v1",
+  "catalog_food_count": 151,
+  "total_cases": 100,
+  "total_food_items": 900,
+  "resolved_items": 885,
+  "unresolved_items": 15,
+  "resolved_rate": 0.9833,
+  "cases_with_mismatches": 0,
+  "category_summary": [
+    {
+      "category": "allergen_risk",
+      "cases": 10,
+      "food_items": 90,
+      "resolved_items": 90,
+      "unresolved_items": 0,
+      "resolved_rate": 1
+    },
+    {
+      "category": "balanced_common",
+      "cases": 20,
+      "food_items": 180,
+      "resolved_items": 180,
+      "unresolved_items": 0,
+      "resolved_rate": 1
+    },
+    {
+      "category": "high_added_sugar",
+      "cases": 10,
+      "food_items": 90,
+      "resolved_items": 90,
+      "unresolved_items": 0,
+      "resolved_rate": 1
+    },
+    {
+      "category": "high_sodium",
+      "cases": 10,
+      "food_items": 90,
+      "resolved_items": 90,
+      "unresolved_items": 0,
+      "resolved_rate": 1
+    },
+    {
+      "category": "long_tail_unresolved",
+      "cases": 8,
+      "food_items": 72,
+      "resolved_items": 64,
+      "unresolved_items": 8,
+      "resolved_rate": 0.8889
+    },
+    {
+      "category": "low_protein",
+      "cases": 10,
+      "food_items": 90,
+      "resolved_items": 90,
+      "unresolved_items": 0,
+      "resolved_rate": 1
+    },
+    {
+      "category": "vague_quantity",
+      "cases": 7,
+      "food_items": 63,
+      "resolved_items": 56,
+      "unresolved_items": 7,
+      "resolved_rate": 0.8889
+    },
+    {
+      "category": "vegan",
+      "cases": 10,
+      "food_items": 90,
+      "resolved_items": 90,
+      "unresolved_items": 0,
+      "resolved_rate": 1
+    },
+    {
+      "category": "vegetarian",
+      "cases": 15,
+      "food_items": 135,
+      "resolved_items": 135,
+      "unresolved_items": 0,
+      "resolved_rate": 1
+    }
+  ],
+  "top_unresolved_foods": [
+    {
+      "value": "moringa smoothie powder",
+      "count": 4
+    },
+    {
+      "value": "spinach",
+      "count": 4
+    },
+    {
+      "value": "spirulina noodles",
+      "count": 4
+    },
+    {
+      "value": "kale",
+      "count": 3
+    }
+  ],
+  "top_unresolved_units": [
+    {
+      "value": "serving",
+      "count": 8
+    },
+    {
+      "value": "(missing)",
+      "count": 7
+    }
+  ]
+}

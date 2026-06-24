@@ -3,12 +3,6 @@
   "case_id": "seeded-3-day-peanut-allergy",
   "decision": "block",
   "profile_summary": {
-    "age": 35,
-    "sex": "male",
-    "height_cm": 178,
-    "weight_kg": 82,
-    "activity_level": "moderate",
-    "goal": "maintain_weight",
     "calorie_target_kcal": 2000,
     "protein_target_g": 98
   },
@@ -21,12 +15,10 @@
     "excluded_foods": [
       "shellfish"
     ],
-    "diet_pattern": "general",
     "max_sodium_mg_per_day": 2300,
     "max_added_sugar_g_per_meal": 10,
     "max_saturated_fat_pct_calories": 10,
     "calorie_tolerance_pct": 15,
-    "requires_shopping_list": true,
     "requires_prep_safety_notes": true
   },
   "guideline_pack_id": "dga-2025-2030-us-adult-general-v1",
@@ -37,7 +29,7 @@
     },
     {
       "title": "Failed Or Warning Checks",
-      "body": "5 checks require attention.",
+      "body": "6 checks require attention.",
       "items": [
         {
           "check_id": "quantities_resolvable",
@@ -60,6 +52,12 @@
         {
           "check_id": "sodium_under_limit",
           "message": "One or more days exceed the configured sodium limit.",
+          "severity": "warn",
+          "status": "warn"
+        },
+        {
+          "check_id": "protein_minimum_met",
+          "message": "One or more days are below the configured protein minimum.",
           "severity": "warn",
           "status": "warn"
         },
@@ -91,8 +89,8 @@
         {
           "added_sugar_g": 0,
           "day": 1,
-          "energy_kcal": 1572.5810000000001,
-          "protein_g": 132.85000000000002,
+          "energy_kcal": 1741.315,
+          "protein_g": 138.2596,
           "resolved_food_groups_present": {
             "dairy": true,
             "fats": true,
@@ -101,14 +99,14 @@
             "vegetables": true,
             "whole_grains": true
           },
-          "saturated_fat_pct_calories": 7.010481495070843,
-          "sodium_mg": 465.014
+          "saturated_fat_pct_calories": 6.942391238805157,
+          "sodium_mg": 2392.7940000000003
         },
         {
-          "added_sugar_g": 9.48,
+          "added_sugar_g": 0,
           "day": 2,
-          "energy_kcal": 1746.5850000000003,
-          "protein_g": 101.561,
+          "energy_kcal": 1274.9510000000002,
+          "protein_g": 90.47120000000001,
           "resolved_food_groups_present": {
             "condiments": true,
             "fats": true,
@@ -118,14 +116,14 @@
             "vegetables": true,
             "whole_grains": true
           },
-          "saturated_fat_pct_calories": 9.78692706052096,
-          "sodium_mg": 5558.214
+          "saturated_fat_pct_calories": 8.91761330435444,
+          "sodium_mg": 5052.93
         },
         {
           "added_sugar_g": 0,
           "day": 3,
-          "energy_kcal": 1301.015,
-          "protein_g": 108.876,
+          "energy_kcal": 1430.241,
+          "protein_g": 119.3142,
           "resolved_food_groups_present": {
             "dairy": true,
             "fats": true,
@@ -134,8 +132,8 @@
             "vegetables": true,
             "whole_grains": true
           },
-          "saturated_fat_pct_calories": 5.6925554278774655,
-          "sodium_mg": 347.274
+          "saturated_fat_pct_calories": 4.189517710651563,
+          "sodium_mg": 3077.3
         }
       ]
     }

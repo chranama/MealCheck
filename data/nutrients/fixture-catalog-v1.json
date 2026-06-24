@@ -1,396 +1,648 @@
 {
   "schema_version": "0.1",
   "catalog_id": "fixture-catalog-v1",
-  "source": "hand_authored_seed_fixture",
-  "fixture_note": "Deterministic seed values for tests and demos. Values are rounded fixture data and should be replaced or verified against FoodData Central before broad public nutrition claims.",
+  "source": "usda_fndds_2021_2023_reviewed_subset",
+  "fixture_note": "Deterministic USDA FNDDS 2021-2023 reviewed subset for tests, demos, and evaluation-driven resolver coverage. FNDDS nutrient values are per 100g; household-unit conversions come from FNDDS portions and weights where available. Added sugar uses a documented proxy because FNDDS At A Glance does not publish added-sugar grams.",
   "foods": [
     {
       "food_id": "oatmeal_cooked_plain",
       "name": "cooked oatmeal",
-      "aliases": ["oatmeal", "plain oatmeal"],
+      "aliases": [
+        "oatmeal",
+        "plain oatmeal",
+        "Oatmeal, regular or quick, made with water, no added fat"
+      ],
       "base_quantity_g": 100,
       "nutrients_per_100g": {
-        "energy_kcal": 71,
-        "protein_g": 2.5,
-        "carbohydrate_g": 12,
-        "fat_g": 1.5,
-        "saturated_fat_g": 0.3,
-        "sodium_mg": 4,
+        "energy_kcal": 64,
+        "protein_g": 2.2,
+        "carbohydrate_g": 11.4,
+        "fat_g": 1.1,
+        "saturated_fat_g": 0.2,
+        "sodium_mg": 70,
         "added_sugar_g": 0,
         "fiber_g": 1.7
       },
       "unit_conversions": {
+        "cup": 240,
         "g": 1,
         "oz": 28.35,
-        "cup": 234,
-        "serving": 234
+        "serving": 240
       },
       "allergens": [],
-      "food_groups": ["whole_grains"]
+      "food_groups": [
+        "whole_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "56203056",
+          "data_type": "FNDDS At A Glance",
+          "note": "4802 Oatmeal"
+        }
+      ]
     },
     {
       "food_id": "blueberries_raw",
       "name": "blueberries",
-      "aliases": ["blueberry"],
+      "aliases": [
+        "blueberry",
+        "Blueberries, raw"
+      ],
       "base_quantity_g": 100,
       "nutrients_per_100g": {
-        "energy_kcal": 57,
+        "energy_kcal": 64,
         "protein_g": 0.7,
-        "carbohydrate_g": 14.5,
+        "carbohydrate_g": 14.6,
         "fat_g": 0.3,
-        "saturated_fat_g": 0,
-        "sodium_mg": 1,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 0,
         "added_sugar_g": 0,
         "fiber_g": 2.4
       },
       "unit_conversions": {
+        "cup": 150,
         "g": 1,
         "oz": 28.35,
-        "cup": 148,
-        "serving": 148
+        "serving": 150
       },
       "allergens": [],
-      "food_groups": ["fruits"]
+      "food_groups": [
+        "fruits"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "63203010",
+          "data_type": "FNDDS At A Glance",
+          "note": "6011 Blueberries and other berries"
+        }
+      ]
     },
     {
       "food_id": "greek_yogurt_plain",
       "name": "plain Greek yogurt",
-      "aliases": ["greek yogurt", "plain yogurt"],
+      "aliases": [
+        "greek yogurt",
+        "Yogurt, Greek, NS as to type of milk, plain"
+      ],
       "base_quantity_g": 100,
       "nutrients_per_100g": {
-        "energy_kcal": 73,
-        "protein_g": 10,
-        "carbohydrate_g": 3.9,
-        "fat_g": 2,
-        "saturated_fat_g": 1.3,
+        "energy_kcal": 67,
+        "protein_g": 10.2,
+        "carbohydrate_g": 3.6,
+        "fat_g": 1.4,
+        "saturated_fat_g": 0.7,
         "sodium_mg": 36,
         "added_sugar_g": 0,
         "fiber_g": 0
       },
       "unit_conversions": {
+        "cup": 245,
         "g": 1,
         "oz": 28.35,
-        "cup": 245,
-        "serving": 170
+        "serving": 245
       },
-      "allergens": ["milk"],
-      "food_groups": ["dairy"]
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "dairy"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "11411390",
+          "data_type": "FNDDS At A Glance",
+          "note": "1822 Yogurt, Greek"
+        }
+      ]
     },
     {
       "food_id": "chicken_breast_cooked",
       "name": "chicken breast",
-      "aliases": ["cooked chicken breast", "grilled chicken breast"],
+      "aliases": [
+        "cooked chicken breast",
+        "grilled chicken breast",
+        "baked chicken breast",
+        "Chicken breast, baked, broiled, or roasted, skin not eaten, from raw"
+      ],
       "base_quantity_g": 100,
       "nutrients_per_100g": {
-        "energy_kcal": 165,
-        "protein_g": 31,
+        "energy_kcal": 161,
+        "protein_g": 30.2,
         "carbohydrate_g": 0,
-        "fat_g": 3.6,
-        "saturated_fat_g": 1,
-        "sodium_mg": 74,
+        "fat_g": 3.5,
+        "saturated_fat_g": 0.8,
+        "sodium_mg": 360,
         "added_sugar_g": 0,
         "fiber_g": 0
       },
       "unit_conversions": {
+        "cup": 135,
         "g": 1,
         "oz": 28.35,
-        "serving": 170
+        "serving": 135
       },
       "allergens": [],
-      "food_groups": ["protein"]
+      "food_groups": [
+        "fats",
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "24122131",
+          "data_type": "FNDDS At A Glance",
+          "note": "2202 Chicken, whole pieces"
+        }
+      ]
     },
     {
       "food_id": "brown_rice_cooked",
       "name": "brown rice",
-      "aliases": ["cooked brown rice"],
+      "aliases": [
+        "cooked brown rice",
+        "Rice, brown, cooked, NS as to fat"
+      ],
       "base_quantity_g": 100,
       "nutrients_per_100g": {
-        "energy_kcal": 112,
-        "protein_g": 2.3,
-        "carbohydrate_g": 23.5,
-        "fat_g": 0.8,
+        "energy_kcal": 123,
+        "protein_g": 2.4,
+        "carbohydrate_g": 25.8,
+        "fat_g": 1.1,
         "saturated_fat_g": 0.2,
-        "sodium_mg": 5,
+        "sodium_mg": 201,
+        "added_sugar_g": 0,
+        "fiber_g": 1
+      },
+      "unit_conversions": {
+        "cup": 196,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 196
+      },
+      "allergens": [],
+      "food_groups": [
+        "whole_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "56205011",
+          "data_type": "FNDDS At A Glance",
+          "note": "4002 Rice"
+        }
+      ]
+    },
+    {
+      "food_id": "broccoli_cooked",
+      "name": "broccoli",
+      "aliases": [
+        "cooked broccoli",
+        "Broccoli, fresh, cooked, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 41,
+        "protein_g": 2.7,
+        "carbohydrate_g": 6.5,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 158,
+        "added_sugar_g": 0,
+        "fiber_g": 2.5
+      },
+      "unit_conversions": {
+        "cup": 155,
+        "g": 1,
+        "oz": 28.35,
+        "piece": 10,
+        "serving": 155
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "72201211",
+          "data_type": "FNDDS At A Glance",
+          "note": "6407 Broccoli"
+        }
+      ]
+    },
+    {
+      "food_id": "salmon_cooked",
+      "name": "salmon",
+      "aliases": [
+        "cooked salmon",
+        "baked salmon",
+        "Fish, salmon, baked or broiled"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 274,
+        "protein_g": 25.4,
+        "carbohydrate_g": 0.0,
+        "fat_g": 18.4,
+        "saturated_fat_g": 4.3,
+        "sodium_mg": 294,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135
+      },
+      "allergens": [
+        "fish"
+      ],
+      "food_groups": [
+        "fats",
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "26137120",
+          "data_type": "FNDDS At A Glance",
+          "note": "2402 Fish"
+        }
+      ]
+    },
+    {
+      "food_id": "sweet_potato_baked",
+      "name": "sweet potato",
+      "aliases": [
+        "baked sweet potato",
+        "Sweet potato, baked, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 82,
+        "protein_g": 1.6,
+        "carbohydrate_g": 18.0,
+        "fat_g": 0.4,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 154,
+        "added_sugar_g": 0,
+        "fiber_g": 3.1
+      },
+      "unit_conversions": {
+        "cup": 250,
+        "g": 1,
+        "large": 235,
+        "medium": 150,
+        "oz": 28.35,
+        "serving": 250,
+        "small": 80
+      },
+      "allergens": [],
+      "food_groups": [
+        "fruits",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "73403010",
+          "data_type": "FNDDS At A Glance",
+          "note": "6406 Other red and orange vegetables"
+        }
+      ]
+    },
+    {
+      "food_id": "spinach_cooked",
+      "name": "spinach",
+      "aliases": [
+        "cooked spinach",
+        "Spinach, fresh, cooked, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 33,
+        "protein_g": 3.4,
+        "carbohydrate_g": 3.1,
+        "fat_g": 0.7,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 262,
+        "added_sugar_g": 0,
+        "fiber_g": 1.9
+      },
+      "unit_conversions": {
+        "cup": 180,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 180
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "72125211",
+          "data_type": "FNDDS At A Glance",
+          "note": "6409 Spinach"
+        }
+      ]
+    },
+    {
+      "food_id": "olive_oil",
+      "name": "olive oil",
+      "aliases": [
+        "extra virgin olive oil"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 900,
+        "protein_g": 0,
+        "carbohydrate_g": 0,
+        "fat_g": 100,
+        "saturated_fat_g": 15.5,
+        "sodium_mg": 2,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 224,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 224,
+        "tbsp": 14
+      },
+      "allergens": [],
+      "food_groups": [
+        "fats",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "82104000",
+          "data_type": "FNDDS At A Glance",
+          "note": "8012 Salad dressings and vegetable oils"
+        }
+      ]
+    },
+    {
+      "food_id": "egg_boiled",
+      "name": "boiled egg",
+      "aliases": [
+        "egg",
+        "hard boiled egg",
+        "Egg, whole, boiled or poached"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 143,
+        "protein_g": 12.4,
+        "carbohydrate_g": 1.0,
+        "fat_g": 10.0,
+        "saturated_fat_g": 3.2,
+        "sodium_mg": 129,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "egg": 50,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135,
+        "slice": 5
+      },
+      "allergens": [
+        "milk",
+        "eggs"
+      ],
+      "food_groups": [
+        "fats",
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "31103010",
+          "data_type": "FNDDS At A Glance",
+          "note": "2502 Eggs and omelets"
+        }
+      ]
+    },
+    {
+      "food_id": "apple_raw",
+      "name": "apple",
+      "aliases": [
+        "raw apple",
+        "Apple, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 61,
+        "protein_g": 0.2,
+        "carbohydrate_g": 14.8,
+        "fat_g": 0.1,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 0,
+        "added_sugar_g": 0,
+        "fiber_g": 2.1
+      },
+      "unit_conversions": {
+        "cup": 125,
+        "g": 1,
+        "large": 242,
+        "medium": 200,
+        "oz": 28.35,
+        "serving": 125,
+        "slice": 25,
+        "small": 165
+      },
+      "allergens": [],
+      "food_groups": [
+        "fruits"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "63101000",
+          "data_type": "FNDDS At A Glance",
+          "note": "6002 Apples"
+        }
+      ]
+    },
+    {
+      "food_id": "black_beans",
+      "name": "black beans",
+      "aliases": [
+        "canned black beans",
+        "Black beans, from canned, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 134,
+        "protein_g": 8.9,
+        "carbohydrate_g": 24.3,
+        "fat_g": 0.4,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 348,
+        "added_sugar_g": 0,
+        "fiber_g": 10.1
+      },
+      "unit_conversions": {
+        "cup": 180,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 180
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "41102080",
+          "data_type": "FNDDS At A Glance",
+          "note": "2802 Beans, peas, legumes"
+        }
+      ]
+    },
+    {
+      "food_id": "whole_wheat_bread",
+      "name": "whole wheat bread",
+      "aliases": [
+        "wheat bread",
+        "Bread, whole wheat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 254,
+        "protein_g": 12.3,
+        "carbohydrate_g": 43.1,
+        "fat_g": 3.5,
+        "saturated_fat_g": 0.7,
+        "sodium_mg": 430,
+        "added_sugar_g": 0,
+        "fiber_g": 6
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 16,
+        "slice": 16
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "whole_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "51300110",
+          "data_type": "FNDDS At A Glance",
+          "note": "4202 Yeast breads"
+        }
+      ]
+    },
+    {
+      "food_id": "peanut_sauce",
+      "name": "peanut sauce",
+      "aliases": [
+        "satay sauce"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 257,
+        "protein_g": 6.3,
+        "carbohydrate_g": 22.0,
+        "fat_g": 16.0,
+        "saturated_fat_g": 2.9,
+        "sodium_mg": 1338,
         "added_sugar_g": 0,
         "fiber_g": 1.8
       },
       "unit_conversions": {
         "g": 1,
         "oz": 28.35,
-        "cup": 195,
-        "serving": 195
+        "serving": 16,
+        "tbsp": 16
       },
-      "allergens": [],
-      "food_groups": ["whole_grains"]
+      "allergens": [
+        "peanuts"
+      ],
+      "food_groups": [
+        "condiments",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "42204050",
+          "data_type": "FNDDS At A Glance",
+          "note": "8412 Dips, gravies, other sauces"
+        }
+      ]
     },
     {
-      "food_id": "broccoli_cooked",
-      "name": "broccoli",
-      "aliases": ["cooked broccoli"],
+      "food_id": "ramen_noodles",
+      "name": "ramen noodles",
+      "aliases": [
+        "instant ramen",
+        "ramen soup",
+        "Soup, ramen noodles, water added"
+      ],
       "base_quantity_g": 100,
       "nutrients_per_100g": {
-        "energy_kcal": 35,
-        "protein_g": 2.4,
-        "carbohydrate_g": 7.2,
-        "fat_g": 0.4,
-        "saturated_fat_g": 0.1,
-        "sodium_mg": 41,
+        "energy_kcal": 66,
+        "protein_g": 1.5,
+        "carbohydrate_g": 9.0,
+        "fat_g": 2.6,
+        "saturated_fat_g": 1.2,
+        "sodium_mg": 282,
         "added_sugar_g": 0,
-        "fiber_g": 3.3
+        "fiber_g": 0.4
       },
       "unit_conversions": {
+        "cup": 245,
         "g": 1,
         "oz": 28.35,
-        "cup": 156,
-        "serving": 156
+        "serving": 245
       },
-      "allergens": [],
-      "food_groups": ["vegetables"]
-    },
-    {
-      "food_id": "salmon_cooked",
-      "name": "salmon",
-      "aliases": ["cooked salmon", "baked salmon"],
-      "base_quantity_g": 100,
-      "nutrients_per_100g": {
-        "energy_kcal": 206,
-        "protein_g": 22,
-        "carbohydrate_g": 0,
-        "fat_g": 12,
-        "saturated_fat_g": 2.5,
-        "sodium_mg": 60,
-        "added_sugar_g": 0,
-        "fiber_g": 0
-      },
-      "unit_conversions": {
-        "g": 1,
-        "oz": 28.35,
-        "serving": 170
-      },
-      "allergens": ["fish"],
-      "food_groups": ["protein"]
-    },
-    {
-      "food_id": "sweet_potato_baked",
-      "name": "sweet potato",
-      "aliases": ["baked sweet potato"],
-      "base_quantity_g": 100,
-      "nutrients_per_100g": {
-        "energy_kcal": 90,
-        "protein_g": 2,
-        "carbohydrate_g": 20.7,
-        "fat_g": 0.2,
-        "saturated_fat_g": 0,
-        "sodium_mg": 36,
-        "added_sugar_g": 0,
-        "fiber_g": 3.3
-      },
-      "unit_conversions": {
-        "g": 1,
-        "oz": 28.35,
-        "serving": 180
-      },
-      "allergens": [],
-      "food_groups": ["vegetables"]
-    },
-    {
-      "food_id": "spinach_raw",
-      "name": "spinach",
-      "aliases": ["raw spinach"],
-      "base_quantity_g": 100,
-      "nutrients_per_100g": {
-        "energy_kcal": 23,
-        "protein_g": 2.9,
-        "carbohydrate_g": 3.6,
-        "fat_g": 0.4,
-        "saturated_fat_g": 0.1,
-        "sodium_mg": 79,
-        "added_sugar_g": 0,
-        "fiber_g": 2.2
-      },
-      "unit_conversions": {
-        "g": 1,
-        "oz": 28.35,
-        "cup": 30,
-        "serving": 85
-      },
-      "allergens": [],
-      "food_groups": ["vegetables"]
-    },
-    {
-      "food_id": "olive_oil",
-      "name": "olive oil",
-      "aliases": ["extra virgin olive oil"],
-      "base_quantity_g": 100,
-      "nutrients_per_100g": {
-        "energy_kcal": 884,
-        "protein_g": 0,
-        "carbohydrate_g": 0,
-        "fat_g": 100,
-        "saturated_fat_g": 13.8,
-        "sodium_mg": 2,
-        "added_sugar_g": 0,
-        "fiber_g": 0
-      },
-      "unit_conversions": {
-        "g": 1,
-        "oz": 28.35,
-        "tbsp": 13.5,
-        "tsp": 4.5
-      },
-      "allergens": [],
-      "food_groups": ["fats"]
-    },
-    {
-      "food_id": "eggs_large",
-      "name": "egg",
-      "aliases": ["large egg", "eggs"],
-      "base_quantity_g": 100,
-      "nutrients_per_100g": {
-        "energy_kcal": 143,
-        "protein_g": 12.6,
-        "carbohydrate_g": 0.7,
-        "fat_g": 9.5,
-        "saturated_fat_g": 3.1,
-        "sodium_mg": 142,
-        "added_sugar_g": 0,
-        "fiber_g": 0
-      },
-      "unit_conversions": {
-        "g": 1,
-        "oz": 28.35,
-        "serving": 100
-      },
-      "allergens": ["eggs"],
-      "food_groups": ["protein"]
-    },
-    {
-      "food_id": "apple_raw",
-      "name": "apple",
-      "aliases": ["apples"],
-      "base_quantity_g": 100,
-      "nutrients_per_100g": {
-        "energy_kcal": 52,
-        "protein_g": 0.3,
-        "carbohydrate_g": 13.8,
-        "fat_g": 0.2,
-        "saturated_fat_g": 0,
-        "sodium_mg": 1,
-        "added_sugar_g": 0,
-        "fiber_g": 2.4
-      },
-      "unit_conversions": {
-        "g": 1,
-        "oz": 28.35,
-        "serving": 182
-      },
-      "allergens": [],
-      "food_groups": ["fruits"]
-    },
-    {
-      "food_id": "black_beans_cooked",
-      "name": "black beans",
-      "aliases": ["cooked black beans"],
-      "base_quantity_g": 100,
-      "nutrients_per_100g": {
-        "energy_kcal": 132,
-        "protein_g": 8.9,
-        "carbohydrate_g": 23.7,
-        "fat_g": 0.5,
-        "saturated_fat_g": 0.1,
-        "sodium_mg": 1,
-        "added_sugar_g": 0,
-        "fiber_g": 8.7
-      },
-      "unit_conversions": {
-        "g": 1,
-        "oz": 28.35,
-        "cup": 172,
-        "serving": 172
-      },
-      "allergens": [],
-      "food_groups": ["protein", "vegetables"]
-    },
-    {
-      "food_id": "whole_wheat_bread",
-      "name": "whole wheat bread",
-      "aliases": ["wheat bread"],
-      "base_quantity_g": 100,
-      "nutrients_per_100g": {
-        "energy_kcal": 247,
-        "protein_g": 13,
-        "carbohydrate_g": 41,
-        "fat_g": 4.2,
-        "saturated_fat_g": 0.9,
-        "sodium_mg": 400,
-        "added_sugar_g": 4,
-        "fiber_g": 7
-      },
-      "unit_conversions": {
-        "g": 1,
-        "oz": 28.35,
-        "serving": 56
-      },
-      "allergens": ["wheat"],
-      "food_groups": ["whole_grains"]
-    },
-    {
-      "food_id": "peanut_sauce",
-      "name": "peanut sauce",
-      "aliases": ["peanut dressing"],
-      "base_quantity_g": 100,
-      "nutrients_per_100g": {
-        "energy_kcal": 360,
-        "protein_g": 10,
-        "carbohydrate_g": 20,
-        "fat_g": 28,
-        "saturated_fat_g": 5,
-        "sodium_mg": 900,
-        "added_sugar_g": 12,
-        "fiber_g": 3
-      },
-      "unit_conversions": {
-        "g": 1,
-        "oz": 28.35,
-        "tbsp": 16,
-        "tsp": 5.3,
-        "serving": 32
-      },
-      "allergens": ["peanuts"],
-      "food_groups": ["fats", "protein"]
-    },
-    {
-      "food_id": "instant_ramen",
-      "name": "instant ramen",
-      "aliases": ["ramen noodles"],
-      "base_quantity_g": 100,
-      "nutrients_per_100g": {
-        "energy_kcal": 436,
-        "protein_g": 9,
-        "carbohydrate_g": 62,
-        "fat_g": 16,
-        "saturated_fat_g": 7,
-        "sodium_mg": 1700,
-        "added_sugar_g": 2,
-        "fiber_g": 2
-      },
-      "unit_conversions": {
-        "g": 1,
-        "oz": 28.35,
-        "serving": 85
-      },
-      "allergens": ["wheat"],
-      "food_groups": ["refined_grains"]
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "58407030",
+          "data_type": "FNDDS At A Glance",
+          "note": "3808 Ramen and Asian broth-based soups"
+        }
+      ]
     },
     {
       "food_id": "soy_sauce",
       "name": "soy sauce",
-      "aliases": ["regular soy sauce"],
+      "aliases": [
+        "shoyu",
+        "tamari"
+      ],
       "base_quantity_g": 100,
       "nutrients_per_100g": {
         "energy_kcal": 53,
-        "protein_g": 8,
-        "carbohydrate_g": 5,
+        "protein_g": 8.1,
+        "carbohydrate_g": 4.9,
         "fat_g": 0.6,
         "saturated_fat_g": 0.1,
         "sodium_mg": 5493,
@@ -399,11 +651,5140 @@
       },
       "unit_conversions": {
         "g": 1,
-        "tbsp": 16,
-        "tsp": 5.3
+        "oz": 28.35,
+        "serving": 16,
+        "tbsp": 16
       },
-      "allergens": ["soybeans", "wheat"],
-      "food_groups": ["condiments"]
+      "allergens": [
+        "soybeans"
+      ],
+      "food_groups": [
+        "condiments"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "41420300",
+          "data_type": "FNDDS At A Glance",
+          "note": "8404 Soy-based condiments"
+        }
+      ]
+    },
+    {
+      "food_id": "whole_milk",
+      "name": "whole milk",
+      "aliases": [
+        "milk whole",
+        "Milk, whole"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 61,
+        "protein_g": 3.3,
+        "carbohydrate_g": 4.6,
+        "fat_g": 3.2,
+        "saturated_fat_g": 1.9,
+        "sodium_mg": 38,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 244,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 244
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "dairy"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "11111000",
+          "data_type": "FNDDS At A Glance",
+          "note": "1002 Milk, whole"
+        }
+      ]
+    },
+    {
+      "food_id": "reduced_fat_milk",
+      "name": "2% milk",
+      "aliases": [
+        "reduced fat milk",
+        "Milk, reduced fat (2%)"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 50,
+        "protein_g": 3.4,
+        "carbohydrate_g": 4.9,
+        "fat_g": 1.9,
+        "saturated_fat_g": 1.1,
+        "sodium_mg": 39,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 244,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 244
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "dairy"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "11112110",
+          "data_type": "FNDDS At A Glance",
+          "note": "1004 Milk, reduced fat"
+        }
+      ]
+    },
+    {
+      "food_id": "skim_milk",
+      "name": "skim milk",
+      "aliases": [
+        "fat free milk",
+        "Milk, fat free (skim)"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 34,
+        "protein_g": 3.4,
+        "carbohydrate_g": 4.9,
+        "fat_g": 0.1,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 41,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 244,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 244
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "dairy"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "11113000",
+          "data_type": "FNDDS At A Glance",
+          "note": "1008 Milk, nonfat"
+        }
+      ]
+    },
+    {
+      "food_id": "almond_milk_unsweetened",
+      "name": "unsweetened almond milk",
+      "aliases": [
+        "almond milk",
+        "Almond milk, unsweetened"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 15,
+        "protein_g": 0.6,
+        "carbohydrate_g": 0.3,
+        "fat_g": 1.2,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 60,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 244,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 244
+      },
+      "allergens": [
+        "tree nuts"
+      ],
+      "food_groups": [
+        "dairy",
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "11350020",
+          "data_type": "FNDDS At A Glance",
+          "note": "1902 Plant-based milk"
+        }
+      ]
+    },
+    {
+      "food_id": "oat_milk",
+      "name": "oat milk",
+      "aliases": [],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 45,
+        "protein_g": 0.7,
+        "carbohydrate_g": 5.4,
+        "fat_g": 2.3,
+        "saturated_fat_g": 0.2,
+        "sodium_mg": 43,
+        "added_sugar_g": 0,
+        "fiber_g": 0.5
+      },
+      "unit_conversions": {
+        "cup": 244,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 244
+      },
+      "allergens": [],
+      "food_groups": [
+        "dairy"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "11360200",
+          "data_type": "FNDDS At A Glance",
+          "note": "1902 Plant-based milk"
+        }
+      ]
+    },
+    {
+      "food_id": "coconut_milk_beverage",
+      "name": "coconut milk",
+      "aliases": [
+        "coconut milk beverage"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 31,
+        "protein_g": 0.2,
+        "carbohydrate_g": 2.9,
+        "fat_g": 2.1,
+        "saturated_fat_g": 2.1,
+        "sodium_mg": 19,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 244,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 244
+      },
+      "allergens": [],
+      "food_groups": [
+        "dairy"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "11370000",
+          "data_type": "FNDDS At A Glance",
+          "note": "1902 Plant-based milk"
+        }
+      ]
+    },
+    {
+      "food_id": "yogurt_plain",
+      "name": "plain yogurt",
+      "aliases": [
+        "yogurt",
+        "Yogurt, NS as to type of milk, plain"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 63,
+        "protein_g": 5.2,
+        "carbohydrate_g": 7.0,
+        "fat_g": 1.6,
+        "saturated_fat_g": 1,
+        "sodium_mg": 70,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 245,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 245
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "dairy"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "11411010",
+          "data_type": "FNDDS At A Glance",
+          "note": "1820 Yogurt, regular"
+        }
+      ]
+    },
+    {
+      "food_id": "chocolate_milk",
+      "name": "chocolate milk",
+      "aliases": [
+        "Chocolate milk, reduced fat (2%)"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 76,
+        "protein_g": 3.0,
+        "carbohydrate_g": 12.1,
+        "fat_g": 1.9,
+        "saturated_fat_g": 1.2,
+        "sodium_mg": 66,
+        "added_sugar_g": 0,
+        "fiber_g": 0.7
+      },
+      "unit_conversions": {
+        "cup": 248,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 248
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "dairy",
+        "snacks"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "11511200",
+          "data_type": "FNDDS At A Glance",
+          "note": "1204 Flavored milk, reduced fat"
+        }
+      ]
+    },
+    {
+      "food_id": "cheddar_cheese",
+      "name": "cheddar cheese",
+      "aliases": [
+        "cheddar",
+        "Cheese, Cheddar"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 409,
+        "protein_g": 23.3,
+        "carbohydrate_g": 2.4,
+        "fat_g": 34,
+        "saturated_fat_g": 19.2,
+        "sodium_mg": 654,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 113,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 113,
+        "slice": 21
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "dairy"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "14104100",
+          "data_type": "FNDDS At A Glance",
+          "note": "1602 Cheese"
+        }
+      ]
+    },
+    {
+      "food_id": "mozzarella_cheese",
+      "name": "mozzarella cheese",
+      "aliases": [
+        "part skim mozzarella",
+        "Cheese, Mozzarella, part skim"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 296,
+        "protein_g": 23.7,
+        "carbohydrate_g": 4.4,
+        "fat_g": 20.4,
+        "saturated_fat_g": 11.7,
+        "sodium_mg": 699,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 132,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 132,
+        "slice": 21
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "dairy"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "14107030",
+          "data_type": "FNDDS At A Glance",
+          "note": "1602 Cheese"
+        }
+      ]
+    },
+    {
+      "food_id": "cottage_cheese",
+      "name": "cottage cheese",
+      "aliases": [
+        "Cheese, cottage, creamed, large or small curd"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 103,
+        "protein_g": 11.6,
+        "carbohydrate_g": 4.6,
+        "fat_g": 4.2,
+        "saturated_fat_g": 2.6,
+        "sodium_mg": 350,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 210,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 210
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "dairy"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "14201010",
+          "data_type": "FNDDS At A Glance",
+          "note": "1604 Cottage/ricotta cheese"
+        }
+      ]
+    },
+    {
+      "food_id": "ground_beef_cooked",
+      "name": "ground beef",
+      "aliases": [
+        "cooked ground beef",
+        "Beef, ground"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 261,
+        "protein_g": 25.6,
+        "carbohydrate_g": 0,
+        "fat_g": 16.8,
+        "saturated_fat_g": 6.5,
+        "sodium_mg": 381,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 125,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 125
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "21500100",
+          "data_type": "FNDDS At A Glance",
+          "note": "2004 Ground beef"
+        }
+      ]
+    },
+    {
+      "food_id": "beef_patty",
+      "name": "beef patty",
+      "aliases": [
+        "hamburger patty",
+        "Beef, ground, patty"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 272,
+        "protein_g": 25.4,
+        "carbohydrate_g": 0,
+        "fat_g": 18.2,
+        "saturated_fat_g": 7.0,
+        "sodium_mg": 383,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 125,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 125
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "21500310",
+          "data_type": "FNDDS At A Glance",
+          "note": "2004 Ground beef"
+        }
+      ]
+    },
+    {
+      "food_id": "steak",
+      "name": "steak",
+      "aliases": [
+        "beef steak",
+        "Steak, NS as to type of meat, NS as to fat eaten"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 230,
+        "protein_g": 26.9,
+        "carbohydrate_g": 0,
+        "fat_g": 13.0,
+        "saturated_fat_g": 5.3,
+        "sodium_mg": 367,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "21001000",
+          "data_type": "FNDDS At A Glance",
+          "note": "2002 Beef, excludes ground"
+        }
+      ]
+    },
+    {
+      "food_id": "pork_chop",
+      "name": "pork chop",
+      "aliases": [
+        "Pork, chop, lean only eaten"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 171,
+        "protein_g": 28.0,
+        "carbohydrate_g": 0,
+        "fat_g": 5.9,
+        "saturated_fat_g": 2.0,
+        "sodium_mg": 356,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135,
+        "slice": 30
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "22101020",
+          "data_type": "FNDDS At A Glance",
+          "note": "2006 Pork"
+        }
+      ]
+    },
+    {
+      "food_id": "roasted_turkey",
+      "name": "roasted turkey",
+      "aliases": [
+        "turkey breast",
+        "Turkey, light meat, roasted, skin not eaten"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 139,
+        "protein_g": 28.8,
+        "carbohydrate_g": 0,
+        "fat_g": 2.1,
+        "saturated_fat_g": 0.6,
+        "sodium_mg": 467,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "24201120",
+          "data_type": "FNDDS At A Glance",
+          "note": "2206 Turkey, duck, other poultry"
+        }
+      ]
+    },
+    {
+      "food_id": "ham",
+      "name": "ham",
+      "aliases": [
+        "sliced ham"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 117,
+        "protein_g": 19.0,
+        "carbohydrate_g": 1.6,
+        "fat_g": 3.9,
+        "saturated_fat_g": 1.3,
+        "sodium_mg": 1149,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "22311000",
+          "data_type": "FNDDS At A Glance",
+          "note": "2602 Cold cuts and cured meats"
+        }
+      ]
+    },
+    {
+      "food_id": "bacon",
+      "name": "bacon",
+      "aliases": [
+        "pork bacon",
+        "Pork bacon, NS as to fresh, smoked or cured, cooked"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 484,
+        "protein_g": 37.4,
+        "carbohydrate_g": 1.9,
+        "fat_g": 35.8,
+        "saturated_fat_g": 12.3,
+        "sodium_mg": 1757,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 80,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 80
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "22600200",
+          "data_type": "FNDDS At A Glance",
+          "note": "2604 Bacon"
+        }
+      ]
+    },
+    {
+      "food_id": "pork_sausage",
+      "name": "pork sausage",
+      "aliases": [
+        "breakfast sausage"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 325,
+        "protein_g": 18.5,
+        "carbohydrate_g": 1.4,
+        "fat_g": 27.2,
+        "saturated_fat_g": 8.8,
+        "sodium_mg": 814,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 138,
+        "g": 1,
+        "oz": 28.35,
+        "piece": 75,
+        "serving": 138,
+        "slice": 15
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "25221405",
+          "data_type": "FNDDS At A Glance",
+          "note": "2608 Sausages"
+        }
+      ]
+    },
+    {
+      "food_id": "hot_dog_beef",
+      "name": "beef hot dog",
+      "aliases": [
+        "hot dog",
+        "Hot dog, beef"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 310,
+        "protein_g": 11.7,
+        "carbohydrate_g": 2.9,
+        "fat_g": 28,
+        "saturated_fat_g": 11.4,
+        "sodium_mg": 828,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 150,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 150
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "25210210",
+          "data_type": "FNDDS At A Glance",
+          "note": "2606 Frankfurters"
+        }
+      ]
+    },
+    {
+      "food_id": "chicken_thigh_cooked",
+      "name": "chicken thigh",
+      "aliases": [
+        "cooked chicken thigh",
+        "Chicken thigh, baked, broiled, or roasted, skin not eaten, from raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 178,
+        "protein_g": 24.6,
+        "carbohydrate_g": 0,
+        "fat_g": 8.1,
+        "saturated_fat_g": 2.3,
+        "sodium_mg": 336,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135
+      },
+      "allergens": [],
+      "food_groups": [
+        "fats",
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "24152231",
+          "data_type": "FNDDS At A Glance",
+          "note": "2202 Chicken, whole pieces"
+        }
+      ]
+    },
+    {
+      "food_id": "chicken_wing_cooked",
+      "name": "chicken wing",
+      "aliases": [
+        "baked chicken wing",
+        "Chicken wing, baked, broiled, or roasted, from raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 252,
+        "protein_g": 23.6,
+        "carbohydrate_g": 0,
+        "fat_g": 16.7,
+        "saturated_fat_g": 4.9,
+        "sodium_mg": 404,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 35
+      },
+      "allergens": [],
+      "food_groups": [
+        "fats",
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "24162130",
+          "data_type": "FNDDS At A Glance",
+          "note": "2202 Chicken, whole pieces"
+        }
+      ]
+    },
+    {
+      "food_id": "tuna_canned",
+      "name": "canned tuna",
+      "aliases": [
+        "tuna",
+        "Fish, tuna, canned"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 85,
+        "protein_g": 19,
+        "carbohydrate_g": 0.1,
+        "fat_g": 0.9,
+        "saturated_fat_g": 0.2,
+        "sodium_mg": 219,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135
+      },
+      "allergens": [
+        "fish"
+      ],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "26155110",
+          "data_type": "FNDDS At A Glance",
+          "note": "2402 Fish"
+        }
+      ]
+    },
+    {
+      "food_id": "shrimp_boiled",
+      "name": "shrimp",
+      "aliases": [
+        "boiled shrimp",
+        "steamed shrimp",
+        "Shrimp, steamed or boiled"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 90,
+        "protein_g": 17.2,
+        "carbohydrate_g": 1.1,
+        "fat_g": 1.3,
+        "saturated_fat_g": 0.3,
+        "sodium_mg": 248,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135
+      },
+      "allergens": [
+        "fish",
+        "crustacean shellfish"
+      ],
+      "food_groups": [
+        "fats",
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "26319130",
+          "data_type": "FNDDS At A Glance",
+          "note": "2404 Shellfish"
+        }
+      ]
+    },
+    {
+      "food_id": "tilapia_cooked",
+      "name": "tilapia",
+      "aliases": [
+        "baked tilapia",
+        "Fish, tilapia, baked or broiled"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 160,
+        "protein_g": 24.9,
+        "carbohydrate_g": 0.0,
+        "fat_g": 6.7,
+        "saturated_fat_g": 1.9,
+        "sodium_mg": 280,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135
+      },
+      "allergens": [
+        "fish"
+      ],
+      "food_groups": [
+        "fats",
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "26158010",
+          "data_type": "FNDDS At A Glance",
+          "note": "2402 Fish"
+        }
+      ]
+    },
+    {
+      "food_id": "cod_cooked",
+      "name": "cod",
+      "aliases": [
+        "baked cod",
+        "Fish, cod, baked or broiled"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 126,
+        "protein_g": 19.0,
+        "carbohydrate_g": 0.0,
+        "fat_g": 5.0,
+        "saturated_fat_g": 1.3,
+        "sodium_mg": 351,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135
+      },
+      "allergens": [
+        "fish"
+      ],
+      "food_groups": [
+        "fats",
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "26109120",
+          "data_type": "FNDDS At A Glance",
+          "note": "2402 Fish"
+        }
+      ]
+    },
+    {
+      "food_id": "scrambled_egg",
+      "name": "scrambled egg",
+      "aliases": [
+        "scrambled eggs",
+        "Egg omelet or scrambled egg, NS as to fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 185,
+        "protein_g": 11.6,
+        "carbohydrate_g": 0.9,
+        "fat_g": 15,
+        "saturated_fat_g": 4.5,
+        "sodium_mg": 248,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "egg": 55,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135
+      },
+      "allergens": [
+        "eggs"
+      ],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "32129990",
+          "data_type": "FNDDS At A Glance",
+          "note": "2502 Eggs and omelets"
+        }
+      ]
+    },
+    {
+      "food_id": "tofu",
+      "name": "tofu",
+      "aliases": [
+        "soybean curd",
+        "Soybean curd"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 61,
+        "protein_g": 7.2,
+        "carbohydrate_g": 1.2,
+        "fat_g": 3.7,
+        "saturated_fat_g": 0.5,
+        "sodium_mg": 8,
+        "added_sugar_g": 0,
+        "fiber_g": 0.2
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 248
+      },
+      "allergens": [
+        "soybeans"
+      ],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "41420010",
+          "data_type": "FNDDS At A Glance",
+          "note": "2806 Soy and meat-alternative products"
+        }
+      ]
+    },
+    {
+      "food_id": "pinto_beans",
+      "name": "pinto beans",
+      "aliases": [
+        "Pinto beans, from dried, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 142,
+        "protein_g": 9.0,
+        "carbohydrate_g": 26.1,
+        "fat_g": 0.7,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 232,
+        "added_sugar_g": 0,
+        "fiber_g": 8.9
+      },
+      "unit_conversions": {
+        "cup": 180,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 180
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "41104020",
+          "data_type": "FNDDS At A Glance",
+          "note": "2802 Beans, peas, legumes"
+        }
+      ]
+    },
+    {
+      "food_id": "kidney_beans",
+      "name": "kidney beans",
+      "aliases": [
+        "red kidney beans",
+        "Kidney beans, from dried, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 126,
+        "protein_g": 8.6,
+        "carbohydrate_g": 22.7,
+        "fat_g": 0.5,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 233,
+        "added_sugar_g": 0,
+        "fiber_g": 7.4
+      },
+      "unit_conversions": {
+        "cup": 180,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 180
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "41106020",
+          "data_type": "FNDDS At A Glance",
+          "note": "2802 Beans, peas, legumes"
+        }
+      ]
+    },
+    {
+      "food_id": "chickpeas",
+      "name": "chickpeas",
+      "aliases": [
+        "garbanzo beans",
+        "Chickpeas, from canned, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 146,
+        "protein_g": 8.2,
+        "carbohydrate_g": 22.4,
+        "fat_g": 3.2,
+        "saturated_fat_g": 0.3,
+        "sodium_mg": 327,
+        "added_sugar_g": 0,
+        "fiber_g": 7.3
+      },
+      "unit_conversions": {
+        "cup": 180,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 180
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "41302080",
+          "data_type": "FNDDS At A Glance",
+          "note": "2802 Beans, peas, legumes"
+        }
+      ]
+    },
+    {
+      "food_id": "lentils",
+      "name": "lentils",
+      "aliases": [
+        "Lentils, from dried, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 115,
+        "protein_g": 9.0,
+        "carbohydrate_g": 20.0,
+        "fat_g": 0.4,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 233,
+        "added_sugar_g": 0,
+        "fiber_g": 7.9
+      },
+      "unit_conversions": {
+        "cup": 180,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 180
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "41305000",
+          "data_type": "FNDDS At A Glance",
+          "note": "2802 Beans, peas, legumes"
+        }
+      ]
+    },
+    {
+      "food_id": "refried_beans",
+      "name": "refried beans",
+      "aliases": [],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 90,
+        "protein_g": 5.0,
+        "carbohydrate_g": 13.6,
+        "fat_g": 2.0,
+        "saturated_fat_g": 0.6,
+        "sodium_mg": 370,
+        "added_sugar_g": 0,
+        "fiber_g": 3.7
+      },
+      "unit_conversions": {
+        "cup": 260,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 260
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "41205010",
+          "data_type": "FNDDS At A Glance",
+          "note": "2802 Beans, peas, legumes"
+        }
+      ]
+    },
+    {
+      "food_id": "hummus",
+      "name": "hummus",
+      "aliases": [
+        "Hummus, plain"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 243,
+        "protein_g": 7.3,
+        "carbohydrate_g": 14.9,
+        "fat_g": 17.1,
+        "saturated_fat_g": 2.2,
+        "sodium_mg": 438,
+        "added_sugar_g": 0,
+        "fiber_g": 5.4
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 15,
+        "tbsp": 15
+      },
+      "allergens": [
+        "sesame"
+      ],
+      "food_groups": [
+        "condiments",
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "41205070",
+          "data_type": "FNDDS At A Glance",
+          "note": "8412 Dips, gravies, other sauces"
+        }
+      ]
+    },
+    {
+      "food_id": "peanut_butter",
+      "name": "peanut butter",
+      "aliases": [],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 598,
+        "protein_g": 22.2,
+        "carbohydrate_g": 22.3,
+        "fat_g": 51.4,
+        "saturated_fat_g": 10.3,
+        "sodium_mg": 426,
+        "added_sugar_g": 0,
+        "fiber_g": 5
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 16,
+        "tbsp": 16
+      },
+      "allergens": [
+        "milk",
+        "peanuts"
+      ],
+      "food_groups": [
+        "fats",
+        "protein",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "42202000",
+          "data_type": "FNDDS At A Glance",
+          "note": "2804 Nuts and seeds"
+        }
+      ]
+    },
+    {
+      "food_id": "almonds",
+      "name": "almonds",
+      "aliases": [
+        "raw almonds",
+        "Almonds, unroasted"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 626,
+        "protein_g": 21.4,
+        "carbohydrate_g": 20.0,
+        "fat_g": 51.1,
+        "saturated_fat_g": 3.8,
+        "sodium_mg": 0,
+        "added_sugar_g": 0,
+        "fiber_g": 10.8
+      },
+      "unit_conversions": {
+        "cup": 141,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 141
+      },
+      "allergens": [
+        "tree nuts"
+      ],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "42101000",
+          "data_type": "FNDDS At A Glance",
+          "note": "2804 Nuts and seeds"
+        }
+      ]
+    },
+    {
+      "food_id": "cashews",
+      "name": "cashews",
+      "aliases": [
+        "raw cashews",
+        "Cashews, unroasted"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 574,
+        "protein_g": 15.3,
+        "carbohydrate_g": 32.7,
+        "fat_g": 46.4,
+        "saturated_fat_g": 9.2,
+        "sodium_mg": 16,
+        "added_sugar_g": 0,
+        "fiber_g": 3
+      },
+      "unit_conversions": {
+        "cup": 130,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 130
+      },
+      "allergens": [
+        "tree nuts"
+      ],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "42104050",
+          "data_type": "FNDDS At A Glance",
+          "note": "2804 Nuts and seeds"
+        }
+      ]
+    },
+    {
+      "food_id": "walnuts",
+      "name": "walnuts",
+      "aliases": [
+        "Walnuts, excluding honey roasted"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 730,
+        "protein_g": 14.6,
+        "carbohydrate_g": 10.9,
+        "fat_g": 69.7,
+        "saturated_fat_g": 6.0,
+        "sodium_mg": 0,
+        "added_sugar_g": 0,
+        "fiber_g": 5.2
+      },
+      "unit_conversions": {
+        "cup": 120,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 120
+      },
+      "allergens": [
+        "tree nuts"
+      ],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "42116000",
+          "data_type": "FNDDS At A Glance",
+          "note": "2804 Nuts and seeds"
+        }
+      ]
+    },
+    {
+      "food_id": "white_rice_cooked",
+      "name": "white rice",
+      "aliases": [
+        "cooked white rice",
+        "Rice, white, cooked, NS as to fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 129,
+        "protein_g": 2.7,
+        "carbohydrate_g": 28.0,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 244,
+        "added_sugar_g": 0,
+        "fiber_g": 0.4
+      },
+      "unit_conversions": {
+        "cup": 163,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 163
+      },
+      "allergens": [],
+      "food_groups": [
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "56205001",
+          "data_type": "FNDDS At A Glance",
+          "note": "4002 Rice"
+        }
+      ]
+    },
+    {
+      "food_id": "quinoa_cooked",
+      "name": "quinoa",
+      "aliases": [
+        "cooked quinoa",
+        "Quinoa, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 120,
+        "protein_g": 4.4,
+        "carbohydrate_g": 21.2,
+        "fat_g": 1.9,
+        "saturated_fat_g": 0.2,
+        "sodium_mg": 163,
+        "added_sugar_g": 0,
+        "fiber_g": 2.8
+      },
+      "unit_conversions": {
+        "cup": 170,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 170
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains",
+        "whole_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "56204005",
+          "data_type": "FNDDS At A Glance",
+          "note": "4004 Pasta, noodles, cooked grains"
+        }
+      ]
+    },
+    {
+      "food_id": "pasta_cooked",
+      "name": "pasta",
+      "aliases": [
+        "cooked pasta",
+        "spaghetti",
+        "Pasta, cooked"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 157,
+        "protein_g": 5.8,
+        "carbohydrate_g": 30.7,
+        "fat_g": 0.9,
+        "saturated_fat_g": 0.2,
+        "sodium_mg": 232,
+        "added_sugar_g": 0,
+        "fiber_g": 1.8
+      },
+      "unit_conversions": {
+        "cup": 140,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 140
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "56130000",
+          "data_type": "FNDDS At A Glance",
+          "note": "4004 Pasta, noodles, cooked grains"
+        }
+      ]
+    },
+    {
+      "food_id": "whole_grain_pasta",
+      "name": "whole grain pasta",
+      "aliases": [
+        "whole wheat pasta",
+        "Pasta, whole grain, cooked"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 148,
+        "protein_g": 6.0,
+        "carbohydrate_g": 29.9,
+        "fat_g": 1.7,
+        "saturated_fat_g": 0.2,
+        "sodium_mg": 235,
+        "added_sugar_g": 0,
+        "fiber_g": 3.9
+      },
+      "unit_conversions": {
+        "cup": 140,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 140
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains",
+        "whole_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "56132990",
+          "data_type": "FNDDS At A Glance",
+          "note": "4004 Pasta, noodles, cooked grains"
+        }
+      ]
+    },
+    {
+      "food_id": "couscous_cooked",
+      "name": "couscous",
+      "aliases": [
+        "cooked couscous",
+        "Couscous, plain, cooked"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 111,
+        "protein_g": 3.8,
+        "carbohydrate_g": 23.1,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 189,
+        "added_sugar_g": 0,
+        "fiber_g": 1.4
+      },
+      "unit_conversions": {
+        "cup": 160,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 160
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "56207160",
+          "data_type": "FNDDS At A Glance",
+          "note": "4004 Pasta, noodles, cooked grains"
+        }
+      ]
+    },
+    {
+      "food_id": "barley_cooked",
+      "name": "barley",
+      "aliases": [
+        "cooked barley"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 139,
+        "protein_g": 2.2,
+        "carbohydrate_g": 27.2,
+        "fat_g": 2.7,
+        "saturated_fat_g": 1.1,
+        "sodium_mg": 199,
+        "added_sugar_g": 0,
+        "fiber_g": 3.7
+      },
+      "unit_conversions": {
+        "cup": 170,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 170
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains",
+        "whole_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "56200410",
+          "data_type": "FNDDS At A Glance",
+          "note": "4004 Pasta, noodles, cooked grains"
+        }
+      ]
+    },
+    {
+      "food_id": "white_bread",
+      "name": "white bread",
+      "aliases": [
+        "Bread, white"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 267,
+        "protein_g": 9.4,
+        "carbohydrate_g": 49.2,
+        "fat_g": 3.6,
+        "saturated_fat_g": 0.8,
+        "sodium_mg": 450,
+        "added_sugar_g": 0,
+        "fiber_g": 2.3
+      },
+      "unit_conversions": {
+        "cup": 40,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 40,
+        "slice": 13
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "51101000",
+          "data_type": "FNDDS At A Glance",
+          "note": "4202 Yeast breads"
+        }
+      ]
+    },
+    {
+      "food_id": "bagel",
+      "name": "bagel",
+      "aliases": [],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 264,
+        "protein_g": 10.6,
+        "carbohydrate_g": 52.4,
+        "fat_g": 1.3,
+        "saturated_fat_g": 0.4,
+        "sodium_mg": 422,
+        "added_sugar_g": 0,
+        "fiber_g": 1.6
+      },
+      "unit_conversions": {
+        "g": 1,
+        "large": 131,
+        "oz": 28.35,
+        "serving": 131,
+        "small": 69
+      },
+      "allergens": [
+        "eggs",
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "51180010",
+          "data_type": "FNDDS At A Glance",
+          "note": "4206 Bagels and English muffins"
+        }
+      ]
+    },
+    {
+      "food_id": "whole_wheat_bagel",
+      "name": "whole wheat bagel",
+      "aliases": [
+        "Bagel, whole wheat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 250,
+        "protein_g": 10.2,
+        "carbohydrate_g": 48.9,
+        "fat_g": 1.5,
+        "saturated_fat_g": 0,
+        "sodium_mg": 439,
+        "added_sugar_g": 0,
+        "fiber_g": 4.1
+      },
+      "unit_conversions": {
+        "g": 1,
+        "large": 131,
+        "oz": 28.35,
+        "serving": 131,
+        "small": 69
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains",
+        "whole_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "51301750",
+          "data_type": "FNDDS At A Glance",
+          "note": "4206 Bagels and English muffins"
+        }
+      ]
+    },
+    {
+      "food_id": "flour_tortilla",
+      "name": "flour tortilla",
+      "aliases": [
+        "Tortilla, flour"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 306,
+        "protein_g": 8.2,
+        "carbohydrate_g": 49.4,
+        "fat_g": 8.0,
+        "saturated_fat_g": 2.9,
+        "sodium_mg": 700,
+        "added_sugar_g": 0,
+        "fiber_g": 3.5
+      },
+      "unit_conversions": {
+        "g": 1,
+        "large": 71,
+        "medium": 45,
+        "oz": 28.35,
+        "serving": 45,
+        "small": 33
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "52215200",
+          "data_type": "FNDDS At A Glance",
+          "note": "4208 Tortillas"
+        }
+      ]
+    },
+    {
+      "food_id": "corn_tortilla",
+      "name": "corn tortilla",
+      "aliases": [
+        "Tortilla, corn"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 218,
+        "protein_g": 5.7,
+        "carbohydrate_g": 44.6,
+        "fat_g": 2.9,
+        "saturated_fat_g": 0.5,
+        "sodium_mg": 45,
+        "added_sugar_g": 0,
+        "fiber_g": 6.3
+      },
+      "unit_conversions": {
+        "g": 1,
+        "large": 44,
+        "medium": 28,
+        "oz": 28.35,
+        "serving": 28,
+        "small": 18
+      },
+      "allergens": [],
+      "food_groups": [
+        "refined_grains",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "52215100",
+          "data_type": "FNDDS At A Glance",
+          "note": "4208 Tortillas"
+        }
+      ]
+    },
+    {
+      "food_id": "corn_flakes",
+      "name": "corn flakes",
+      "aliases": [
+        "plain cereal",
+        "Cereal, corn flakes, plain"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 365,
+        "protein_g": 6.4,
+        "carbohydrate_g": 79.5,
+        "fat_g": 1.6,
+        "saturated_fat_g": 0.2,
+        "sodium_mg": 703,
+        "added_sugar_g": 0,
+        "fiber_g": 3.5
+      },
+      "unit_conversions": {
+        "cup": 30,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 30
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "57134000",
+          "data_type": "FNDDS At A Glance",
+          "note": "4604 Ready-to-eat cereal, lower sugar (=<21.2g/100g)"
+        }
+      ]
+    },
+    {
+      "food_id": "o_cereal",
+      "name": "o cereal",
+      "aliases": [
+        "plain oat cereal",
+        "Cereal, O's, plain"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 374,
+        "protein_g": 12.4,
+        "carbohydrate_g": 67.9,
+        "fat_g": 6.2,
+        "saturated_fat_g": 1.0,
+        "sodium_mg": 506,
+        "added_sugar_g": 0,
+        "fiber_g": 10.5
+      },
+      "unit_conversions": {
+        "cup": 30,
+        "g": 1,
+        "oz": 28.35,
+        "piece": 0.1,
+        "serving": 30
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains",
+        "whole_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "57123000",
+          "data_type": "FNDDS At A Glance",
+          "note": "4604 Ready-to-eat cereal, lower sugar (=<21.2g/100g)"
+        }
+      ]
+    },
+    {
+      "food_id": "sweetened_cereal",
+      "name": "sweetened cereal",
+      "aliases": [
+        "crunch cereal",
+        "Cereal, crunch"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 398,
+        "protein_g": 4.3,
+        "carbohydrate_g": 82.1,
+        "fat_g": 5.5,
+        "saturated_fat_g": 1.5,
+        "sodium_mg": 701,
+        "added_sugar_g": 42.8,
+        "fiber_g": 2.7
+      },
+      "unit_conversions": {
+        "cup": 35,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 35
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "57119000",
+          "data_type": "FNDDS At A Glance",
+          "note": "4602 Ready-to-eat cereal, higher sugar (>21.2g/100g)"
+        }
+      ]
+    },
+    {
+      "food_id": "granola",
+      "name": "granola",
+      "aliases": [
+        "Cereal, granola"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 420,
+        "protein_g": 9.8,
+        "carbohydrate_g": 67.3,
+        "fat_g": 13.0,
+        "saturated_fat_g": 1.3,
+        "sodium_mg": 161,
+        "added_sugar_g": 22.2,
+        "fiber_g": 7.4
+      },
+      "unit_conversions": {
+        "cup": 110,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 110
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "57227000",
+          "data_type": "FNDDS At A Glance",
+          "note": "4602 Ready-to-eat cereal, higher sugar (>21.2g/100g)"
+        }
+      ]
+    },
+    {
+      "food_id": "pancakes_plain",
+      "name": "pancakes",
+      "aliases": [
+        "plain pancakes",
+        "Pancakes, plain"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 282,
+        "protein_g": 7.4,
+        "carbohydrate_g": 35.3,
+        "fat_g": 12.1,
+        "saturated_fat_g": 3.0,
+        "sodium_mg": 508,
+        "added_sugar_g": 7.0,
+        "fiber_g": 2.1
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 10
+      },
+      "allergens": [
+        "milk",
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains",
+        "snacks"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "55101000",
+          "data_type": "FNDDS At A Glance",
+          "note": "4404 Pancakes, waffles, French toast"
+        }
+      ]
+    },
+    {
+      "food_id": "waffle_plain",
+      "name": "waffle",
+      "aliases": [
+        "waffles",
+        "Waffle, NFS"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 309,
+        "protein_g": 7.4,
+        "carbohydrate_g": 48.4,
+        "fat_g": 9.5,
+        "saturated_fat_g": 2.3,
+        "sodium_mg": 460,
+        "added_sugar_g": 4.4,
+        "fiber_g": 2.6
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 10
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains",
+        "snacks"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "55200010",
+          "data_type": "FNDDS At A Glance",
+          "note": "4404 Pancakes, waffles, French toast"
+        }
+      ]
+    },
+    {
+      "food_id": "oatmeal_muffin",
+      "name": "oatmeal muffin",
+      "aliases": [
+        "muffin",
+        "Muffin, oatmeal"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 370,
+        "protein_g": 6.4,
+        "carbohydrate_g": 43.9,
+        "fat_g": 18.9,
+        "saturated_fat_g": 3.1,
+        "sodium_mg": 404,
+        "added_sugar_g": 0,
+        "fiber_g": 1.5
+      },
+      "unit_conversions": {
+        "g": 1,
+        "large": 180,
+        "medium": 130,
+        "oz": 28.35,
+        "serving": 130,
+        "small": 70
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains",
+        "whole_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "52304100",
+          "data_type": "FNDDS At A Glance",
+          "note": "4402 Biscuits, muffins, quick breads"
+        }
+      ]
+    },
+    {
+      "food_id": "macaroni_and_cheese",
+      "name": "macaroni and cheese",
+      "aliases": [
+        "mac and cheese",
+        "Macaroni or noodles with cheese"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 223,
+        "protein_g": 8.7,
+        "carbohydrate_g": 23.1,
+        "fat_g": 10.5,
+        "saturated_fat_g": 5.2,
+        "sodium_mg": 358,
+        "added_sugar_g": 0,
+        "fiber_g": 1.2
+      },
+      "unit_conversions": {
+        "cup": 230,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 230
+      },
+      "allergens": [
+        "milk",
+        "wheat"
+      ],
+      "food_groups": [
+        "dairy",
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "58145110",
+          "data_type": "FNDDS At A Glance",
+          "note": "3206 Macaroni and cheese"
+        }
+      ]
+    },
+    {
+      "food_id": "lasagna_meat",
+      "name": "lasagna",
+      "aliases": [
+        "meat lasagna",
+        "Lasagna with meat, home recipe"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 206,
+        "protein_g": 13.6,
+        "carbohydrate_g": 13.1,
+        "fat_g": 10.9,
+        "saturated_fat_g": 5.6,
+        "sodium_mg": 416,
+        "added_sugar_g": 0,
+        "fiber_g": 1.1
+      },
+      "unit_conversions": {
+        "cup": 250,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 250
+      },
+      "allergens": [
+        "milk",
+        "wheat"
+      ],
+      "food_groups": [
+        "dairy",
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "58130015",
+          "data_type": "FNDDS At A Glance",
+          "note": "3204 Pasta mixed dishes, excludes macaroni and cheese"
+        }
+      ]
+    },
+    {
+      "food_id": "banana_raw",
+      "name": "banana",
+      "aliases": [
+        "Banana, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 97,
+        "protein_g": 0.7,
+        "carbohydrate_g": 22.7,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 0,
+        "added_sugar_g": 0,
+        "fiber_g": 1.7
+      },
+      "unit_conversions": {
+        "cup": 150,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 150,
+        "slice": 6
+      },
+      "allergens": [],
+      "food_groups": [
+        "fruits"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "63107010",
+          "data_type": "FNDDS At A Glance",
+          "note": "6004 Bananas"
+        }
+      ]
+    },
+    {
+      "food_id": "orange_raw",
+      "name": "orange",
+      "aliases": [
+        "raw orange",
+        "Orange, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 50,
+        "protein_g": 0.9,
+        "carbohydrate_g": 11.8,
+        "fat_g": 0.1,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 4,
+        "added_sugar_g": 0,
+        "fiber_g": 2.2
+      },
+      "unit_conversions": {
+        "cup": 180,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 180
+      },
+      "allergens": [],
+      "food_groups": [
+        "fruits"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "61119010",
+          "data_type": "FNDDS At A Glance",
+          "note": "6012 Citrus fruits"
+        }
+      ]
+    },
+    {
+      "food_id": "strawberries_raw",
+      "name": "strawberries",
+      "aliases": [
+        "strawberry",
+        "Strawberries, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 36,
+        "protein_g": 0.6,
+        "carbohydrate_g": 8.0,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0,
+        "sodium_mg": 0,
+        "added_sugar_g": 0,
+        "fiber_g": 1.8
+      },
+      "unit_conversions": {
+        "cup": 150,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 150
+      },
+      "allergens": [],
+      "food_groups": [
+        "fruits"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "63223020",
+          "data_type": "FNDDS At A Glance",
+          "note": "6009 Strawberries"
+        }
+      ]
+    },
+    {
+      "food_id": "grapes_raw",
+      "name": "grapes",
+      "aliases": [
+        "Grapes, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 83,
+        "protein_g": 0.9,
+        "carbohydrate_g": 19.4,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 5,
+        "added_sugar_g": 0,
+        "fiber_g": 0.9
+      },
+      "unit_conversions": {
+        "cup": 150,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 150
+      },
+      "allergens": [],
+      "food_groups": [
+        "fruits"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "63123000",
+          "data_type": "FNDDS At A Glance",
+          "note": "6006 Grapes"
+        }
+      ]
+    },
+    {
+      "food_id": "watermelon_raw",
+      "name": "watermelon",
+      "aliases": [
+        "Watermelon, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 30,
+        "protein_g": 0.6,
+        "carbohydrate_g": 7.5,
+        "fat_g": 0.1,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 1,
+        "added_sugar_g": 0,
+        "fiber_g": 0.4
+      },
+      "unit_conversions": {
+        "cup": 155,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 155
+      },
+      "allergens": [],
+      "food_groups": [
+        "fruits"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "63149010",
+          "data_type": "FNDDS At A Glance",
+          "note": "6014 Melons"
+        }
+      ]
+    },
+    {
+      "food_id": "avocado_raw",
+      "name": "avocado",
+      "aliases": [
+        "Avocado, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 160,
+        "protein_g": 2,
+        "carbohydrate_g": 8.5,
+        "fat_g": 14.7,
+        "saturated_fat_g": 2.1,
+        "sodium_mg": 7,
+        "added_sugar_g": 0,
+        "fiber_g": 6.7
+      },
+      "unit_conversions": {
+        "cup": 150,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 150,
+        "slice": 15
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "63105010",
+          "data_type": "FNDDS At A Glance",
+          "note": "6420 Other vegetables and combinations"
+        }
+      ]
+    },
+    {
+      "food_id": "pineapple_raw",
+      "name": "pineapple",
+      "aliases": [
+        "Pineapple, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 60,
+        "protein_g": 0.5,
+        "carbohydrate_g": 14.1,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 0,
+        "added_sugar_g": 0,
+        "fiber_g": 0.9
+      },
+      "unit_conversions": {
+        "cup": 165,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 165,
+        "slice": 56
+      },
+      "allergens": [],
+      "food_groups": [
+        "fruits"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "63141010",
+          "data_type": "FNDDS At A Glance",
+          "note": "6022 Pineapple"
+        }
+      ]
+    },
+    {
+      "food_id": "cantaloupe_raw",
+      "name": "cantaloupe",
+      "aliases": [
+        "Cantaloupe, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 38,
+        "protein_g": 0.8,
+        "carbohydrate_g": 8.2,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 30,
+        "added_sugar_g": 0,
+        "fiber_g": 0.8
+      },
+      "unit_conversions": {
+        "cup": 155,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 155
+      },
+      "allergens": [],
+      "food_groups": [
+        "fruits"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "63109010",
+          "data_type": "FNDDS At A Glance",
+          "note": "6014 Melons"
+        }
+      ]
+    },
+    {
+      "food_id": "clementine_raw",
+      "name": "clementine",
+      "aliases": [
+        "mandarin orange",
+        "Clementine, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 53,
+        "protein_g": 0.8,
+        "carbohydrate_g": 13.3,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 2,
+        "added_sugar_g": 0,
+        "fiber_g": 1.8
+      },
+      "unit_conversions": {
+        "cup": 200,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 200
+      },
+      "allergens": [],
+      "food_groups": [
+        "fruits"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "61100600",
+          "data_type": "FNDDS At A Glance",
+          "note": "6012 Citrus fruits"
+        }
+      ]
+    },
+    {
+      "food_id": "pear_raw",
+      "name": "pear",
+      "aliases": [
+        "Pear, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 59,
+        "protein_g": 0.4,
+        "carbohydrate_g": 15.2,
+        "fat_g": 0.1,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 3,
+        "added_sugar_g": 0,
+        "fiber_g": 3.1
+      },
+      "unit_conversions": {
+        "cup": 125,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 125
+      },
+      "allergens": [],
+      "food_groups": [
+        "fruits",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "63137010",
+          "data_type": "FNDDS At A Glance",
+          "note": "6020 Pears"
+        }
+      ]
+    },
+    {
+      "food_id": "peach_raw",
+      "name": "peach",
+      "aliases": [
+        "Peach, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 46,
+        "protein_g": 0.9,
+        "carbohydrate_g": 10.1,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 13,
+        "added_sugar_g": 0,
+        "fiber_g": 1.5
+      },
+      "unit_conversions": {
+        "cup": 155,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 155
+      },
+      "allergens": [],
+      "food_groups": [
+        "fruits",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "63135010",
+          "data_type": "FNDDS At A Glance",
+          "note": "6008 Peaches and nectarines"
+        }
+      ]
+    },
+    {
+      "food_id": "tomato_raw",
+      "name": "tomato",
+      "aliases": [
+        "raw tomato",
+        "Tomatoes, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 20,
+        "protein_g": 0.8,
+        "carbohydrate_g": 4.0,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 4,
+        "added_sugar_g": 0,
+        "fiber_g": 1.2
+      },
+      "unit_conversions": {
+        "cup": 180,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 180,
+        "slice": 20
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "74101000",
+          "data_type": "FNDDS At A Glance",
+          "note": "6402 Tomatoes"
+        }
+      ]
+    },
+    {
+      "food_id": "carrots_raw",
+      "name": "carrots",
+      "aliases": [
+        "raw carrots",
+        "carrot",
+        "Carrots, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 44,
+        "protein_g": 0.9,
+        "carbohydrate_g": 9.7,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 75,
+        "added_sugar_g": 0,
+        "fiber_g": 2.9
+      },
+      "unit_conversions": {
+        "cup": 120,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 120
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "73101010",
+          "data_type": "FNDDS At A Glance",
+          "note": "6404 Carrots"
+        }
+      ]
+    },
+    {
+      "food_id": "lettuce_raw",
+      "name": "lettuce",
+      "aliases": [
+        "iceberg lettuce",
+        "Lettuce, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 20,
+        "protein_g": 0.9,
+        "carbohydrate_g": 3.7,
+        "fat_g": 0.1,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 23,
+        "added_sugar_g": 0,
+        "fiber_g": 1.3
+      },
+      "unit_conversions": {
+        "cup": 35,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 35
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75113000",
+          "data_type": "FNDDS At A Glance",
+          "note": "6410 Lettuce and lettuce salads"
+        }
+      ]
+    },
+    {
+      "food_id": "romaine_lettuce",
+      "name": "romaine lettuce",
+      "aliases": [
+        "romaine",
+        "Romaine lettuce, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 21,
+        "protein_g": 1.0,
+        "carbohydrate_g": 4.1,
+        "fat_g": 0.1,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 23,
+        "added_sugar_g": 0,
+        "fiber_g": 1.8
+      },
+      "unit_conversions": {
+        "cup": 35,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 35
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "72116000",
+          "data_type": "FNDDS At A Glance",
+          "note": "6410 Lettuce and lettuce salads"
+        }
+      ]
+    },
+    {
+      "food_id": "cucumber_raw",
+      "name": "cucumber",
+      "aliases": [
+        "Cucumber, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 16,
+        "protein_g": 0.6,
+        "carbohydrate_g": 3.0,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 2,
+        "added_sugar_g": 0,
+        "fiber_g": 0.5
+      },
+      "unit_conversions": {
+        "cup": 120,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 120
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75111000",
+          "data_type": "FNDDS At A Glance",
+          "note": "6420 Other vegetables and combinations"
+        }
+      ]
+    },
+    {
+      "food_id": "onion_raw",
+      "name": "onion",
+      "aliases": [
+        "raw onion",
+        "Onions, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 38,
+        "protein_g": 0.9,
+        "carbohydrate_g": 8.5,
+        "fat_g": 0.1,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 1,
+        "added_sugar_g": 0,
+        "fiber_g": 1.7
+      },
+      "unit_conversions": {
+        "cup": 160,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 160,
+        "slice": 15
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75117020",
+          "data_type": "FNDDS At A Glance",
+          "note": "6414 Onions"
+        }
+      ]
+    },
+    {
+      "food_id": "potato_baked",
+      "name": "baked potato",
+      "aliases": [
+        "potato",
+        "Potato, baked, peel eaten"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 93,
+        "protein_g": 2.5,
+        "carbohydrate_g": 21.1,
+        "fat_g": 0.1,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 186,
+        "added_sugar_g": 0,
+        "fiber_g": 2.2
+      },
+      "unit_conversions": {
+        "cup": 130,
+        "g": 1,
+        "large": 400,
+        "medium": 285,
+        "oz": 28.35,
+        "serving": 130,
+        "small": 230
+      },
+      "allergens": [],
+      "food_groups": [
+        "fats",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "71508001",
+          "data_type": "FNDDS At A Glance",
+          "note": "6802 White potatoes, baked or boiled"
+        }
+      ]
+    },
+    {
+      "food_id": "corn_cooked",
+      "name": "corn",
+      "aliases": [
+        "cooked corn",
+        "Corn, cooked, from restaurant"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 119,
+        "protein_g": 3.1,
+        "carbohydrate_g": 17.7,
+        "fat_g": 5.4,
+        "saturated_fat_g": 1.4,
+        "sodium_mg": 212,
+        "added_sugar_g": 0,
+        "fiber_g": 1.9
+      },
+      "unit_conversions": {
+        "cup": 170,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 170
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75215990",
+          "data_type": "FNDDS At A Glance",
+          "note": "6416 Corn"
+        }
+      ]
+    },
+    {
+      "food_id": "green_beans_cooked",
+      "name": "green beans",
+      "aliases": [
+        "cooked green beans",
+        "Green beans, fresh, cooked, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 42,
+        "protein_g": 2.0,
+        "carbohydrate_g": 7.7,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 121,
+        "added_sugar_g": 0,
+        "fiber_g": 3.1
+      },
+      "unit_conversions": {
+        "cup": 140,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 140
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75205021",
+          "data_type": "FNDDS At A Glance",
+          "note": "6412 String beans"
+        }
+      ]
+    },
+    {
+      "food_id": "green_peas_cooked",
+      "name": "green peas",
+      "aliases": [
+        "peas",
+        "Green peas, cooked, from restaurant"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 119,
+        "protein_g": 5.4,
+        "carbohydrate_g": 14.3,
+        "fat_g": 4.7,
+        "saturated_fat_g": 1.2,
+        "sodium_mg": 211,
+        "added_sugar_g": 0,
+        "fiber_g": 5.6
+      },
+      "unit_conversions": {
+        "cup": 165,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 165
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75224000",
+          "data_type": "FNDDS At A Glance",
+          "note": "6418 Other starchy vegetables"
+        }
+      ]
+    },
+    {
+      "food_id": "cauliflower_cooked",
+      "name": "cauliflower",
+      "aliases": [
+        "cooked cauliflower",
+        "Cauliflower, fresh, cooked, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 26,
+        "protein_g": 2.0,
+        "carbohydrate_g": 5.2,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 152,
+        "added_sugar_g": 0,
+        "fiber_g": 2.1
+      },
+      "unit_conversions": {
+        "cup": 155,
+        "g": 1,
+        "oz": 28.35,
+        "piece": 13,
+        "serving": 155
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75214011",
+          "data_type": "FNDDS At A Glance",
+          "note": "6420 Other vegetables and combinations"
+        }
+      ]
+    },
+    {
+      "food_id": "cabbage_raw",
+      "name": "cabbage",
+      "aliases": [
+        "raw cabbage",
+        "Cabbage, green, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 31,
+        "protein_g": 1.0,
+        "carbohydrate_g": 6.4,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 16,
+        "added_sugar_g": 0,
+        "fiber_g": 2.5
+      },
+      "unit_conversions": {
+        "cup": 90,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 90
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75103000",
+          "data_type": "FNDDS At A Glance",
+          "note": "6413 Cabbage"
+        }
+      ]
+    },
+    {
+      "food_id": "mushrooms_raw",
+      "name": "mushrooms",
+      "aliases": [
+        "raw mushrooms",
+        "Mushrooms, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 31,
+        "protein_g": 2.9,
+        "carbohydrate_g": 4.1,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 6,
+        "added_sugar_g": 0,
+        "fiber_g": 1.7
+      },
+      "unit_conversions": {
+        "cup": 70,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 70
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75115000",
+          "data_type": "FNDDS At A Glance",
+          "note": "6420 Other vegetables and combinations"
+        }
+      ]
+    },
+    {
+      "food_id": "zucchini_cooked",
+      "name": "zucchini",
+      "aliases": [
+        "summer squash",
+        "Summer squash, yellow or green, fresh, cooked, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 21,
+        "protein_g": 1.3,
+        "carbohydrate_g": 4.1,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 142,
+        "added_sugar_g": 0,
+        "fiber_g": 1.2
+      },
+      "unit_conversions": {
+        "cup": 180,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 180,
+        "slice": 10
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75233011",
+          "data_type": "FNDDS At A Glance",
+          "note": "6420 Other vegetables and combinations"
+        }
+      ]
+    },
+    {
+      "food_id": "asparagus_cooked",
+      "name": "asparagus",
+      "aliases": [
+        "cooked asparagus",
+        "Asparagus, fresh, cooked, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 21,
+        "protein_g": 2.4,
+        "carbohydrate_g": 4.2,
+        "fat_g": 0.1,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 127,
+        "added_sugar_g": 0,
+        "fiber_g": 2.3
+      },
+      "unit_conversions": {
+        "cup": 180,
+        "g": 1,
+        "oz": 28.35,
+        "piece": 4,
+        "serving": 180
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75202011",
+          "data_type": "FNDDS At A Glance",
+          "note": "6420 Other vegetables and combinations"
+        }
+      ]
+    },
+    {
+      "food_id": "kale_cooked",
+      "name": "kale",
+      "aliases": [
+        "cooked kale",
+        "Kale, fresh, cooked, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 46,
+        "protein_g": 3.1,
+        "carbohydrate_g": 4.7,
+        "fat_g": 1.6,
+        "saturated_fat_g": 0.2,
+        "sodium_mg": 181,
+        "added_sugar_g": 0,
+        "fiber_g": 4.4
+      },
+      "unit_conversions": {
+        "cup": 130,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 130
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "72119211",
+          "data_type": "FNDDS At A Glance",
+          "note": "6411 Other dark green vegetables"
+        }
+      ]
+    },
+    {
+      "food_id": "brussels_sprouts_cooked",
+      "name": "brussels sprouts",
+      "aliases": [
+        "Brussels sprouts, fresh, cooked, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 45,
+        "protein_g": 3.5,
+        "carbohydrate_g": 9.3,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 147,
+        "added_sugar_g": 0,
+        "fiber_g": 3.9
+      },
+      "unit_conversions": {
+        "cup": 155,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 155
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75209011",
+          "data_type": "FNDDS At A Glance",
+          "note": "6420 Other vegetables and combinations"
+        }
+      ]
+    },
+    {
+      "food_id": "garlic_raw",
+      "name": "garlic",
+      "aliases": [
+        "raw garlic",
+        "Garlic, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 143,
+        "protein_g": 6.6,
+        "carbohydrate_g": 28.2,
+        "fat_g": 0.4,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 17,
+        "added_sugar_g": 0,
+        "fiber_g": 2.7
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135,
+        "tsp": 5
+      },
+      "allergens": [],
+      "food_groups": [
+        "condiments",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75111500",
+          "data_type": "FNDDS At A Glance",
+          "note": "8406 Mustard and other condiments"
+        }
+      ]
+    },
+    {
+      "food_id": "hot_pepper_raw",
+      "name": "hot pepper",
+      "aliases": [
+        "chili pepper",
+        "Peppers, hot, raw"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 34,
+        "protein_g": 1.4,
+        "carbohydrate_g": 7.7,
+        "fat_g": 0.4,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 6,
+        "added_sugar_g": 0,
+        "fiber_g": 2.2
+      },
+      "unit_conversions": {
+        "cup": 150,
+        "g": 1,
+        "oz": 28.35,
+        "piece": 5,
+        "serving": 150,
+        "slice": 5
+      },
+      "allergens": [],
+      "food_groups": [
+        "condiments",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75121000",
+          "data_type": "FNDDS At A Glance",
+          "note": "8406 Mustard and other condiments"
+        }
+      ]
+    },
+    {
+      "food_id": "canola_oil",
+      "name": "canola oil",
+      "aliases": [],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 900,
+        "protein_g": 0,
+        "carbohydrate_g": 0,
+        "fat_g": 100,
+        "saturated_fat_g": 6.6,
+        "sodium_mg": 0,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 224,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 224,
+        "tbsp": 14
+      },
+      "allergens": [],
+      "food_groups": [
+        "fats",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "82105500",
+          "data_type": "FNDDS At A Glance",
+          "note": "8012 Salad dressings and vegetable oils"
+        }
+      ]
+    },
+    {
+      "food_id": "sesame_oil",
+      "name": "sesame oil",
+      "aliases": [],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 884,
+        "protein_g": 0,
+        "carbohydrate_g": 0,
+        "fat_g": 100,
+        "saturated_fat_g": 14.2,
+        "sodium_mg": 0,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 224,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 224,
+        "tbsp": 14
+      },
+      "allergens": [
+        "sesame"
+      ],
+      "food_groups": [
+        "fats",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "82107000",
+          "data_type": "FNDDS At A Glance",
+          "note": "8012 Salad dressings and vegetable oils"
+        }
+      ]
+    },
+    {
+      "food_id": "butter",
+      "name": "butter",
+      "aliases": [
+        "Butter, stick"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 743,
+        "protein_g": 0.8,
+        "carbohydrate_g": 0.1,
+        "fat_g": 82.2,
+        "saturated_fat_g": 45.6,
+        "sodium_mg": 524,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 224,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 224,
+        "tbsp": 14
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "fats"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "81101000",
+          "data_type": "FNDDS At A Glance",
+          "note": "8002 Butter and animal fats"
+        }
+      ]
+    },
+    {
+      "food_id": "mayonnaise",
+      "name": "mayonnaise",
+      "aliases": [
+        "mayo",
+        "Mayonnaise, regular"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 680,
+        "protein_g": 1.0,
+        "carbohydrate_g": 0.6,
+        "fat_g": 74.8,
+        "saturated_fat_g": 11.7,
+        "sodium_mg": 635,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 220,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 220,
+        "tbsp": 13.8
+      },
+      "allergens": [
+        "eggs"
+      ],
+      "food_groups": [
+        "fats"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "83107000",
+          "data_type": "FNDDS At A Glance",
+          "note": "8010 Mayonnaise"
+        }
+      ]
+    },
+    {
+      "food_id": "vegan_mayonnaise",
+      "name": "vegan mayonnaise",
+      "aliases": [
+        "vegan mayo"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 232,
+        "protein_g": 0.3,
+        "carbohydrate_g": 16,
+        "fat_g": 19.2,
+        "saturated_fat_g": 3.3,
+        "sodium_mg": 497,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 225,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 225,
+        "tbsp": 14.1
+      },
+      "allergens": [],
+      "food_groups": [
+        "fats"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "83108000",
+          "data_type": "FNDDS At A Glance",
+          "note": "8010 Mayonnaise"
+        }
+      ]
+    },
+    {
+      "food_id": "ranch_dressing",
+      "name": "ranch dressing",
+      "aliases": [
+        "ranch"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 430,
+        "protein_g": 1.3,
+        "carbohydrate_g": 5.9,
+        "fat_g": 44.5,
+        "saturated_fat_g": 7.0,
+        "sodium_mg": 810,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 240,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 240,
+        "tbsp": 15
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "fats",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "83113500",
+          "data_type": "FNDDS At A Glance",
+          "note": "8012 Salad dressings and vegetable oils"
+        }
+      ]
+    },
+    {
+      "food_id": "caesar_dressing",
+      "name": "caesar dressing",
+      "aliases": [],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 542,
+        "protein_g": 2.2,
+        "carbohydrate_g": 3.3,
+        "fat_g": 57.9,
+        "saturated_fat_g": 8.8,
+        "sodium_mg": 1209,
+        "added_sugar_g": 0,
+        "fiber_g": 0.5
+      },
+      "unit_conversions": {
+        "cup": 235,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 235,
+        "tbsp": 14.7
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "fats",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "83102000",
+          "data_type": "FNDDS At A Glance",
+          "note": "8012 Salad dressings and vegetable oils"
+        }
+      ]
+    },
+    {
+      "food_id": "italian_dressing",
+      "name": "italian dressing",
+      "aliases": [
+        "Italian dressing, made with vinegar and oil"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 240,
+        "protein_g": 0.4,
+        "carbohydrate_g": 12.1,
+        "fat_g": 21.1,
+        "saturated_fat_g": 2.9,
+        "sodium_mg": 993,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 235,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 235,
+        "tbsp": 14.7
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "condiments",
+        "fats",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "83106000",
+          "data_type": "FNDDS At A Glance",
+          "note": "8012 Salad dressings and vegetable oils"
+        }
+      ]
+    },
+    {
+      "food_id": "ketchup",
+      "name": "ketchup",
+      "aliases": [],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 109,
+        "protein_g": 1.1,
+        "carbohydrate_g": 27.1,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 928,
+        "added_sugar_g": 0,
+        "fiber_g": 0.3
+      },
+      "unit_conversions": {
+        "cup": 272,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 272,
+        "tbsp": 17
+      },
+      "allergens": [],
+      "food_groups": [
+        "condiments",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "74401010",
+          "data_type": "FNDDS At A Glance",
+          "note": "8402 Tomato-based condiments"
+        }
+      ]
+    },
+    {
+      "food_id": "mustard",
+      "name": "mustard",
+      "aliases": [],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 69,
+        "protein_g": 4.2,
+        "carbohydrate_g": 5.3,
+        "fat_g": 3.4,
+        "saturated_fat_g": 0.3,
+        "sodium_mg": 1100,
+        "added_sugar_g": 0,
+        "fiber_g": 4.3
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 15,
+        "tbsp": 15
+      },
+      "allergens": [],
+      "food_groups": [
+        "condiments"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75506010",
+          "data_type": "FNDDS At A Glance",
+          "note": "8406 Mustard and other condiments"
+        }
+      ]
+    },
+    {
+      "food_id": "soy_sauce_reduced_sodium",
+      "name": "reduced sodium soy sauce",
+      "aliases": [
+        "low sodium soy sauce",
+        "Soy sauce, reduced sodium"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 57,
+        "protein_g": 9.1,
+        "carbohydrate_g": 5.6,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 3598,
+        "added_sugar_g": 0,
+        "fiber_g": 0.7
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 16,
+        "tbsp": 16
+      },
+      "allergens": [
+        "soybeans"
+      ],
+      "food_groups": [
+        "condiments"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "41420350",
+          "data_type": "FNDDS At A Glance",
+          "note": "8404 Soy-based condiments"
+        }
+      ]
+    },
+    {
+      "food_id": "salsa",
+      "name": "salsa",
+      "aliases": [
+        "Salsa, NFS"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 34,
+        "protein_g": 1.4,
+        "carbohydrate_g": 6.7,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 656,
+        "added_sugar_g": 0,
+        "fiber_g": 1.8
+      },
+      "unit_conversions": {
+        "cup": 256,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 256,
+        "tbsp": 16
+      },
+      "allergens": [],
+      "food_groups": [
+        "condiments",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "74402100",
+          "data_type": "FNDDS At A Glance",
+          "note": "8402 Tomato-based condiments"
+        }
+      ]
+    },
+    {
+      "food_id": "hot_sauce",
+      "name": "hot sauce",
+      "aliases": [
+        "Hot pepper sauce"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 12,
+        "protein_g": 1.3,
+        "carbohydrate_g": 0.8,
+        "fat_g": 0.8,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 633,
+        "added_sugar_g": 0,
+        "fiber_g": 0.6
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 16,
+        "tbsp": 16
+      },
+      "allergens": [],
+      "food_groups": [
+        "condiments",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "75511010",
+          "data_type": "FNDDS At A Glance",
+          "note": "8406 Mustard and other condiments"
+        }
+      ]
+    },
+    {
+      "food_id": "vinegar",
+      "name": "vinegar",
+      "aliases": [],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 21,
+        "protein_g": 0,
+        "carbohydrate_g": 0.9,
+        "fat_g": 0,
+        "saturated_fat_g": 0,
+        "sodium_mg": 5,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 15,
+        "tbsp": 15
+      },
+      "allergens": [],
+      "food_groups": [
+        "condiments"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "64401000",
+          "data_type": "FNDDS At A Glance",
+          "note": "8406 Mustard and other condiments"
+        }
+      ]
+    },
+    {
+      "food_id": "lemon_juice",
+      "name": "lemon juice",
+      "aliases": [
+        "Lemon juice, 100%, freshly squeezed"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 22,
+        "protein_g": 0.3,
+        "carbohydrate_g": 6.9,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 1,
+        "added_sugar_g": 0,
+        "fiber_g": 0.3
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 31
+      },
+      "allergens": [],
+      "food_groups": [
+        "condiments"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "61204010",
+          "data_type": "FNDDS At A Glance",
+          "note": "8406 Mustard and other condiments"
+        }
+      ]
+    },
+    {
+      "food_id": "chicken_noodle_soup",
+      "name": "chicken noodle soup",
+      "aliases": [
+        "Soup, chicken noodle, canned"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 42,
+        "protein_g": 2.4,
+        "carbohydrate_g": 6.0,
+        "fat_g": 1.0,
+        "saturated_fat_g": 0.2,
+        "sodium_mg": 267,
+        "added_sugar_g": 0,
+        "fiber_g": 0.8
+      },
+      "unit_conversions": {
+        "can": 525,
+        "cup": 245,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 245
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "58403010",
+          "data_type": "FNDDS At A Glance",
+          "note": "3804 Soups, broth-based"
+        }
+      ]
+    },
+    {
+      "food_id": "tomato_soup",
+      "name": "tomato soup",
+      "aliases": [
+        "Soup, tomato"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 19,
+        "protein_g": 0.7,
+        "carbohydrate_g": 3.6,
+        "fat_g": 0.4,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 244,
+        "added_sugar_g": 0,
+        "fiber_g": 0.9
+      },
+      "unit_conversions": {
+        "cup": 245,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 245
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "74601000",
+          "data_type": "FNDDS At A Glance",
+          "note": "3804 Soups, broth-based"
+        }
+      ]
+    },
+    {
+      "food_id": "cheese_pizza",
+      "name": "cheese pizza",
+      "aliases": [
+        "Pizza, cheese, from restaurant or fast food, NS as to type of crust"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 266,
+        "protein_g": 11.4,
+        "carbohydrate_g": 33.3,
+        "fat_g": 9.7,
+        "saturated_fat_g": 4.5,
+        "sodium_mg": 540,
+        "added_sugar_g": 0,
+        "fiber_g": 2.3
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "piece": 119,
+        "serving": 119
+      },
+      "allergens": [
+        "milk",
+        "wheat"
+      ],
+      "food_groups": [
+        "dairy",
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "58106210",
+          "data_type": "FNDDS At A Glance",
+          "note": "3602 Pizza"
+        }
+      ]
+    },
+    {
+      "food_id": "pepperoni_pizza",
+      "name": "pepperoni pizza",
+      "aliases": [
+        "Pizza with pepperoni, from frozen, medium crust"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 275,
+        "protein_g": 11.5,
+        "carbohydrate_g": 27.8,
+        "fat_g": 13.1,
+        "saturated_fat_g": 5.5,
+        "sodium_mg": 504,
+        "added_sugar_g": 0,
+        "fiber_g": 2.5
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "piece": 102,
+        "serving": 102
+      },
+      "allergens": [
+        "milk",
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "58106514",
+          "data_type": "FNDDS At A Glance",
+          "note": "3602 Pizza"
+        }
+      ]
+    },
+    {
+      "food_id": "cheeseburger",
+      "name": "cheeseburger",
+      "aliases": [
+        "Cheeseburger, on white bun, 1 small patty"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 298,
+        "protein_g": 17.6,
+        "carbohydrate_g": 19.6,
+        "fat_g": 16.1,
+        "saturated_fat_g": 6.9,
+        "sodium_mg": 459,
+        "added_sugar_g": 0,
+        "fiber_g": 0.7
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135
+      },
+      "allergens": [
+        "milk",
+        "wheat"
+      ],
+      "food_groups": [
+        "dairy"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "27510195",
+          "data_type": "FNDDS At A Glance",
+          "note": "3702 Burgers"
+        }
+      ]
+    },
+    {
+      "food_id": "bean_burrito",
+      "name": "bean burrito",
+      "aliases": [
+        "burrito",
+        "Burrito, meat, with beans, no cheese"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 211,
+        "protein_g": 10.6,
+        "carbohydrate_g": 25.0,
+        "fat_g": 7.5,
+        "saturated_fat_g": 2.8,
+        "sodium_mg": 474,
+        "added_sugar_g": 0,
+        "fiber_g": 2.6
+      },
+      "unit_conversions": {
+        "cup": 120,
+        "g": 1,
+        "large": 330,
+        "oz": 28.35,
+        "serving": 120
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "dairy",
+        "protein",
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "58102650",
+          "data_type": "FNDDS At A Glance",
+          "note": "3502 Burritos and tacos"
+        }
+      ]
+    },
+    {
+      "food_id": "beef_taco_filling",
+      "name": "beef taco filling",
+      "aliases": [
+        "taco beef",
+        "Beef taco filling: beef, cheese, tomato, taco sauce"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 181,
+        "protein_g": 13.0,
+        "carbohydrate_g": 6.4,
+        "fat_g": 11.3,
+        "saturated_fat_g": 5.3,
+        "sodium_mg": 473,
+        "added_sugar_g": 0,
+        "fiber_g": 0.9
+      },
+      "unit_conversions": {
+        "cup": 204,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 204
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "condiments",
+        "dairy",
+        "protein",
+        "refined_grains",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "27416300",
+          "data_type": "FNDDS At A Glance",
+          "note": "3502 Burritos and tacos"
+        }
+      ]
+    },
+    {
+      "food_id": "french_fries",
+      "name": "french fries",
+      "aliases": [
+        "fries",
+        "Potato, french fries, fast food"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 312,
+        "protein_g": 3.4,
+        "carbohydrate_g": 41.4,
+        "fat_g": 14.7,
+        "saturated_fat_g": 2.3,
+        "sodium_mg": 210,
+        "added_sugar_g": 0,
+        "fiber_g": 3.8
+      },
+      "unit_conversions": {
+        "cup": 60,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 60
+      },
+      "allergens": [],
+      "food_groups": [
+        "snacks",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "71401030",
+          "data_type": "FNDDS At A Glance",
+          "note": "6804 French fries and other fried white potatoes"
+        }
+      ]
+    },
+    {
+      "food_id": "potato_chips",
+      "name": "potato chips",
+      "aliases": [
+        "chips",
+        "Potato chips, plain"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 532,
+        "protein_g": 6.4,
+        "carbohydrate_g": 53.8,
+        "fat_g": 34.0,
+        "saturated_fat_g": 3.4,
+        "sodium_mg": 527,
+        "added_sugar_g": 0,
+        "fiber_g": 3.1
+      },
+      "unit_conversions": {
+        "cup": 25,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 25
+      },
+      "allergens": [],
+      "food_groups": [
+        "snacks",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "71200100",
+          "data_type": "FNDDS At A Glance",
+          "note": "5002 Potato chips"
+        }
+      ]
+    },
+    {
+      "food_id": "pretzels",
+      "name": "pretzels",
+      "aliases": [
+        "Pretzels, hard, plain, lightly salted"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 382,
+        "protein_g": 9.6,
+        "carbohydrate_g": 79.8,
+        "fat_g": 3.2,
+        "saturated_fat_g": 0.6,
+        "sodium_mg": 685,
+        "added_sugar_g": 0,
+        "fiber_g": 3.1
+      },
+      "unit_conversions": {
+        "cup": 40,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 40
+      },
+      "allergens": [],
+      "food_groups": [
+        "snacks"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "54408017",
+          "data_type": "FNDDS At A Glance",
+          "note": "5008 Pretzels/snack mix"
+        }
+      ]
+    },
+    {
+      "food_id": "popcorn",
+      "name": "popcorn",
+      "aliases": [
+        "Popcorn, air-popped, with added butter"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 430,
+        "protein_g": 11.0,
+        "carbohydrate_g": 65.8,
+        "fat_g": 15.3,
+        "saturated_fat_g": 5.5,
+        "sodium_mg": 227,
+        "added_sugar_g": 0,
+        "fiber_g": 12.2
+      },
+      "unit_conversions": {
+        "cup": 11,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 11
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "fats",
+        "snacks",
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "54403040",
+          "data_type": "FNDDS At A Glance",
+          "note": "5006 Popcorn"
+        }
+      ]
+    },
+    {
+      "food_id": "granola_bar",
+      "name": "granola bar",
+      "aliases": [
+        "Cereal or granola bar, fruit and nut"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 502,
+        "protein_g": 13.9,
+        "carbohydrate_g": 43.7,
+        "fat_g": 32.3,
+        "saturated_fat_g": 3.8,
+        "sodium_mg": 45,
+        "added_sugar_g": 22.6,
+        "fiber_g": 5.8
+      },
+      "unit_conversions": {
+        "bar": 40,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 40
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains",
+        "snacks"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "53713010",
+          "data_type": "FNDDS At A Glance",
+          "note": "5402 Cereal bars"
+        }
+      ]
+    },
+    {
+      "food_id": "chocolate_chip_cookie",
+      "name": "chocolate chip cookie",
+      "aliases": [
+        "cookie",
+        "Cookie, chocolate chip"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 492,
+        "protein_g": 5.1,
+        "carbohydrate_g": 65.4,
+        "fat_g": 24.7,
+        "saturated_fat_g": 8.1,
+        "sodium_mg": 311,
+        "added_sugar_g": 32.9,
+        "fiber_g": 2
+      },
+      "unit_conversions": {
+        "cup": 81,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 81
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "snacks"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "53206000",
+          "data_type": "FNDDS At A Glance",
+          "note": "5504 Cookies and brownies"
+        }
+      ]
+    },
+    {
+      "food_id": "brownie",
+      "name": "brownie",
+      "aliases": [
+        "Cookie, brownie, without icing"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 405,
+        "protein_g": 4.8,
+        "carbohydrate_g": 63.9,
+        "fat_g": 16.3,
+        "saturated_fat_g": 4.2,
+        "sodium_mg": 286,
+        "added_sugar_g": 36.6,
+        "fiber_g": 2.1
+      },
+      "unit_conversions": {
+        "g": 1,
+        "large": 90,
+        "medium": 50,
+        "oz": 28.35,
+        "serving": 50
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "snacks"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "53204010",
+          "data_type": "FNDDS At A Glance",
+          "note": "5504 Cookies and brownies"
+        }
+      ]
+    },
+    {
+      "food_id": "chocolate_cake",
+      "name": "chocolate cake",
+      "aliases": [
+        "cake",
+        "Cake or cupcake, chocolate, no icing"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 303,
+        "protein_g": 5.1,
+        "carbohydrate_g": 43.3,
+        "fat_g": 13.2,
+        "saturated_fat_g": 3.0,
+        "sodium_mg": 387,
+        "added_sugar_g": 21.5,
+        "fiber_g": 2.3
+      },
+      "unit_conversions": {
+        "cup": 75,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 75
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "snacks"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "53105275",
+          "data_type": "FNDDS At A Glance",
+          "note": "5502 Cakes and pies"
+        }
+      ]
+    },
+    {
+      "food_id": "vanilla_ice_cream",
+      "name": "vanilla ice cream",
+      "aliases": [
+        "ice cream",
+        "Ice cream, vanilla"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 207,
+        "protein_g": 3.5,
+        "carbohydrate_g": 23.6,
+        "fat_g": 11,
+        "saturated_fat_g": 6.8,
+        "sodium_mg": 80,
+        "added_sugar_g": 21.2,
+        "fiber_g": 0.7
+      },
+      "unit_conversions": {
+        "cup": 135,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 135
+      },
+      "allergens": [
+        "milk"
+      ],
+      "food_groups": [
+        "dairy"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "13110100",
+          "data_type": "FNDDS At A Glance",
+          "note": "5802 Ice cream and frozen dairy desserts"
+        }
+      ]
+    },
+    {
+      "food_id": "chocolate_candy",
+      "name": "chocolate candy",
+      "aliases": [],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 535,
+        "protein_g": 7.7,
+        "carbohydrate_g": 59.4,
+        "fat_g": 29.7,
+        "saturated_fat_g": 18.5,
+        "sodium_mg": 79,
+        "added_sugar_g": 51.5,
+        "fiber_g": 3.4
+      },
+      "unit_conversions": {
+        "cup": 160,
+        "g": 1,
+        "oz": 28.35,
+        "piece": 8,
+        "serving": 160
+      },
+      "allergens": [
+        "eggs"
+      ],
+      "food_groups": [
+        "snacks"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "91705010",
+          "data_type": "FNDDS At A Glance",
+          "note": "5702 Candy containing chocolate"
+        }
+      ]
+    },
+    {
+      "food_id": "gummy_candy",
+      "name": "gummy candy",
+      "aliases": [
+        "fruit candy",
+        "Candy, gummy"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 396,
+        "protein_g": 0,
+        "carbohydrate_g": 98.9,
+        "fat_g": 0,
+        "saturated_fat_g": 0,
+        "sodium_mg": 44,
+        "added_sugar_g": 59.0,
+        "fiber_g": 0.1
+      },
+      "unit_conversions": {
+        "cup": 160,
+        "g": 1,
+        "oz": 28.35,
+        "piece": 2,
+        "serving": 160
+      },
+      "allergens": [],
+      "food_groups": [
+        "snacks"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "91745010",
+          "data_type": "FNDDS At A Glance",
+          "note": "5704 Candy not containing chocolate"
+        }
+      ]
+    },
+    {
+      "food_id": "pancake_syrup",
+      "name": "pancake syrup",
+      "aliases": [
+        "syrup"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 265,
+        "protein_g": 0,
+        "carbohydrate_g": 69.6,
+        "fat_g": 0.1,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 61,
+        "added_sugar_g": 42,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 320,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 320,
+        "tbsp": 20
+      },
+      "allergens": [
+        "milk",
+        "wheat"
+      ],
+      "food_groups": [
+        "condiments",
+        "refined_grains",
+        "snacks"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "91300100",
+          "data_type": "FNDDS At A Glance",
+          "note": "8806 Jams, syrups, toppings"
+        }
+      ]
+    },
+    {
+      "food_id": "jelly",
+      "name": "jelly",
+      "aliases": [
+        "jam"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 266,
+        "protein_g": 0.1,
+        "carbohydrate_g": 70.0,
+        "fat_g": 0.0,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 30,
+        "added_sugar_g": 51.2,
+        "fiber_g": 1
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 20,
+        "tbsp": 20
+      },
+      "allergens": [],
+      "food_groups": [
+        "condiments"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "91401000",
+          "data_type": "FNDDS At A Glance",
+          "note": "8806 Jams, syrups, toppings"
+        }
+      ]
+    },
+    {
+      "food_id": "cola",
+      "name": "cola",
+      "aliases": [
+        "soft drink cola",
+        "soda",
+        "Soft drink, cola"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 42,
+        "protein_g": 0,
+        "carbohydrate_g": 10.4,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0,
+        "sodium_mg": 3,
+        "added_sugar_g": 9.9,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 31
+      },
+      "allergens": [],
+      "food_groups": [
+        "beverages"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "92410310",
+          "data_type": "FNDDS At A Glance",
+          "note": "7202 Soft drinks"
+        }
+      ]
+    },
+    {
+      "food_id": "orange_juice",
+      "name": "orange juice",
+      "aliases": [
+        "Orange juice, 100%, NFS"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 47,
+        "protein_g": 0.8,
+        "carbohydrate_g": 10.2,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 2,
+        "added_sugar_g": 0,
+        "fiber_g": 0.3
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 31
+      },
+      "allergens": [],
+      "food_groups": [
+        "beverages",
+        "fruits"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "61210000",
+          "data_type": "FNDDS At A Glance",
+          "note": "7002 Citrus juice"
+        }
+      ]
+    },
+    {
+      "food_id": "coffee_brewed",
+      "name": "coffee",
+      "aliases": [
+        "black coffee",
+        "Coffee, brewed"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 1,
+        "protein_g": 0.1,
+        "carbohydrate_g": 0,
+        "fat_g": 0.0,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 2,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "large": 600,
+        "medium": 480,
+        "oz": 28.35,
+        "serving": 480,
+        "small": 360
+      },
+      "allergens": [],
+      "food_groups": [
+        "beverages"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "92101000",
+          "data_type": "FNDDS At A Glance",
+          "note": "7302 Coffee"
+        }
+      ]
+    },
+    {
+      "food_id": "tea_black_hot",
+      "name": "black tea",
+      "aliases": [
+        "tea",
+        "Tea, hot, leaf, black"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 1,
+        "protein_g": 0,
+        "carbohydrate_g": 0.3,
+        "fat_g": 0,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 3,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 240,
+        "g": 1,
+        "large": 600,
+        "medium": 480,
+        "oz": 28.35,
+        "serving": 240,
+        "small": 360
+      },
+      "allergens": [],
+      "food_groups": [
+        "beverages"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "92302000",
+          "data_type": "FNDDS At A Glance",
+          "note": "7304 Tea"
+        }
+      ]
+    },
+    {
+      "food_id": "sweet_tea",
+      "name": "sweet tea",
+      "aliases": [
+        "Tea, iced, brewed, black, pre-sweetened with sugar"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 32,
+        "protein_g": 0,
+        "carbohydrate_g": 7.9,
+        "fat_g": 0.0,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 3,
+        "added_sugar_g": 7.7,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 31
+      },
+      "allergens": [],
+      "food_groups": [
+        "beverages"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "92308000",
+          "data_type": "FNDDS At A Glance",
+          "note": "7304 Tea"
+        }
+      ]
+    },
+    {
+      "food_id": "bottled_water",
+      "name": "water",
+      "aliases": [
+        "bottled water",
+        "Water, bottled, plain"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 0,
+        "protein_g": 0,
+        "carbohydrate_g": 0,
+        "fat_g": 0,
+        "saturated_fat_g": 0,
+        "sodium_mg": 2,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "bottle": 507,
+        "cup": 240,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 240
+      },
+      "allergens": [],
+      "food_groups": [
+        "beverages"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "94100100",
+          "data_type": "FNDDS At A Glance",
+          "note": "7704 Bottled water"
+        }
+      ]
+    },
+    {
+      "food_id": "sports_drink",
+      "name": "sports drink",
+      "aliases": [
+        "gatorade",
+        "Sports drink (Gatorade G)"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 26,
+        "protein_g": 0,
+        "carbohydrate_g": 6.4,
+        "fat_g": 0,
+        "saturated_fat_g": 0,
+        "sodium_mg": 39,
+        "added_sugar_g": 5.2,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 248,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 248
+      },
+      "allergens": [],
+      "food_groups": [
+        "beverages"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "95320200",
+          "data_type": "FNDDS At A Glance",
+          "note": "7206 Sport and energy drinks"
+        }
+      ]
+    },
+    {
+      "food_id": "lemonade",
+      "name": "lemonade",
+      "aliases": [
+        "Lemonade, fruit flavored drink"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 25,
+        "protein_g": 0,
+        "carbohydrate_g": 6.5,
+        "fat_g": 0.1,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 12,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 31
+      },
+      "allergens": [],
+      "food_groups": [
+        "beverages"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "92510960",
+          "data_type": "FNDDS At A Glance",
+          "note": "7204 Fruit drinks"
+        }
+      ]
+    },
+    {
+      "food_id": "fruit_smoothie",
+      "name": "fruit smoothie",
+      "aliases": [
+        "smoothie",
+        "Fruit smoothie, with whole fruit, no dairy"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 54,
+        "protein_g": 0.6,
+        "carbohydrate_g": 12.7,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.0,
+        "sodium_mg": 2,
+        "added_sugar_g": 0,
+        "fiber_g": 1.5
+      },
+      "unit_conversions": {
+        "cup": 216,
+        "g": 1,
+        "large": 1080,
+        "medium": 864,
+        "oz": 28.35,
+        "serving": 216,
+        "small": 540
+      },
+      "allergens": [],
+      "food_groups": [
+        "beverages",
+        "fruits"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "64134015",
+          "data_type": "FNDDS At A Glance",
+          "note": "7220 Smoothies and grain drinks"
+        }
+      ]
+    },
+    {
+      "food_id": "protein_powder",
+      "name": "protein powder",
+      "aliases": [
+        "whey protein powder",
+        "Nutritional powder mix (EAS Whey Protein Powder)"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 385,
+        "protein_g": 66.7,
+        "carbohydrate_g": 17.9,
+        "fat_g": 5.1,
+        "saturated_fat_g": 2.6,
+        "sodium_mg": 385,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 10,
+        "tbsp": 10
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "95201200",
+          "data_type": "FNDDS At A Glance",
+          "note": "9802 Protein and nutritional powders"
+        }
+      ]
+    },
+    {
+      "food_id": "protein_bar",
+      "name": "protein bar",
+      "aliases": [
+        "nutrition bar",
+        "Nutrition bar (Snickers Marathon Protein Bar)"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 415,
+        "protein_g": 25,
+        "carbohydrate_g": 50.5,
+        "fat_g": 12.5,
+        "saturated_fat_g": 6.2,
+        "sodium_mg": 238,
+        "added_sugar_g": 0,
+        "fiber_g": 12.5
+      },
+      "unit_conversions": {
+        "bar": 80,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 80
+      },
+      "allergens": [],
+      "food_groups": [
+        "protein"
+      ],
+      "source_refs": [
+        {
+          "source": "fndds-2021-2023",
+          "source_id": "53720500",
+          "data_type": "FNDDS At A Glance",
+          "note": "5404 Nutrition bars"
+        }
+      ]
     }
   ]
 }

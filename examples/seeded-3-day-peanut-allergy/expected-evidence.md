@@ -17,6 +17,8 @@ Expected warning evidence:
   `instant ramen`, `soy sauce`, and other day 2 items.
 - `calories_within_tolerance`: days 1 and 3 should fall below the configured
   15 percent calorie tolerance.
+- `protein_minimum_met`: day 2 should fall below the configured 98 g protein
+  minimum after resolving the FNDDS-grounded catalog values.
 - `prep_safety_mentions_present`: the candidate prep notes do not mention
   prompt refrigeration or the 2-hour leftover window.
 

@@ -2921,3 +2921,144 @@ Verification:
 - `cd ui && npm run build` passes.
 - `cd ui && npm run test:e2e` passes.
 - `cd ui && npm run test:e2e:local` passes.
+
+## Milestone 38: FNDDS-Grounded Catalog And Evaluation Expansion
+
+Status: Implemented on 2026-06-24.
+
+Purpose:
+
+Move the meal-plan catalog expansion from hand-authored estimates to a
+repeatable, source-grounded SDLC artifact. The evaluation dataset now provides a
+measured basis for deciding which common foods belong in the fast local catalog
+and which long-tail or vague inputs should remain unresolved.
+
+Deliver:
+
+- USDA FNDDS 2021-2023 grounded catalog-generation script
+- expanded local catalog with at least 100 reviewed foods
+- source references on generated catalog foods
+- 100-case evaluation dataset covering common, vegetarian, vegan, high-sodium,
+  high-added-sugar, allergen-risk, low-protein, long-tail unresolved, and
+  vague-quantity scenarios
+- baseline evaluation result for the original 17-food catalog
+- expanded-catalog evaluation result for the FNDDS-grounded catalog
+- fixture validation that keeps catalog labels, food groups, allergens, and
+  evaluation categories deterministic
+- documentation of the added-sugar proxy limitation and future FPED/FoodData
+  Central direction
+
+Implemented:
+
+1. Added `scripts/generate-fndds-evaluation.py` to read the FNDDS 2021-2023 At
+   A Glance foods, nutrient-values, and portions workbooks.
+2. Expanded `data/nutrients/fixture-catalog-v1.json` to a 151-food reviewed
+   FNDDS subset while preserving deterministic exact-match aliases.
+3. Added optional catalog `source_refs` support to the checker type and nutrient
+   catalog schema.
+4. Added `data/evaluation/fndds-grounded-meal-plans-v1.json` with 100
+   structured one-day meal-plan cases and expected outcomes.
+5. Added `cmd/mealcheck-eval` as a deterministic resolver/evaluation runner.
+6. Updated fixture validation to require at least 100 foods, source-compatible
+   catalog quality, and the 100-case evaluation dataset.
+7. Recorded baseline and expanded resolver results:
+   - original 17-food catalog: 296 of 900 items resolved, 32.89%
+   - FNDDS-grounded catalog: 885 of 900 items resolved, 98.33%
+   - expected-outcome mismatches with expanded catalog: 0
+8. Documented regeneration, evaluation, current results, and the added-sugar
+   proxy in `docs/evaluation.md`.
+
+Acceptance:
+
+- the local catalog is generated from reviewed FNDDS rows rather than rounded
+  synthetic nutrient estimates.
+- every generated food has a source reference, nutrients per 100 g, explicit
+  unit conversions, reviewed allergens, and reviewed food groups.
+- the evaluation dataset contains exactly 100 cases and all required scenario
+  categories.
+- strict evaluation passes with zero expected-outcome mismatches on the expanded
+  catalog.
+- unresolved items in the expanded result are intentional long-tail foods or
+  vague quantities, not missing common-food coverage.
+
+Verification:
+
+- `python3 scripts/generate-fndds-evaluation.py` passes.
+- `python3 -m py_compile scripts/generate-fndds-evaluation.py` passes.
+- `go run ./cmd/mealcheck-fixture-check` passes.
+- `go run ./cmd/mealcheck-eval` passes.
+
+## Milestone 39: WWEIA/NHANES Real-Recall Evaluation Layer
+
+Status: Implemented on 2026-06-24.
+
+Purpose:
+
+Add a realism layer to the evaluation system by transforming public
+WWEIA/NHANES dietary interview records into MealCheck evaluation cases. FNDDS
+continues to ground the local catalog and food descriptions; WWEIA/NHANES adds
+real reported eating occasions, gram weights, and full-day recall patterns that
+surface catalog gaps.
+
+Deliver:
+
+- pure-Python NHANES XPT reader for the required public dietary interview files
+- generator for a deterministic 100-case WWEIA/NHANES evaluation dataset
+- adult reliable-recall filtering using NHANES demographics
+- source traceability on each generated case
+- source metrics for food-item count, local-catalog coverage, source nutrients,
+  and unresolved FNDDS food codes
+- evaluation result artifact for the expanded local catalog
+- fixture validation for the real-recall dataset shape and required categories
+- documentation distinguishing food composition data, synthetic regression
+  cases, and dietary recall data
+
+Implemented:
+
+1. Added `scripts/generate-wweia-nhanes-evaluation.py` to read `DR1IFF_L.xpt`,
+   `DR2IFF_L.xpt`, `DEMO_L.xpt`, and the FNDDS Foods and Beverages workbook.
+2. Generated `data/evaluation/wweia-nhanes-real-recalls-v1.json` with 100
+   cases:
+   - 40 fully resolved real eating-occasion cases
+   - 30 high-coverage full adult recall days
+   - 20 high-sodium full adult recall days
+   - 10 low-protein full adult recall days
+3. Preserved real reported gram quantities and eating occasions while mapping
+   FNDDS food codes to user-facing food descriptions.
+4. Marked nonlocal FNDDS foods as intentional `unknown_food` unresolved items
+   so the dataset drives catalog expansion instead of guessing.
+5. Extended `cmd/mealcheck-eval` to accept per-case source refs, source metrics,
+   and top-level dataset summaries.
+6. Added `data/evaluation/results/wweia-nhanes-real-recalls-v1.json`.
+7. Updated fixture validation so both evaluation datasets must contain exactly
+   100 cases and their required categories.
+8. Documented source files, regeneration commands, current results, and
+   limitations in `docs/evaluation.md`.
+
+Acceptance:
+
+- the real-recall dataset is generated from public deidentified
+  WWEIA/NHANES rows, not hand-authored meal examples.
+- every case has source text, source refs, expected outcomes, normalized
+  MealCheck plan JSON, and source metrics.
+- fully resolved real eating occasions provide a clean regression slice.
+- full-day recalls expose realistic catalog gaps for future local-catalog or
+  FoodData Central fallback work.
+- strict evaluation passes with zero expected-outcome mismatches on the
+  expanded catalog.
+
+Current Results:
+
+- WWEIA/NHANES dataset: 100 cases and 815 food items.
+- Expanded local catalog resolves 496 of 815 items, 60.86%.
+- Expected-outcome mismatches: 0.
+- Top current catalog gaps include tap water, white rolls, granulated sugar,
+  wine, apple juice, instant coffee, saltine crackers, flavored liquid coffee
+  creamer, and common mixed dishes.
+
+Verification:
+
+- `python3 scripts/generate-wweia-nhanes-evaluation.py` passes.
+- `python3 -m py_compile scripts/generate-wweia-nhanes-evaluation.py` passes.
+- `go run ./cmd/mealcheck-fixture-check` passes.
+- `go run ./cmd/mealcheck-eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -out data/evaluation/results/wweia-nhanes-real-recalls-v1.json` passes.

@@ -14,6 +14,7 @@ The candidate plan has blocking issues and should be revised before use.
 - `allergens_absent` block: The candidate includes a declared allergen.
 - `calories_within_tolerance` warn: One or more days are outside the configured calorie tolerance.
 - `sodium_under_limit` warn: One or more days exceed the configured sodium limit.
+- `protein_minimum_met` warn: One or more days are below the configured protein minimum.
 - `prep_safety_mentions_present` warn: Prep notes do not mention prompt refrigeration or leftover handling.
 
 ## Unresolved Foods
@@ -22,9 +23,9 @@ The candidate plan has blocking issues and should be revised before use.
 
 ## Daily Totals
 
-- Day 1: 1572.6 kcal, 132.9 g protein, 465.0 mg sodium
-- Day 2: 1746.6 kcal, 101.6 g protein, 5558.2 mg sodium
-- Day 3: 1301.0 kcal, 108.9 g protein, 347.3 mg sodium
+- Day 1: 1741.3 kcal, 138.3 g protein, 2392.8 mg sodium
+- Day 2: 1275.0 kcal, 90.5 g protein, 5052.9 mg sodium
+- Day 3: 1430.2 kcal, 119.3 g protein, 3077.3 mg sodium
 
 ## Disclaimer
 
