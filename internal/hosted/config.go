@@ -48,6 +48,7 @@ func ConfigFromEnv(root string) Config {
 		CleanupInterval:           getenvDuration("MEALCHECK_CLEANUP_INTERVAL", time.Hour),
 		DemoIndexPath:             filepath.Join(root, "examples", "seeded-3-day-peanut-allergy", "artifacts", "demo-runs", "index.json"),
 		DemoArtifactRoot:          filepath.Join(root, "examples", "seeded-3-day-peanut-allergy", "artifacts"),
+		FNDDSFallbackPath:         os.Getenv("MEALCHECK_FNDDS_FALLBACK_PATH"),
 	}
 }
 

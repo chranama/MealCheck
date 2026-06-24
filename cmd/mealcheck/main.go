@@ -304,6 +304,7 @@ func runBundleCommand(mode string, args []string, stdout, stderr io.Writer) int 
 	root := flags.String("root", ".", "repository root")
 	casePath := flags.String("case", "", "case JSON path, relative to root")
 	outDir := flags.String("out", filepath.Join("artifacts", "latest"), "artifact output directory")
+	fnddsFallbackPath := flags.String("fndds-fallback", "", "optional FNDDS SQLite fallback database path")
 	strict := flags.Bool("strict", false, "treat warn decisions as failing")
 	if err := flags.Parse(args); err != nil {
 		return 2
@@ -318,10 +319,11 @@ func runBundleCommand(mode string, args []string, stdout, stderr io.Writer) int 
 	}
 
 	result, err := artifacts.WriteBundle(artifacts.BundleOptions{
-		Root:     *root,
-		CasePath: *casePath,
-		OutDir:   *outDir,
-		Mode:     mode,
+		Root:              *root,
+		CasePath:          *casePath,
+		OutDir:            *outDir,
+		Mode:              mode,
+		FNDDSFallbackPath: *fnddsFallbackPath,
 	})
 	if err != nil {
 		fmt.Fprintf(stderr, "%s failed: %v\n", mode, err)
@@ -396,8 +398,8 @@ func exitCodeForDecision(decision string, strict bool) int {
 
 func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "usage:")
-	fmt.Fprintln(w, "  mealcheck validate --case <case.json> [--out artifacts/latest] [--strict]")
-	fmt.Fprintln(w, "  mealcheck compare --case <case.json> [--out artifacts/latest] [--strict]")
+	fmt.Fprintln(w, "  mealcheck validate --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]")
+	fmt.Fprintln(w, "  mealcheck compare --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]")
 	fmt.Fprintln(w, "  mealcheck decision [--strict] <decision.json>")
 	fmt.Fprintln(w, "  mealcheck local-llama normalize --input compact.json [--out normalized-plan.json]")
 	fmt.Fprintln(w, "  mealcheck local-llama schema")

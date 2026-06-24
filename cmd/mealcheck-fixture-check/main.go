@@ -1,15 +1,19 @@
 package main
 
 import (
+	"bufio"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
+	_ "modernc.org/sqlite"
 )
 
 type validationTarget struct {
@@ -74,6 +78,10 @@ func run(root string) error {
 	}
 
 	if err := validateEvaluationDataset(root); err != nil {
+		return err
+	}
+
+	if err := validateFNDDSReference(root); err != nil {
 		return err
 	}
 
@@ -469,6 +477,355 @@ func validateEvaluationDatasetFile(root, datasetPath, datasetID string, required
 	return nil
 }
 
+func validateFNDDSReference(root string) error {
+	base := filepath.Join(root, "data/reference/fndds-2021-2023")
+	requiredFiles := []string{
+		"foods.jsonl",
+		"nutrients.jsonl",
+		"portions.jsonl",
+		"resolver-candidates.jsonl",
+		"quarantined-foods.jsonl",
+		"review-required-foods.jsonl",
+		"food-index.json",
+		"classification-summary.json",
+		"manifest.json",
+		"fndds.sqlite",
+	}
+	for _, file := range requiredFiles {
+		if _, err := os.Stat(filepath.Join(base, file)); err != nil {
+			return fmt.Errorf("FNDDS reference is missing %s: %w", file, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(root, "data/reference/fndds/source-manifest.json")); err != nil {
+		return fmt.Errorf("FNDDS source manifest missing: %w", err)
+	}
+
+	foods, err := readJSONLObjects(filepath.Join(base, "foods.jsonl"))
+	if err != nil {
+		return err
+	}
+	nutrients, err := readJSONLObjects(filepath.Join(base, "nutrients.jsonl"))
+	if err != nil {
+		return err
+	}
+	portions, err := readJSONLObjects(filepath.Join(base, "portions.jsonl"))
+	if err != nil {
+		return err
+	}
+	candidates, err := readJSONLObjects(filepath.Join(base, "resolver-candidates.jsonl"))
+	if err != nil {
+		return err
+	}
+	quarantined, err := readJSONLObjects(filepath.Join(base, "quarantined-foods.jsonl"))
+	if err != nil {
+		return err
+	}
+	reviewRequired, err := readJSONLObjects(filepath.Join(base, "review-required-foods.jsonl"))
+	if err != nil {
+		return err
+	}
+	summary, err := readObject(filepath.Join(base, "classification-summary.json"))
+	if err != nil {
+		return err
+	}
+	index, err := readObject(filepath.Join(base, "food-index.json"))
+	if err != nil {
+		return err
+	}
+
+	if len(foods) < 5000 {
+		return fmt.Errorf("FNDDS reference has %d foods, want at least 5000", len(foods))
+	}
+	if len(nutrients) != len(foods) {
+		return fmt.Errorf("FNDDS nutrients has %d rows, want %d", len(nutrients), len(foods))
+	}
+	if len(portions) < len(foods) {
+		return fmt.Errorf("FNDDS portions has %d rows, want at least %d", len(portions), len(foods))
+	}
+	if got := int(mustNumber(summary, "food_count")); got != len(foods) {
+		return fmt.Errorf("FNDDS summary food_count = %d, want %d", got, len(foods))
+	}
+	if got := int(mustNumber(summary, "resolver_candidate_count")); got != len(candidates) {
+		return fmt.Errorf("FNDDS summary resolver_candidate_count = %d, want %d", got, len(candidates))
+	}
+	if got := int(mustNumber(summary, "quarantined_count")); got != len(quarantined) {
+		return fmt.Errorf("FNDDS summary quarantined_count = %d, want %d", got, len(quarantined))
+	}
+	if got := int(mustNumber(summary, "review_required_count")); got != len(reviewRequired) {
+		return fmt.Errorf("FNDDS summary review_required_count = %d, want %d", got, len(reviewRequired))
+	}
+	if got := int(mustNumber(index, "food_count")); got != len(foods) {
+		return fmt.Errorf("FNDDS food-index food_count = %d, want %d", got, len(foods))
+	}
+
+	validStatuses := map[string]bool{
+		"eligible_specific":               true,
+		"eligible_generic":                true,
+		"review_required":                 true,
+		"quarantined_ambiguous":           true,
+		"quarantined_mixed_dish":          true,
+		"quarantined_restaurant_or_brand": true,
+		"quarantined_preparation_unclear": true,
+	}
+	validFlags := map[string]bool{
+		"nfs": true, "not_further_specified": true, "not_specified_as_to": true,
+		"generic_other": true, "generic_name": true, "mixed_dish": true,
+		"sandwich": true, "pizza": true, "burrito": true, "taco": true,
+		"casserole": true, "soup_or_stew": true, "restaurant_or_fast_food": true,
+		"home_recipe": true, "brand_or_product_style": true, "preparation_unclear": true,
+		"added_fat_unspecified": true, "multi_component_allergen_risk": true,
+		"missing_required_nutrients": true, "missing_portion_data": true,
+	}
+	hardQuarantineFlags := map[string]bool{
+		"nfs": true, "not_further_specified": true, "not_specified_as_to": true,
+		"generic_other": true, "mixed_dish": true, "sandwich": true,
+		"pizza": true, "burrito": true, "taco": true, "casserole": true,
+		"soup_or_stew": true, "restaurant_or_fast_food": true,
+		"home_recipe": true, "brand_or_product_style": true,
+		"preparation_unclear": true, "added_fat_unspecified": true,
+		"multi_component_allergen_risk": true, "missing_required_nutrients": true,
+	}
+
+	foodByCode := map[string]map[string]any{}
+	for _, food := range foods {
+		code := mustString(food, "food_code")
+		if foodByCode[code] != nil {
+			return fmt.Errorf("duplicate FNDDS food_code %s", code)
+		}
+		foodByCode[code] = food
+		if got := mustString(food, "release"); got != "2021-2023" {
+			return fmt.Errorf("FNDDS food %s release = %q, want 2021-2023", code, got)
+		}
+		if _, err := stringField(food, "main_description"); err != nil {
+			return fmt.Errorf("FNDDS food %s: %w", code, err)
+		}
+		status := mustString(food, "candidate_status")
+		if !validStatuses[status] {
+			return fmt.Errorf("FNDDS food %s has invalid candidate_status %s", code, status)
+		}
+		for _, flag := range stringSlice(food, "ambiguity_flags") {
+			if !validFlags[flag] {
+				return fmt.Errorf("FNDDS food %s has invalid ambiguity flag %s", code, flag)
+			}
+			if isEligibleStatus(status) && hardQuarantineFlags[flag] {
+				return fmt.Errorf("FNDDS eligible food %s has hard quarantine flag %s", code, flag)
+			}
+		}
+		if len(objectSlice(food, "source_refs")) == 0 {
+			return fmt.Errorf("FNDDS food %s must define source_refs", code)
+		}
+		if err := validateReferenceNutrients(code, food, isEligibleStatus(status)); err != nil {
+			return err
+		}
+		for _, portion := range objectSlice(food, "portion_options") {
+			if _, err := stringField(portion, "description"); err != nil {
+				return fmt.Errorf("FNDDS food %s portion: %w", code, err)
+			}
+			grams, err := numericField(portion, "grams")
+			if err != nil || grams <= 0 {
+				return fmt.Errorf("FNDDS food %s has invalid portion grams", code)
+			}
+		}
+	}
+
+	if err := validateReferenceSplit("resolver-candidates.jsonl", candidates, foodByCode, func(status string) bool { return isEligibleStatus(status) }); err != nil {
+		return err
+	}
+	if err := validateReferenceSplit("quarantined-foods.jsonl", quarantined, foodByCode, func(status string) bool { return strings.HasPrefix(status, "quarantined_") }); err != nil {
+		return err
+	}
+	if err := validateReferenceSplit("review-required-foods.jsonl", reviewRequired, foodByCode, func(status string) bool { return status == "review_required" }); err != nil {
+		return err
+	}
+
+	expectedStatuses := map[string]string{
+		"11000000": "review_required",
+		"11100000": "quarantined_ambiguous",
+		"94000100": "eligible_generic",
+		"94100100": "eligible_generic",
+	}
+	for code, want := range expectedStatuses {
+		food := foodByCode[code]
+		if food == nil {
+			return fmt.Errorf("FNDDS reference missing known example %s", code)
+		}
+		if got := mustString(food, "candidate_status"); got != want {
+			return fmt.Errorf("FNDDS food %s candidate_status = %s, want %s", code, got, want)
+		}
+	}
+	if err := validateFNDDSReferenceSQLite(base, foods, nutrients, portions); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions []map[string]any) error {
+	sqlitePath := filepath.Join(base, "fndds.sqlite")
+	abs, err := filepath.Abs(sqlitePath)
+	if err != nil {
+		return err
+	}
+	uri := (&url.URL{Scheme: "file", Path: abs, RawQuery: "mode=ro&immutable=1"}).String()
+	db, err := sql.Open("sqlite", uri)
+	if err != nil {
+		return fmt.Errorf("open FNDDS SQLite reference: %w", err)
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("open FNDDS SQLite reference: %w", err)
+	}
+
+	flagCount := 0
+	allergenCount := 0
+	foodGroupCount := 0
+	for _, food := range foods {
+		flagCount += len(stringSlice(food, "ambiguity_flags"))
+		allergenCount += len(stringSlice(food, "allergens"))
+		foodGroupCount += len(stringSlice(food, "food_groups"))
+	}
+
+	expectedCounts := map[string]int{
+		"fndds_foods":           len(foods),
+		"fndds_nutrients":       len(nutrients),
+		"fndds_portions":        len(portions),
+		"fndds_ambiguity_flags": flagCount,
+		"fndds_allergens":       allergenCount,
+		"fndds_food_groups":     foodGroupCount,
+	}
+	for table, want := range expectedCounts {
+		got, err := sqliteCount(db, fmt.Sprintf("select count(*) from %s", table))
+		if err != nil {
+			return fmt.Errorf("count FNDDS SQLite table %s: %w", table, err)
+		}
+		if got != want {
+			return fmt.Errorf("FNDDS SQLite table %s has %d rows, want %d", table, got, want)
+		}
+	}
+
+	expectedStatuses := map[string]string{
+		"11000000": "review_required",
+		"11100000": "quarantined_ambiguous",
+		"94000100": "eligible_generic",
+	}
+	for code, want := range expectedStatuses {
+		got, err := sqliteString(db, "select candidate_status from fndds_foods where food_code = ?", code)
+		if err != nil {
+			return fmt.Errorf("read FNDDS SQLite food %s status: %w", code, err)
+		}
+		if got != want {
+			return fmt.Errorf("FNDDS SQLite food %s candidate_status = %s, want %s", code, got, want)
+		}
+	}
+
+	resolverExamples := map[string]int{
+		"water, tap":  1,
+		"milk, nfs":   0,
+		"milk, human": 0,
+	}
+	for description, want := range resolverExamples {
+		got, err := sqliteCount(
+			db,
+			`select count(*)
+			   from fndds_foods f
+			  where f.normalized_description = ?
+			    and f.candidate_status in ('eligible_specific', 'eligible_generic')
+			    and not exists (
+			      select 1 from fndds_ambiguity_flags flag where flag.food_code = f.food_code
+			    )`,
+			description,
+		)
+		if err != nil {
+			return fmt.Errorf("validate FNDDS SQLite resolver example %q: %w", description, err)
+		}
+		if got != want {
+			return fmt.Errorf("FNDDS SQLite resolver example %q matched %d rows, want %d", description, got, want)
+		}
+	}
+
+	for _, indexName := range []string{
+		"idx_fndds_foods_normalized_description",
+		"idx_fndds_foods_candidate_status",
+		"idx_fndds_portions_food_code",
+		"idx_fndds_flags_food_code",
+		"idx_fndds_allergens_food_code",
+		"idx_fndds_food_groups_food_code",
+	} {
+		got, err := sqliteCount(db, "select count(*) from sqlite_master where type = 'index' and name = ?", indexName)
+		if err != nil {
+			return fmt.Errorf("validate FNDDS SQLite index %s: %w", indexName, err)
+		}
+		if got != 1 {
+			return fmt.Errorf("FNDDS SQLite index %s count = %d, want 1", indexName, got)
+		}
+	}
+
+	return nil
+}
+
+func sqliteCount(db *sql.DB, query string, args ...any) (int, error) {
+	var count int
+	err := db.QueryRow(query, args...).Scan(&count)
+	return count, err
+}
+
+func sqliteString(db *sql.DB, query string, args ...any) (string, error) {
+	var value string
+	err := db.QueryRow(query, args...).Scan(&value)
+	return value, err
+}
+
+func validateReferenceNutrients(code string, food map[string]any, requireComplete bool) error {
+	nutrients, ok := food["nutrients_per_100g"].(map[string]any)
+	if !ok {
+		return fmt.Errorf("FNDDS food %s must define nutrients_per_100g", code)
+	}
+	required := []string{
+		"energy_kcal", "protein_g", "carbohydrate_g", "fat_g",
+		"saturated_fat_g", "sodium_mg", "total_sugar_g", "fiber_g",
+	}
+	for _, field := range required {
+		value := nutrients[field]
+		if value == nil {
+			if requireComplete {
+				return fmt.Errorf("FNDDS eligible food %s has null nutrient %s", code, field)
+			}
+			continue
+		}
+		number, ok := value.(float64)
+		if !ok || number < 0 {
+			return fmt.Errorf("FNDDS food %s has invalid nutrient %s", code, field)
+		}
+	}
+	return nil
+}
+
+func validateReferenceSplit(name string, rows []map[string]any, foodByCode map[string]map[string]any, matches func(string) bool) error {
+	seen := map[string]bool{}
+	for _, row := range rows {
+		code := mustString(row, "food_code")
+		if seen[code] {
+			return fmt.Errorf("%s contains duplicate food_code %s", name, code)
+		}
+		seen[code] = true
+		source := foodByCode[code]
+		if source == nil {
+			return fmt.Errorf("%s references unknown food_code %s", name, code)
+		}
+		status := mustString(row, "candidate_status")
+		if status != mustString(source, "candidate_status") {
+			return fmt.Errorf("%s food %s status = %s, source status = %s", name, code, status, mustString(source, "candidate_status"))
+		}
+		if !matches(status) {
+			return fmt.Errorf("%s food %s has unexpected status %s", name, code, status)
+		}
+	}
+	return nil
+}
+
+func isEligibleStatus(status string) bool {
+	return status == "eligible_specific" || status == "eligible_generic"
+}
+
 func readJSON(path string, v any) error {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -488,6 +845,35 @@ func readObject(path string) (map[string]any, error) {
 	return doc, nil
 }
 
+func readJSONLObjects(path string) ([]map[string]any, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("read %s: %w", path, err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 1024), 1024*1024)
+	var rows []map[string]any
+	line := 0
+	for scanner.Scan() {
+		line++
+		text := strings.TrimSpace(scanner.Text())
+		if text == "" {
+			continue
+		}
+		var row map[string]any
+		if err := json.Unmarshal([]byte(text), &row); err != nil {
+			return nil, fmt.Errorf("parse %s line %d: %w", path, line, err)
+		}
+		rows = append(rows, row)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("read %s: %w", path, err)
+	}
+	return rows, nil
+}
+
 func stringField(doc map[string]any, field string) (string, error) {
 	value, ok := doc[field].(string)
 	if !ok || value == "" {
@@ -502,6 +888,14 @@ func numericField(doc map[string]any, field string) (float64, error) {
 		return 0, fmt.Errorf("field %s must be a number", field)
 	}
 	return value, nil
+}
+
+func mustNumber(doc map[string]any, field string) float64 {
+	value, ok := doc[field].(float64)
+	if !ok {
+		panic(fmt.Sprintf("field %s must be a number", field))
+	}
+	return value
 }
 
 func mustString(doc map[string]any, field string) string {

@@ -54,8 +54,8 @@ Use `mealcheck help` for the command summary:
 
 ```text
 usage:
-  mealcheck validate --case <case.json> [--out artifacts/latest] [--strict]
-  mealcheck compare --case <case.json> [--out artifacts/latest] [--strict]
+  mealcheck validate --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]
+  mealcheck compare --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]
   mealcheck decision [--strict] <decision.json>
   mealcheck local-llama normalize --input compact.json [--out normalized-plan.json]
   mealcheck local-llama schema
@@ -113,6 +113,7 @@ Options:
 | `--root` | `.` | Repository root used to resolve case, data, schemas, and guideline files. |
 | `--case` | required | Case JSON path, relative to `--root`. |
 | `--out` | `artifacts/latest` | Artifact output directory. |
+| `--fndds-fallback` | unset | Optional FNDDS SQLite fallback database path. Reviewed catalog matches still take precedence. |
 | `--strict` | `false` | Treat `warn` decisions as failing with exit code `1`. |
 
 Typical output:
@@ -149,6 +150,7 @@ Options are the same as `validate`:
 | `--root` | `.` | Repository root used to resolve case, data, schemas, and guideline files. |
 | `--case` | required | Case JSON path, relative to `--root`. |
 | `--out` | `artifacts/latest` | Artifact output directory. |
+| `--fndds-fallback` | unset | Optional FNDDS SQLite fallback database path. Reviewed catalog matches still take precedence. |
 | `--strict` | `false` | Treat `warn` decisions as failing with exit code `1`. |
 
 ## Read A Decision

@@ -3,6 +3,8 @@
   "dataset_id": "fndds-grounded-meal-plans-v1",
   "catalog_id": "fixture-catalog-v1",
   "catalog_food_count": 17,
+  "fndds_fallback_enabled": false,
+  "expected_comparison": "strict",
   "total_cases": 100,
   "total_food_items": 900,
   "resolved_items": 296,

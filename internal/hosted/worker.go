@@ -85,10 +85,11 @@ func (w *Worker) ProcessOne(ctx context.Context) (bool, error) {
 			return
 		}
 		result, err = artifacts.WriteBundle(artifacts.BundleOptions{
-			Root:     w.Config.Root,
-			CasePath: casePath,
-			OutDir:   run.ArtifactDir,
-			Mode:     "hosted",
+			Root:              w.Config.Root,
+			CasePath:          casePath,
+			OutDir:            run.ArtifactDir,
+			Mode:              "hosted",
+			FNDDSFallbackPath: w.Config.FNDDSFallbackPath,
 		})
 		if err == nil && processedPending {
 			err = writeOptionalArtifacts(result.OutDir, prepared)

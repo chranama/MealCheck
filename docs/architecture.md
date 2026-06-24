@@ -71,8 +71,11 @@ The engine should record the exact pack used in every artifact bundle.
 
 ### Nutrient Catalog
 
-Initial nutrient data should come from local fixtures sufficient for seeded
-examples. A later version can add FoodData Central lookup and cache behavior.
+Nutrient data starts with a reviewed local catalog sufficient for deterministic
+seeded examples and common-food workflows. An optional SQLite FNDDS fallback can
+resolve exact, preprocessed, non-ambiguous FNDDS food descriptions in grams
+after the reviewed catalog misses. A later version can add FoodData Central
+lookup and cache behavior for remaining long-tail foods.
 
 The resolver should make uncertainty visible. Unresolved foods are not silently
 ignored.

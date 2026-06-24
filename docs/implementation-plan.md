@@ -3062,3 +3062,167 @@ Verification:
 - `python3 -m py_compile scripts/generate-wweia-nhanes-evaluation.py` passes.
 - `go run ./cmd/mealcheck-fixture-check` passes.
 - `go run ./cmd/mealcheck-eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -out data/evaluation/results/wweia-nhanes-real-recalls-v1.json` passes.
+
+## Milestone 40: FNDDS Reference Database And Candidate Preprocessing
+
+Status: Implemented on 2026-06-24.
+
+Purpose:
+
+Create a full local FNDDS 2021-2023 reference database while keeping the
+reviewed MealCheck resolver catalog conservative. The reference layer preserves
+all source rows, then classifies foods into eligible, quarantined, and
+review-required candidate sets so future WWEIA frequency mining can recommend
+catalog additions without blindly adding ambiguous foods.
+
+Deliver:
+
+- full FNDDS food, nutrient, and portion reference artifacts
+- source manifest documenting source URLs, raw workbook paths, and generation
+  command
+- deterministic preprocessing classifier for resolver-candidate eligibility
+- split candidate artifacts for eligible, quarantined, and review-required
+  foods
+- classification summary with status and ambiguity-flag counts
+- fixture validation for reference-file existence, count consistency, source
+  refs, nutrient completeness, candidate statuses, flags, and known examples
+- documentation that distinguishes full source reference data from the reviewed
+  MealCheck resolver catalog
+
+Implemented:
+
+1. Added `scripts/import-fndds-reference.py` to read the FNDDS 2021-2023 Foods
+   and Beverages, Nutrient Values, and Portions and Weights workbooks.
+2. Generated `data/reference/fndds/source-manifest.json`.
+3. Generated `data/reference/fndds-2021-2023/foods.jsonl`,
+   `nutrients.jsonl`, `portions.jsonl`, `food-index.json`, and
+   `manifest.json`.
+4. Generated split preprocessing artifacts:
+   - `resolver-candidates.jsonl`
+   - `quarantined-foods.jsonl`
+   - `review-required-foods.jsonl`
+   - `classification-summary.json`
+5. Added deterministic ambiguity rules for `NFS`, not-specified descriptions,
+   broad generic labels, mixed dishes, sandwiches, pizza, burritos, restaurant
+   or product-style wording, unclear added-fat preparation, missing required
+   nutrients, and multi-component allergen risk.
+6. Added allowlist handling for common safe generic foods such as tap water,
+   bottled water, brewed coffee, brewed tea, cooked rice, and 100% juice.
+7. Extended `cmd/mealcheck-fixture-check` to validate the FNDDS reference layer.
+8. Updated `docs/evaluation.md` with artifact descriptions, generation command,
+   current counts, and the role of quarantined rows.
+
+Current Results:
+
+- FNDDS food rows preserved: 5,432.
+- Eligible resolver candidates: 2,926.
+- Quarantined rows: 2,505.
+- Review-required rows: 1.
+- Known examples:
+  - `Water, tap` is `eligible_generic`.
+  - `Milk, NFS` is `quarantined_ambiguous`.
+  - `Milk, human` is `review_required` because the source row lacks the
+    required nutrient row.
+
+Acceptance:
+
+- source rows are preserved rather than deleted.
+- eligible candidates have complete required nutrients and no hard quarantine
+  flags.
+- ambiguous, mixed, restaurant/product-style, and unclear-preparation rows are
+  quarantined for review instead of promoted to the resolver.
+- split candidate files match the canonical `foods.jsonl` statuses.
+- fixture validation fails if counts drift, statuses are invalid, source refs
+  are missing, known examples classify incorrectly, or eligible foods carry
+  hard quarantine flags.
+
+Verification:
+
+- `python3 scripts/import-fndds-reference.py` passes.
+- `python3 -m py_compile scripts/import-fndds-reference.py` passes.
+- `go run ./cmd/mealcheck-fixture-check` passes.
+
+## Milestone 41: FNDDS SQLite Fallback Resolver
+
+Status: Implemented on 2026-06-24.
+
+Purpose:
+
+Add a conservative runtime lookup path from MealCheck's reviewed local catalog
+to the full preprocessed FNDDS reference database. This gives MealCheck a
+scalable local fallback for exact, source-backed common foods while preserving
+the unresolved behavior for vague, ambiguous, composed, branded, or unsupported
+entries.
+
+Deliver:
+
+- generated `data/reference/fndds-2021-2023/fndds.sqlite`
+- SQLite schema for FNDDS foods, nutrients, portions, ambiguity flags,
+  allergens, and food groups
+- indexed exact-description lookup for eligible FNDDS rows
+- runtime resolver fallback that is disabled unless a fallback path is supplied
+- CLI and evaluation flags for the fallback database
+- hosted worker configuration through `MEALCHECK_FNDDS_FALLBACK_PATH`
+- tests proving reviewed catalog precedence, eligible fallback resolution,
+  quarantined/review-required rejection, explicit `unknown_food` retry, and
+  unsupported household-unit behavior
+- fixture validation for SQLite table counts, indexes, known statuses, and
+  resolver examples
+- WWEIA/NHANES fallback coverage artifact
+
+Implemented:
+
+1. Extended `scripts/import-fndds-reference.py` to write `fndds.sqlite` from the
+   same normalized FNDDS rows used by the JSONL reference layer.
+2. Added `internal/checker/fndds_reference.go` using `modernc.org/sqlite` for
+   read-only indexed fallback lookup.
+3. Updated the resolver so the reviewed local catalog always wins. If it
+   misses, the optional fallback can resolve exact FNDDS descriptions whose
+   candidate status is `eligible_specific` or `eligible_generic` and which have
+   no ambiguity flags.
+4. Allowed explicit `unknown_food` items with quantities to retry the fallback,
+   while preserving unresolved behavior for vague quantities, unsupported
+   units, and other unresolved reasons.
+5. Added `-fndds-fallback` to `cmd/mealcheck-eval`, `mealcheck validate`, and
+   `mealcheck compare`.
+6. Added `-skip-expected` to `cmd/mealcheck-eval` for coverage runs where the
+   expected unresolved counts describe no-fallback mode.
+7. Wired hosted workers to pass `MEALCHECK_FNDDS_FALLBACK_PATH` into artifact
+   generation when explicitly configured.
+8. Regenerated evaluation result artifacts with fallback metadata.
+9. Updated `docs/evaluation.md` and `docs/architecture.md`.
+
+Current Results:
+
+- FNDDS SQLite tables:
+  - foods: 5,432
+  - nutrients: 5,432
+  - portions: 22,045
+  - ambiguity flags: 3,503
+  - allergens: 3,916
+  - food groups: 10,107
+- WWEIA/NHANES no-fallback coverage: 496 of 815 items resolved, 60.86%.
+- WWEIA/NHANES with FNDDS fallback: 648 of 815 items resolved, 79.51%.
+- The fallback coverage run skips expected-outcome comparison because the
+  checked-in WWEIA expected unresolved counts describe no-fallback mode.
+
+Acceptance:
+
+- fallback is opt-in and does not change default resolver behavior.
+- reviewed catalog matches take precedence over FNDDS fallback rows.
+- fallback resolves exact normalized descriptions only; no fuzzy matching or
+  alias guessing is performed.
+- fallback rows must be eligible and carry no ambiguity flags.
+- quarantined and review-required rows do not resolve at runtime.
+- fallback supports `g`, `gram`, and `grams`; household portions remain
+  unresolved until reviewed unit conversion policy is added.
+- fixture validation fails if the SQLite snapshot drifts from the generated
+  reference artifacts.
+
+Verification:
+
+- `python3 scripts/import-fndds-reference.py` passes.
+- `python3 -m py_compile scripts/import-fndds-reference.py` passes.
+- `go test ./internal/checker` passes.
+- `go run ./cmd/mealcheck-fixture-check` passes.
+- `go run ./cmd/mealcheck-eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.

@@ -256,6 +256,7 @@ Supported configuration:
 - `MEALCHECK_RETENTION`
 - `MEALCHECK_WORKER_POLL`
 - `MEALCHECK_CLEANUP_INTERVAL`
+- `MEALCHECK_FNDDS_FALLBACK_PATH` for optional exact-match FNDDS SQLite fallback
 - `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` for local smoke tests only
 
 The Postgres schema is applied at server startup by the Postgres store.
@@ -268,6 +269,10 @@ with `go run ./cmd/mealcheck-local-smoke` or `cd ui && npm run test:e2e:local`.
 `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` loads a local JSON response for
 deterministic BYOK smoke tests. It is not a production setting and should not be
 present in MacBook deployment environment files.
+
+`MEALCHECK_FNDDS_FALLBACK_PATH` is optional. When set, hosted worker artifact
+generation uses the reviewed local catalog first, then the FNDDS SQLite
+fallback for exact eligible gram-based food matches.
 
 ## Operating Requirements
 

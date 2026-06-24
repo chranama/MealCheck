@@ -10,7 +10,8 @@ There are two checked-in layers:
 The local catalog is still intentionally bounded. It is not trying to replace
 FoodData Central. Its job is fast, deterministic coverage for common foods,
 CI-safe demos, and a clear basis for deciding which long-tail foods should
-remain unresolved or move to a future API-backed lookup path.
+remain unresolved, resolve through the conservative FNDDS fallback, or move to
+a future API-backed lookup path.
 
 ## Source Data
 
@@ -70,6 +71,9 @@ Regeneration expects them at:
   FNDDS-grounded dataset against the expanded FNDDS-grounded catalog.
 - `data/evaluation/results/wweia-nhanes-real-recalls-v1.json`: evaluation of
   the WWEIA/NHANES real-recall dataset against the expanded local catalog.
+- `data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json`:
+  coverage run for the same real-recall dataset with the optional FNDDS SQLite
+  fallback enabled.
 - `cmd/mealcheck-eval`: deterministic runner for case coverage, unresolved food
   frequency, category summaries, and expected-outcome mismatches.
 - `scripts/generate-fndds-evaluation.py`: reproducible generator for the
@@ -129,6 +133,15 @@ The top gap candidates currently include tap water, white rolls, granulated
 sugar, wine, apple juice, instant coffee, saltine crackers, flavored liquid
 coffee creamer, and common mixed dishes.
 
+With the optional FNDDS SQLite fallback enabled, the same WWEIA/NHANES
+real-recall dataset resolves 648 of 815 items, a 79.51% resolver rate. This is
+a coverage run, not a strict expected-outcome regression, because the checked-in
+WWEIA expected unresolved counts describe the no-fallback catalog mode. The
+fallback removes common exact-match gaps such as tap water, bottled water, 100%
+juice, and many specific FNDDS foods while leaving ambiguous, composed,
+restaurant/product-style, review-required, and unsupported-unit rows
+unresolved.
+
 ## Catalog Expansion Policy
 
 Expansion rules:
@@ -142,6 +155,20 @@ Expansion rules:
 5. Store source references on every generated food.
 6. Keep source workbooks out of CI; check in deterministic generated JSON.
 
+Runtime lookup order:
+
+1. Use the reviewed local catalog first.
+2. If no reviewed catalog match exists, optionally check the FNDDS SQLite
+   fallback.
+3. The fallback only resolves exact normalized FNDDS `main_description` matches
+   whose preprocessed status is `eligible_specific` or `eligible_generic` and
+   which have no ambiguity flags.
+4. The fallback supports gram units only: `g`, `gram`, and `grams`.
+5. Explicit `unknown_food` items with quantities may retry the fallback.
+   Explicit vague quantities, unsupported units, and other unresolved reasons
+   remain unresolved.
+6. Quarantined or review-required FNDDS rows are never runtime resolver hits.
+
 FNDDS At A Glance does not publish added-sugar grams. MealCheck therefore uses
 a documented proxy in the generated fixture: naturally sweet foods and plain
 dairy receive `added_sugar_g = 0`, while explicitly sweetened categories such
@@ -149,6 +176,55 @@ as soda, candy, cookies, syrup, sweetened drinks, and higher-sugar cereal use
 FNDDS total sugar as a conservative added-sugar proxy. This is adequate for
 resolver and workflow evaluation, but it should be replaced by FPED or another
 reviewed added-sugar source before making broader nutrition claims.
+
+The SQLite fallback uses FNDDS total sugar as a conservative `added_sugar_g`
+proxy for all fallback rows because FNDDS At A Glance does not publish
+added-sugar grams.
+
+## FNDDS Reference Database
+
+MealCheck also keeps a full local FNDDS 2021-2023 reference layer. This is not
+the reviewed resolver catalog. Its job is to preserve all source rows and
+precompute which foods are plausible future resolver candidates.
+
+Artifacts:
+
+- `data/reference/fndds/source-manifest.json`: source URLs, expected raw file
+  paths, and generation command.
+- `data/reference/fndds-2021-2023/foods.jsonl`: all imported FNDDS food rows
+  with descriptions, category metadata, nutrients, portions, source refs, and
+  candidate classification.
+- `data/reference/fndds-2021-2023/nutrients.jsonl`: normalized nutrient rows.
+- `data/reference/fndds-2021-2023/portions.jsonl`: normalized portion rows.
+- `data/reference/fndds-2021-2023/resolver-candidates.jsonl`: eligible
+  source-backed foods for future review.
+- `data/reference/fndds-2021-2023/quarantined-foods.jsonl`: ambiguous,
+  composed, restaurant/product-style, or unclear-preparation foods.
+- `data/reference/fndds-2021-2023/review-required-foods.jsonl`: source rows
+  that need manual handling before candidate use.
+- `data/reference/fndds-2021-2023/classification-summary.json`: counts by
+  status and ambiguity flag.
+- `data/reference/fndds-2021-2023/fndds.sqlite`: indexed read-only runtime
+  fallback database generated from the same reference rows.
+
+Current FNDDS reference import:
+
+- 5,432 food rows preserved
+- 2,926 eligible resolver candidates
+- 2,505 quarantined rows
+- 1 review-required row
+
+The preprocessing classifier quarantines rows with signals such as `NFS`,
+not-specified descriptions, mixed dishes, sandwiches, pizza, burritos,
+restaurant/product-style wording, unclear added-fat preparation, and
+multi-component allergen risk. Quarantined rows are not deleted; they remain
+available for frequency mining and manual review pressure.
+
+Regenerate the FNDDS reference layer after downloading the FNDDS workbooks:
+
+```bash
+python3 scripts/import-fndds-reference.py
+```
 
 ## Running Evaluation
 
@@ -186,6 +262,16 @@ go run ./cmd/mealcheck-eval \
   -out data/evaluation/results/wweia-nhanes-real-recalls-v1.json
 ```
 
+Write the WWEIA/NHANES FNDDS fallback coverage artifact:
+
+```bash
+go run ./cmd/mealcheck-eval \
+  -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json \
+  -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite \
+  -skip-expected \
+  -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json
+```
+
 Run a comparison against another catalog:
 
 ```bash
@@ -210,6 +296,11 @@ outcomes are not supposed to pass yet.
 - required evaluation categories are present in each dataset
 - each case has expected outcomes and food items
 - WWEIA/NHANES cases retain source refs and source metrics
+- FNDDS reference artifacts exist and have internally consistent counts
+- the FNDDS SQLite fallback has table counts, indexes, known statuses, and
+  resolver examples consistent with the generated JSONL reference artifacts
+- eligible FNDDS resolver candidates do not carry hard quarantine flags
+- known ambiguous and allowlisted FNDDS examples classify as expected
 
 The strict evaluation can be used as a release gate:
 
@@ -222,4 +313,14 @@ The WWEIA/NHANES layer can also be run as a release or catalog-expansion gate:
 ```bash
 go run ./cmd/mealcheck-eval \
   -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json
+```
+
+The FNDDS fallback coverage run is useful for catalog expansion analysis but is
+not a strict release gate:
+
+```bash
+go run ./cmd/mealcheck-eval \
+  -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json \
+  -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite \
+  -skip-expected
 ```

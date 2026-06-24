@@ -3,38 +3,39 @@
   "dataset_id": "wweia-nhanes-real-recalls-v1",
   "catalog_id": "fixture-catalog-v1",
   "catalog_food_count": 151,
-  "fndds_fallback_enabled": false,
-  "expected_comparison": "strict",
+  "fndds_fallback_enabled": true,
+  "fndds_fallback_path": "data/reference/fndds-2021-2023/fndds.sqlite",
+  "expected_comparison": "skipped",
   "total_cases": 100,
   "total_food_items": 815,
-  "resolved_items": 496,
-  "unresolved_items": 319,
-  "resolved_rate": 0.6086,
+  "resolved_items": 648,
+  "unresolved_items": 167,
+  "resolved_rate": 0.7951,
   "cases_with_mismatches": 0,
   "category_summary": [
     {
       "category": "wweia_common_recall_day",
       "cases": 30,
       "food_items": 314,
-      "resolved_items": 246,
-      "unresolved_items": 68,
-      "resolved_rate": 0.7834
+      "resolved_items": 278,
+      "unresolved_items": 36,
+      "resolved_rate": 0.8854
     },
     {
       "category": "wweia_high_sodium",
       "cases": 20,
       "food_items": 310,
-      "resolved_items": 104,
-      "unresolved_items": 206,
-      "resolved_rate": 0.3355
+      "resolved_items": 206,
+      "unresolved_items": 104,
+      "resolved_rate": 0.6645
     },
     {
       "category": "wweia_low_protein",
       "cases": 10,
       "food_items": 100,
-      "resolved_items": 55,
-      "unresolved_items": 45,
-      "resolved_rate": 0.55
+      "resolved_items": 73,
+      "unresolved_items": 27,
+      "resolved_rate": 0.73
     },
     {
       "category": "wweia_resolved_eating_occasion",
@@ -47,24 +48,8 @@
   ],
   "top_unresolved_foods": [
     {
-      "value": "water, tap",
-      "count": 16
-    },
-    {
       "value": "coffee, instant, reconstituted",
       "count": 12
-    },
-    {
-      "value": "apple juice, 100%",
-      "count": 7
-    },
-    {
-      "value": "wine, white",
-      "count": 7
-    },
-    {
-      "value": "water, carbonated, plain",
-      "count": 6
     },
     {
       "value": "pasta with tomato-based sauce and meat, home recipe",
@@ -95,10 +80,6 @@
       "count": 3
     },
     {
-      "value": "coffee creamer, liquid, flavored",
-      "count": 3
-    },
-    {
       "value": "crackers, saltine",
       "count": 3
     },
@@ -115,22 +96,42 @@
       "count": 3
     },
     {
-      "value": "soft drink, pepper type",
-      "count": 3
+      "value": "cheeseburger, on white bun, 1 medium patty",
+      "count": 2
     },
     {
-      "value": "yogurt, greek, low fat milk, fruit",
-      "count": 3
+      "value": "cookie, chocolate chip, made from home recipe or purchased at a bakery",
+      "count": 2
     },
     {
-      "value": "cheese flavored corn snacks (cheetos)",
+      "value": "cookie, chocolate sandwich",
+      "count": 2
+    },
+    {
+      "value": "crackers, sandwich, peanut butter filled",
+      "count": 2
+    },
+    {
+      "value": "garlic bread, from frozen",
+      "count": 2
+    },
+    {
+      "value": "ham sandwich on wheat, with cheese",
+      "count": 2
+    },
+    {
+      "value": "lettuce, for use on a sandwich",
+      "count": 2
+    },
+    {
+      "value": "onions, for use on a sandwich",
       "count": 2
     }
   ],
   "top_unresolved_units": [
     {
       "value": "g",
-      "count": 319
+      "count": 167
     }
   ]
 }

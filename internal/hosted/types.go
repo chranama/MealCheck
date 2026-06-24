@@ -84,6 +84,7 @@ type Config struct {
 	CleanupInterval           time.Duration
 	DemoIndexPath             string
 	DemoArtifactRoot          string
+	FNDDSFallbackPath         string
 }
 
 type Run struct {

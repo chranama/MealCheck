@@ -796,6 +796,7 @@ Default hosted limits:
 | Retention | `7 days` | `MEALCHECK_RETENTION` |
 | Worker poll interval | `1s` | `MEALCHECK_WORKER_POLL` |
 | Cleanup interval | `1h` | `MEALCHECK_CLEANUP_INTERVAL` |
+| FNDDS fallback database | unset | `MEALCHECK_FNDDS_FALLBACK_PATH` |
 
 The API is designed around bounded hosted use on a small server: one active run,
 a short queue, explicit retention, and user-supplied provider cost.

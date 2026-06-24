@@ -51,20 +51,23 @@ type evalExpected struct {
 }
 
 type evalResult struct {
-	SchemaVersion       string            `json:"schema_version"`
-	DatasetID           string            `json:"dataset_id"`
-	CatalogID           string            `json:"catalog_id"`
-	CatalogFoodCount    int               `json:"catalog_food_count"`
-	TotalCases          int               `json:"total_cases"`
-	TotalFoodItems      int               `json:"total_food_items"`
-	ResolvedItems       int               `json:"resolved_items"`
-	UnresolvedItems     int               `json:"unresolved_items"`
-	ResolvedRate        float64           `json:"resolved_rate"`
-	CasesWithMismatches int               `json:"cases_with_mismatches"`
-	CategorySummary     []categorySummary `json:"category_summary"`
-	TopUnresolvedFoods  []rankedCount     `json:"top_unresolved_foods"`
-	TopUnresolvedUnits  []rankedCount     `json:"top_unresolved_units"`
-	Mismatches          []caseMismatch    `json:"mismatches,omitempty"`
+	SchemaVersion        string            `json:"schema_version"`
+	DatasetID            string            `json:"dataset_id"`
+	CatalogID            string            `json:"catalog_id"`
+	CatalogFoodCount     int               `json:"catalog_food_count"`
+	FNDDSFallbackEnabled bool              `json:"fndds_fallback_enabled"`
+	FNDDSFallbackPath    string            `json:"fndds_fallback_path,omitempty"`
+	ExpectedComparison   string            `json:"expected_comparison"`
+	TotalCases           int               `json:"total_cases"`
+	TotalFoodItems       int               `json:"total_food_items"`
+	ResolvedItems        int               `json:"resolved_items"`
+	UnresolvedItems      int               `json:"unresolved_items"`
+	ResolvedRate         float64           `json:"resolved_rate"`
+	CasesWithMismatches  int               `json:"cases_with_mismatches"`
+	CategorySummary      []categorySummary `json:"category_summary"`
+	TopUnresolvedFoods   []rankedCount     `json:"top_unresolved_foods"`
+	TopUnresolvedUnits   []rankedCount     `json:"top_unresolved_units"`
+	Mismatches           []caseMismatch    `json:"mismatches,omitempty"`
 }
 
 type categorySummary struct {
@@ -98,11 +101,13 @@ func main() {
 	root := flag.String("root", ".", "repository root")
 	datasetPath := flag.String("dataset", "data/evaluation/fndds-grounded-meal-plans-v1.json", "evaluation dataset path")
 	catalogOverride := flag.String("catalog", "", "optional nutrient catalog path override")
+	fallbackPath := flag.String("fndds-fallback", "", "optional FNDDS SQLite fallback database path")
+	skipExpected := flag.Bool("skip-expected", false, "skip expected outcome comparisons and report coverage only")
 	outPath := flag.String("out", "", "optional path to write JSON results")
 	allowMismatch := flag.Bool("allow-mismatch", false, "exit successfully even when expected outcomes mismatch")
 	flag.Parse()
 
-	result, err := run(*root, *datasetPath, *catalogOverride)
+	result, err := run(*root, *datasetPath, *catalogOverride, *fallbackPath, *skipExpected)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "mealcheck eval failed: %v\n", err)
 		os.Exit(1)
@@ -129,7 +134,7 @@ func main() {
 	}
 }
 
-func run(root, datasetPath, catalogOverride string) (evalResult, error) {
+func run(root, datasetPath, catalogOverride, fallbackPath string, skipExpected bool) (evalResult, error) {
 	var dataset evalDataset
 	if err := readJSON(resolvePath(root, datasetPath), &dataset); err != nil {
 		return evalResult{}, fmt.Errorf("read dataset: %w", err)
@@ -150,12 +155,28 @@ func run(root, datasetPath, catalogOverride string) (evalResult, error) {
 		return evalResult{}, fmt.Errorf("read catalog: %w", err)
 	}
 
+	var fallback checker.FNDDSReference
+	if fallbackPath != "" {
+		ref, err := checker.OpenSQLiteFNDDSReference(resolvePath(root, fallbackPath))
+		if err != nil {
+			return evalResult{}, err
+		}
+		defer ref.Close()
+		fallback = ref
+	}
+
 	result := evalResult{
-		SchemaVersion:    "0.1",
-		DatasetID:        dataset.DatasetID,
-		CatalogID:        catalog.CatalogID,
-		CatalogFoodCount: len(catalog.Foods),
-		TotalCases:       len(dataset.Cases),
+		SchemaVersion:        "0.1",
+		DatasetID:            dataset.DatasetID,
+		CatalogID:            catalog.CatalogID,
+		CatalogFoodCount:     len(catalog.Foods),
+		FNDDSFallbackEnabled: fallbackPath != "",
+		FNDDSFallbackPath:    fallbackPath,
+		ExpectedComparison:   "strict",
+		TotalCases:           len(dataset.Cases),
+	}
+	if skipExpected {
+		result.ExpectedComparison = "skipped"
 	}
 	categoryCounts := map[string]*categoryAccumulator{}
 	unresolvedFoods := map[string]int{}
@@ -173,7 +194,10 @@ func run(root, datasetPath, catalogOverride string) (evalResult, error) {
 			NutrientCatalogPath: catalogPath,
 			CandidatePlan:       datasetPath,
 		}
-		evaluation := checker.Evaluate(c, evalCase.Plan, catalog)
+		evaluation, err := checker.EvaluateWithFallback(c, evalCase.Plan, catalog, fallback)
+		if err != nil {
+			return evalResult{}, fmt.Errorf("evaluate case %s: %w", evalCase.CaseID, err)
+		}
 		itemCount := countPlanItems(evalCase.Plan)
 		resolvedCount := len(evaluation.ResolvedItems)
 		unresolvedCount := len(evaluation.UnresolvedItems)
@@ -201,8 +225,11 @@ func run(root, datasetPath, catalogOverride string) (evalResult, error) {
 			unresolvedUnits[unit]++
 		}
 
-		if mismatch := compareExpected(evalCase, evaluation); len(mismatch.Messages) > 0 {
-			result.Mismatches = append(result.Mismatches, mismatch)
+		if !skipExpected {
+			mismatch := compareExpected(evalCase, evaluation)
+			if len(mismatch.Messages) > 0 {
+				result.Mismatches = append(result.Mismatches, mismatch)
+			}
 		}
 	}
 

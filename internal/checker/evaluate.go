@@ -8,7 +8,18 @@ import (
 )
 
 func Evaluate(c Case, plan Plan, catalog NutrientCatalog) Evaluation {
-	resolved, unresolved := newResolver(catalog).resolvePlan(plan)
+	evaluation, err := EvaluateWithFallback(c, plan, catalog, nil)
+	if err != nil {
+		panic(err)
+	}
+	return evaluation
+}
+
+func EvaluateWithFallback(c Case, plan Plan, catalog NutrientCatalog, fallback FNDDSReference) (Evaluation, error) {
+	resolved, unresolved, err := newResolverWithFallback(catalog, fallback).resolvePlanWithError(plan)
+	if err != nil {
+		return Evaluation{}, err
+	}
 	dailyTotals, mealTotals := calculateTotals(resolved)
 
 	checks := []CheckResult{
@@ -38,7 +49,7 @@ func Evaluate(c Case, plan Plan, catalog NutrientCatalog) Evaluation {
 		UnresolvedItems:   unresolved,
 		DailyTotals:       dailyTotals,
 		MealTotals:        mealTotals,
-	}
+	}, nil
 }
 
 func calculateTotals(items []ResolvedItem) ([]DailyTotal, []MealTotal) {

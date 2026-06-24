@@ -16,10 +16,11 @@ import (
 )
 
 type BundleOptions struct {
-	Root     string
-	CasePath string
-	OutDir   string
-	Mode     string
+	Root              string
+	CasePath          string
+	OutDir            string
+	Mode              string
+	FNDDSFallbackPath string
 }
 
 type BundleResult struct {
@@ -96,7 +97,23 @@ func WriteBundle(opts BundleOptions) (BundleResult, error) {
 	if err != nil {
 		return BundleResult{}, err
 	}
-	evaluation := checker.Evaluate(c, plan, catalog)
+	var fallback checker.FNDDSReference
+	if opts.FNDDSFallbackPath != "" {
+		fallbackPath := opts.FNDDSFallbackPath
+		if !filepath.IsAbs(fallbackPath) {
+			fallbackPath = filepath.Join(root, fallbackPath)
+		}
+		ref, err := checker.OpenSQLiteFNDDSReference(fallbackPath)
+		if err != nil {
+			return BundleResult{}, err
+		}
+		defer ref.Close()
+		fallback = ref
+	}
+	evaluation, err := checker.EvaluateWithFallback(c, plan, catalog, fallback)
+	if err != nil {
+		return BundleResult{}, err
+	}
 	decision := evaluation.DecisionDocument(c)
 	decision.ArtifactPaths["case"] = opts.CasePath
 	decision.ArtifactPaths["recommendation"] = "recommendation.json"

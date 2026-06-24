@@ -7,10 +7,15 @@ import (
 )
 
 type resolver struct {
-	foods map[string]CatalogFood
+	foods    map[string]CatalogFood
+	fallback FNDDSReference
 }
 
 func newResolver(catalog NutrientCatalog) resolver {
+	return newResolverWithFallback(catalog, nil)
+}
+
+func newResolverWithFallback(catalog NutrientCatalog, fallback FNDDSReference) resolver {
 	foods := map[string]CatalogFood{}
 	for _, food := range catalog.Foods {
 		foods[normalizeName(food.Name)] = food
@@ -18,17 +23,25 @@ func newResolver(catalog NutrientCatalog) resolver {
 			foods[normalizeName(alias)] = food
 		}
 	}
-	return resolver{foods: foods}
+	return resolver{foods: foods, fallback: fallback}
 }
 
 func (r resolver) resolvePlan(plan Plan) ([]ResolvedItem, []UnresolvedItem) {
+	resolved, unresolved, _ := r.resolvePlanWithError(plan)
+	return resolved, unresolved
+}
+
+func (r resolver) resolvePlanWithError(plan Plan) ([]ResolvedItem, []UnresolvedItem, error) {
 	var resolved []ResolvedItem
 	var unresolved []UnresolvedItem
 
 	for _, day := range plan.Days {
 		for _, meal := range day.Meals {
 			for _, item := range meal.Items {
-				resolvedItem, unresolvedItem, ok := r.resolveItem(day.Day, meal.Name, item)
+				resolvedItem, unresolvedItem, ok, err := r.resolveItem(day.Day, meal.Name, item)
+				if err != nil {
+					return nil, nil, err
+				}
 				if ok {
 					resolved = append(resolved, resolvedItem)
 					continue
@@ -48,35 +61,57 @@ func (r resolver) resolvePlan(plan Plan) ([]ResolvedItem, []UnresolvedItem) {
 		return resolved[i].Food < resolved[j].Food
 	})
 
-	return resolved, unresolved
+	return resolved, unresolved, nil
 }
 
-func (r resolver) resolveItem(day int, meal string, item FoodItem) (ResolvedItem, UnresolvedItem, bool) {
+func (r resolver) resolveItem(day int, meal string, item FoodItem) (ResolvedItem, UnresolvedItem, bool, error) {
 	if item.ResolutionStatus == "unresolved" {
-		return ResolvedItem{}, unresolvedItem(day, meal, item), false
+		if item.UnresolvedReason != "unknown_food" || item.Quantity == nil || r.fallback == nil {
+			return ResolvedItem{}, unresolvedItem(day, meal, item), false, nil
+		}
+		food, ok, err := r.fallback.LookupEligibleByDescription(item.Food)
+		if err != nil {
+			return ResolvedItem{}, UnresolvedItem{}, false, err
+		}
+		if !ok {
+			return ResolvedItem{}, unresolvedItem(day, meal, item), false, nil
+		}
+		return resolveKnownFood(day, meal, item, food)
 	}
 	if item.Quantity == nil {
 		u := unresolvedItem(day, meal, item)
 		if u.UnresolvedReason == "" {
 			u.UnresolvedReason = "vague_quantity"
 		}
-		return ResolvedItem{}, u, false
+		return ResolvedItem{}, u, false, nil
 	}
 
 	food, ok := r.foods[normalizeName(item.Food)]
 	if !ok {
-		u := unresolvedItem(day, meal, item)
-		u.UnresolvedReason = "unknown_food"
-		return ResolvedItem{}, u, false
+		if r.fallback != nil {
+			var err error
+			food, ok, err = r.fallback.LookupEligibleByDescription(item.Food)
+			if err != nil {
+				return ResolvedItem{}, UnresolvedItem{}, false, err
+			}
+		}
+		if !ok {
+			u := unresolvedItem(day, meal, item)
+			u.UnresolvedReason = "unknown_food"
+			return ResolvedItem{}, u, false, nil
+		}
 	}
 
+	return resolveKnownFood(day, meal, item, food)
+}
+
+func resolveKnownFood(day int, meal string, item FoodItem, food CatalogFood) (ResolvedItem, UnresolvedItem, bool, error) {
 	gramsPerUnit, ok := food.UnitConversions[item.Unit]
 	if !ok {
 		u := unresolvedItem(day, meal, item)
 		u.UnresolvedReason = fmt.Sprintf("missing_conversion:%s", item.Unit)
-		return ResolvedItem{}, u, false
+		return ResolvedItem{}, u, false, nil
 	}
-
 	grams := *item.Quantity * gramsPerUnit
 	factor := grams / 100
 	return ResolvedItem{
@@ -90,7 +125,7 @@ func (r resolver) resolveItem(day int, meal string, item FoodItem) (ResolvedItem
 		Nutrients:  scaleNutrients(food.NutrientsPer100G, factor),
 		Allergens:  append([]string(nil), food.Allergens...),
 		FoodGroups: append([]string(nil), food.FoodGroups...),
-	}, UnresolvedItem{}, true
+	}, UnresolvedItem{}, true, nil
 }
 
 func unresolvedItem(day int, meal string, item FoodItem) UnresolvedItem {
