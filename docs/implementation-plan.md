@@ -2802,3 +2802,61 @@ Verification:
 
 - local deterministic checks pass before pushing the workflow.
 - first GitHub Actions run for the workflow passes after push.
+
+## Milestone 36: User-Facing Failure Recovery UX
+
+Status: Implemented on 2026-06-24.
+
+Purpose:
+
+Turn backend graceful failure modes into user-facing recovery loops. The
+backend already classifies non-verifiable input, capacity failures, provider
+failures, local-model failures, and service errors; the frontend should explain
+what happened, distinguish input problems from service problems, and give the
+next useful action.
+
+Deliver:
+
+- frontend recovery mapper for API error codes and qualification statuses
+- inline meal-plan guidance for non-meal-plan, vague, recipe-like, and
+  unresolved-item outcomes
+- service recovery notices for queue full, rate limits, local-model outage,
+  provider failure, missing access code, backend storage failure, and API
+  unreachable cases
+- failed-run recovery guidance for post-queue local-model normalization
+  failures
+- public status-page links where the likely issue is service availability
+- test coverage for recovery mapping, inline guidance, service-busy behavior,
+  and failed-run guidance
+
+Implemented:
+
+1. Added `ui/src/lib/recovery.ts` as the frontend recovery-policy boundary.
+2. Added a shared `RecoveryNoticeView` component for consistent recovery
+   notices.
+3. Replaced raw global API error strings with typed recovery notices.
+4. Added inline meal-plan text guidance from qualification results.
+5. Added failed-run recovery guidance for local-model normalization failures.
+6. Corrected frontend request-ID formatting for backend error envelopes.
+7. Added unit and Playwright coverage for the new recovery paths.
+
+Acceptance:
+
+- vague meal-plan qualification displays concrete quantity/unit guidance near
+  the meal-plan text box.
+- queue-full API responses display service-busy guidance without surfacing raw
+  `HTTP 429` text.
+- API-unreachable and service-failure states point users toward the public
+  status page.
+- post-queue normalization failures tell users how to rewrite and retry the
+  meal plan.
+- existing successful qualification and report-creation flows still pass.
+
+Verification:
+
+- `git diff --check` passes.
+- `cd ui && npm run typecheck` passes.
+- `cd ui && npm test` passes.
+- `cd ui && npm run build` passes.
+- `cd ui && npm run test:e2e` passes.
+- `cd ui && npm run test:e2e:local` passes.

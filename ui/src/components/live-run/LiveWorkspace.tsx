@@ -10,6 +10,8 @@ import {
 import { cleanApiBase } from "../../lib/api";
 import { readableID } from "../../lib/format";
 import { buildLocalModelRunPayload, buildQualificationPayload, buildRunPayload } from "../../lib/payload";
+import { recoveryFromQualification, recoveryFromRunFailure } from "../../lib/recovery";
+import type { RecoveryNotice } from "../../lib/recovery";
 import type {
   BackendState,
   GenerationMode,
@@ -22,6 +24,7 @@ import type {
   RunPayload,
   SettingsDraft,
 } from "../../types";
+import { RecoveryNoticeView } from "../common/RecoveryNotice";
 import { Field, NumberInput } from "../common/FormControls";
 
 export function LiveWorkspace({
@@ -81,6 +84,10 @@ export function LiveWorkspace({
       ? Boolean(candidateText.trim()) && !candidateTextTooLong && !localModelUnavailable
       : true
   );
+  const qualificationRecovery = qualification.result ? recoveryFromQualification(qualification.result) : null;
+  const inlineMealPlanRecovery = qualificationRecovery && qualification.result?.status !== "eligible_for_verification"
+    ? qualificationRecovery
+    : null;
   const createFeedback = createRunFeedback({
     apiBase: cleanBase,
     candidateTextTooLong,
@@ -171,6 +178,7 @@ export function LiveWorkspace({
             <CandidateTextForm
               candidateText={candidateText}
               limit={candidateTextLimit}
+              recovery={inlineMealPlanRecovery}
               setCandidateText={setCandidateText}
             />
           </fieldset>
@@ -385,10 +393,12 @@ function ConstraintsForm({ settings, setSettings }: { settings: SettingsDraft; s
 function CandidateTextForm({
   candidateText,
   limit,
+  recovery,
   setCandidateText,
 }: {
   candidateText: string;
   limit?: number;
+  recovery?: RecoveryNotice | null;
   setCandidateText: (value: string) => void;
 }) {
   const overLimit = Boolean(limit && candidateText.length > limit);
@@ -407,6 +417,7 @@ function CandidateTextForm({
       <p className="field-help" id="candidate-text-guidance">
         For multi-day plans, use clear labels like Day 1 and Day 2 with meals and amounts listed under each day.
       </p>
+      {recovery ? <RecoveryNoticeView notice={recovery} /> : null}
       {limit ? (
         <p className={`character-counter${overLimit ? " is-over-limit" : ""}`} id="candidate-text-counter">
           {candidateText.length.toLocaleString()} / {limit.toLocaleString()} characters
@@ -515,6 +526,7 @@ function ProviderForm({
 function RunStatusPanel({ live, qualification }: { live: LiveState; qualification: QualificationState }) {
   const hasEvents = live.events.length > 0;
   const hasReport = live.status !== "deleted" && live.artifactItems.length > 0;
+  const runRecovery = recoveryFromRunFailure(live.status, live.message);
   return (
     <section className="panel live-panel results-panel" id="live-status-panel">
       <div className="panel-heading">
@@ -523,6 +535,7 @@ function RunStatusPanel({ live, qualification }: { live: LiveState; qualificatio
       <div className="status-stack">
         <p className="summary-text">{live.message || "Your report will appear here after you create a check."}</p>
         <QualificationNotice qualification={qualification} />
+        {runRecovery ? <RecoveryNoticeView notice={runRecovery} role="alert" /> : null}
         {hasReport ? (
           <div className="notice notice--pass live-report-ready" role="status">
             <strong>Report available</strong>

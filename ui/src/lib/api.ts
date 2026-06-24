@@ -42,7 +42,9 @@ export class ApiError extends Error {
         : errObj.detail != null
           ? typeof errObj.detail === "string" ? errObj.detail : JSON.stringify(errObj.detail)
           : root.message != null ? String(root.message) : null;
-      const requestID = root.request_id != null ? String(root.request_id) : null;
+      const requestID = errObj.request_id != null
+        ? String(errObj.request_id)
+        : root.request_id != null ? String(root.request_id) : null;
       if (code || message) {
         const base = `HTTP ${status}: ${code ?? "error"}${message ? ` - ${message}` : ""}`;
         return requestID ? `${base} (request_id=${requestID})` : base;

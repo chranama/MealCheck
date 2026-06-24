@@ -32,8 +32,7 @@ describe("api", () => {
   it("formats backend error envelopes", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(
       JSON.stringify({
-        error: { code: "invalid_input", message: "Bad settings" },
-        request_id: "req-123",
+        error: { code: "invalid_input", message: "Bad settings", request_id: "req-123" },
       }),
       { status: 422 },
     )));

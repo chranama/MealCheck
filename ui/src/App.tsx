@@ -10,10 +10,13 @@ import {
   qualifyMealPlan,
   qualificationFromApiError,
 } from "./lib/api";
+import { recoveryFromError } from "./lib/recovery";
+import type { RecoveryNotice } from "./lib/recovery";
 import { configuredApiBase } from "./lib/runtime_config";
 import { LiveWorkspace } from "./components/live-run/LiveWorkspace";
 import { ReportSurface } from "./components/report/ReportSurface";
 import { BrandMark } from "./components/brand/BrandMark";
+import { RecoveryNoticeView } from "./components/common/RecoveryNotice";
 import { LiveSummary, SiteFooter } from "./components/shell/Shell";
 import type {
   BackendState,
@@ -55,7 +58,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
   const [apiBase, setApiBase] = useState(() => configuredApiBase(runtimeConfig));
   const [backend, setBackend] = useState<BackendState>(INITIAL_BACKEND);
   const [artifacts, setArtifacts] = useState<ReportArtifacts | null>(null);
-  const [error, setError] = useState("");
+  const [recovery, setRecovery] = useState<RecoveryNotice | null>(null);
   const [live, setLive] = useState<LiveState>(INITIAL_LIVE);
   const [qualification, setQualification] = useState<QualificationState>(INITIAL_QUALIFICATION);
   const pollRef = useRef<number | null>(null);
@@ -112,7 +115,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     setApiBase(cleanBase);
     setArtifacts(null);
     setActiveTab("checks");
-    setError("");
+    setRecovery(null);
     setQualification(INITIAL_QUALIFICATION);
     setLive({
       runID: "",
@@ -164,7 +167,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     }
 
     setApiBase(cleanBase);
-    setError("");
+    setRecovery(null);
     setQualification({
       status: "checking",
       message: "Checking meal plan eligibility.",
@@ -178,10 +181,10 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
         result: response.qualification,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const notice = recoveryFromError(error);
       setQualification({
         status: "failed",
-        message,
+        message: notice.title,
         result: null,
       });
       throw error;
@@ -249,9 +252,9 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
   }
 
   function showError(errorLike: unknown) {
-    const message = errorLike instanceof Error ? errorLike.message : String(errorLike);
-    setError(message);
-    setLive((current) => ({ ...current, status: "failed", message }));
+    const notice = recoveryFromError(errorLike);
+    setRecovery(notice);
+    setLive((current) => ({ ...current, status: "failed", message: notice.title }));
   }
 
   return (
@@ -282,7 +285,11 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
             onError={showError}
           />
 
-          {error ? <section className="panel error-state" role="alert">{error}</section> : null}
+          {recovery ? (
+            <section className="panel error-state">
+              <RecoveryNoticeView notice={recovery} role="alert" />
+            </section>
+          ) : null}
 
           {artifacts ? (
             <ReportSurface

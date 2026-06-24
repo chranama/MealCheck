@@ -392,6 +392,40 @@ describe("LiveWorkspace", () => {
     expect(screen.getByText("1 day, 1 meal, 1 item")).toBeInTheDocument();
   });
 
+  it("shows inline recovery guidance for vague meal-plan text", () => {
+    renderWorkspace({
+      qualification: {
+        status: "completed",
+        message: "Breakfast, lunch, and dinner are named but quantities are missing.",
+        result: {
+          schema_version: "0.1",
+          status: "meal_plan_too_vague",
+          reason: "Breakfast, lunch, and dinner are named but quantities are missing.",
+          missing_fields: ["quantities"],
+          provider_used: false,
+        },
+      },
+    });
+
+    expect(screen.getByText("Add amounts and units")).toBeInTheDocument();
+    expect(screen.getByText(/Add quantities such as 1 cup, 4 oz, 2 eggs, or 1 tbsp/)).toBeInTheDocument();
+    expect(screen.getByText("Meal Plan Too Vague")).toBeInTheDocument();
+  });
+
+  it("shows recovery guidance when local-model normalization fails after queueing", () => {
+    renderWorkspace({
+      live: {
+        ...live,
+        status: "failed",
+        message: "MealCheck could not normalize this text into a verifiable meal plan. Use clear day labels, meal labels, food names, numeric quantities, and supported units.",
+      },
+    });
+
+    expect(screen.getByText("MealCheck could not normalize this plan")).toBeInTheDocument();
+    expect(screen.getByText(/Use clear Day 1, Day 2 labels/)).toBeInTheDocument();
+    expect(screen.getByText(/Put each meal on its own line/)).toBeInTheDocument();
+  });
+
   it("submits selected Gemini providers", async () => {
     const user = userEvent.setup();
     const onCreateRun = vi.fn(async () => undefined);

@@ -891,6 +891,25 @@ a:focus-visible {
   font-size: 0.9rem;
 }
 
+.recovery-steps {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0 0;
+  padding-left: 20px;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.recovery-action {
+  margin-top: 10px;
+  font-weight: 900;
+}
+
+.recovery-action a {
+  color: inherit;
+}
+
 .qualification-facts {
   display: grid;
   gap: 8px;

@@ -79,7 +79,15 @@ const artifactBodies: Record<string, unknown> = {
   },
 };
 
-async function mockMealCheckApi(page: Page) {
+type MockMealCheckApiOptions = {
+  createRunError?: {
+    status: number;
+    body: unknown;
+  };
+  qualification?: unknown;
+};
+
+async function mockMealCheckApi(page: Page, options: MockMealCheckApiOptions = {}) {
   let runCounter = 0;
   const payloads: unknown[] = [];
   const deletedRunIDs: string[] = [];
@@ -111,6 +119,13 @@ async function mockMealCheckApi(page: Page) {
     expect(route.request().method()).toBe("POST");
     expect(route.request().headers()["x-mealcheck-invite-token"]).toBeUndefined();
     payloads.push(route.request().postDataJSON());
+    if (options.createRunError) {
+      await route.fulfill({
+        status: options.createRunError.status,
+        json: options.createRunError.body,
+      });
+      return;
+    }
     runCounter += 1;
     await route.fulfill({
       status: 202,
@@ -123,7 +138,7 @@ async function mockMealCheckApi(page: Page) {
     payloads.push(route.request().postDataJSON());
     await route.fulfill({
       status: 200,
-      json: {
+      json: options.qualification ? { qualification: options.qualification } : {
         qualification: {
           schema_version: "0.1",
           status: "eligible_for_verification",
@@ -270,6 +285,51 @@ test("qualifies mocked candidate text", async ({ page }) => {
   expect(api.payloads[0]).toMatchObject({
     text: expect.stringContaining("Day 1 breakfast"),
   });
+});
+
+test("shows recovery guidance for vague meal-plan input", async ({ page }) => {
+  await mockMealCheckApi(page, {
+    qualification: {
+      schema_version: "0.1",
+      status: "meal_plan_too_vague",
+      reason: "Breakfast, lunch, and dinner are named but quantities are missing.",
+      missing_fields: ["quantities"],
+      provider_used: false,
+    },
+  });
+  await page.goto("/?api=/mock-api");
+
+  await page.getByRole("button", { name: "Check Eligibility" }).click();
+
+  await expect(page.getByText("Add amounts and units")).toBeVisible();
+  await expect(page.getByText(/Add quantities such as 1 cup, 4 oz, 2 eggs, or 1 tbsp/)).toBeVisible();
+  await expect(page.getByText("Meal Plan Too Vague")).toBeVisible();
+});
+
+test("shows service recovery guidance when the report queue is full", async ({ page }) => {
+  await mockMealCheckApi(page, {
+    createRunError: {
+      status: 429,
+      body: {
+        error: {
+          code: "queue_full",
+          message: "run queue is full",
+          details: { queue_size: 3 },
+        },
+      },
+    },
+  });
+  await page.goto("/?api=/mock-api");
+
+  await page.getByLabel("Model").fill("gpt-test");
+  await page.getByLabel("API key").fill("secret-queue-key");
+  await page.getByRole("button", { name: "Create Report" }).click();
+
+  const alert = page.getByRole("alert");
+  await expect(alert.getByText("MealCheck is busy")).toBeVisible();
+  await expect(alert.getByText("The report queue is full right now. Your input was not submitted.")).toBeVisible();
+  await expect(alert.getByRole("link", { name: "Open status page" })).toHaveAttribute("href", "/status.html");
+  await expect(page.getByText("HTTP 429")).toHaveCount(0);
 });
 
 test("creates a mocked BYOK profile-generation run without persisting provider keys", async ({ page }) => {
