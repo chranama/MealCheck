@@ -2659,3 +2659,86 @@ Acceptance:
   the projected decision is `pass`.
 - generated artifact bundles include `recommendation.json` and list it in
   `manifest.json`.
+
+## Milestone 34: Public Operational Status Page
+
+Status: Implemented on 2026-06-23.
+
+Purpose:
+
+Give users a small public status surface that answers whether MealCheck is
+usable right now. This is an SDLC operations and maintenance artifact, not an
+admin dashboard: it summarizes user-visible capabilities, supports release
+verification, and avoids exposing raw operational diagnostics.
+
+Deliver:
+
+- public `GET /api/status` endpoint with a stable summarized status contract
+- public `/status.html` frontend page, also reachable as `/status` in the
+  deployed site
+- component-level states for the website, meal-check submission, AI meal
+  normalization, nutrition and allergen checking, report generation, and the
+  sample report
+- top-level service message, latest checked time, recent-incident summary, and
+  sample-report link
+- shared footer navigation across the main app, status page, and consumer
+  about page
+- deployed frontend runtime config at `/config.json` so static hosting can
+  resolve the production API base URL
+
+Non-goals:
+
+- no authenticated admin dashboard
+- no logs, queue depth, hostnames, paths, model filenames, raw `/api/health`
+  payloads, policy limits, secrets, or recent user input on the public page
+- no incident-management workflow beyond the initial recent-incidents summary
+- no operational controls or destructive actions
+
+Implemented:
+
+1. Added `/api/status` as the public status contract, separate from
+   `/api/health`.
+2. Added backend status synthesis for operational, degraded, partial outage,
+   and major outage cases.
+3. Added redaction-oriented backend tests so public status does not leak raw
+   queue, store, or local-model details.
+4. Added the React/Vite status page with summarized component rows and recent
+   incidents.
+5. Added shared footer navigation to the main app, status page, and consumer
+   about page.
+6. Removed stale `Ready` and `Status` labels from the main page.
+7. Added mocked Playwright coverage for the status page and footer navigation.
+8. Added `ui/public/config.json` after deployed verification showed that the
+   status page could not discover `https://api.mealcheck.dev` from static
+   hosting.
+9. Updated API, runbook, architecture, and frontend-hosting documentation for
+   the public status contract and runtime config boundary.
+
+Acceptance:
+
+- `/api/status` returns HTTP 200 with a summarized public status payload.
+- overall service state remains available even when one component is degraded
+  or partially unavailable.
+- public status output does not expose raw operational details intended for
+  operators.
+- `/status.html?api=/mock-api` renders the top-level status, component rows,
+  recent-incidents summary, and sample-report link.
+- deployed `https://mealcheck.dev/config.json` returns the production API base
+  instead of the frontend HTML fallback.
+- deployed `https://mealcheck.dev/status` shows `All systems operational` when
+  the production API and sample report are healthy.
+- main, status, and about pages all include footer links to MealCheck, Status,
+  About, and GitHub.
+- browser-level coverage keeps the status page and footer navigation from
+  regressing.
+
+Verification:
+
+- `go test ./...` passes.
+- `cd ui && npm run typecheck` passes.
+- `cd ui && npm test` passes.
+- `cd ui && npm run build` passes.
+- `cd ui && npm run test:e2e` passes.
+- `cd ui && npm run test:e2e:local` passes against the local stack.
+- Chrome verification on the deployed site showed
+  `https://mealcheck.dev/status` reporting `All systems operational`.
