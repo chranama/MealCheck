@@ -2742,3 +2742,63 @@ Verification:
 - `cd ui && npm run test:e2e:local` passes against the local stack.
 - Chrome verification on the deployed site showed
   `https://mealcheck.dev/status` reporting `All systems operational`.
+
+## Milestone 35: CI Proof Gates
+
+Status: Implemented on 2026-06-24.
+
+Purpose:
+
+Make MealCheck's proof claims executable on every change. The CI workflow should
+protect the backend contracts, checked-in fixtures, frontend contracts, mocked
+browser flow, and local full-stack path that support the deployed LLM workflow.
+
+Deliver:
+
+- GitHub Actions workflow for pushes to `main`, pull requests, and manual
+  dispatch
+- backend job for fixture validation, Go tests, and local CLI/API smoke proof
+- frontend job for TypeScript, unit tests, production build, and mocked
+  Playwright e2e
+- local-stack e2e job that starts the real Go backend with memory storage and a
+  fake provider response path
+- Playwright artifact upload on browser-test failure
+- README badge and CI proof summary
+- runbook separation between always-on CI gates and deployed release checks
+
+Implemented:
+
+1. Added `.github/workflows/ci.yml` with separate backend, frontend, and
+   local-stack e2e jobs.
+2. Configured Go from `go.mod` and frontend CI with Node 22 to match the
+   documented Cloudflare Pages runtime.
+3. Added fixture validation and `go test ./...` as backend gates.
+4. Added `go run ./cmd/mealcheck-local-smoke` so CLI artifact generation,
+   hosted API behavior, CORS, run deletion, and provider-secret redaction remain
+   covered in CI.
+5. Added frontend typecheck, unit tests, production build, and mocked
+   Playwright e2e.
+6. Added local-stack Playwright e2e as a dependent CI job after the backend and
+   frontend proof gates pass.
+7. Added Playwright artifact upload for failed browser jobs.
+8. Documented the CI contract in the README and runbook.
+
+Acceptance:
+
+- CI runs automatically on pushes to `main` and pull requests.
+- `go run ./cmd/mealcheck-fixture-check` passes in CI.
+- `go test ./...` passes in CI.
+- `go run ./cmd/mealcheck-local-smoke` passes in CI.
+- `cd ui && npm run typecheck` passes in CI.
+- `cd ui && npm test` passes in CI.
+- `cd ui && npm run build` passes in CI.
+- `cd ui && npm run test:e2e` passes in CI without a live backend.
+- `cd ui && npm run test:e2e:local` passes in CI against the local stack.
+- failed browser jobs publish Playwright traces or reports when available.
+- deployed live checks stay documented as release operations rather than
+  required hosted CI checks.
+
+Verification:
+
+- local deterministic checks pass before pushing the workflow.
+- first GitHub Actions run for the workflow passes after push.

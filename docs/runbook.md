@@ -91,6 +91,68 @@ npm run test:e2e:local
 npm run build
 ```
 
+## CI Proof Gates
+
+GitHub Actions runs `.github/workflows/ci.yml` on pushes to `main`, pull
+requests, and manual dispatch. The workflow is intentionally split into three
+jobs so backend contracts, frontend contracts, and local full-stack behavior can
+fail independently.
+
+Backend proof gates:
+
+```bash
+go run ./cmd/mealcheck-fixture-check
+go test ./...
+go run ./cmd/mealcheck-local-smoke
+```
+
+Frontend proof gates:
+
+```bash
+cd ui
+npm ci
+npm run typecheck
+npm test
+npm run build
+npm run test:e2e
+```
+
+Local-stack browser proof gate:
+
+```bash
+cd ui
+npm run test:e2e:local
+```
+
+The mocked Playwright job does not require a live Go backend or model provider.
+The local-stack Playwright job starts the real Go backend with memory storage
+and a fake provider response path, then verifies qualification, run creation,
+artifact redaction, CORS, and status-page behavior.
+
+The workflow uploads Playwright artifacts from `ui/test-results/` and
+`ui/playwright-report/` when browser checks fail.
+
+## Release Checks
+
+Run these checks before or immediately after a production deployment because
+they depend on the deployed tunnel, hosted local model, or live provider paths:
+
+```bash
+cd ui
+npm run test:e2e:local
+```
+
+```bash
+scripts/test-deployed-byok-live.sh
+scripts/test-deployed-local-model-live.sh
+```
+
+Use the public status page as the consumer-facing post-deploy check:
+
+```text
+https://mealcheck.dev/status
+```
+
 ## Fixture Validation
 
 Milestone 0 fixtures should validate locally with:
