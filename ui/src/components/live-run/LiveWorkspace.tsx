@@ -247,9 +247,8 @@ function RunActionStrip({
   onDelete: () => void;
 }) {
   return (
-    <section className="live-action-strip" aria-label="Report action status">
+    <section className="live-action-strip" aria-label="Report actions">
       <div className="action-strip-state">
-        <span className={`status-pill status-pill--${runPillTone(live.status)}`}>{live.status === "idle" ? "Ready" : readableID(live.status)}</span>
         <p className="submit-feedback" id="create-run-feedback" role="status">{createFeedback}</p>
       </div>
       <div className="action-strip-actions">
@@ -316,15 +315,8 @@ function createRunFeedback({
   if (localModelUnavailable) return "Local model is unavailable right now.";
   if (needsCandidateText) return "Enter a meal plan to create a report.";
   if (candidateTextTooLong) return "Meal plan text is over the local model limit.";
-  if (isLocalModelHosted) return "Ready to create a local-model MealCheck report.";
-  return "Ready to check eligibility or create a MealCheck report.";
-}
-
-function runPillTone(status: LiveState["status"]): string {
-  if (status === "completed") return "pass";
-  if (status === "failed" || status === "deleted") return "block";
-  if (status === "queued" || status === "running") return "warn";
-  return "info";
+  if (isLocalModelHosted) return "Create a local-model MealCheck report.";
+  return "Check eligibility or create a MealCheck report.";
 }
 
 function NutritionTargetsForm({ settings, setSettings }: { settings: SettingsDraft; setSettings: Dispatch<SetStateAction<SettingsDraft>> }) {
@@ -433,7 +425,7 @@ function LocalModelPanel({
   const tone = ready ? "pass" : "warn";
   return (
     <section className={`notice notice--${tone} local-model-panel`} aria-label="Local model status">
-      <strong>{ready ? "Local model ready" : "Local model unavailable"}</strong>
+      <strong>{ready ? "Local model available" : "Local model unavailable"}</strong>
       <p><a href="https://github.com/chranama/MealCheck">CLI/API and custom endpoint usage</a></p>
     </section>
   );
@@ -527,14 +519,13 @@ function RunStatusPanel({ live, qualification }: { live: LiveState; qualificatio
     <section className="panel live-panel results-panel" id="live-status-panel">
       <div className="panel-heading">
         <h2>Results</h2>
-        <span className={`status-pill status-pill--${runPillTone(live.status)}`}>{live.status === "idle" ? "Not started" : readableID(live.status)}</span>
       </div>
       <div className="status-stack">
         <p className="summary-text">{live.message || "Your report will appear here after you create a check."}</p>
         <QualificationNotice qualification={qualification} />
         {hasReport ? (
           <div className="notice notice--pass live-report-ready" role="status">
-            <strong>Report ready</strong>
+            <strong>Report available</strong>
             <p>Decision details are available below.</p>
           </div>
         ) : null}
@@ -566,7 +557,7 @@ function QualificationNotice({ qualification }: { qualification: QualificationSt
       {result ? (
         <dl className="qualification-facts">
           <div>
-            <dt>Status</dt>
+            <dt>Result</dt>
             <dd>{readableID(result.status)}</dd>
           </div>
           <div>

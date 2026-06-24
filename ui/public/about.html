@@ -197,6 +197,7 @@
 
       .site-footer {
         display: flex;
+        gap: 18px;
         justify-content: flex-end;
         padding: 16px clamp(18px, 4vw, 48px);
         border-top: 1px solid var(--line);
@@ -219,6 +220,11 @@
         .topbar {
           align-items: flex-start;
           flex-direction: column;
+        }
+
+        .site-footer {
+          justify-content: flex-start;
+          flex-wrap: wrap;
         }
 
         .content-grid {
@@ -322,7 +328,10 @@
     </main>
 
     <footer class="site-footer">
-      <a href="/">Back to MealCheck</a>
+      <a href="/">MealCheck</a>
+      <a href="/status.html">Status</a>
+      <a href="/about.html">About</a>
+      <a href="https://github.com/chranama/MealCheck" target="_blank" rel="noreferrer">GitHub</a>
     </footer>
   </body>
 </html>

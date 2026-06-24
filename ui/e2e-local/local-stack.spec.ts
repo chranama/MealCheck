@@ -28,6 +28,19 @@ test("renders the live run homepage without an API base", async ({ page }) => {
   await expect(page.getByRole("tab", { name: "Checks" })).toHaveCount(0);
 });
 
+test("renders the public status page against the local backend", async ({ page }) => {
+  await page.goto(`/status.html?api=${apiBase}`);
+
+  await expect(page.getByRole("heading", { level: 1, name: "MealCheck Status" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "All systems operational" })).toBeVisible();
+  await expect(page.getByText("Meal Check Submission")).toBeVisible();
+  await expect(page.getByText("AI Meal Normalization")).toBeVisible();
+  await expect(page.getByText("Nutrition & Allergen Checking")).toBeVisible();
+  await expect(page.getByText("Report Generation")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sample Report" })).toBeVisible();
+  await expect(page.getByText("No incidents reported in the past 7 days.")).toBeVisible();
+});
+
 test("qualifies a real local candidate meal plan through the fake provider", async ({ page }) => {
   await page.goto(`/?api=${apiBase}`);
 

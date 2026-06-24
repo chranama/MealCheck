@@ -41,6 +41,7 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("/api/health", s.handleHealth)
+	s.mux.HandleFunc("/api/status", s.handleStatus)
 	s.mux.HandleFunc("/api/demo-runs", s.handleDemoRuns)
 	s.mux.HandleFunc("/api/demo-runs/", s.handleDemoRun)
 	s.mux.HandleFunc("/api/qualify", s.handleQualify)

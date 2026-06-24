@@ -1806,6 +1806,152 @@ func TestHealthReportsHostedLocalModelMode(t *testing.T) {
 	}
 }
 
+func TestStatusReportsUserVisibleOperationalComponents(t *testing.T) {
+	root := repoRoot(t)
+	server := NewServer(testConfig(t, root), NewMemoryStore())
+
+	resp := doRequest(t, server, http.MethodGet, "/api/status", "")
+	if resp.Code != http.StatusOK {
+		t.Fatalf("status code = %d, want 200 body=%s", resp.Code, resp.Body.String())
+	}
+	var status PublicStatusResponse
+	decodeJSON(t, resp.Body.Bytes(), &status)
+	if status.SchemaVersion != "0.1" {
+		t.Fatalf("schema_version = %q, want 0.1", status.SchemaVersion)
+	}
+	if status.Overall.State != StatusStateOperational {
+		t.Fatalf("overall state = %q, want operational", status.Overall.State)
+	}
+	for _, id := range []string{"meal_check_submission", "ai_meal_normalization", "nutrition_allergen_checking", "report_generation", "sample_report"} {
+		component := statusComponentByID(t, status.Components, id)
+		if component.State != StatusStateOperational {
+			t.Fatalf("%s state = %q, want operational", id, component.State)
+		}
+	}
+	if status.Links.SampleReport != "/api/demo-runs/seeded-3-day-peanut-allergy/report" {
+		t.Fatalf("sample report link = %q", status.Links.SampleReport)
+	}
+	for _, rawField := range []string{"queue_size", "store", "local_model", "public_request_limit", "Qwen3"} {
+		if strings.Contains(resp.Body.String(), rawField) {
+			t.Fatalf("public status leaked raw field %q: %s", rawField, resp.Body.String())
+		}
+	}
+}
+
+func TestStatusReportsQueueCapacityAsDegradedPerformance(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.QueueSize = 1
+	store := NewMemoryStore()
+	server := NewServer(config, store)
+
+	body := `{"case_path":"examples/seeded-3-day-peanut-allergy/case.json"}`
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d, want 202 body=%s", createResp.Code, createResp.Body.String())
+	}
+
+	resp := doRequest(t, server, http.MethodGet, "/api/status", "")
+	if resp.Code != http.StatusOK {
+		t.Fatalf("status code = %d, want 200 body=%s", resp.Code, resp.Body.String())
+	}
+	var status PublicStatusResponse
+	decodeJSON(t, resp.Body.Bytes(), &status)
+	if status.Overall.State != StatusStateDegraded {
+		t.Fatalf("overall state = %q, want degraded", status.Overall.State)
+	}
+	for _, id := range []string{"meal_check_submission", "report_generation"} {
+		component := statusComponentByID(t, status.Components, id)
+		if component.State != StatusStateDegraded {
+			t.Fatalf("%s state = %q, want degraded", id, component.State)
+		}
+	}
+}
+
+func TestStatusReportsLocalModelUnavailableWithoutLeakingDetails(t *testing.T) {
+	root := repoRoot(t)
+	modelServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	t.Cleanup(modelServer.Close)
+
+	config := testConfig(t, root)
+	config.HostedMode = HostedModeLocalModel
+	config.LocalModelEnabled = true
+	config.LocalModelBaseURL = modelServer.URL
+	config.LocalModelName = "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf"
+	server := NewServer(config, NewMemoryStore())
+
+	resp := doRequest(t, server, http.MethodGet, "/api/status", "")
+	if resp.Code != http.StatusOK {
+		t.Fatalf("status code = %d, want 200 body=%s", resp.Code, resp.Body.String())
+	}
+	var status PublicStatusResponse
+	decodeJSON(t, resp.Body.Bytes(), &status)
+	if status.Overall.State != StatusStatePartialOutage {
+		t.Fatalf("overall state = %q, want partial_outage", status.Overall.State)
+	}
+	for _, id := range []string{"ai_meal_normalization", "report_generation"} {
+		component := statusComponentByID(t, status.Components, id)
+		if component.State != StatusStatePartialOutage {
+			t.Fatalf("%s state = %q, want partial_outage", id, component.State)
+		}
+	}
+	for _, rawDetail := range []string{modelServer.URL, "Qwen3-0.6B-Q4_K_M.gguf", "local model endpoint returned"} {
+		if strings.Contains(resp.Body.String(), rawDetail) {
+			t.Fatalf("public status leaked raw local model detail %q: %s", rawDetail, resp.Body.String())
+		}
+	}
+}
+
+func TestStatusReportsSampleReportOutageWithoutFailingEndpoint(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.DemoIndexPath = filepath.Join(t.TempDir(), "missing-index.json")
+	server := NewServer(config, NewMemoryStore())
+
+	resp := doRequest(t, server, http.MethodGet, "/api/status", "")
+	if resp.Code != http.StatusOK {
+		t.Fatalf("status code = %d, want 200 body=%s", resp.Code, resp.Body.String())
+	}
+	var status PublicStatusResponse
+	decodeJSON(t, resp.Body.Bytes(), &status)
+	if status.Overall.State != StatusStatePartialOutage {
+		t.Fatalf("overall state = %q, want partial_outage", status.Overall.State)
+	}
+	component := statusComponentByID(t, status.Components, "sample_report")
+	if component.State != StatusStatePartialOutage {
+		t.Fatalf("sample report state = %q, want partial_outage", component.State)
+	}
+	if status.Links.SampleReport != "" {
+		t.Fatalf("sample report link = %q, want empty", status.Links.SampleReport)
+	}
+}
+
+func TestStatusReportsStoreFailureAsMajorOutage(t *testing.T) {
+	root := repoRoot(t)
+	server := NewServer(testConfig(t, root), failingStatsStore{MemoryStore: NewMemoryStore()})
+
+	resp := doRequest(t, server, http.MethodGet, "/api/status", "")
+	if resp.Code != http.StatusOK {
+		t.Fatalf("status code = %d, want 200 body=%s", resp.Code, resp.Body.String())
+	}
+	var status PublicStatusResponse
+	decodeJSON(t, resp.Body.Bytes(), &status)
+	if status.Overall.State != StatusStateMajorOutage {
+		t.Fatalf("overall state = %q, want major_outage", status.Overall.State)
+	}
+	for _, id := range []string{"meal_check_submission", "ai_meal_normalization", "nutrition_allergen_checking", "report_generation"} {
+		component := statusComponentByID(t, status.Components, id)
+		if component.State != StatusStateMajorOutage {
+			t.Fatalf("%s state = %q, want major_outage", id, component.State)
+		}
+	}
+	if strings.Contains(resp.Body.String(), "stats unavailable") {
+		t.Fatalf("public status leaked store error: %s", resp.Body.String())
+	}
+}
+
 func TestPublicRequestRateLimit(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
@@ -2122,6 +2268,25 @@ func doRequest(t *testing.T, server *Server, method, path, body string) *httptes
 	recorder := httptest.NewRecorder()
 	server.Handler().ServeHTTP(recorder, req)
 	return recorder
+}
+
+func statusComponentByID(t *testing.T, components []StatusComponent, id string) StatusComponent {
+	t.Helper()
+	for _, component := range components {
+		if component.ID == id {
+			return component
+		}
+	}
+	t.Fatalf("status component %q not found in %+v", id, components)
+	return StatusComponent{}
+}
+
+type failingStatsStore struct {
+	*MemoryStore
+}
+
+func (s failingStatsStore) Stats(context.Context) (StoreStats, error) {
+	return StoreStats{}, fmt.Errorf("stats unavailable")
 }
 
 func decodeJSON(t *testing.T, data []byte, out any) {

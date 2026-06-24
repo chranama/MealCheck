@@ -5,6 +5,12 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: "dist",
+    rollupOptions: {
+      input: {
+        main: "index.html",
+        status: "status.html",
+      },
+    },
   },
   test: {
     environment: "jsdom",

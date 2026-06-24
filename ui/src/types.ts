@@ -14,6 +14,14 @@ export type RunStatus = "idle" | "queued" | "running" | "completed" | "failed" |
 export type CheckStatus = "pass" | "warn" | "block" | string;
 export type AccessMode = "public_byok" | "invite_required" | string;
 export type HostedMode = "byok" | "local_model" | string;
+export type PublicStatusState =
+  | "operational"
+  | "degraded_performance"
+  | "partial_outage"
+  | "major_outage"
+  | "maintenance"
+  | "unknown"
+  | string;
 
 export type RuntimeConfig = {
   api?: {
@@ -61,6 +69,46 @@ export type LocalModelHealth = {
   supported_days?: number;
   supported_meals_per_day?: number;
   error?: string;
+};
+
+export type PublicStatusResponse = {
+  schema_version: string;
+  generated_at: string;
+  overall: StatusSummary;
+  components: StatusComponent[];
+  recent_incidents: StatusIncident[];
+  links?: StatusLinks;
+};
+
+export type StatusSummary = {
+  state: PublicStatusState;
+  message: string;
+};
+
+export type StatusComponent = {
+  id: string;
+  name: string;
+  state: PublicStatusState;
+  message?: string;
+};
+
+export type StatusIncident = {
+  id: string;
+  title: string;
+  state: PublicStatusState;
+  started_at: string;
+  resolved_at?: string;
+  updates?: StatusUpdate[];
+};
+
+export type StatusUpdate = {
+  state: PublicStatusState;
+  message: string;
+  created_at: string;
+};
+
+export type StatusLinks = {
+  sample_report?: string;
 };
 
 export type DecisionCheck = {

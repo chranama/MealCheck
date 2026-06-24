@@ -41,6 +41,15 @@ const (
 	InputModeLocalModel        = "local_model"
 )
 
+const (
+	StatusStateOperational   = "operational"
+	StatusStateDegraded      = "degraded_performance"
+	StatusStatePartialOutage = "partial_outage"
+	StatusStateMajorOutage   = "major_outage"
+	StatusStateMaintenance   = "maintenance"
+	StatusStateUnknown       = "unknown"
+)
+
 type Config struct {
 	Root                      string
 	DataDir                   string
@@ -190,6 +199,46 @@ type RedactedProviderConfig struct {
 	BaseURL string `json:"base_url,omitempty"`
 	Model   string `json:"model,omitempty"`
 	APIKey  string `json:"api_key"`
+}
+
+type PublicStatusResponse struct {
+	SchemaVersion   string            `json:"schema_version"`
+	GeneratedAt     time.Time         `json:"generated_at"`
+	Overall         StatusSummary     `json:"overall"`
+	Components      []StatusComponent `json:"components"`
+	RecentIncidents []StatusIncident  `json:"recent_incidents"`
+	Links           StatusLinks       `json:"links,omitempty"`
+}
+
+type StatusSummary struct {
+	State   string `json:"state"`
+	Message string `json:"message"`
+}
+
+type StatusComponent struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	State   string `json:"state"`
+	Message string `json:"message,omitempty"`
+}
+
+type StatusIncident struct {
+	ID         string         `json:"id"`
+	Title      string         `json:"title"`
+	State      string         `json:"state"`
+	StartedAt  time.Time      `json:"started_at"`
+	ResolvedAt *time.Time     `json:"resolved_at,omitempty"`
+	Updates    []StatusUpdate `json:"updates,omitempty"`
+}
+
+type StatusUpdate struct {
+	State     string    `json:"state"`
+	Message   string    `json:"message"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type StatusLinks struct {
+	SampleReport string `json:"sample_report,omitempty"`
 }
 
 type PendingRunInput struct {

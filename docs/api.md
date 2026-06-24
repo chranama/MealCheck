@@ -80,6 +80,7 @@ available.
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/api/health` | Service health, queue, store, and retention snapshot. |
+| `GET` | `/api/status` | Public user-visible service status summary. |
 | `GET` | `/api/demo-runs` | List static public demo reports. |
 | `GET` | `/api/demo-runs/{demo_id}` | Read static demo metadata and decision summary. |
 | `GET` | `/api/demo-runs/{demo_id}/report` | Fetch a static demo `report.json`. |
@@ -93,6 +94,72 @@ available.
 | `GET` | `/api/runs/{run_id}/artifacts` | List completed live run artifacts. |
 | `GET` | `/api/runs/{run_id}/artifacts/{path}` | Fetch one completed live run artifact. |
 | `DELETE` | `/api/runs/{run_id}` | Delete live run metadata, pending input, and artifacts. |
+
+## Public Status
+
+`GET /api/status` is the public status-page contract. It summarizes
+user-visible capabilities and intentionally does not expose raw diagnostics
+such as queue depth, store implementation, model filename, hostnames, paths,
+policy limits, logs, or recent user input.
+
+`GET /api/health` remains the lower-level runtime diagnostic endpoint for
+operators and frontend bootstrapping. Use `/api/status` when the caller needs to
+answer whether MealCheck is usable right now.
+
+Status states:
+
+| State | Meaning |
+|---|---|
+| `operational` | The capability is available. |
+| `degraded_performance` | The capability is available but may be slower or temporarily capacity-limited. |
+| `partial_outage` | Some user workflows that depend on the capability may fail. |
+| `major_outage` | The capability is unavailable. |
+| `maintenance` | The capability is intentionally unavailable for maintenance. |
+| `unknown` | The service cannot determine the capability status. |
+
+Example response:
+
+```json
+{
+  "schema_version": "0.1",
+  "generated_at": "2026-06-24T12:42:00Z",
+  "overall": {
+    "state": "operational",
+    "message": "All systems operational"
+  },
+  "components": [
+    {
+      "id": "meal_check_submission",
+      "name": "Meal Check Submission",
+      "state": "operational"
+    },
+    {
+      "id": "ai_meal_normalization",
+      "name": "AI Meal Normalization",
+      "state": "operational"
+    },
+    {
+      "id": "nutrition_allergen_checking",
+      "name": "Nutrition & Allergen Checking",
+      "state": "operational"
+    },
+    {
+      "id": "report_generation",
+      "name": "Report Generation",
+      "state": "operational"
+    },
+    {
+      "id": "sample_report",
+      "name": "Sample Report",
+      "state": "operational"
+    }
+  ],
+  "recent_incidents": [],
+  "links": {
+    "sample_report": "/api/demo-runs/seeded-3-day-peanut-allergy/report"
+  }
+}
+```
 
 ## Qualify Candidate Meal Plan Text
 

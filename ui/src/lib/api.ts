@@ -3,6 +3,7 @@ import type {
   CreateRunResponse,
   HealthResponse,
   MealPlanQualificationResult,
+  PublicStatusResponse,
   QualifyMealPlanPayload,
   QualifyMealPlanResponse,
   ReportArtifacts,
@@ -139,6 +140,10 @@ export async function fetchHealth(base: string): Promise<HealthResponse> {
   } finally {
     window.clearTimeout(timeout);
   }
+}
+
+export async function fetchPublicStatus(base: string): Promise<PublicStatusResponse> {
+  return requestJSON<PublicStatusResponse>(base, "/api/status");
 }
 
 export async function createRun(base: string, inviteToken: string, payload: RunPayload): Promise<CreateRunResponse> {

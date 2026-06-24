@@ -4,6 +4,7 @@ import {
   cleanApiBase,
   createRun,
   fetchHealth,
+  fetchPublicStatus,
   joinUrl,
   qualifyMealPlan,
   qualificationFromApiError,
@@ -179,6 +180,28 @@ describe("api", () => {
       status: "ok",
       access_mode: "public_byok",
       public_openai_compatible: false,
+    });
+  });
+
+  it("loads public status metadata", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({
+        schema_version: "0.1",
+        generated_at: "2026-06-24T12:42:00Z",
+        overall: { state: "operational", message: "All systems operational" },
+        components: [
+          { id: "meal_check_submission", name: "Meal Check Submission", state: "operational" },
+        ],
+        recent_incidents: [],
+      }),
+      { status: 200 },
+    )));
+
+    await expect(fetchPublicStatus("http://api")).resolves.toMatchObject({
+      overall: { state: "operational" },
+      components: [
+        { id: "meal_check_submission", state: "operational" },
+      ],
     });
   });
 

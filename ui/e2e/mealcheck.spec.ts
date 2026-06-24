@@ -87,6 +87,26 @@ async function mockMealCheckApi(page: Page) {
   await page.route("**/mock-api/api/health", async (route) => {
     await route.fulfill({ json: { status: "ok", access_mode: "public_byok", public_openai_compatible: false } });
   });
+  await page.route("**/mock-api/api/status", async (route) => {
+    await route.fulfill({
+      json: {
+        schema_version: "0.1",
+        generated_at: "2026-06-24T12:42:00Z",
+        overall: { state: "operational", message: "All systems operational" },
+        components: [
+          { id: "meal_check_submission", name: "Meal Check Submission", state: "operational" },
+          { id: "ai_meal_normalization", name: "AI Meal Normalization", state: "operational" },
+          { id: "nutrition_allergen_checking", name: "Nutrition & Allergen Checking", state: "operational" },
+          { id: "report_generation", name: "Report Generation", state: "operational" },
+          { id: "sample_report", name: "Sample Report", state: "operational" },
+        ],
+        recent_incidents: [],
+        links: {
+          sample_report: "/api/demo-runs/seeded-3-day-peanut-allergy/report",
+        },
+      },
+    });
+  });
   await page.route("**/mock-api/api/runs", async (route) => {
     expect(route.request().method()).toBe("POST");
     expect(route.request().headers()["x-mealcheck-invite-token"]).toBeUndefined();
@@ -175,6 +195,14 @@ async function mockMealCheckApi(page: Page) {
   return { payloads, deletedRunIDs };
 }
 
+async function expectSharedFooter(page: Page) {
+  const footer = page.getByRole("contentinfo");
+  await expect(footer.getByRole("link", { name: "MealCheck" })).toHaveAttribute("href", "/");
+  await expect(footer.getByRole("link", { name: "Status" })).toHaveAttribute("href", "/status.html");
+  await expect(footer.getByRole("link", { name: "About" })).toHaveAttribute("href", "/about.html");
+  await expect(footer.getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/chranama/MealCheck");
+}
+
 test("loads the live run homepage without seeded demo navigation", async ({ page }) => {
   await page.goto("/");
 
@@ -196,6 +224,34 @@ test("loads the live run homepage without seeded demo navigation", async ({ page
   await expect(page.getByText("Advanced constraints")).toBeHidden();
   await expect(page.getByRole("button", { name: /Three-day peanut allergy check/ })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Nutrition" })).toHaveCount(0);
+  await expect(page.getByText("Ready")).toHaveCount(0);
+  await expect(page.getByText("Not started")).toHaveCount(0);
+  await expectSharedFooter(page);
+});
+
+test("loads the public status page with summarized component states", async ({ page }) => {
+  await mockMealCheckApi(page);
+  await page.goto("/status.html?api=/mock-api");
+
+  await expect(page.getByRole("heading", { level: 1, name: "MealCheck Status" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "All systems operational" })).toBeVisible();
+  await expect(page.getByText("Website")).toBeVisible();
+  await expect(page.getByText("Meal Check Submission")).toBeVisible();
+  await expect(page.getByText("AI Meal Normalization")).toBeVisible();
+  await expect(page.getByText("Nutrition & Allergen Checking")).toBeVisible();
+  await expect(page.getByText("Report Generation")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sample Report" })).toBeVisible();
+  await expect(page.getByText("No incidents reported in the past 7 days.")).toBeVisible();
+  await expect(page.getByText("queue_size")).toHaveCount(0);
+  await expect(page.getByText("local_model")).toHaveCount(0);
+  await expectSharedFooter(page);
+});
+
+test("loads the consumer about page with shared footer navigation", async ({ page }) => {
+  await page.goto("/about.html");
+
+  await expect(page.getByRole("heading", { level: 1, name: "A second check for meal plans." })).toBeVisible();
+  await expectSharedFooter(page);
 });
 
 test("qualifies mocked candidate text", async ({ page }) => {

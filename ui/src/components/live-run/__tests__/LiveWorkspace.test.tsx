@@ -66,7 +66,7 @@ describe("LiveWorkspace", () => {
 
     expect(screen.getByText("Meal Plan Text")).toBeInTheDocument();
     expect(screen.getByLabelText("Meal plan text")).toBeVisible();
-    expect(screen.getByText("Local model ready")).toBeInTheDocument();
+    expect(screen.getByText("Local model available")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "CLI/API and custom endpoint usage" })).toHaveAttribute(
       "href",
       "https://github.com/chranama/MealCheck",

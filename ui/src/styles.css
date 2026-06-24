@@ -186,6 +186,130 @@ h1 {
   padding: 24px clamp(18px, 4vw, 44px) 44px;
 }
 
+.status-topbar {
+  align-items: center;
+}
+
+.status-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: flex-end;
+  font-weight: 800;
+}
+
+.status-nav a {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.status-nav a:hover,
+.status-nav a:focus-visible {
+  color: var(--brand-strong);
+  text-decoration: underline;
+}
+
+.status-layout {
+  display: grid;
+  gap: 18px;
+  width: min(980px, calc(100% - 36px));
+  margin: 0 auto;
+  padding: 28px 0 48px;
+}
+
+.status-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
+}
+
+.status-hero h2 {
+  margin: 6px 0 0;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1.12;
+}
+
+.status-hero--pass {
+  border-color: #a8d3c4;
+}
+
+.status-hero--warn {
+  border-color: #dcc47a;
+}
+
+.status-hero--block {
+  border-color: #e0a79d;
+}
+
+.status-hero--info {
+  border-color: var(--line-strong);
+}
+
+.status-updated,
+.status-empty,
+.status-supporting-link,
+.status-component-row p,
+.status-incident-row p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.status-panel {
+  box-shadow: none;
+}
+
+.status-component-list,
+.status-incident-list {
+  display: grid;
+  gap: 10px;
+}
+
+.status-component-row,
+.status-incident-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.status-component-row h3,
+.status-incident-row h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.status-component-row .status-pill,
+.status-incident-row .status-pill {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.status-supporting-link a {
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.status-supporting-link a:hover,
+.status-supporting-link a:focus-visible {
+  text-decoration: underline;
+}
+
 .summary-band {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
@@ -1402,6 +1526,43 @@ tr:last-child td {
 
   .workspace {
     padding: 14px 14px 44px;
+  }
+
+  .status-page {
+    padding-bottom: 0;
+  }
+
+  .status-nav {
+    justify-content: flex-start;
+  }
+
+  .status-layout {
+    width: calc(100% - 28px);
+    padding: 14px 0 32px;
+  }
+
+  .status-hero,
+  .status-component-row,
+  .status-incident-row {
+    grid-template-columns: 1fr;
+  }
+
+  .status-hero {
+    align-items: stretch;
+    padding: 18px;
+  }
+
+  .status-hero h2 {
+    font-size: 1.5rem;
+  }
+
+  .status-hero .action-button {
+    width: 100%;
+  }
+
+  .status-component-row .status-pill,
+  .status-incident-row .status-pill {
+    justify-self: start;
   }
 
   .summary-band {

@@ -14,7 +14,7 @@ import { configuredApiBase } from "./lib/runtime_config";
 import { LiveWorkspace } from "./components/live-run/LiveWorkspace";
 import { ReportSurface } from "./components/report/ReportSurface";
 import { BrandMark } from "./components/brand/BrandMark";
-import { LiveSummary } from "./components/shell/Shell";
+import { LiveSummary, SiteFooter } from "./components/shell/Shell";
 import type {
   BackendState,
   LiveState,
@@ -269,7 +269,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
 
       <main className="main-layout">
         <section className="workspace" aria-live="polite">
-          <LiveSummary apiBase={apiBase} backend={backend} live={live} />
+          <LiveSummary live={live} />
 
           <LiveWorkspace
             apiBase={apiBase}
@@ -294,14 +294,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
         </section>
       </main>
 
-      <footer className="site-footer">
-        <a href="/about.html">
-          About MealCheck
-        </a>
-        <a href="https://github.com/chranama/MealCheck" target="_blank" rel="noreferrer">
-          View MealCheck on GitHub
-        </a>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

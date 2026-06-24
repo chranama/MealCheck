@@ -217,6 +217,7 @@ Smoke test:
 
 ```bash
 curl http://127.0.0.1:8080/api/health
+curl http://127.0.0.1:8080/api/status
 curl http://127.0.0.1:8080/api/demo-runs
 curl -X POST http://127.0.0.1:8080/api/runs \
   -H 'Content-Type: application/json' \
@@ -225,6 +226,11 @@ curl -X POST http://127.0.0.1:8080/api/runs \
 
 The queued seeded run is expected to complete with a `block` decision because
 the fixture intentionally contains blocking findings.
+
+`/api/status` is the public status-page contract. It should report user-visible
+capabilities such as meal-check submission, AI meal normalization, checking,
+report generation, and the sample report. Use `/api/health` for lower-level
+operator diagnostics and `/api/status` for public operational status.
 
 Public BYOK generation uses the same run endpoint. For private deployments,
 switch to invite-required mode and create per-user access codes:
@@ -314,6 +320,12 @@ npm run dev
 ```
 
 Then open `http://localhost:4173`.
+
+The public status page is available at:
+
+```text
+http://localhost:4173/status.html?api=http://127.0.0.1:8080
+```
 
 ## Milestone 8 Deployment Package
 
