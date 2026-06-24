@@ -2860,3 +2860,64 @@ Verification:
 - `cd ui && npm run build` passes.
 - `cd ui && npm run test:e2e` passes.
 - `cd ui && npm run test:e2e:local` passes.
+
+## Milestone 37: Frontend Quality Pass
+
+Status: Implemented on 2026-06-24.
+
+Purpose:
+
+Preserve the core MealCheck user workflow across common frontend quality risks:
+mobile layout, keyboard recovery, accessible destructive-action handling, and
+non-essential operational UI that can distract from the primary task.
+
+Deliver:
+
+- remove the local-model status/info box from the main workflow
+- keep local-model readiness surfaced through the action strip and disabled
+  create action rather than a separate panel
+- mobile browser coverage for the primary meal-plan qualification flow
+- browser assertions that the fixed mobile action strip does not cause
+  horizontal overflow or clipped action labels
+- keyboard-accessible delete confirmation with focus on the safe action and
+  Escape-to-cancel support
+- unit coverage for local-hosted workspace behavior and keyboard deletion
+  recovery
+
+Implemented:
+
+1. Removed the main-page `LocalModelPanel` and its dedicated styles.
+2. Kept local-model unavailability private to the action strip feedback and
+   disabled create button.
+3. Added focus management and Escape cancellation to the delete confirmation
+   dialog.
+4. Adjusted mobile action-strip button wrapping so long labels fit narrow
+   screens.
+5. Added mocked Playwright coverage for the mobile primary workflow and action
+   overflow.
+6. Added mocked Playwright coverage for keyboard cancellation of report
+   deletion.
+7. Updated unit coverage for the simplified local-model workspace and delete
+   dialog keyboard path.
+
+Acceptance:
+
+- hosted local-model mode no longer renders a separate availability box or
+  repository link in the main workflow.
+- unavailable local-model mode still disables report creation and explains the
+  blocking state in the action strip.
+- mobile users can complete the primary qualification workflow without
+  horizontal page overflow or clipped primary action labels.
+- keyboard users can open the delete confirmation, land on Cancel, dismiss with
+  Escape, or activate Cancel without deleting the report.
+- existing desktop mocked workflows, status page checks, and local-stack e2e
+  checks continue to pass.
+
+Verification:
+
+- `git diff --check` passes.
+- `cd ui && npm run typecheck` passes.
+- `cd ui && npm test` passes.
+- `cd ui && npm run build` passes.
+- `cd ui && npm run test:e2e` passes.
+- `cd ui && npm run test:e2e:local` passes.

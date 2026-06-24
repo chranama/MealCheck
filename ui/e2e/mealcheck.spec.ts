@@ -218,6 +218,22 @@ async function expectSharedFooter(page: Page) {
   await expect(footer.getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/chranama/MealCheck");
 }
 
+async function expectNoPrimaryActionOverflow(page: Page) {
+  const pageWidth = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  expect(pageWidth.scrollWidth, JSON.stringify(pageWidth)).toBeLessThanOrEqual(pageWidth.clientWidth + 1);
+
+  const overflowingButtons = await page.locator(".action-strip-actions .action-button").evaluateAll((buttons) => (
+    buttons
+      .map((button) => button as HTMLElement)
+      .filter((button) => button.scrollWidth > button.clientWidth + 1)
+      .map((button) => button.textContent?.trim() || "")
+  ));
+  expect(overflowingButtons).toEqual([]);
+}
+
 test("loads the live run homepage without seeded demo navigation", async ({ page }) => {
   await page.goto("/");
 
@@ -242,6 +258,24 @@ test("loads the live run homepage without seeded demo navigation", async ({ page
   await expect(page.getByText("Ready")).toHaveCount(0);
   await expect(page.getByText("Not started")).toHaveCount(0);
   await expectSharedFooter(page);
+});
+
+test("keeps the primary workflow usable on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const api = await mockMealCheckApi(page);
+  await page.goto("/?api=/mock-api");
+
+  await expect(page.getByRole("heading", { level: 1, name: "MealCheck" })).toBeVisible();
+  await expect(page.getByLabel("Meal plan text")).toBeVisible();
+  await expectNoPrimaryActionOverflow(page);
+
+  await page.getByRole("button", { name: "Check Eligibility" }).click();
+
+  await expect(page.getByText("Eligible For Verification")).toBeVisible();
+  await expectNoPrimaryActionOverflow(page);
+  expect(api.payloads[0]).toMatchObject({
+    text: expect.stringContaining("Day 1 breakfast"),
+  });
 });
 
 test("loads the public status page with summarized component states", async ({ page }) => {
@@ -353,6 +387,36 @@ test("creates a mocked BYOK profile-generation run without persisting provider k
   await expect(page.getByLabel("API key")).toHaveValue("");
   await expect(page.getByText("secret-profile-key")).toHaveCount(0);
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain("secret-profile-key");
+});
+
+test("lets keyboard users cancel report deletion", async ({ page }) => {
+  const api = await mockMealCheckApi(page);
+  await page.goto("/?api=/mock-api");
+
+  await page.getByRole("button", { name: "Targets" }).click();
+  await page.getByLabel("Model").fill("gpt-test");
+  await page.getByLabel("API key").fill("secret-profile-key");
+  await page.getByRole("button", { name: "Create Report" }).click();
+  await expect(page.getByText("run-1").first()).toBeVisible();
+
+  const deleteButton = page.locator("#delete-run-button");
+  await deleteButton.focus();
+  await page.keyboard.press("Enter");
+
+  const dialog = page.getByRole("dialog", { name: "Delete report?" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Cancel" })).toBeFocused();
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  expect(api.deletedRunIDs).toEqual([]);
+
+  await deleteButton.focus();
+  await page.keyboard.press("Enter");
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(dialog).toHaveCount(0);
+  expect(api.deletedRunIDs).toEqual([]);
 });
 
 test("creates a mocked BYOK prompt-generation run", async ({ page }) => {

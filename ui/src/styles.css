@@ -945,15 +945,6 @@ a:focus-visible {
   font-weight: 800;
 }
 
-.local-model-panel {
-  margin: 0 0 24px;
-}
-
-.local-model-panel a {
-  color: inherit;
-  font-weight: 900;
-}
-
 .notice--info {
   border-color: var(--line-strong);
   background: var(--info-bg);
@@ -1693,7 +1684,9 @@ tr:last-child td {
     flex: 1 1 0;
     min-height: 42px;
     min-width: 0;
-    white-space: nowrap;
+    padding-inline: 8px;
+    text-align: center;
+    white-space: normal;
   }
 
   .action-strip-state {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import {
   DEFAULT_CANDIDATE_TEXT,
@@ -183,9 +183,7 @@ export function LiveWorkspace({
             />
           </fieldset>
 
-          {isLocalModelHosted ? (
-            <LocalModelPanel backend={backend} />
-          ) : (
+          {isLocalModelHosted ? null : (
             <fieldset>
               <legend>Model Provider</legend>
               <ProviderForm
@@ -427,21 +425,6 @@ function CandidateTextForm({
   );
 }
 
-function LocalModelPanel({
-  backend,
-}: {
-  backend: BackendState;
-}) {
-  const ready = Boolean(backend.localModel?.enabled && backend.localModel?.ready);
-  const tone = ready ? "pass" : "warn";
-  return (
-    <section className={`notice notice--${tone} local-model-panel`} aria-label="Local model status">
-      <strong>{ready ? "Local model available" : "Local model unavailable"}</strong>
-      <p><a href="https://github.com/chranama/MealCheck">CLI/API and custom endpoint usage</a></p>
-    </section>
-  );
-}
-
 function ModeButton({ mode, activeMode, setMode, label }: { mode: GenerationMode; activeMode: GenerationMode; setMode: (mode: GenerationMode) => void; label: string }) {
   return (
     <button className={`mode-button${activeMode === mode ? " is-active" : ""}`} data-mode={mode} type="button" onClick={() => setMode(mode)}>
@@ -621,13 +604,29 @@ function ConfirmDeleteDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    cancelButtonRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCancel();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel]);
+
   return (
     <div className="dialog-backdrop" role="presentation">
-      <section aria-labelledby="delete-dialog-title" aria-modal="true" className="confirm-dialog" role="dialog">
+      <section aria-describedby="delete-dialog-description" aria-labelledby="delete-dialog-title" aria-modal="true" className="confirm-dialog" role="dialog">
         <h2 id="delete-dialog-title">Delete report?</h2>
-        <p>This removes the report and its files for {runID}.</p>
+        <p id="delete-dialog-description">This removes the report and its files for {runID}.</p>
         <div className="form-actions">
-          <button className="action-button action-button--ghost" type="button" onClick={onCancel}>Cancel</button>
+          <button ref={cancelButtonRef} className="action-button action-button--ghost" type="button" onClick={onCancel}>Cancel</button>
           <button className="action-button action-button--danger" type="button" onClick={onConfirm}>Delete Report</button>
         </div>
       </section>

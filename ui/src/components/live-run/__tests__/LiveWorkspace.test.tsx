@@ -66,11 +66,9 @@ describe("LiveWorkspace", () => {
 
     expect(screen.getByText("Meal Plan Text")).toBeInTheDocument();
     expect(screen.getByLabelText("Meal plan text")).toBeVisible();
-    expect(screen.getByText("Local model available")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "CLI/API and custom endpoint usage" })).toHaveAttribute(
-      "href",
-      "https://github.com/chranama/MealCheck",
-    );
+    expect(screen.queryByText("Local model available")).not.toBeInTheDocument();
+    expect(screen.queryByText("Local model unavailable")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "CLI/API and custom endpoint usage" })).not.toBeInTheDocument();
     expect(screen.queryByText("Qwen3-0.6B-Q4_K_M.gguf")).not.toBeInTheDocument();
     expect(screen.queryByText("Input")).not.toBeInTheDocument();
     expect(screen.queryByText("Timeout")).not.toBeInTheDocument();
@@ -117,8 +115,9 @@ describe("LiveWorkspace", () => {
       },
     });
 
-    expect(screen.getByText("Local model unavailable")).toBeInTheDocument();
+    expect(screen.queryByText("Local model unavailable")).not.toBeInTheDocument();
     expect(screen.queryByText("local model endpoint is not reachable")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Local model is unavailable right now.").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Create Report" })).toBeDisabled();
   });
 
@@ -268,7 +267,13 @@ describe("LiveWorkspace", () => {
 
     await user.click(screen.getByRole("button", { name: "Delete Report" }));
     expect(screen.getByRole("dialog", { name: "Delete report?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
 
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Delete report?" })).not.toBeInTheDocument();
+    expect(onDeleteRun).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Delete Report" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onDeleteRun).not.toHaveBeenCalled();
 
