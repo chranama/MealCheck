@@ -83,6 +83,35 @@ func TestDecodeLocalLlamaCompactPlanAcceptsV2TupleItems(t *testing.T) {
 	}
 }
 
+func TestDecodeLocalLlamaCompactPlanCleansDuplicateQuantityFromFood(t *testing.T) {
+	plan, err := DecodeLocalLlamaCompactPlan(`{
+		"i":[
+			[1,1,"b","1 cup cooked oatmeal",1,"cup"],
+			[2,1,"b","1/2 cup blueberries",0.5,"cup"],
+			[3,1,"l","1 1/2 cup brown rice",1.5,"cup"],
+			[4,1,"d","1 tbsp olive oil",1,"tsp"]
+		]
+	}`, "duplicate-quantity-test")
+	if err != nil {
+		t.Fatalf("DecodeLocalLlamaCompactPlan error: %v", err)
+	}
+	breakfast := plan.Days[0].Meals[0].Items
+	if breakfast[0].Food != "cooked oatmeal" || breakfast[0].Unit != "cup" {
+		t.Fatalf("first item = %+v, want cleaned cooked oatmeal cup", breakfast[0])
+	}
+	if breakfast[1].Food != "blueberries" || breakfast[1].Unit != "cup" {
+		t.Fatalf("second item = %+v, want cleaned blueberries cup", breakfast[1])
+	}
+	lunch := plan.Days[0].Meals[1].Items
+	if lunch[0].Food != "brown rice" || lunch[0].Unit != "cup" {
+		t.Fatalf("third item = %+v, want cleaned brown rice cup", lunch[0])
+	}
+	dinner := plan.Days[0].Meals[2].Items
+	if dinner[0].Food != "olive oil" || dinner[0].Unit != "tbsp" {
+		t.Fatalf("fourth item = %+v, want cleaned olive oil tbsp", dinner[0])
+	}
+}
+
 func TestDecodeLocalLlamaCompactPlanAcceptsLegacyObjectItems(t *testing.T) {
 	plan, err := DecodeLocalLlamaCompactPlan(`{
 		"breakfast":[{"f":"cooked oatmeal","q":1,"u":"cup"}],

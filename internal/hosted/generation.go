@@ -492,6 +492,7 @@ func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, err
 		"When meal_code is one of b, m, l, a, d, s, or e, use that provided meal_code. When meal_code is infer, infer the closest supported meal code from the source context.",
 		"Do not omit, merge, summarize, or invent items.",
 		"Parse only food, numeric quantity, and unit from each source_text.",
+		"The food value must be the food name only; do not include the leading quantity or unit in the food value.",
 		"Do not include other keys or text.",
 		"",
 		localLlamaSourceItemsPromptBlock(text),
