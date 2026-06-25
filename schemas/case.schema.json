@@ -102,8 +102,6 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "days",
-        "meals_per_day",
         "allergies",
         "excluded_foods",
         "max_sodium_mg_per_day",
@@ -115,12 +113,12 @@
       "properties": {
         "days": {
           "type": "integer",
-          "minimum": 1,
+          "minimum": 0,
           "maximum": 7
         },
         "meals_per_day": {
           "type": "integer",
-          "minimum": 1,
+          "minimum": 0,
           "maximum": 6
         },
         "allergies": {

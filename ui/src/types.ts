@@ -302,8 +302,8 @@ export type NutritionTargets = {
 };
 
 export type VerificationConstraints = {
-  days: number;
-  meals_per_day: number;
+  days?: number;
+  meals_per_day?: number;
   allergies: string[];
   excluded_foods: string[];
   max_sodium_mg_per_day: number;

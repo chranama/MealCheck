@@ -37,14 +37,22 @@ func mealPlanAliasRules() []string {
 }
 
 func mealPlanShapeInstructions(constraints checker.VerificationConstraints) map[string]any {
+	daysInstruction := "array with one or more day object(s); preserve or infer day numbers from the prompt or source text"
+	if constraints.Days > 0 {
+		daysInstruction = fmt.Sprintf("array with exactly %d day object(s); day numbers must run from 1 through %d", constraints.Days, constraints.Days)
+	}
+	mealsInstruction := "array with one or more meal object(s) per day; preserve or infer meal labels from the prompt or source text"
+	if constraints.MealsPerDay > 0 {
+		mealsInstruction = fmt.Sprintf("array with exactly %d meal object(s) per day", constraints.MealsPerDay)
+	}
 	return map[string]any{
 		"schema_version": "0.1",
 		"plan_id":        "provider-generated-plan",
 		"description":    "brief description",
-		"days":           fmt.Sprintf("array with exactly %d day object(s); day numbers must run from 1 through %d", constraints.Days, constraints.Days),
+		"days":           daysInstruction,
 		"day": map[string]any{
 			"day":   "integer day number",
-			"meals": fmt.Sprintf("array with exactly %d meal object(s) per day", constraints.MealsPerDay),
+			"meals": mealsInstruction,
 		},
 		"meal": map[string]any{
 			"name":  "meal name, such as breakfast, lunch, dinner, or snack",

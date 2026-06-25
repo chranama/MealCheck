@@ -183,7 +183,7 @@ const (
 )
 
 func prepareLocalModelExtraction(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, events []NormalizationEvent) (checker.Plan, string, []NormalizationEvent, error) {
-	if sections, ok := localModelDaySections(input.CandidateText, input.Settings.VerificationConstraints.Days); ok && len(sections) > 1 {
+	if sections, ok := localModelDaySections(input.CandidateText); ok && len(sections) > 1 {
 		return prepareDecomposedLocalModelExtraction(ctx, config, provider, run, input, sections, events)
 	}
 	output, plan, stage, err := requestLocalModelExtraction(ctx, provider, input.Provider, input, "local-model-"+run.ID)
@@ -208,6 +208,7 @@ func prepareDecomposedLocalModelExtraction(ctx context.Context, config Config, p
 		sectionInput := input
 		sectionInput.CandidateText = section.Text
 		sectionInput.Settings.VerificationConstraints.Days = 1
+		sectionInput.Settings.VerificationConstraints.MealsPerDay = 0
 		output, plan, stage, err := requestLocalModelExtraction(ctx, provider, input.Provider, sectionInput, fmt.Sprintf("local-model-%s-day-%d", run.ID, section.Day))
 		outputs = append(outputs, localModelSegmentOutput{Day: section.Day, Output: output})
 		combinedOutput := formatLocalModelSegmentOutputs(outputs, true)
@@ -432,26 +433,30 @@ func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 		return nil, fmt.Errorf("generation_prompt is required for prompt_generation")
 	}
 	constraints := input.Settings.VerificationConstraints
-	system := strings.Join([]string{
+	systemParts := []string{
 		"You generate normalized MealCheck meal-plan JSON only.",
 		"Return one JSON object matching schema_version 0.1.",
 		mealPlanContractPromptBlock(),
-		fmt.Sprintf("Return exactly %d day object(s), and every day must contain exactly %d meal object(s).", constraints.Days, constraints.MealsPerDay),
-		"Do not copy the shape instructions as the answer; generate a complete meal plan that satisfies the requested counts.",
+		"Do not copy the shape instructions as the answer; generate a complete meal plan that satisfies the requested structure.",
 		"Do not include nutrient totals, calories, or compliance judgments.",
 		"Every food item must include either quantity plus unit, or quantity_text with resolution_status unresolved and unresolved_reason.",
 		"Allowed units are g, oz, cup, tbsp, tsp, and serving.",
 		"Do not override declared allergies, excluded foods, or constraints.",
 		"Do not provide medical claims.",
-	}, " ")
+	}
+	if instruction := generationCountInstruction(constraints); instruction != "" {
+		systemParts = append(systemParts[:3], append([]string{instruction}, systemParts[3:]...)...)
+	} else {
+		systemParts = append(systemParts[:3], append([]string{"Return one or more day objects with one or more meal objects per day, using the day and meal structure requested by the user prompt or source text."}, systemParts[3:]...)...)
+	}
+	system := strings.Join(systemParts, " ")
 	payload := map[string]any{
-		"settings": input.Settings,
-		"required_counts": map[string]int{
-			"days":          constraints.Days,
-			"meals_per_day": constraints.MealsPerDay,
-		},
+		"settings":       input.Settings,
 		"required_shape": mealPlanShapeInstructions(constraints),
 		"alias_rules":    mealPlanAliasRules(),
+	}
+	if counts := explicitCountPayload(constraints); len(counts) > 0 {
+		payload["required_counts"] = counts
 	}
 	if input.Mode == InputModePromptGeneration {
 		payload["user_prompt"] = input.GenerationPrompt
@@ -477,26 +482,58 @@ func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, err
 		"When the user states the exact allowed meal codes, use only those meal codes.",
 		"Allowed units: g, oz, cup, tbsp, tsp, serving.",
 	}, " ")
-	user := strings.Join([]string{
+	userParts := []string{
 		"Extract this meal plan into compact row JSON.",
 		"Use only the numbered source items below.",
-		fmt.Sprintf("Use day numbers 1..%d.", constraints.Days),
-		fmt.Sprintf("Each day must contain exactly %d distinct meal code(s).", constraints.MealsPerDay),
-		localLlamaMealCodeInstruction(constraints.MealsPerDay),
 		localLlamaItemCountInstruction(text),
 		"Convert every numbered source item into exactly one [source_item_id, day, meal_code, food, quantity, unit] tuple.",
 		"Copy each source_item_id exactly once in ascending order; do not skip or duplicate source_item_id values.",
-		"Use the provided day and meal_code values for each numbered source item.",
+		"Use the provided day value for each numbered source item.",
+		"When meal_code is one of b, m, l, a, d, s, or e, use that provided meal_code. When meal_code is infer, infer the closest supported meal code from the source context.",
 		"Do not omit, merge, summarize, or invent items.",
 		"Parse only food, numeric quantity, and unit from each source_text.",
 		"Do not include other keys or text.",
 		"",
 		localLlamaSourceItemsPromptBlock(text),
-	}, "\n")
+	}
+	if constraints.Days > 0 {
+		userParts = append(userParts[:2], append([]string{fmt.Sprintf("Use day numbers 1..%d.", constraints.Days)}, userParts[2:]...)...)
+	}
+	if constraints.MealsPerDay > 0 {
+		userParts = append(userParts[:3], append([]string{
+			fmt.Sprintf("Each day must contain exactly %d distinct meal code(s).", constraints.MealsPerDay),
+			localLlamaMealCodeInstruction(constraints.MealsPerDay),
+		}, userParts[3:]...)...)
+	}
+	user := strings.Join(userParts, "\n")
 	return []ProviderMessage{
 		{Role: "system", Content: system},
 		{Role: "user", Content: user},
 	}, nil
+}
+
+func generationCountInstruction(constraints checker.VerificationConstraints) string {
+	switch {
+	case constraints.Days > 0 && constraints.MealsPerDay > 0:
+		return fmt.Sprintf("Return exactly %d day object(s), and every day must contain exactly %d meal object(s).", constraints.Days, constraints.MealsPerDay)
+	case constraints.Days > 0:
+		return fmt.Sprintf("Return exactly %d day object(s), with meal objects that match the user prompt or source text.", constraints.Days)
+	case constraints.MealsPerDay > 0:
+		return fmt.Sprintf("Return one or more day objects, and every day must contain exactly %d meal object(s).", constraints.MealsPerDay)
+	default:
+		return ""
+	}
+}
+
+func explicitCountPayload(constraints checker.VerificationConstraints) map[string]int {
+	counts := map[string]int{}
+	if constraints.Days > 0 {
+		counts["days"] = constraints.Days
+	}
+	if constraints.MealsPerDay > 0 {
+		counts["meals_per_day"] = constraints.MealsPerDay
+	}
+	return counts
 }
 
 func localLlamaMealCodeInstruction(mealsPerDay int) string {
@@ -537,10 +574,7 @@ func localLlamaExpectedResolvedItemCount(text string) int {
 	return len(localLlamaResolvedSourceItems(text))
 }
 
-func localModelDaySections(text string, expectedDays int) ([]localModelDaySection, bool) {
-	if expectedDays <= 1 {
-		return nil, false
-	}
+func localModelDaySections(text string) ([]localModelDaySection, bool) {
 	lines := strings.Split(strings.TrimSpace(text), "\n")
 	if len(lines) == 0 {
 		return nil, false
@@ -577,9 +611,6 @@ func localModelDaySections(text string, expectedDays int) ([]localModelDaySectio
 		day := localLlamaDayFromHeading(trimmed)
 		if day > 0 {
 			sawDayMarker = true
-			if day > expectedDays {
-				return nil, false
-			}
 			if currentDay == 0 {
 				currentDay = day
 			} else if day != currentDay {
@@ -598,15 +629,7 @@ func localModelDaySections(text string, expectedDays int) ([]localModelDaySectio
 	if !sawDayMarker || !flush() {
 		return nil, false
 	}
-	if len(sections) != expectedDays {
-		return nil, false
-	}
-	for day := 1; day <= expectedDays; day++ {
-		if !seen[day] {
-			return nil, false
-		}
-	}
-	return sections, true
+	return sections, len(sections) > 1
 }
 
 func localLlamaRewriteDayHeading(line string, day int) string {
@@ -847,16 +870,21 @@ func localLlamaMealCodesForCount(mealsPerDay int) []string {
 
 func repairMessages(input PendingRunInput, original string, decodeErr error) []ProviderMessage {
 	constraints := input.Settings.VerificationConstraints
-	system := strings.Join([]string{
+	systemParts := []string{
 		"Repair MealCheck meal-plan JSON syntax or minor schema shape only.",
 		mealPlanContractPromptBlock(),
-		fmt.Sprintf("The repaired output must contain exactly %d day object(s), and every day must contain exactly %d meal object(s).", constraints.Days, constraints.MealsPerDay),
 		"Do not invent nutrition totals or compliance judgments.",
-		"If day or meal count is wrong, add or remove meal objects while preserving declared allergies, excluded foods, constraints, and any valid existing foods.",
 		"If a quantity is vague or missing, preserve it as quantity_text with resolution_status unresolved and unresolved_reason vague_quantity.",
 		"Remove invalid alias fields after mapping them to allowed MealCheck fields.",
 		"Return only one JSON object.",
-	}, " ")
+	}
+	if instruction := generationCountInstruction(constraints); instruction != "" {
+		systemParts = append(systemParts[:2], append([]string{strings.Replace(instruction, "Return", "The repaired output must contain", 1)}, systemParts[2:]...)...)
+		systemParts = append(systemParts[:4], append([]string{"If day or meal count is wrong, add or remove meal objects while preserving declared allergies, excluded foods, constraints, and any valid existing foods."}, systemParts[4:]...)...)
+	} else {
+		systemParts = append(systemParts[:2], append([]string{"Preserve the day and meal structure from the original output; do not add or remove days or meals to satisfy a default count."}, systemParts[2:]...)...)
+	}
+	system := strings.Join(systemParts, " ")
 	payload := map[string]any{
 		"settings":        input.Settings,
 		"decode_error":    decodeErr.Error(),
@@ -939,25 +967,30 @@ func validatePlan(plan checker.Plan) error {
 }
 
 func validateGeneratedPlanAgainstConstraints(plan checker.Plan, constraints checker.VerificationConstraints) error {
-	if len(plan.Days) != constraints.Days {
+	if constraints.Days > 0 && len(plan.Days) != constraints.Days {
 		return fmt.Errorf("meal plan must include exactly %d day(s); got %d", constraints.Days, len(plan.Days))
 	}
 	seenDays := make(map[int]bool, len(plan.Days))
 	for _, day := range plan.Days {
-		if day.Day < 1 || day.Day > constraints.Days {
+		if day.Day < 1 {
+			return fmt.Errorf("meal plan day number %d is outside expected range 1..N", day.Day)
+		}
+		if constraints.Days > 0 && day.Day > constraints.Days {
 			return fmt.Errorf("meal plan day number %d is outside expected range 1..%d", day.Day, constraints.Days)
 		}
 		if seenDays[day.Day] {
 			return fmt.Errorf("meal plan includes duplicate day %d", day.Day)
 		}
 		seenDays[day.Day] = true
-		if len(day.Meals) != constraints.MealsPerDay {
+		if constraints.MealsPerDay > 0 && len(day.Meals) != constraints.MealsPerDay {
 			return fmt.Errorf("meal plan day %d must include exactly %d meal(s); got %d", day.Day, constraints.MealsPerDay, len(day.Meals))
 		}
 	}
-	for day := 1; day <= constraints.Days; day++ {
-		if !seenDays[day] {
-			return fmt.Errorf("meal plan is missing day %d", day)
+	if constraints.Days > 0 {
+		for day := 1; day <= constraints.Days; day++ {
+			if !seenDays[day] {
+				return fmt.Errorf("meal plan is missing day %d", day)
+			}
 		}
 	}
 	return nil

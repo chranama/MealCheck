@@ -38,11 +38,11 @@ func ValidateSettings(settings Settings) error {
 	if targets.ProteinTargetG <= 0 {
 		return fmt.Errorf("settings nutrition_targets protein_target_g must be positive")
 	}
-	if constraints.Days < 1 || constraints.Days > 7 {
-		return fmt.Errorf("settings verification_constraints days must be between 1 and 7")
+	if constraints.Days < 0 || constraints.Days > 7 {
+		return fmt.Errorf("settings verification_constraints days must be between 1 and 7 when provided")
 	}
-	if constraints.MealsPerDay < 1 || constraints.MealsPerDay > 6 {
-		return fmt.Errorf("settings verification_constraints meals_per_day must be between 1 and 6")
+	if constraints.MealsPerDay < 0 || constraints.MealsPerDay > 6 {
+		return fmt.Errorf("settings verification_constraints meals_per_day must be between 1 and 6 when provided")
 	}
 	if err := validateUnresolvedPolicy(constraints.UnresolvedPolicy); err != nil {
 		return err

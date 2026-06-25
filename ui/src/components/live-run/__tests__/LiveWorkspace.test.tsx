@@ -101,6 +101,8 @@ describe("LiveWorkspace", () => {
     const payload = calls[0][2];
     expect(payload).not.toHaveProperty("provider");
     expect(payload).not.toHaveProperty("repair_json");
+    expect((payload.settings as { verification_constraints: Record<string, unknown> }).verification_constraints).not.toHaveProperty("days");
+    expect((payload.settings as { verification_constraints: Record<string, unknown> }).verification_constraints).not.toHaveProperty("meals_per_day");
   });
 
   it("blocks local-model report creation when the model is unavailable", () => {
@@ -132,7 +134,8 @@ describe("LiveWorkspace", () => {
     expect(screen.getByRole("button", { name: "Targets" })).toHaveClass("is-active");
     expect(screen.getByText("Model provider disclosure")).toBeInTheDocument();
     expect(screen.getByText("Verification Settings").closest("details")).not.toHaveAttribute("open");
-    expect(screen.getByLabelText("Days")).not.toBeVisible();
+    expect(screen.queryByLabelText("Days")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Meals/day")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Age")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Diet pattern")).not.toBeInTheDocument();
     expect(screen.queryByText("Shopping list required")).not.toBeInTheDocument();
@@ -148,7 +151,7 @@ describe("LiveWorkspace", () => {
     expect(screen.getAllByText("Enter your access code to start.").length).toBeGreaterThan(0);
   });
 
-  it("keeps targets and constraints configurable behind verification settings", async () => {
+  it("keeps targets and non-structure constraints configurable behind verification settings", async () => {
     const user = userEvent.setup();
     const onCreateRun = vi.fn(async () => undefined);
     renderWorkspace({ onCreateRun });
@@ -157,7 +160,9 @@ describe("LiveWorkspace", () => {
     expect(screen.getByText("Nutrition Targets")).toBeInTheDocument();
     expect(screen.getByLabelText("Calories")).toBeVisible();
     expect(screen.getByLabelText("Protein g")).toBeVisible();
-    expect(screen.getByLabelText("Days")).toBeVisible();
+    expect(screen.queryByLabelText("Days")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Meals/day")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Allergies")).toBeVisible();
     expect(screen.getByText("Advanced constraints")).toBeVisible();
     expect(screen.queryByLabelText("Age")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Sex")).not.toBeInTheDocument();
@@ -172,8 +177,6 @@ describe("LiveWorkspace", () => {
     await user.type(screen.getByLabelText("Calories"), "2100");
     await user.clear(screen.getByLabelText("Protein g"));
     await user.type(screen.getByLabelText("Protein g"), "120");
-    await user.clear(screen.getByLabelText("Days"));
-    await user.type(screen.getByLabelText("Days"), "2");
     await user.type(screen.getByLabelText("Model"), "gpt-test");
     await user.type(screen.getByLabelText("API key"), "secret");
     await user.click(screen.getByRole("button", { name: "Create Report" }));
@@ -189,11 +192,15 @@ describe("LiveWorkspace", () => {
             protein_target_g: 120,
           }),
           verification_constraints: expect.objectContaining({
-            days: 2,
+            allergies: ["peanuts"],
           }),
         }),
       }),
     );
+    const calls = onCreateRun.mock.calls as unknown as Array<[string, string, Record<string, unknown>]>;
+    const payload = calls[0][2] as { settings: { verification_constraints: Record<string, unknown> } };
+    expect(payload.settings.verification_constraints).not.toHaveProperty("days");
+    expect(payload.settings.verification_constraints).not.toHaveProperty("meals_per_day");
   });
 
   it("switches prompt mode to prompt controls", async () => {

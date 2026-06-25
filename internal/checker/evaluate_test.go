@@ -166,6 +166,39 @@ func TestValidateSettingsRejectsIncompleteUnresolvedPolicy(t *testing.T) {
 	}
 }
 
+func TestValidateSettingsAllowsInferredDayAndMealCounts(t *testing.T) {
+	settings := deMinimisCase().Settings
+	settings.VerificationConstraints.Days = 0
+	settings.VerificationConstraints.MealsPerDay = 0
+
+	if err := ValidateSettings(settings); err != nil {
+		t.Fatalf("ValidateSettings inferred counts error = %v", err)
+	}
+}
+
+func TestRequiredMealsPresentAllowsInferredCounts(t *testing.T) {
+	c := deMinimisCase()
+	c.Settings.VerificationConstraints.Days = 0
+	c.Settings.VerificationConstraints.MealsPerDay = 0
+	plan := deMinimisPlan(1, "g")
+	plan.Days = append(plan.Days, PlanDay{
+		Day: 2,
+		Meals: []Meal{
+			{
+				Name: "breakfast",
+				Items: []FoodItem{
+					{Food: "sumac", QuantityText: "a pinch", ResolutionStatus: "unresolved", UnresolvedReason: "vague_quantity"},
+				},
+			},
+		},
+	})
+
+	check := checkRequiredMeals(c, plan)
+	if check.Status != "pass" {
+		t.Fatalf("required meals status = %q evidence=%v, want pass", check.Status, check.Evidence)
+	}
+}
+
 func TestUnresolvedPolicyDefaultsToBlocking(t *testing.T) {
 	c := deMinimisCase()
 	plan := deMinimisPlan(1, "g")

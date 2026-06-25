@@ -23,8 +23,6 @@ export function normalizeSettings(settings: SettingsDraft): Settings {
 
 function normalizeVerificationConstraints(constraints: SettingsDraft["verification_constraints"]): VerificationConstraints {
   const normalized: VerificationConstraints = {
-    days: Math.round(Number(constraints.days)),
-    meals_per_day: Math.round(Number(constraints.meals_per_day)),
     allergies: csvValue(constraints.allergies),
     excluded_foods: csvValue(constraints.excluded_foods),
     max_sodium_mg_per_day: Math.round(Number(constraints.max_sodium_mg_per_day)),
@@ -33,6 +31,14 @@ function normalizeVerificationConstraints(constraints: SettingsDraft["verificati
     calorie_tolerance_pct: Number(constraints.calorie_tolerance_pct),
     requires_prep_safety_notes: Boolean(constraints.requires_prep_safety_notes),
   };
+  const days = Math.round(Number(constraints.days || 0));
+  if (days > 0) {
+    normalized.days = days;
+  }
+  const mealsPerDay = Math.round(Number(constraints.meals_per_day || 0));
+  if (mealsPerDay > 0) {
+    normalized.meals_per_day = mealsPerDay;
+  }
   if (constraints.unresolved_policy) {
     normalized.unresolved_policy = {
       de_minimis_enabled: Boolean(constraints.unresolved_policy.de_minimis_enabled),

@@ -346,7 +346,8 @@ func TestLocalModelRunDecomposesClearMultiDayInput(t *testing.T) {
 	provider := &fakeProvider{responses: []string{compactLocalMealPlanJSON(), compactLocalMealPlanJSON()}}
 	seeded := seededCase(t, root)
 	settings := localModelTestSettings(seeded.Settings)
-	settings.VerificationConstraints.Days = 2
+	settings.VerificationConstraints.Days = 0
+	settings.VerificationConstraints.MealsPerDay = 0
 
 	body := marshalJSON(t, CreateRunRequest{
 		InputMode: InputModeLocalModel,
@@ -384,6 +385,9 @@ func TestLocalModelRunDecomposesClearMultiDayInput(t *testing.T) {
 	}
 	if !strings.Contains(provider.messages[1][1].Content, "Use day numbers 1..1.") {
 		t.Fatalf("second provider prompt missing one-day constraint:\n%s", provider.messages[1][1].Content)
+	}
+	if strings.Contains(provider.messages[1][1].Content, "Each day must contain exactly") {
+		t.Fatalf("second provider prompt unexpectedly carried an exact meal count:\n%s", provider.messages[1][1].Content)
 	}
 
 	run, err := store.GetRun(context.Background(), created.RunID)
@@ -2442,8 +2446,8 @@ func testConfig(t *testing.T, root string) Config {
 }
 
 func localModelTestSettings(settings checker.Settings) checker.Settings {
-	settings.VerificationConstraints.Days = 1
-	settings.VerificationConstraints.MealsPerDay = 3
+	settings.VerificationConstraints.Days = 0
+	settings.VerificationConstraints.MealsPerDay = 0
 	settings.VerificationConstraints.RequiresPrepSafetyNotes = false
 	return settings
 }

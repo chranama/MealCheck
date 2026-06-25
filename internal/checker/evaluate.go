@@ -227,18 +227,25 @@ func checkSchemaValid() CheckResult {
 func checkRequiredMeals(c Case, plan Plan) CheckResult {
 	var evidence []map[string]any
 	constraints := c.Settings.VerificationConstraints
-	if len(plan.Days) != constraints.Days {
+	if len(plan.Days) == 0 {
+		evidence = append(evidence, map[string]any{"actual_days": 0})
+	} else if constraints.Days > 0 && len(plan.Days) != constraints.Days {
 		evidence = append(evidence, map[string]any{"expected_days": constraints.Days, "actual_days": len(plan.Days)})
 	}
 	for _, day := range plan.Days {
-		if len(day.Meals) != constraints.MealsPerDay {
+		if len(day.Meals) == 0 {
+			evidence = append(evidence, map[string]any{"day": day.Day, "actual_meals": 0})
+		} else if constraints.MealsPerDay > 0 && len(day.Meals) != constraints.MealsPerDay {
 			evidence = append(evidence, map[string]any{"day": day.Day, "expected_meals": constraints.MealsPerDay, "actual_meals": len(day.Meals)})
 		}
 	}
 	if len(evidence) > 0 {
 		return CheckResult{CheckID: "required_meals_present", Status: "block", Severity: "block", Message: "The candidate is missing required meal structure.", Evidence: evidence}
 	}
-	return CheckResult{CheckID: "required_meals_present", Status: "pass", Severity: "info", Message: "The candidate includes the required number of days and meals per day."}
+	if constraints.Days > 0 || constraints.MealsPerDay > 0 {
+		return CheckResult{CheckID: "required_meals_present", Status: "pass", Severity: "info", Message: "The candidate includes the required number of days and meals per day."}
+	}
+	return CheckResult{CheckID: "required_meals_present", Status: "pass", Severity: "info", Message: "The candidate includes measurable day and meal structure."}
 }
 
 func checkQuantitiesResolvable(unresolved []UnresolvedItem, excluded []ExcludedUnresolvedItem) CheckResult {

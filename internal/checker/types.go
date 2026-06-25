@@ -27,8 +27,8 @@ type NutritionTargets struct {
 }
 
 type VerificationConstraints struct {
-	Days                       int              `json:"days"`
-	MealsPerDay                int              `json:"meals_per_day"`
+	Days                       int              `json:"days,omitempty"`
+	MealsPerDay                int              `json:"meals_per_day,omitempty"`
 	Allergies                  []string         `json:"allergies"`
 	ExcludedFoods              []string         `json:"excluded_foods"`
 	MaxSodiumMGPerDay          int              `json:"max_sodium_mg_per_day"`

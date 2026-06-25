@@ -336,8 +336,6 @@ preserved in the local CLI/debug workflow, not the hosted `/api/runs` endpoint.
     "protein_target_g": 98
   },
   "verification_constraints": {
-    "days": 3,
-    "meals_per_day": 3,
     "allergies": ["peanuts"],
     "excluded_foods": ["shellfish"],
     "max_sodium_mg_per_day": 2300,
@@ -353,8 +351,12 @@ Validation rules:
 
 - `nutrition_targets.calorie_target_kcal` must be positive.
 - `nutrition_targets.protein_target_g` must be positive.
-- `days` must be between `1` and `7`.
-- `meals_per_day` must be between `1` and `6`.
+- `days` is optional. When omitted or `0`, MealCheck infers the day count from
+  the normalized plan. When provided, it must be between `1` and `7` and is
+  enforced as an exact count.
+- `meals_per_day` is optional. When omitted or `0`, MealCheck infers meal
+  counts from the normalized plan. When provided, it must be between `1` and
+  `6` and is enforced as an exact per-day count.
 - Hosted requests no longer accept demographic profile fields, diet pattern, or
   shopping-list switches. Use the `settings` object above for all BYOK and
   qualification requests.
@@ -736,7 +738,7 @@ Errors use a consistent JSON envelope:
 {
   "error": {
     "code": "invalid_request",
-    "message": "settings verification_constraints days must be between 1 and 7",
+    "message": "settings verification_constraints days must be between 1 and 7 when provided",
     "request_id": "req_8d8c75f9a22a4be7f4533e73"
   }
 }

@@ -65,7 +65,7 @@ export function recoveryFromError(errorLike: unknown): RecoveryNotice {
           title: "Request needs revision",
           message: apiErrorMessage(errorLike) || "MealCheck could not use this request.",
           tone: "warn",
-          steps: ["Review the meal-plan text and verification settings.", "Keep days between 1 and 7 and meals per day between 1 and 6."],
+          steps: ["Review the meal-plan text and verification settings.", "Use clear day and meal labels with food amounts MealCheck can measure."],
         };
       case "store_error":
       case "store_unavailable":

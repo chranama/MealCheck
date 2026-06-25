@@ -6,8 +6,6 @@ export const DEFAULT_SETTINGS: Settings = {
     protein_target_g: 98,
   },
   verification_constraints: {
-    days: 3,
-    meals_per_day: 3,
     allergies: ["peanuts"],
     excluded_foods: ["shellfish"],
     max_sodium_mg_per_day: 2300,

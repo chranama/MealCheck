@@ -77,6 +77,36 @@ func TestLocalModelExtractionMessagesNumberInlineMealItems(t *testing.T) {
 	}
 }
 
+func TestLocalModelExtractionMessagesInferCountsWhenUnset(t *testing.T) {
+	messages, err := localModelExtractionMessages(PendingRunInput{
+		CandidateText: strings.Join([]string{
+			"Day 1 breakfast: 1 cup cooked oatmeal.",
+			"Day 2 dinner: 4 oz salmon.",
+		}, "\n"),
+	})
+	if err != nil {
+		t.Fatalf("localModelExtractionMessages error: %v", err)
+	}
+	userPrompt := messages[1].Content
+	for _, unwanted := range []string{
+		"Use day numbers 1..",
+		"Each day must contain exactly",
+		"Use exactly these meal codes",
+	} {
+		if strings.Contains(userPrompt, unwanted) {
+			t.Fatalf("user prompt contains %q:\n%s", unwanted, userPrompt)
+		}
+	}
+	for _, want := range []string{
+		"1 | day=1 | meal_code=b | source_text=1 cup cooked oatmeal",
+		"2 | day=2 | meal_code=d | source_text=4 oz salmon",
+	} {
+		if !strings.Contains(userPrompt, want) {
+			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
+		}
+	}
+}
+
 func TestLocalModelExtractionMessagesPreservesAndInsideFoodNames(t *testing.T) {
 	messages, err := localModelExtractionMessages(PendingRunInput{
 		CandidateText: "Day 1 dinner: 1 cup macaroni and cheese, 1 banana, and 1 cup broccoli.",
@@ -111,7 +141,7 @@ func TestLocalModelDaySectionsRewritesEachDayForSingleDayExtraction(t *testing.T
 		"Day 2 breakfast: 2 eggs, 1 cup whole wheat toast, and 1 cup orange segments.",
 		"Day 2 lunch: 4 oz tuna, 2 cups mixed greens, and 1 tsp vinaigrette.",
 		"Day 2 dinner: 5 oz turkey meatballs, 1 cup whole wheat pasta, and 1 cup tomato sauce.",
-	}, "\n"), 2)
+	}, "\n"))
 	if !ok {
 		t.Fatal("localModelDaySections ok = false, want true")
 	}
@@ -132,13 +162,16 @@ func TestLocalModelDaySectionsRewritesEachDayForSingleDayExtraction(t *testing.T
 	}
 }
 
-func TestLocalModelDaySectionsRejectsAmbiguousDayCoverage(t *testing.T) {
-	_, ok := localModelDaySections(strings.Join([]string{
+func TestLocalModelDaySectionsUsesObservedDayCoverage(t *testing.T) {
+	sections, ok := localModelDaySections(strings.Join([]string{
 		"Day 1 breakfast: 1 cup cooked oatmeal.",
 		"Day 3 breakfast: 1 cup cooked oatmeal.",
-	}, "\n"), 3)
-	if ok {
-		t.Fatal("localModelDaySections ok = true, want false for missing day 2")
+	}, "\n"))
+	if !ok {
+		t.Fatal("localModelDaySections ok = false, want true for observed day labels")
+	}
+	if len(sections) != 2 || sections[0].Day != 1 || sections[1].Day != 3 {
+		t.Fatalf("sections = %+v, want day 1 and day 3", sections)
 	}
 }
 

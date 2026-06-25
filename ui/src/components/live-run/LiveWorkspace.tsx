@@ -364,8 +364,6 @@ function ConstraintsForm({ settings, setSettings }: { settings: SettingsDraft; s
     <fieldset>
       <legend>Constraints</legend>
       <div className="form-grid">
-        <Field label="Days"><NumberInput value={constraints.days} min={1} max={7} step={1} onChange={(value) => update("days", value)} /></Field>
-        <Field label="Meals/day"><NumberInput value={constraints.meals_per_day} min={1} max={6} step={1} onChange={(value) => update("meals_per_day", value)} /></Field>
         <Field label="Allergies"><input value={constraints.allergies} onChange={(event) => update("allergies", event.target.value)} type="text" /></Field>
         <Field label="Excluded foods"><input value={constraints.excluded_foods} onChange={(event) => update("excluded_foods", event.target.value)} type="text" /></Field>
       </div>
