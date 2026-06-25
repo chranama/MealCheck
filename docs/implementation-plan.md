@@ -3202,7 +3202,7 @@ Current Results:
   - allergens: 3,916
   - food groups: 10,107
 - WWEIA/NHANES no-fallback coverage: 496 of 815 items resolved, 60.86%.
-- WWEIA/NHANES with FNDDS fallback: 648 of 815 items resolved, 79.51%.
+- WWEIA/NHANES with FNDDS fallback: 644 of 815 items resolved, 79.02%.
 - The fallback coverage run skips expected-outcome comparison because the
   checked-in WWEIA expected unresolved counts describe no-fallback mode.
 
@@ -3226,3 +3226,58 @@ Verification:
 - `go test ./internal/checker` passes.
 - `go run ./cmd/mealcheck-fixture-check` passes.
 - `go run ./cmd/mealcheck-eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
+
+## Milestone 42: FNDDS Resolver Well-Defined Food Gate
+
+Purpose:
+
+Keep the FNDDS SQLite fallback from becoming a blind lookup path. The fallback
+database contains useful exact-match foods, but runtime lookup should only run
+for entries that are specific enough to resolve without guessing.
+
+Deliver:
+
+- resolver gate between reviewed-catalog misses and FNDDS fallback lookup
+- specific unresolved reasons for broad foods, mixed dishes, branded or
+  restaurant items, unclear preparation, non-food text, and unsupported
+  fallback units
+- tests proving the reviewed catalog still takes precedence and fallback
+  candidates are blocked before database lookup when they are not well-defined
+- UI labels for the new unresolved reasons
+- meal-plan schema and hosted contract vocabulary aligned with the resolver
+  reasons
+- documentation of the runtime lookup contract
+
+Implemented:
+
+1. Added `internal/checker/lookup_filter.go` to classify fallback candidates
+   before database access.
+2. Updated `internal/checker/resolve.go` so reviewed catalog matches still win,
+   explicit `unknown_food` items with quantities can retry fallback, and all
+   fallback candidates pass through the gate first.
+3. Added resolver tests for broad one-word foods, mixed dishes, branded foods,
+   non-food text, and unsupported fallback units.
+4. Updated UI reason formatting so unresolved report evidence uses human
+   language for the new reason codes.
+5. Updated `schemas/meal-plan.schema.json`, hosted response schema metadata,
+   `docs/evaluation.md`, and `docs/architecture.md`.
+
+Acceptance:
+
+- local reviewed-catalog matches bypass the fallback gate.
+- unreviewed fallback lookup is limited to quantified gram-based foods.
+- ambiguous, mixed-dish, branded, unclear-preparation, non-food, and
+  unsupported-unit items remain unresolved with specific reasons.
+- FNDDS fallback remains exact-match only after the gate allows lookup.
+- report UI displays actionable labels for all resolver-gate reasons.
+
+Verification:
+
+- `go test ./internal/checker` passes.
+- `go test ./...` passes.
+- `go run ./cmd/mealcheck-fixture-check` passes.
+- `go run ./cmd/mealcheck-eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
+- `cd ui && npm run typecheck` passes.
+- `cd ui && npm run test` passes.
+- `cd ui && npm run build` passes.
+- `git diff --check` passes.

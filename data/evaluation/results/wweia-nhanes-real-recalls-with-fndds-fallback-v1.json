@@ -8,26 +8,26 @@
   "expected_comparison": "skipped",
   "total_cases": 100,
   "total_food_items": 815,
-  "resolved_items": 648,
-  "unresolved_items": 167,
-  "resolved_rate": 0.7951,
+  "resolved_items": 644,
+  "unresolved_items": 171,
+  "resolved_rate": 0.7902,
   "cases_with_mismatches": 0,
   "category_summary": [
     {
       "category": "wweia_common_recall_day",
       "cases": 30,
       "food_items": 314,
-      "resolved_items": 278,
-      "unresolved_items": 36,
-      "resolved_rate": 0.8854
+      "resolved_items": 276,
+      "unresolved_items": 38,
+      "resolved_rate": 0.879
     },
     {
       "category": "wweia_high_sodium",
       "cases": 20,
       "food_items": 310,
-      "resolved_items": 206,
-      "unresolved_items": 104,
-      "resolved_rate": 0.6645
+      "resolved_items": 204,
+      "unresolved_items": 106,
+      "resolved_rate": 0.6581
     },
     {
       "category": "wweia_low_protein",
@@ -131,7 +131,7 @@
   "top_unresolved_units": [
     {
       "value": "g",
-      "count": 167
+      "count": 171
     }
   ]
 }

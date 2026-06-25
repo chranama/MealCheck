@@ -59,7 +59,7 @@ func mealPlanShapeInstructions(constraints checker.VerificationConstraints) map[
 			"food":              "food name",
 			"quantity_text":     "original vague quantity text",
 			"resolution_status": "unresolved",
-			"unresolved_reason": "vague_quantity, unknown_food, unsupported_unit, or missing_conversion",
+			"unresolved_reason": "vague_quantity, unknown_food, unsupported_unit, missing_conversion, ambiguous_food, composed_food_needs_decomposition, restaurant_or_branded_food, preparation_unclear, or non_food_text",
 		},
 		"suggested_meal_names": suggestedMealNames(constraints.MealsPerDay),
 		"shopping_list":        "array of food item objects using the same food item fields",
@@ -122,7 +122,18 @@ func strictMealPlanResponseSchema() map[string]any {
 				},
 				"unresolved_reason": map[string]any{
 					"type": []string{"string", "null"},
-					"enum": []any{"unknown_food", "vague_quantity", "unsupported_unit", "missing_conversion", nil},
+					"enum": []any{
+						"unknown_food",
+						"vague_quantity",
+						"unsupported_unit",
+						"missing_conversion",
+						"ambiguous_food",
+						"composed_food_needs_decomposition",
+						"restaurant_or_branded_food",
+						"preparation_unclear",
+						"non_food_text",
+						nil,
+					},
 				},
 			},
 		}

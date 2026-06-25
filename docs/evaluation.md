@@ -134,7 +134,7 @@ sugar, wine, apple juice, instant coffee, saltine crackers, flavored liquid
 coffee creamer, and common mixed dishes.
 
 With the optional FNDDS SQLite fallback enabled, the same WWEIA/NHANES
-real-recall dataset resolves 648 of 815 items, a 79.51% resolver rate. This is
+real-recall dataset resolves 644 of 815 items, a 79.02% resolver rate. This is
 a coverage run, not a strict expected-outcome regression, because the checked-in
 WWEIA expected unresolved counts describe the no-fallback catalog mode. The
 fallback removes common exact-match gaps such as tap water, bottled water, 100%
@@ -158,16 +158,21 @@ Expansion rules:
 Runtime lookup order:
 
 1. Use the reviewed local catalog first.
-2. If no reviewed catalog match exists, optionally check the FNDDS SQLite
-   fallback.
-3. The fallback only resolves exact normalized FNDDS `main_description` matches
+2. If no reviewed catalog match exists, pass the item through the fallback
+   resolver gate. The gate only allows quantified gram-based foods that appear
+   specific enough for automatic lookup.
+3. The gate blocks broad one-word foods, mixed dishes that need ingredient
+   decomposition, restaurant or branded foods, unclear preparation, non-food
+   text, and unsupported fallback units.
+4. If the gate allows lookup, optionally check the FNDDS SQLite fallback.
+5. The fallback only resolves exact normalized FNDDS `main_description` matches
    whose preprocessed status is `eligible_specific` or `eligible_generic` and
    which have no ambiguity flags.
-4. The fallback supports gram units only: `g`, `gram`, and `grams`.
-5. Explicit `unknown_food` items with quantities may retry the fallback.
+6. The fallback supports gram units only: `g`, `gram`, and `grams`.
+7. Explicit `unknown_food` items with quantities may retry the fallback.
    Explicit vague quantities, unsupported units, and other unresolved reasons
    remain unresolved.
-6. Quarantined or review-required FNDDS rows are never runtime resolver hits.
+8. Quarantined or review-required FNDDS rows are never runtime resolver hits.
 
 FNDDS At A Glance does not publish added-sugar grams. MealCheck therefore uses
 a documented proxy in the generated fixture: naturally sweet foods and plain

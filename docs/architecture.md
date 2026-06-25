@@ -74,8 +74,11 @@ The engine should record the exact pack used in every artifact bundle.
 Nutrient data starts with a reviewed local catalog sufficient for deterministic
 seeded examples and common-food workflows. An optional SQLite FNDDS fallback can
 resolve exact, preprocessed, non-ambiguous FNDDS food descriptions in grams
-after the reviewed catalog misses. A later version can add FoodData Central
-lookup and cache behavior for remaining long-tail foods.
+after the reviewed catalog misses and after a resolver gate confirms the item
+is specific enough for automatic lookup. The gate keeps broad, mixed-dish,
+branded, unclear-preparation, non-food, and unsupported-unit entries visible as
+unresolved. A later version can add FoodData Central lookup and cache behavior
+for remaining long-tail foods.
 
 The resolver should make uncertainty visible. Unresolved foods are not silently
 ignored.

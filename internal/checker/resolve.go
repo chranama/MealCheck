@@ -66,42 +66,51 @@ func (r resolver) resolvePlanWithError(plan Plan) ([]ResolvedItem, []UnresolvedI
 
 func (r resolver) resolveItem(day int, meal string, item FoodItem) (ResolvedItem, UnresolvedItem, bool, error) {
 	if item.ResolutionStatus == "unresolved" {
-		if item.UnresolvedReason != "unknown_food" || item.Quantity == nil || r.fallback == nil {
+		if item.UnresolvedReason != unresolvedUnknownFood || item.Quantity == nil {
 			return ResolvedItem{}, unresolvedItem(day, meal, item), false, nil
 		}
-		food, ok, err := r.fallback.LookupEligibleByDescription(item.Food)
-		if err != nil {
-			return ResolvedItem{}, UnresolvedItem{}, false, err
+		if food, ok := r.foods[normalizeName(item.Food)]; ok {
+			return resolveKnownFood(day, meal, item, food)
 		}
-		if !ok {
-			return ResolvedItem{}, unresolvedItem(day, meal, item), false, nil
-		}
-		return resolveKnownFood(day, meal, item, food)
+		return r.resolveFallbackCandidate(day, meal, item)
 	}
 	if item.Quantity == nil {
 		u := unresolvedItem(day, meal, item)
 		if u.UnresolvedReason == "" {
-			u.UnresolvedReason = "vague_quantity"
+			u.UnresolvedReason = unresolvedVagueQuantity
 		}
 		return ResolvedItem{}, u, false, nil
 	}
 
 	food, ok := r.foods[normalizeName(item.Food)]
 	if !ok {
-		if r.fallback != nil {
-			var err error
-			food, ok, err = r.fallback.LookupEligibleByDescription(item.Food)
-			if err != nil {
-				return ResolvedItem{}, UnresolvedItem{}, false, err
-			}
-		}
-		if !ok {
-			u := unresolvedItem(day, meal, item)
-			u.UnresolvedReason = "unknown_food"
-			return ResolvedItem{}, u, false, nil
-		}
+		return r.resolveFallbackCandidate(day, meal, item)
 	}
 
+	return resolveKnownFood(day, meal, item, food)
+}
+
+func (r resolver) resolveFallbackCandidate(day int, meal string, item FoodItem) (ResolvedItem, UnresolvedItem, bool, error) {
+	filter := filterFallbackLookupCandidate(item)
+	if !filter.LookupAllowed {
+		u := unresolvedItem(day, meal, item)
+		u.UnresolvedReason = filter.Reason
+		return ResolvedItem{}, u, false, nil
+	}
+	if r.fallback == nil {
+		u := unresolvedItem(day, meal, item)
+		u.UnresolvedReason = unresolvedUnknownFood
+		return ResolvedItem{}, u, false, nil
+	}
+	food, ok, err := r.fallback.LookupEligibleByDescription(filter.Query)
+	if err != nil {
+		return ResolvedItem{}, UnresolvedItem{}, false, err
+	}
+	if !ok {
+		u := unresolvedItem(day, meal, item)
+		u.UnresolvedReason = unresolvedUnknownFood
+		return ResolvedItem{}, u, false, nil
+	}
 	return resolveKnownFood(day, meal, item, food)
 }
 

@@ -91,6 +91,42 @@ func TestResolverUsesReviewedCatalogBeforeFNDDSFallback(t *testing.T) {
 	}
 }
 
+func TestResolverReviewedCatalogBypassesFallbackGate(t *testing.T) {
+	qty := 28.0
+	fallback := &recordingFNDDSReference{}
+	catalog := NutrientCatalog{
+		Foods: []CatalogFood{
+			{
+				FoodID:          "reviewed_cheese",
+				Name:            "Cheese",
+				BaseQuantityG:   100,
+				UnitConversions: map[string]float64{"g": 1},
+				NutrientsPer100G: Nutrients{
+					EnergyKcal: 400,
+				},
+			},
+		},
+	}
+	plan := singleItemPlan("Cheese", &qty, "g")
+
+	resolved, unresolved, err := newResolverWithFallback(catalog, fallback).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unresolved) != 0 {
+		t.Fatalf("unresolved = %+v, want none", unresolved)
+	}
+	if len(resolved) != 1 {
+		t.Fatalf("len(resolved) = %d, want 1", len(resolved))
+	}
+	if resolved[0].FoodID != "reviewed_cheese" {
+		t.Fatalf("FoodID = %q, want reviewed catalog match", resolved[0].FoodID)
+	}
+	if fallback.calls != 0 {
+		t.Fatalf("fallback calls = %d, want 0", fallback.calls)
+	}
+}
+
 func TestResolverUsesFNDDSFallbackForEligibleExactMatch(t *testing.T) {
 	ref := openTestFNDDSReference(t)
 	qty := 100.0
@@ -148,8 +184,92 @@ func TestResolverKeepsFallbackHouseholdUnitsUnresolved(t *testing.T) {
 	if len(unresolved) != 1 {
 		t.Fatalf("len(unresolved) = %d, want 1", len(unresolved))
 	}
-	if unresolved[0].UnresolvedReason != "missing_conversion:cup" {
-		t.Fatalf("UnresolvedReason = %q, want missing_conversion:cup", unresolved[0].UnresolvedReason)
+	if unresolved[0].UnresolvedReason != unresolvedUnsupportedUnit {
+		t.Fatalf("UnresolvedReason = %q, want %s", unresolved[0].UnresolvedReason, unresolvedUnsupportedUnit)
+	}
+}
+
+func TestResolverGateBlocksBroadFallbackLookup(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 100.0
+	plan := singleItemPlan("Cheese", &qty, "g")
+
+	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resolved) != 0 {
+		t.Fatalf("resolved = %+v, want none", resolved)
+	}
+	if len(unresolved) != 1 {
+		t.Fatalf("len(unresolved) = %d, want 1", len(unresolved))
+	}
+	if unresolved[0].UnresolvedReason != unresolvedAmbiguousFood {
+		t.Fatalf("UnresolvedReason = %q, want %s", unresolved[0].UnresolvedReason, unresolvedAmbiguousFood)
+	}
+}
+
+func TestResolverGateBlocksMixedDishFallbackLookup(t *testing.T) {
+	fallback := &recordingFNDDSReference{}
+	qty := 100.0
+	plan := singleItemPlan("Ham sandwich on white, with cheese", &qty, "g")
+
+	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, fallback).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resolved) != 0 {
+		t.Fatalf("resolved = %+v, want none", resolved)
+	}
+	if len(unresolved) != 1 {
+		t.Fatalf("len(unresolved) = %d, want 1", len(unresolved))
+	}
+	if unresolved[0].UnresolvedReason != unresolvedComposedFoodNeedsDecomposition {
+		t.Fatalf("UnresolvedReason = %q, want %s", unresolved[0].UnresolvedReason, unresolvedComposedFoodNeedsDecomposition)
+	}
+	if fallback.calls != 0 {
+		t.Fatalf("fallback calls = %d, want 0", fallback.calls)
+	}
+}
+
+func TestResolverGateBlocksBrandedFallbackLookup(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 100.0
+	plan := singleItemPlan("French fries", &qty, "g")
+	plan.Days[0].Meals[0].Items[0].Brand = "McDonald's"
+
+	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resolved) != 0 {
+		t.Fatalf("resolved = %+v, want none", resolved)
+	}
+	if len(unresolved) != 1 {
+		t.Fatalf("len(unresolved) = %d, want 1", len(unresolved))
+	}
+	if unresolved[0].UnresolvedReason != unresolvedRestaurantOrBrandedFood {
+		t.Fatalf("UnresolvedReason = %q, want %s", unresolved[0].UnresolvedReason, unresolvedRestaurantOrBrandedFood)
+	}
+}
+
+func TestResolverGateBlocksNonFoodFallbackLookup(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 1.0
+	plan := singleItemPlan("Vitamin supplement", &qty, "g")
+
+	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resolved) != 0 {
+		t.Fatalf("resolved = %+v, want none", resolved)
+	}
+	if len(unresolved) != 1 {
+		t.Fatalf("len(unresolved) = %d, want 1", len(unresolved))
+	}
+	if unresolved[0].UnresolvedReason != unresolvedNonFoodText {
+		t.Fatalf("UnresolvedReason = %q, want %s", unresolved[0].UnresolvedReason, unresolvedNonFoodText)
 	}
 }
 
@@ -201,4 +321,13 @@ func singleItemPlan(food string, quantity *float64, unit string) Plan {
 			},
 		},
 	}
+}
+
+type recordingFNDDSReference struct {
+	calls int
+}
+
+func (r *recordingFNDDSReference) LookupEligibleByDescription(description string) (CatalogFood, bool, error) {
+	r.calls++
+	return CatalogFood{}, false, nil
 }

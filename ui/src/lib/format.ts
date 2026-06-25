@@ -110,7 +110,18 @@ export function sourceClaimLabel(entry: unknown): string {
 
 export function reasonLabel(entry: unknown): string {
   const id = String(entry || "");
+  if (id.startsWith("missing_conversion:")) {
+    return `an unsupported ${id.split(":")[1] || "unit"} conversion`;
+  }
   const labels: Record<string, string> = {
+    ambiguous_food: "an ambiguous food name",
+    composed_food_needs_decomposition: "a mixed dish that needs ingredient details",
+    missing_conversion: "an unsupported unit conversion",
+    non_food_text: "non-food text",
+    preparation_unclear: "unclear preparation details",
+    restaurant_or_branded_food: "a restaurant or branded food MealCheck cannot resolve yet",
+    unknown_food: "an unknown food",
+    unsupported_unit: "an unsupported unit",
     vague_quantity: "a vague quantity",
   };
   return labels[id] || readableID(id).toLowerCase();
