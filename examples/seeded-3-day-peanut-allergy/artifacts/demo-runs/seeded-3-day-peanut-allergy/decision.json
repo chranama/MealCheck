@@ -21,6 +21,7 @@
       "unresolved_reason": "vague_quantity"
     }
   ],
+  "excluded_unresolved_items": [],
   "recommended_action": "Revise blocking violations and rerun MealCheck.",
   "guideline_pack_id": "dga-2025-2030-us-adult-general-v1",
   "artifact_paths": {
@@ -54,6 +55,7 @@
           "day": 2,
           "food": "seasoning blend",
           "meal": "lunch",
+          "quantity": null,
           "quantity_text": "some",
           "unit": "",
           "unresolved_reason": "vague_quantity"

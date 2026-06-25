@@ -174,6 +174,22 @@ Runtime lookup order:
    remain unresolved.
 8. Quarantined or review-required FNDDS rows are never runtime resolver hits.
 
+Unresolved verification policy:
+
+- By default, any unresolved food or quantity remains in `unresolved-foods.json`
+  and blocks `quantities_resolvable`.
+- When `settings.verification_constraints.unresolved_policy.de_minimis_enabled`
+  is explicitly enabled, MealCheck may exclude tiny unresolved mass items from
+  nutrition totals only when the item has deterministic `g`, `gram`, `grams`,
+  `oz`, `ounce`, or `ounces` quantity, has `unknown_food` or
+  `missing_conversion:<unit>` as its unresolved reason, and stays within
+  per-item, per-day, and per-day-count caps.
+- De minimis exclusion is disabled when allergy or excluded-food constraints
+  are configured.
+- Excluded unresolved items are written to `excluded-unresolved-foods.json` and
+  make `quantities_resolvable` warn rather than pass. They are never counted in
+  nutrition totals.
+
 FNDDS At A Glance does not publish added-sugar grams. MealCheck therefore uses
 a documented proxy in the generated fixture: naturally sweet foods and plain
 dairy receive `added_sugar_g = 0`, while explicitly sweetened categories such

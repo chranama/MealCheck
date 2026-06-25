@@ -142,6 +142,7 @@ func unresolvedItem(day int, meal string, item FoodItem) UnresolvedItem {
 		Day:              day,
 		Meal:             meal,
 		Food:             item.Food,
+		Quantity:         item.Quantity,
 		QuantityText:     item.QuantityText,
 		Unit:             item.Unit,
 		UnresolvedReason: item.UnresolvedReason,

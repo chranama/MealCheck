@@ -2,7 +2,7 @@
   "schema_version": "0.1",
   "case_id": "seeded-3-day-peanut-allergy",
   "mode": "validate",
-  "generated_at": "2026-06-24T16:50:05Z",
+  "generated_at": "2026-06-25T17:54:41Z",
   "mealcheck": {
     "version": "dev"
   },
@@ -24,6 +24,7 @@
     "daily-totals.json",
     "resolved-foods.json",
     "unresolved-foods.json",
+    "excluded-unresolved-foods.json",
     "metrics.json",
     "manifest.json",
     "normalized-plan.json",

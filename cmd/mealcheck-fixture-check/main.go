@@ -269,6 +269,7 @@ func validateStaticDemo(root string) error {
 		"daily-totals.json",
 		"resolved-foods.json",
 		"unresolved-foods.json",
+		"excluded-unresolved-foods.json",
 		"manifest.json",
 		"guideline-pack/pack.json",
 		"guideline-pack/citations.json",

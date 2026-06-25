@@ -21,6 +21,10 @@ The candidate plan has blocking issues and should be revised before use.
 
 - Day 2 lunch: `seasoning blend` (vague_quantity)
 
+## Excluded Unresolved Foods
+
+None.
+
 ## Daily Totals
 
 - Day 1: 1741.3 kcal, 138.3 g protein, 2392.8 mg sodium

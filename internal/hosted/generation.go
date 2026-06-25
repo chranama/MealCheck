@@ -889,21 +889,7 @@ func extractJSONObject(text string) (string, error) {
 }
 
 func validateSettings(settings checker.Settings) error {
-	targets := settings.NutritionTargets
-	constraints := settings.VerificationConstraints
-	if targets.CalorieTargetKcal <= 0 {
-		return fmt.Errorf("settings nutrition_targets calorie_target_kcal must be positive")
-	}
-	if targets.ProteinTargetG <= 0 {
-		return fmt.Errorf("settings nutrition_targets protein_target_g must be positive")
-	}
-	if constraints.Days < 1 || constraints.Days > 7 {
-		return fmt.Errorf("settings verification_constraints days must be between 1 and 7")
-	}
-	if constraints.MealsPerDay < 1 || constraints.MealsPerDay > 6 {
-		return fmt.Errorf("settings verification_constraints meals_per_day must be between 1 and 6")
-	}
-	return nil
+	return checker.ValidateSettings(settings)
 }
 
 func validatePlan(plan checker.Plan) error {

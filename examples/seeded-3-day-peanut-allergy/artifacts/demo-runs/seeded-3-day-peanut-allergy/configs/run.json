@@ -20,7 +20,8 @@
       "max_added_sugar_g_per_meal": 10,
       "max_saturated_fat_pct_calories": 10,
       "calorie_tolerance_pct": 15,
-      "requires_prep_safety_notes": true
+      "requires_prep_safety_notes": true,
+      "unresolved_policy": {}
     }
   },
   "guideline_pack_id": "dga-2025-2030-us-adult-general-v1",
@@ -36,7 +37,9 @@
       "quantities_resolvable"
     ],
     "expected_warn_checks": [
+      "calories_within_tolerance",
       "sodium_under_limit",
+      "protein_minimum_met",
       "prep_safety_mentions_present"
     ]
   },

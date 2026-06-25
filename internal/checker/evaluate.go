@@ -20,12 +20,19 @@ func EvaluateWithFallback(c Case, plan Plan, catalog NutrientCatalog, fallback F
 	if err != nil {
 		return Evaluation{}, err
 	}
+	blockingUnresolved, excludedUnresolved := applyUnresolvedPolicy(c.Settings.VerificationConstraints, unresolved)
+	if blockingUnresolved == nil {
+		blockingUnresolved = []UnresolvedItem{}
+	}
+	if excludedUnresolved == nil {
+		excludedUnresolved = []ExcludedUnresolvedItem{}
+	}
 	dailyTotals, mealTotals := calculateTotals(resolved)
 
 	checks := []CheckResult{
 		checkSchemaValid(),
 		checkRequiredMeals(c, plan),
-		checkQuantitiesResolvable(unresolved),
+		checkQuantitiesResolvable(blockingUnresolved, excludedUnresolved),
 		checkAllergensAbsent(c, resolved),
 		checkExcludedFoodsAbsent(c, resolved),
 		checkCaloriesWithinTolerance(c, dailyTotals),
@@ -39,17 +46,114 @@ func EvaluateWithFallback(c Case, plan Plan, catalog NutrientCatalog, fallback F
 
 	decision, risk := aggregateDecision(checks)
 	return Evaluation{
-		CaseID:            c.CaseID,
-		Decision:          decision,
-		RiskLevel:         risk,
-		Summary:           summary(decision),
-		RecommendedAction: recommendedAction(decision),
-		Checks:            checks,
-		ResolvedItems:     resolved,
-		UnresolvedItems:   unresolved,
-		DailyTotals:       dailyTotals,
-		MealTotals:        mealTotals,
+		CaseID:                  c.CaseID,
+		Decision:                decision,
+		RiskLevel:               risk,
+		Summary:                 summary(decision),
+		RecommendedAction:       recommendedAction(decision),
+		Checks:                  checks,
+		ResolvedItems:           resolved,
+		UnresolvedItems:         blockingUnresolved,
+		ExcludedUnresolvedItems: excludedUnresolved,
+		DailyTotals:             dailyTotals,
+		MealTotals:              mealTotals,
 	}, nil
+}
+
+func applyUnresolvedPolicy(constraints VerificationConstraints, unresolved []UnresolvedItem) ([]UnresolvedItem, []ExcludedUnresolvedItem) {
+	policy := constraints.UnresolvedPolicy
+	if !policy.DeMinimisEnabled || policy.MaxItemGrams <= 0 || policy.MaxTotalGramsPerDay <= 0 || policy.MaxItemsPerDay <= 0 {
+		return unresolved, nil
+	}
+	if len(constraints.Allergies) > 0 || len(constraints.ExcludedFoods) > 0 {
+		return unresolved, nil
+	}
+
+	type candidate struct {
+		item  UnresolvedItem
+		grams float64
+	}
+	var blocking []UnresolvedItem
+	dayCandidates := map[int][]candidate{}
+	for _, item := range unresolved {
+		grams, ok := deMinimisCandidateGrams(item)
+		if !ok || grams > policy.MaxItemGrams {
+			blocking = append(blocking, item)
+			continue
+		}
+		dayCandidates[item.Day] = append(dayCandidates[item.Day], candidate{item: item, grams: grams})
+	}
+
+	var excluded []ExcludedUnresolvedItem
+	for day, candidates := range dayCandidates {
+		totalGrams := 0.0
+		for _, candidate := range candidates {
+			totalGrams += candidate.grams
+		}
+		if len(candidates) > policy.MaxItemsPerDay || totalGrams > policy.MaxTotalGramsPerDay {
+			for _, candidate := range candidates {
+				blocking = append(blocking, candidate.item)
+			}
+			continue
+		}
+		for _, candidate := range candidates {
+			excluded = append(excluded, ExcludedUnresolvedItem{
+				Day:                day,
+				Meal:               candidate.item.Meal,
+				Food:               candidate.item.Food,
+				Quantity:           *candidate.item.Quantity,
+				Unit:               candidate.item.Unit,
+				DeterministicGrams: round1(candidate.grams),
+				UnresolvedReason:   candidate.item.UnresolvedReason,
+				ExclusionReason:    "de_minimis_unresolved_mass",
+				PolicyID:           "de_minimis_unresolved_v1",
+			})
+		}
+	}
+	sort.Slice(blocking, func(i, j int) bool {
+		if blocking[i].Day != blocking[j].Day {
+			return blocking[i].Day < blocking[j].Day
+		}
+		if blocking[i].Meal != blocking[j].Meal {
+			return blocking[i].Meal < blocking[j].Meal
+		}
+		return blocking[i].Food < blocking[j].Food
+	})
+	sort.Slice(excluded, func(i, j int) bool {
+		if excluded[i].Day != excluded[j].Day {
+			return excluded[i].Day < excluded[j].Day
+		}
+		if excluded[i].Meal != excluded[j].Meal {
+			return excluded[i].Meal < excluded[j].Meal
+		}
+		return excluded[i].Food < excluded[j].Food
+	})
+	return blocking, excluded
+}
+
+func deMinimisCandidateGrams(item UnresolvedItem) (float64, bool) {
+	if item.Quantity == nil || *item.Quantity <= 0 {
+		return 0, false
+	}
+	if item.UnresolvedReason != unresolvedUnknownFood && !strings.HasPrefix(item.UnresolvedReason, "missing_conversion:") {
+		return 0, false
+	}
+	factor, ok := deterministicMassUnitFactor(item.Unit)
+	if !ok {
+		return 0, false
+	}
+	return *item.Quantity * factor, true
+}
+
+func deterministicMassUnitFactor(unit string) (float64, bool) {
+	switch strings.ToLower(strings.TrimSpace(unit)) {
+	case "g", "gram", "grams":
+		return 1, true
+	case "oz", "ounce", "ounces":
+		return 28.349523125, true
+	default:
+		return 0, false
+	}
 }
 
 func calculateTotals(items []ResolvedItem) ([]DailyTotal, []MealTotal) {
@@ -137,11 +241,32 @@ func checkRequiredMeals(c Case, plan Plan) CheckResult {
 	return CheckResult{CheckID: "required_meals_present", Status: "pass", Severity: "info", Message: "The candidate includes the required number of days and meals per day."}
 }
 
-func checkQuantitiesResolvable(unresolved []UnresolvedItem) CheckResult {
-	if len(unresolved) == 0 {
+func checkQuantitiesResolvable(unresolved []UnresolvedItem, excluded []ExcludedUnresolvedItem) CheckResult {
+	if len(unresolved) == 0 && len(excluded) == 0 {
 		return CheckResult{CheckID: "quantities_resolvable", Status: "pass", Severity: "info", Message: "All candidate food quantities resolved."}
 	}
-	evidence := make([]map[string]any, 0, len(unresolved))
+	if len(unresolved) == 0 {
+		evidence := make([]map[string]any, 0, len(excluded))
+		var days []int
+		var meals []string
+		for _, item := range excluded {
+			evidence = append(evidence, map[string]any{
+				"day":                 item.Day,
+				"meal":                item.Meal,
+				"food":                item.Food,
+				"quantity":            item.Quantity,
+				"unit":                item.Unit,
+				"deterministic_grams": item.DeterministicGrams,
+				"unresolved_reason":   item.UnresolvedReason,
+				"exclusion_reason":    item.ExclusionReason,
+			})
+			days = appendUniqueInt(days, item.Day)
+			meals = appendUniqueString(meals, item.Meal)
+		}
+		return CheckResult{CheckID: "quantities_resolvable", Status: "warn", Severity: "warn", Message: "The candidate excludes de minimis unresolved items from nutrition totals.", Evidence: evidence, AffectedDays: days, AffectedMeals: meals}
+	}
+
+	evidence := make([]map[string]any, 0, len(unresolved)+len(excluded))
 	var days []int
 	var meals []string
 	for _, item := range unresolved {
@@ -149,9 +274,24 @@ func checkQuantitiesResolvable(unresolved []UnresolvedItem) CheckResult {
 			"day":               item.Day,
 			"meal":              item.Meal,
 			"food":              item.Food,
+			"quantity":          item.Quantity,
 			"quantity_text":     item.QuantityText,
 			"unit":              item.Unit,
 			"unresolved_reason": item.UnresolvedReason,
+		})
+		days = appendUniqueInt(days, item.Day)
+		meals = appendUniqueString(meals, item.Meal)
+	}
+	for _, item := range excluded {
+		evidence = append(evidence, map[string]any{
+			"day":                 item.Day,
+			"meal":                item.Meal,
+			"food":                item.Food,
+			"quantity":            item.Quantity,
+			"unit":                item.Unit,
+			"deterministic_grams": item.DeterministicGrams,
+			"unresolved_reason":   item.UnresolvedReason,
+			"exclusion_reason":    item.ExclusionReason,
 		})
 		days = appendUniqueInt(days, item.Day)
 		meals = appendUniqueString(meals, item.Meal)
@@ -351,15 +491,16 @@ func recommendedAction(decision string) string {
 
 func (e Evaluation) DecisionDocument(c Case) DecisionDocument {
 	return DecisionDocument{
-		SchemaVersion:     "0.1",
-		CaseID:            e.CaseID,
-		Decision:          e.Decision,
-		Summary:           e.Summary,
-		RiskLevel:         e.RiskLevel,
-		FailedChecks:      failedChecks(e.Checks),
-		UnresolvedItems:   e.UnresolvedItems,
-		RecommendedAction: e.RecommendedAction,
-		GuidelinePackID:   c.GuidelinePackID,
+		SchemaVersion:           "0.1",
+		CaseID:                  e.CaseID,
+		Decision:                e.Decision,
+		Summary:                 e.Summary,
+		RiskLevel:               e.RiskLevel,
+		FailedChecks:            failedChecks(e.Checks),
+		UnresolvedItems:         e.UnresolvedItems,
+		ExcludedUnresolvedItems: e.ExcludedUnresolvedItems,
+		RecommendedAction:       e.RecommendedAction,
+		GuidelinePackID:         c.GuidelinePackID,
 		ArtifactPaths: map[string]string{
 			"case":                  "examples/seeded-3-day-peanut-allergy/case.json",
 			"baseline_plan":         c.BaselinePlan,

@@ -3281,3 +3281,47 @@ Verification:
 - `cd ui && npm run test` passes.
 - `cd ui && npm run build` passes.
 - `git diff --check` passes.
+
+## Milestone 43: First-Class Unresolved And De Minimis Policy
+
+Purpose:
+
+Treat unresolved foods as explicit verification state while allowing a narrow,
+opt-in de minimis exclusion policy for tiny unresolved mass items. The policy
+must never count unresolved nutrients and must never silently hide excluded
+items.
+
+Deliver:
+
+- optional `settings.verification_constraints.unresolved_policy`
+- deterministic split between blocking unresolved items and excluded unresolved
+  items
+- `excluded-unresolved-foods.json` artifact plus decision/report/metrics
+  visibility
+- warning-only `quantities_resolvable` state when all unresolved items are
+  excluded by policy
+- reason-specific UI recovery actions for unresolved foods
+- tests for strict default behavior, enabled de minimis warnings, cap overflow,
+  vague quantities, allergy contexts, and totals excluding unresolved items
+
+Policy:
+
+- default behavior remains strict: unresolved items block verification.
+- de minimis exclusion requires explicit enablement and positive item, daily
+  total, and daily count caps.
+- only `unknown_food` and `missing_conversion:<unit>` unresolved items with
+  deterministic mass quantities are eligible.
+- vague, ambiguous, composed, branded, unclear-preparation, unsupported-unit,
+  and non-food unresolved reasons remain blocking.
+- allergy and excluded-food constraints disable de minimis exclusion.
+- excluded unresolved items are never counted in nutrition totals and produce a
+  warning, not a pass.
+
+Verification:
+
+- `go test ./...` passes.
+- `go run ./cmd/mealcheck-fixture-check` passes.
+- `cd ui && npm run typecheck` passes.
+- `cd ui && npm run test` passes.
+- `cd ui && npm run build` passes.
+- `git diff --check` passes.

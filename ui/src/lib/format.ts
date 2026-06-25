@@ -115,8 +115,10 @@ export function reasonLabel(entry: unknown): string {
   }
   const labels: Record<string, string> = {
     ambiguous_food: "an ambiguous food name",
+    branded_food_unavailable: "a branded food MealCheck cannot resolve yet",
     composed_food_needs_decomposition: "a mixed dish that needs ingredient details",
     missing_conversion: "an unsupported unit conversion",
+    model_normalization_failed: "a model normalization failure",
     non_food_text: "non-food text",
     preparation_unclear: "unclear preparation details",
     restaurant_or_branded_food: "a restaurant or branded food MealCheck cannot resolve yet",

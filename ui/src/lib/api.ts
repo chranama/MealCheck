@@ -191,13 +191,22 @@ export async function fetchArtifact<T>(base: string, runID: string, path: string
   return requestJSON<T>(base, `/api/runs/${runID}/artifacts/${path}`);
 }
 
+async function fetchOptionalArtifact<T>(base: string, runID: string, path: string, fallback: T): Promise<T> {
+  try {
+    return await fetchArtifact<T>(base, runID, path);
+  } catch {
+    return fallback;
+  }
+}
+
 export async function loadLiveArtifacts(base: string, runID: string): Promise<ReportArtifacts> {
-  const [decision, report, totals, resolved, unresolved, manifest, citations, artifactList] = await Promise.all([
+  const [decision, report, totals, resolved, unresolved, excludedUnresolved, manifest, citations, artifactList] = await Promise.all([
     fetchArtifact(base, runID, "decision.json"),
     fetchArtifact(base, runID, "report.json"),
     fetchArtifact(base, runID, "daily-totals.json"),
     fetchArtifact(base, runID, "resolved-foods.json"),
     fetchArtifact(base, runID, "unresolved-foods.json"),
+    fetchOptionalArtifact<ReportArtifacts["excludedUnresolved"]>(base, runID, "excluded-unresolved-foods.json", []),
     fetchArtifact(base, runID, "manifest.json"),
     fetchArtifact(base, runID, "guideline-pack/citations.json"),
     requestJSON<ArtifactListResponse>(base, `/api/runs/${runID}/artifacts`),
@@ -211,6 +220,7 @@ export async function loadLiveArtifacts(base: string, runID: string): Promise<Re
     totals,
     resolved,
     unresolved,
+    excludedUnresolved,
     manifest,
     pack: null,
     citations,

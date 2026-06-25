@@ -157,6 +157,30 @@
         },
         "requires_prep_safety_notes": {
           "type": "boolean"
+        },
+        "unresolved_policy": {
+          "$ref": "#/$defs/unresolved_policy"
+        }
+      }
+    },
+    "unresolved_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "de_minimis_enabled": {
+          "type": "boolean"
+        },
+        "max_item_grams": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_total_grams_per_day": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_items_per_day": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },

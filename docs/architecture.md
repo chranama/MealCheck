@@ -83,6 +83,11 @@ for remaining long-tail foods.
 The resolver should make uncertainty visible. Unresolved foods are not silently
 ignored.
 
+When the optional de minimis unresolved policy is enabled, tiny unresolved mass
+items can be excluded from nutrition totals only after deterministic unit
+conversion and cap checks. These items are preserved separately as excluded
+unresolved foods and produce a warning, not a pass.
+
 ### CLI
 
 The first local surface:

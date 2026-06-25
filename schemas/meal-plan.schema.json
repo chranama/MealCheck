@@ -116,8 +116,10 @@
             "ambiguous_food",
             "composed_food_needs_decomposition",
             "restaurant_or_branded_food",
+            "branded_food_unavailable",
             "preparation_unclear",
-            "non_food_text"
+            "non_food_text",
+            "model_normalization_failed"
           ]
         }
       },

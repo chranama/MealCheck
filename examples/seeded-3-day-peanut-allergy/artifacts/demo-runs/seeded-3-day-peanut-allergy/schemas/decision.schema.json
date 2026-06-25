@@ -12,6 +12,7 @@
     "risk_level",
     "failed_checks",
     "unresolved_items",
+    "excluded_unresolved_items",
     "recommended_action",
     "guideline_pack_id",
     "artifact_paths",
@@ -46,6 +47,12 @@
       }
     },
     "unresolved_items": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "excluded_unresolved_items": {
       "type": "array",
       "items": {
         "type": "object"

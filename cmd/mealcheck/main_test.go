@@ -179,6 +179,7 @@ func requiredArtifactPaths() []string {
 		"daily-totals.json",
 		"resolved-foods.json",
 		"unresolved-foods.json",
+		"excluded-unresolved-foods.json",
 		"metrics.json",
 		"manifest.json",
 		"normalized-plan.json",

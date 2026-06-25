@@ -153,6 +153,234 @@ func TestLoadCaseRequiresSettingsContract(t *testing.T) {
 	}
 }
 
+func TestValidateSettingsRejectsIncompleteUnresolvedPolicy(t *testing.T) {
+	settings := deMinimisCase().Settings
+	settings.VerificationConstraints.UnresolvedPolicy = UnresolvedPolicy{DeMinimisEnabled: true}
+
+	err := ValidateSettings(settings)
+	if err == nil {
+		t.Fatal("ValidateSettings accepted enabled unresolved policy without caps")
+	}
+	if got := err.Error(); !strings.Contains(got, "max_item_grams must be positive") {
+		t.Fatalf("ValidateSettings error = %q, want max_item_grams validation", got)
+	}
+}
+
+func TestUnresolvedPolicyDefaultsToBlocking(t *testing.T) {
+	c := deMinimisCase()
+	plan := deMinimisPlan(1, "g")
+	got := Evaluate(c, plan, deMinimisCatalog())
+
+	if got.Decision != "block" {
+		t.Fatalf("Decision = %q, want block", got.Decision)
+	}
+	if len(got.UnresolvedItems) != 1 {
+		t.Fatalf("len(UnresolvedItems) = %d, want 1", len(got.UnresolvedItems))
+	}
+	if len(got.ExcludedUnresolvedItems) != 0 {
+		t.Fatalf("ExcludedUnresolvedItems = %+v, want none", got.ExcludedUnresolvedItems)
+	}
+	if checkStatus(got.Checks)["quantities_resolvable"] != "block" {
+		t.Fatalf("quantities_resolvable status = %q, want block", checkStatus(got.Checks)["quantities_resolvable"])
+	}
+}
+
+func TestUnresolvedPolicyExcludesDeMinimisMassAsWarn(t *testing.T) {
+	c := deMinimisCase()
+	c.Settings.VerificationConstraints.UnresolvedPolicy = UnresolvedPolicy{
+		DeMinimisEnabled:    true,
+		MaxItemGrams:        2,
+		MaxTotalGramsPerDay: 5,
+		MaxItemsPerDay:      3,
+	}
+	plan := deMinimisPlan(1, "g")
+	got := Evaluate(c, plan, deMinimisCatalog())
+
+	if got.Decision != "warn" {
+		t.Fatalf("Decision = %q, want warn", got.Decision)
+	}
+	if len(got.UnresolvedItems) != 0 {
+		t.Fatalf("UnresolvedItems = %+v, want none", got.UnresolvedItems)
+	}
+	if len(got.ExcludedUnresolvedItems) != 1 {
+		t.Fatalf("len(ExcludedUnresolvedItems) = %d, want 1", len(got.ExcludedUnresolvedItems))
+	}
+	excluded := got.ExcludedUnresolvedItems[0]
+	if excluded.Food != "sumac" || excluded.DeterministicGrams != 1 || excluded.PolicyID != "de_minimis_unresolved_v1" {
+		t.Fatalf("unexpected excluded item: %+v", excluded)
+	}
+	if checkStatus(got.Checks)["quantities_resolvable"] != "warn" {
+		t.Fatalf("quantities_resolvable status = %q, want warn", checkStatus(got.Checks)["quantities_resolvable"])
+	}
+	day1 := dailyTotal(t, got.DailyTotals, 1)
+	if day1.Nutrients.EnergyKcal != 10 {
+		t.Fatalf("day 1 energy = %.1f, want only resolved catalog item energy", day1.Nutrients.EnergyKcal)
+	}
+}
+
+func TestUnresolvedPolicyBlocksItemsOverCap(t *testing.T) {
+	c := deMinimisCase()
+	c.Settings.VerificationConstraints.UnresolvedPolicy = UnresolvedPolicy{
+		DeMinimisEnabled:    true,
+		MaxItemGrams:        2,
+		MaxTotalGramsPerDay: 5,
+		MaxItemsPerDay:      3,
+	}
+	got := Evaluate(c, deMinimisPlan(3, "g"), deMinimisCatalog())
+
+	if got.Decision != "block" {
+		t.Fatalf("Decision = %q, want block", got.Decision)
+	}
+	if len(got.UnresolvedItems) != 1 || len(got.ExcludedUnresolvedItems) != 0 {
+		t.Fatalf("unresolved = %+v excluded = %+v, want one blocking unresolved", got.UnresolvedItems, got.ExcludedUnresolvedItems)
+	}
+}
+
+func TestUnresolvedPolicyBlocksDayCapOverflow(t *testing.T) {
+	c := deMinimisCase()
+	c.Settings.VerificationConstraints.UnresolvedPolicy = UnresolvedPolicy{
+		DeMinimisEnabled:    true,
+		MaxItemGrams:        2,
+		MaxTotalGramsPerDay: 1.5,
+		MaxItemsPerDay:      3,
+	}
+	plan := deMinimisPlan(1, "g")
+	qty := 1.0
+	plan.Days[0].Meals[0].Items = append(plan.Days[0].Meals[0].Items, FoodItem{Food: "zaatar", Quantity: &qty, Unit: "g"})
+
+	got := Evaluate(c, plan, deMinimisCatalog())
+	if got.Decision != "block" {
+		t.Fatalf("Decision = %q, want block", got.Decision)
+	}
+	if len(got.UnresolvedItems) != 2 || len(got.ExcludedUnresolvedItems) != 0 {
+		t.Fatalf("unresolved = %+v excluded = %+v, want both day candidates blocking", got.UnresolvedItems, got.ExcludedUnresolvedItems)
+	}
+}
+
+func TestUnresolvedPolicyBlocksItemCountOverflow(t *testing.T) {
+	c := deMinimisCase()
+	c.Settings.VerificationConstraints.UnresolvedPolicy = UnresolvedPolicy{
+		DeMinimisEnabled:    true,
+		MaxItemGrams:        2,
+		MaxTotalGramsPerDay: 5,
+		MaxItemsPerDay:      1,
+	}
+	plan := deMinimisPlan(1, "g")
+	qty := 1.0
+	plan.Days[0].Meals[0].Items = append(plan.Days[0].Meals[0].Items, FoodItem{Food: "zaatar", Quantity: &qty, Unit: "g"})
+
+	got := Evaluate(c, plan, deMinimisCatalog())
+	if got.Decision != "block" {
+		t.Fatalf("Decision = %q, want block", got.Decision)
+	}
+	if len(got.UnresolvedItems) != 2 || len(got.ExcludedUnresolvedItems) != 0 {
+		t.Fatalf("unresolved = %+v excluded = %+v, want item-count overflow to keep both blocking", got.UnresolvedItems, got.ExcludedUnresolvedItems)
+	}
+}
+
+func TestUnresolvedPolicyDoesNotExcludeVagueQuantities(t *testing.T) {
+	c := deMinimisCase()
+	c.Settings.VerificationConstraints.UnresolvedPolicy = UnresolvedPolicy{
+		DeMinimisEnabled:    true,
+		MaxItemGrams:        2,
+		MaxTotalGramsPerDay: 5,
+		MaxItemsPerDay:      3,
+	}
+	plan := deMinimisPlan(1, "g")
+	plan.Days[0].Meals[0].Items[1] = FoodItem{Food: "sumac", QuantityText: "a pinch", ResolutionStatus: "unresolved", UnresolvedReason: "vague_quantity"}
+
+	got := Evaluate(c, plan, deMinimisCatalog())
+	if got.Decision != "block" {
+		t.Fatalf("Decision = %q, want block", got.Decision)
+	}
+	if len(got.UnresolvedItems) != 1 || got.UnresolvedItems[0].UnresolvedReason != "vague_quantity" {
+		t.Fatalf("UnresolvedItems = %+v, want vague quantity blocking", got.UnresolvedItems)
+	}
+	if len(got.ExcludedUnresolvedItems) != 0 {
+		t.Fatalf("ExcludedUnresolvedItems = %+v, want none", got.ExcludedUnresolvedItems)
+	}
+}
+
+func TestUnresolvedPolicyDisabledWhenAllergiesConfigured(t *testing.T) {
+	c := deMinimisCase()
+	c.Settings.VerificationConstraints.Allergies = []string{"peanuts"}
+	c.Settings.VerificationConstraints.UnresolvedPolicy = UnresolvedPolicy{
+		DeMinimisEnabled:    true,
+		MaxItemGrams:        2,
+		MaxTotalGramsPerDay: 5,
+		MaxItemsPerDay:      3,
+	}
+	got := Evaluate(c, deMinimisPlan(1, "g"), deMinimisCatalog())
+
+	if got.Decision != "block" {
+		t.Fatalf("Decision = %q, want block", got.Decision)
+	}
+	if len(got.UnresolvedItems) != 1 || len(got.ExcludedUnresolvedItems) != 0 {
+		t.Fatalf("unresolved = %+v excluded = %+v, want allergy context to block", got.UnresolvedItems, got.ExcludedUnresolvedItems)
+	}
+}
+
+func deMinimisCase() Case {
+	return Case{
+		CaseID: "de-minimis-test",
+		Settings: Settings{
+			NutritionTargets: NutritionTargets{
+				CalorieTargetKcal: 2000,
+				ProteinTargetG:    1,
+			},
+			VerificationConstraints: VerificationConstraints{
+				Days:                       1,
+				MealsPerDay:                1,
+				MaxSodiumMGPerDay:          0,
+				MaxAddedSugarGPerMeal:      0,
+				MaxSaturatedFatPctCalories: 0,
+				CalorieTolerancePct:        0,
+			},
+		},
+	}
+}
+
+func deMinimisPlan(quantity float64, unit string) Plan {
+	return Plan{
+		Days: []PlanDay{
+			{
+				Day: 1,
+				Meals: []Meal{
+					{
+						Name: "breakfast",
+						Items: []FoodItem{
+							{Food: "broccoli", Quantity: ptrFloat(100), Unit: "g"},
+							{Food: "sumac", Quantity: &quantity, Unit: unit},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func deMinimisCatalog() NutrientCatalog {
+	return NutrientCatalog{
+		Foods: []CatalogFood{
+			{
+				FoodID:          "broccoli",
+				Name:            "broccoli",
+				BaseQuantityG:   100,
+				UnitConversions: map[string]float64{"g": 1},
+				NutrientsPer100G: Nutrients{
+					EnergyKcal: 10,
+					ProteinG:   2,
+				},
+				FoodGroups: []string{"vegetables"},
+			},
+		},
+	}
+}
+
+func ptrFloat(value float64) *float64 {
+	return &value
+}
+
 func loadPlan(path string) (Plan, error) {
 	var plan Plan
 	err := readJSON(path, &plan)

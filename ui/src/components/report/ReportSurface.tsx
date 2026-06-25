@@ -120,7 +120,20 @@ function NutritionPanel({ artifacts }: { artifacts: ReportArtifacts }) {
 }
 
 function FoodsPanel({ artifacts }: { artifacts: ReportArtifacts }) {
-  const { resolved, unresolved } = artifacts;
+  const { resolved, unresolved, excludedUnresolved } = artifacts;
+  const unresolvedRows = unresolved.map((item) => ({
+    ...item,
+    recovery_action: unresolvedRecoveryAction(item.unresolved_reason),
+  }));
+  const excludedRows = (excludedUnresolved || []).map((item) => ({
+    day: item.day,
+    meal: item.meal,
+    food: item.food,
+    quantity: `${round(item.quantity)} ${item.unit}`,
+    deterministic_grams: round(item.deterministic_grams),
+    unresolved_reason: item.unresolved_reason,
+    exclusion_reason: item.exclusion_reason,
+  }));
   const resolvedRows = resolved.map((item) => ({
     day: item.day,
     meal: item.meal,
@@ -141,7 +154,18 @@ function FoodsPanel({ artifacts }: { artifacts: ReportArtifacts }) {
           {unresolved.length === 0 ? (
             <p className="empty-state">None.</p>
           ) : (
-            <DataTable rows={unresolved as Record<string, unknown>[]} fields={["day", "meal", "food", "quantity_text", "unresolved_reason"]} />
+            <DataTable rows={unresolvedRows as Record<string, unknown>[]} fields={["day", "meal", "food", "quantity", "unit", "quantity_text", "unresolved_reason", "recovery_action"]} />
+          )}
+        </article>
+        <article className="food-card">
+          <header>
+            <h3 className="food-title">Excluded From Totals</h3>
+            <span className="status-pill status-pill--warn">{excludedRows.length}</span>
+          </header>
+          {excludedRows.length === 0 ? (
+            <p className="empty-state">None.</p>
+          ) : (
+            <DataTable rows={excludedRows} fields={["day", "meal", "food", "quantity", "deterministic_grams", "unresolved_reason", "exclusion_reason"]} />
           )}
         </article>
         <article className="food-card">
@@ -154,6 +178,24 @@ function FoodsPanel({ artifacts }: { artifacts: ReportArtifacts }) {
       </div>
     </>
   );
+}
+
+function unresolvedRecoveryAction(reason: unknown): string {
+  const id = String(reason || "");
+  if (id.startsWith("missing_conversion:")) return "Use a supported measured unit or add a reviewed conversion.";
+  const actions: Record<string, string> = {
+    ambiguous_food: "Choose a more specific food.",
+    branded_food_unavailable: "Use a supported generic ingredient or an exact reviewed catalog item.",
+    composed_food_needs_decomposition: "Break this mixed dish into ingredients.",
+    model_normalization_failed: "Rewrite this item with a clear food, quantity, and unit, then rerun MealCheck.",
+    non_food_text: "Remove non-food text from the meal plan.",
+    preparation_unclear: "Specify preparation details such as baked, boiled, fried, or added fat.",
+    restaurant_or_branded_food: "Use supported generic ingredients or an exact reviewed catalog item.",
+    unknown_food: "Use a supported catalog food or request catalog expansion.",
+    unsupported_unit: "Use grams, ounces, cups, tablespoons, teaspoons, or servings.",
+    vague_quantity: "Add a measured quantity and unit.",
+  };
+  return actions[id] || "Clarify this item and rerun MealCheck.";
 }
 
 function SourcesPanel({ artifacts }: { artifacts: ReportArtifacts }) {

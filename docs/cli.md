@@ -236,6 +236,7 @@ artifacts/latest/
   daily-totals.json
   resolved-foods.json
   unresolved-foods.json
+  excluded-unresolved-foods.json
   metrics.json
   manifest.json
   normalized-plan.json
@@ -260,7 +261,7 @@ Important files:
 
 | File | Purpose |
 |---|---|
-| `decision.json` | Machine-readable decision, risk, failed checks, unresolved items, and artifact links. |
+| `decision.json` | Machine-readable decision, risk, failed checks, unresolved/excluded unresolved items, and artifact links. |
 | `recommendation.json` | Deterministic modified-plan recommendation attempt, or an unavailable reason. |
 | `report.json` | Full machine-readable report. |
 | `report.md` | Human-readable report. |
@@ -270,6 +271,7 @@ Important files:
 | `daily-totals.json` | Resolved daily nutrient totals. |
 | `resolved-foods.json` | Foods and quantities resolved against the nutrient catalog. |
 | `unresolved-foods.json` | Items that could not be fully resolved. |
+| `excluded-unresolved-foods.json` | Opt-in de minimis unresolved items excluded from totals and preserved as warnings. |
 | `metrics.json` | Run metrics. |
 | `manifest.json` | Artifact list, command mode, and bundle metadata. |
 | `normalized-plan.json` | Candidate meal plan after normalization. |

@@ -57,13 +57,14 @@ type manifestDocument struct {
 }
 
 type metricsDocument struct {
-	CaseID          string `json:"case_id"`
-	Decision        string `json:"decision"`
-	ResolvedItems   int    `json:"resolved_items"`
-	UnresolvedItems int    `json:"unresolved_items"`
-	CheckCount      int    `json:"check_count"`
-	BlockCount      int    `json:"block_count"`
-	WarnCount       int    `json:"warn_count"`
+	CaseID                  string `json:"case_id"`
+	Decision                string `json:"decision"`
+	ResolvedItems           int    `json:"resolved_items"`
+	UnresolvedItems         int    `json:"unresolved_items"`
+	ExcludedUnresolvedItems int    `json:"excluded_unresolved_items"`
+	CheckCount              int    `json:"check_count"`
+	BlockCount              int    `json:"block_count"`
+	WarnCount               int    `json:"warn_count"`
 }
 
 func WriteBundle(opts BundleOptions) (BundleResult, error) {
@@ -148,6 +149,7 @@ func WriteBundle(opts BundleOptions) (BundleResult, error) {
 		{"daily-totals.json", evaluation.DailyTotals},
 		{"resolved-foods.json", evaluation.ResolvedItems},
 		{"unresolved-foods.json", evaluation.UnresolvedItems},
+		{"excluded-unresolved-foods.json", evaluation.ExcludedUnresolvedItems},
 		{"metrics.json", metrics},
 		{"normalized-plan.json", plan},
 		{"configs/run.json", c},
@@ -214,6 +216,7 @@ func WriteBundle(opts BundleOptions) (BundleResult, error) {
 			"daily-totals.json",
 			"resolved-foods.json",
 			"unresolved-foods.json",
+			"excluded-unresolved-foods.json",
 			"metrics.json",
 			"manifest.json",
 			"normalized-plan.json",
@@ -260,6 +263,11 @@ func buildReport(c checker.Case, e checker.Evaluation) reportDocument {
 				Items: unresolvedItems(e.UnresolvedItems),
 			},
 			{
+				Title: "Excluded Unresolved Foods",
+				Body:  fmt.Sprintf("%d de minimis unresolved items excluded from nutrition totals.", len(e.ExcludedUnresolvedItems)),
+				Items: excludedUnresolvedItems(e.ExcludedUnresolvedItems),
+			},
+			{
 				Title: "Daily Totals",
 				Body:  "Calculated from the fixture nutrient catalog.",
 				Items: dailyTotalItems(e.DailyTotals),
@@ -281,13 +289,14 @@ func buildMetrics(e checker.Evaluation) metricsDocument {
 		}
 	}
 	return metricsDocument{
-		CaseID:          e.CaseID,
-		Decision:        e.Decision,
-		ResolvedItems:   len(e.ResolvedItems),
-		UnresolvedItems: len(e.UnresolvedItems),
-		CheckCount:      len(e.Checks),
-		BlockCount:      blockCount,
-		WarnCount:       warnCount,
+		CaseID:                  e.CaseID,
+		Decision:                e.Decision,
+		ResolvedItems:           len(e.ResolvedItems),
+		UnresolvedItems:         len(e.UnresolvedItems),
+		ExcludedUnresolvedItems: len(e.ExcludedUnresolvedItems),
+		CheckCount:              len(e.Checks),
+		BlockCount:              blockCount,
+		WarnCount:               warnCount,
 	}
 }
 
@@ -321,8 +330,28 @@ func unresolvedItems(unresolved []checker.UnresolvedItem) []map[string]any {
 			"day":               item.Day,
 			"meal":              item.Meal,
 			"food":              item.Food,
+			"quantity":          item.Quantity,
 			"quantity_text":     item.QuantityText,
+			"unit":              item.Unit,
 			"unresolved_reason": item.UnresolvedReason,
+		})
+	}
+	return items
+}
+
+func excludedUnresolvedItems(excluded []checker.ExcludedUnresolvedItem) []map[string]any {
+	items := make([]map[string]any, 0, len(excluded))
+	for _, item := range excluded {
+		items = append(items, map[string]any{
+			"day":                 item.Day,
+			"meal":                item.Meal,
+			"food":                item.Food,
+			"quantity":            item.Quantity,
+			"unit":                item.Unit,
+			"deterministic_grams": item.DeterministicGrams,
+			"unresolved_reason":   item.UnresolvedReason,
+			"exclusion_reason":    item.ExclusionReason,
+			"policy_id":           item.PolicyID,
 		})
 	}
 	return items
@@ -392,6 +421,14 @@ func writeMarkdown(path string, report reportDocument, e checker.Evaluation) err
 			fmt.Fprintf(&b, "- Day %d %s: `%s` (%s)\n", item.Day, item.Meal, item.Food, item.UnresolvedReason)
 		}
 	}
+	fmt.Fprintf(&b, "\n## Excluded Unresolved Foods\n\n")
+	if len(e.ExcludedUnresolvedItems) == 0 {
+		fmt.Fprintf(&b, "None.\n")
+	} else {
+		for _, item := range e.ExcludedUnresolvedItems {
+			fmt.Fprintf(&b, "- Day %d %s: `%s` %.1f %s / %.1f g excluded (%s)\n", item.Day, item.Meal, item.Food, item.Quantity, item.Unit, item.DeterministicGrams, item.ExclusionReason)
+		}
+	}
 	fmt.Fprintf(&b, "\n## Daily Totals\n\n")
 	for _, total := range e.DailyTotals {
 		fmt.Fprintf(&b, "- Day %d: %.1f kcal, %.1f g protein, %.1f mg sodium\n", total.Day, total.Nutrients.EnergyKcal, total.Nutrients.ProteinG, total.Nutrients.SodiumMG)
@@ -412,6 +449,10 @@ func writeHTML(path string, report reportDocument, e checker.Evaluation) error {
 	md.WriteString("</ul><h2>Unresolved Foods</h2><ul>")
 	for _, item := range e.UnresolvedItems {
 		fmt.Fprintf(&md, "<li>Day %d %s: <code>%s</code> (%s)</li>", item.Day, html.EscapeString(item.Meal), html.EscapeString(item.Food), html.EscapeString(item.UnresolvedReason))
+	}
+	md.WriteString("</ul><h2>Excluded Unresolved Foods</h2><ul>")
+	for _, item := range e.ExcludedUnresolvedItems {
+		fmt.Fprintf(&md, "<li>Day %d %s: <code>%s</code> %.1f %s / %.1f g excluded (%s)</li>", item.Day, html.EscapeString(item.Meal), html.EscapeString(item.Food), item.Quantity, html.EscapeString(item.Unit), item.DeterministicGrams, html.EscapeString(item.ExclusionReason))
 	}
 	md.WriteString("</ul><h2>Daily Totals</h2><ul>")
 	for _, total := range e.DailyTotals {
@@ -446,6 +487,14 @@ func writePDF(path string, report reportDocument, e checker.Evaluation) error {
 	} else {
 		for _, item := range e.UnresolvedItems {
 			lines = append(lines, fmt.Sprintf("Day %d %s: %s (%s)", item.Day, item.Meal, item.Food, item.UnresolvedReason))
+		}
+	}
+	lines = append(lines, "", "Excluded Unresolved Foods")
+	if len(e.ExcludedUnresolvedItems) == 0 {
+		lines = append(lines, "None.")
+	} else {
+		for _, item := range e.ExcludedUnresolvedItems {
+			lines = append(lines, fmt.Sprintf("Day %d %s: %s %.1f %s / %.1f g excluded (%s)", item.Day, item.Meal, item.Food, item.Quantity, item.Unit, item.DeterministicGrams, item.ExclusionReason))
 		}
 	}
 	lines = append(lines, "", "Daily Totals")

@@ -12,7 +12,7 @@ func LoadCase(root, casePath string) (Case, Plan, NutrientCatalog, error) {
 	if err := readJSON(resolvePath(root, casePath), &c); err != nil {
 		return Case{}, Plan{}, NutrientCatalog{}, fmt.Errorf("load case: %w", err)
 	}
-	if err := validateCaseSettings(c.Settings); err != nil {
+	if err := ValidateSettings(c.Settings); err != nil {
 		return Case{}, Plan{}, NutrientCatalog{}, fmt.Errorf("load case: %w", err)
 	}
 
@@ -29,7 +29,7 @@ func LoadCase(root, casePath string) (Case, Plan, NutrientCatalog, error) {
 	return c, plan, catalog, nil
 }
 
-func validateCaseSettings(settings Settings) error {
+func ValidateSettings(settings Settings) error {
 	targets := settings.NutritionTargets
 	constraints := settings.VerificationConstraints
 	if targets.CalorieTargetKcal <= 0 {
@@ -43,6 +43,25 @@ func validateCaseSettings(settings Settings) error {
 	}
 	if constraints.MealsPerDay < 1 || constraints.MealsPerDay > 6 {
 		return fmt.Errorf("settings verification_constraints meals_per_day must be between 1 and 6")
+	}
+	if err := validateUnresolvedPolicy(constraints.UnresolvedPolicy); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateUnresolvedPolicy(policy UnresolvedPolicy) error {
+	if !policy.DeMinimisEnabled {
+		return nil
+	}
+	if policy.MaxItemGrams <= 0 {
+		return fmt.Errorf("settings verification_constraints unresolved_policy max_item_grams must be positive when de_minimis_enabled is true")
+	}
+	if policy.MaxTotalGramsPerDay <= 0 {
+		return fmt.Errorf("settings verification_constraints unresolved_policy max_total_grams_per_day must be positive when de_minimis_enabled is true")
+	}
+	if policy.MaxItemsPerDay <= 0 {
+		return fmt.Errorf("settings verification_constraints unresolved_policy max_items_per_day must be positive when de_minimis_enabled is true")
 	}
 	return nil
 }

@@ -125,6 +125,8 @@ export type Decision = {
   decision: string;
   risk_level: string;
   summary: string;
+  unresolved_items?: UnresolvedFood[];
+  excluded_unresolved_items?: ExcludedUnresolvedFood[];
   checks?: DecisionCheck[];
 };
 
@@ -169,8 +171,23 @@ export type UnresolvedFood = {
   day: number;
   meal: string;
   food: string;
+  quantity?: number;
+  unit?: string;
   quantity_text?: string;
   unresolved_reason?: string;
+  [key: string]: unknown;
+};
+
+export type ExcludedUnresolvedFood = {
+  day: number;
+  meal: string;
+  food: string;
+  quantity: number;
+  unit: string;
+  deterministic_grams: number;
+  unresolved_reason?: string;
+  exclusion_reason?: string;
+  policy_id?: string;
   [key: string]: unknown;
 };
 
@@ -211,6 +228,7 @@ export type ReportArtifacts = {
   totals: DailyTotal[];
   resolved: ResolvedFood[];
   unresolved: UnresolvedFood[];
+  excludedUnresolved: ExcludedUnresolvedFood[];
   manifest: Manifest;
   pack?: unknown;
   citations: Citations;
@@ -293,6 +311,14 @@ export type VerificationConstraints = {
   max_saturated_fat_pct_calories: number;
   calorie_tolerance_pct: number;
   requires_prep_safety_notes: boolean;
+  unresolved_policy?: UnresolvedPolicy;
+};
+
+export type UnresolvedPolicy = {
+  de_minimis_enabled?: boolean;
+  max_item_grams?: number;
+  max_total_grams_per_day?: number;
+  max_items_per_day?: number;
 };
 
 export type VerificationConstraintsDraft = Omit<VerificationConstraints, "allergies" | "excluded_foods"> & {

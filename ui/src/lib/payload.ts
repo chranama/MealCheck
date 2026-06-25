@@ -22,7 +22,7 @@ export function normalizeSettings(settings: SettingsDraft): Settings {
 }
 
 function normalizeVerificationConstraints(constraints: SettingsDraft["verification_constraints"]): VerificationConstraints {
-  return {
+  const normalized: VerificationConstraints = {
     days: Math.round(Number(constraints.days)),
     meals_per_day: Math.round(Number(constraints.meals_per_day)),
     allergies: csvValue(constraints.allergies),
@@ -33,6 +33,15 @@ function normalizeVerificationConstraints(constraints: SettingsDraft["verificati
     calorie_tolerance_pct: Number(constraints.calorie_tolerance_pct),
     requires_prep_safety_notes: Boolean(constraints.requires_prep_safety_notes),
   };
+  if (constraints.unresolved_policy) {
+    normalized.unresolved_policy = {
+      de_minimis_enabled: Boolean(constraints.unresolved_policy.de_minimis_enabled),
+      max_item_grams: Number(constraints.unresolved_policy.max_item_grams || 0),
+      max_total_grams_per_day: Number(constraints.unresolved_policy.max_total_grams_per_day || 0),
+      max_items_per_day: Math.round(Number(constraints.unresolved_policy.max_items_per_day || 0)),
+    };
+  }
+  return normalized;
 }
 
 export function buildManualPlan(items: ManualItem[], prepNotes: string, now: number = Date.now()): MealPlan {

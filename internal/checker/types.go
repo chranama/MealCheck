@@ -27,15 +27,23 @@ type NutritionTargets struct {
 }
 
 type VerificationConstraints struct {
-	Days                       int      `json:"days"`
-	MealsPerDay                int      `json:"meals_per_day"`
-	Allergies                  []string `json:"allergies"`
-	ExcludedFoods              []string `json:"excluded_foods"`
-	MaxSodiumMGPerDay          int      `json:"max_sodium_mg_per_day"`
-	MaxAddedSugarGPerMeal      float64  `json:"max_added_sugar_g_per_meal"`
-	MaxSaturatedFatPctCalories float64  `json:"max_saturated_fat_pct_calories"`
-	CalorieTolerancePct        float64  `json:"calorie_tolerance_pct"`
-	RequiresPrepSafetyNotes    bool     `json:"requires_prep_safety_notes"`
+	Days                       int              `json:"days"`
+	MealsPerDay                int              `json:"meals_per_day"`
+	Allergies                  []string         `json:"allergies"`
+	ExcludedFoods              []string         `json:"excluded_foods"`
+	MaxSodiumMGPerDay          int              `json:"max_sodium_mg_per_day"`
+	MaxAddedSugarGPerMeal      float64          `json:"max_added_sugar_g_per_meal"`
+	MaxSaturatedFatPctCalories float64          `json:"max_saturated_fat_pct_calories"`
+	CalorieTolerancePct        float64          `json:"calorie_tolerance_pct"`
+	RequiresPrepSafetyNotes    bool             `json:"requires_prep_safety_notes"`
+	UnresolvedPolicy           UnresolvedPolicy `json:"unresolved_policy,omitempty"`
+}
+
+type UnresolvedPolicy struct {
+	DeMinimisEnabled    bool    `json:"de_minimis_enabled,omitempty"`
+	MaxItemGrams        float64 `json:"max_item_grams,omitempty"`
+	MaxTotalGramsPerDay float64 `json:"max_total_grams_per_day,omitempty"`
+	MaxItemsPerDay      int     `json:"max_items_per_day,omitempty"`
 }
 
 type Expectations struct {
@@ -113,30 +121,32 @@ type Nutrients struct {
 }
 
 type Evaluation struct {
-	CaseID            string
-	Decision          string
-	RiskLevel         string
-	Summary           string
-	RecommendedAction string
-	Checks            []CheckResult
-	ResolvedItems     []ResolvedItem
-	UnresolvedItems   []UnresolvedItem
-	DailyTotals       []DailyTotal
-	MealTotals        []MealTotal
+	CaseID                  string
+	Decision                string
+	RiskLevel               string
+	Summary                 string
+	RecommendedAction       string
+	Checks                  []CheckResult
+	ResolvedItems           []ResolvedItem
+	UnresolvedItems         []UnresolvedItem
+	ExcludedUnresolvedItems []ExcludedUnresolvedItem
+	DailyTotals             []DailyTotal
+	MealTotals              []MealTotal
 }
 
 type DecisionDocument struct {
-	SchemaVersion     string            `json:"schema_version"`
-	CaseID            string            `json:"case_id"`
-	Decision          string            `json:"decision"`
-	Summary           string            `json:"summary"`
-	RiskLevel         string            `json:"risk_level"`
-	FailedChecks      []string          `json:"failed_checks"`
-	UnresolvedItems   []UnresolvedItem  `json:"unresolved_items"`
-	RecommendedAction string            `json:"recommended_action"`
-	GuidelinePackID   string            `json:"guideline_pack_id"`
-	ArtifactPaths     map[string]string `json:"artifact_paths"`
-	Checks            []CheckResult     `json:"checks"`
+	SchemaVersion           string                   `json:"schema_version"`
+	CaseID                  string                   `json:"case_id"`
+	Decision                string                   `json:"decision"`
+	Summary                 string                   `json:"summary"`
+	RiskLevel               string                   `json:"risk_level"`
+	FailedChecks            []string                 `json:"failed_checks"`
+	UnresolvedItems         []UnresolvedItem         `json:"unresolved_items"`
+	ExcludedUnresolvedItems []ExcludedUnresolvedItem `json:"excluded_unresolved_items"`
+	RecommendedAction       string                   `json:"recommended_action"`
+	GuidelinePackID         string                   `json:"guideline_pack_id"`
+	ArtifactPaths           map[string]string        `json:"artifact_paths"`
+	Checks                  []CheckResult            `json:"checks"`
 }
 
 type CheckResult struct {
@@ -164,12 +174,25 @@ type ResolvedItem struct {
 }
 
 type UnresolvedItem struct {
-	Day              int    `json:"day"`
-	Meal             string `json:"meal"`
-	Food             string `json:"food"`
-	QuantityText     string `json:"quantity_text,omitempty"`
-	Unit             string `json:"unit,omitempty"`
-	UnresolvedReason string `json:"unresolved_reason"`
+	Day              int      `json:"day"`
+	Meal             string   `json:"meal"`
+	Food             string   `json:"food"`
+	Quantity         *float64 `json:"quantity,omitempty"`
+	QuantityText     string   `json:"quantity_text,omitempty"`
+	Unit             string   `json:"unit,omitempty"`
+	UnresolvedReason string   `json:"unresolved_reason"`
+}
+
+type ExcludedUnresolvedItem struct {
+	Day                int     `json:"day"`
+	Meal               string  `json:"meal"`
+	Food               string  `json:"food"`
+	Quantity           float64 `json:"quantity"`
+	Unit               string  `json:"unit"`
+	DeterministicGrams float64 `json:"deterministic_grams"`
+	UnresolvedReason   string  `json:"unresolved_reason"`
+	ExclusionReason    string  `json:"exclusion_reason"`
+	PolicyID           string  `json:"policy_id"`
 }
 
 type DailyTotal struct {
