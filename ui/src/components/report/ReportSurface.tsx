@@ -192,7 +192,7 @@ function unresolvedRecoveryAction(reason: unknown): string {
     preparation_unclear: "Specify preparation details such as baked, boiled, fried, or added fat.",
     restaurant_or_branded_food: "Use supported generic ingredients or an exact reviewed catalog item.",
     unknown_food: "Use a supported catalog food or request catalog expansion.",
-    unsupported_unit: "Use grams, ounces, cups, tablespoons, teaspoons, or servings.",
+    unsupported_unit: "Use grams, ounces, cups, tablespoons, teaspoons, slices, or servings.",
     vague_quantity: "Add a measured quantity and unit.",
   };
   return actions[id] || "Clarify this item and rerun MealCheck.";

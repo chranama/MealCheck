@@ -51,7 +51,7 @@ export const MVP_FOODS = [
 ] as const;
 
 export const MEALS = ["breakfast", "lunch", "dinner", "snack"] as const;
-export const UNITS = ["g", "oz", "cup", "tbsp", "tsp", "serving"] as const;
+export const UNITS = ["g", "oz", "cup", "tbsp", "tsp", "slice", "serving"] as const;
 export const TABS: ReportTab[] = ["checks", "nutrition", "foods", "sources", "report"];
 
 export const INITIAL_MANUAL_ITEMS: ManualItem[] = [
@@ -66,7 +66,7 @@ export const DEFAULT_CANDIDATE_TEXT = [
   "Day 1 breakfast: 1 cup cooked oatmeal, 0.5 cup blueberries, and 1 cup plain Greek yogurt.",
   "Day 1 lunch: 4 oz grilled chicken breast, 1 cup brown rice, and 1 cup broccoli.",
   "Day 1 dinner: 4 oz baked salmon, 1 serving sweet potato, and 1 tbsp olive oil.",
-  "Day 2 breakfast: 1 serving boiled egg, 1 serving whole wheat bread, and 1 cup orange.",
+  "Day 2 breakfast: 1 serving boiled egg, 2 slices whole wheat bread, and 1 cup sliced oranges.",
   "Day 2 lunch: 4 oz tuna, 2 cups romaine lettuce, and 1 tbsp olive oil.",
   "Day 2 dinner: 5 oz roasted turkey, 1 cup whole wheat pasta, and 1 cup spinach.",
 ].join("\n");

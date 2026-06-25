@@ -372,7 +372,7 @@ file workflow. The same normalized plan validation rules apply there:
 - At least one day, meal, and item is required.
 - Each item must have `food`.
 - Quantified items must have a positive `quantity` and one of these units:
-  `g`, `oz`, `cup`, `tbsp`, `tsp`, `serving`.
+  `g`, `oz`, `cup`, `tbsp`, `tsp`, `slice`, `serving`.
 - Unquantified items must include `quantity_text`,
   `resolution_status: "unresolved"`, and `unresolved_reason`.
 

@@ -127,6 +127,52 @@ func TestResolverReviewedCatalogBypassesFallbackGate(t *testing.T) {
 	}
 }
 
+func TestResolverUsesReviewedCatalogForSlicesAndSlicedOrangeAlias(t *testing.T) {
+	var catalog NutrientCatalog
+	if err := readJSON(filepath.Join(repoRoot(t), "data/nutrients/fixture-catalog-v1.json"), &catalog); err != nil {
+		t.Fatalf("read catalog: %v", err)
+	}
+	breadQuantity := 2.0
+	orangeQuantity := 1.0
+	plan := Plan{
+		Days: []PlanDay{
+			{
+				Day: 1,
+				Meals: []Meal{
+					{
+						Name: "breakfast",
+						Items: []FoodItem{
+							{Food: "whole wheat bread", Quantity: &breadQuantity, Unit: "slice"},
+							{Food: "sliced oranges", Quantity: &orangeQuantity, Unit: "cup"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	resolved, unresolved, err := newResolver(catalog).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unresolved) != 0 {
+		t.Fatalf("unresolved = %+v, want none", unresolved)
+	}
+	if len(resolved) != 2 {
+		t.Fatalf("len(resolved) = %d, want 2", len(resolved))
+	}
+	resolvedByID := map[string]ResolvedItem{}
+	for _, item := range resolved {
+		resolvedByID[item.FoodID] = item
+	}
+	if item, ok := resolvedByID["whole_wheat_bread"]; !ok || item.Grams != 32 {
+		t.Fatalf("bread resolved = %+v, want whole_wheat_bread at 32g", item)
+	}
+	if item, ok := resolvedByID["orange_raw"]; !ok || item.Grams != 180 {
+		t.Fatalf("orange resolved = %+v, want orange_raw at 180g", item)
+	}
+}
+
 func TestResolverUsesFNDDSFallbackForEligibleExactMatch(t *testing.T) {
 	ref := openTestFNDDSReference(t)
 	qty := 100.0

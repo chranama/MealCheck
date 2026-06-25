@@ -8,7 +8,7 @@
     "meals_required": true,
     "foods_required": true,
     "numeric_quantities_required": true,
-    "supported_units": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
+    "supported_units": ["g", "oz", "cup", "tbsp", "tsp", "slice", "serving"]
   },
   "cases": [
     {

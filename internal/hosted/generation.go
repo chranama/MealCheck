@@ -440,7 +440,7 @@ func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 		"Do not copy the shape instructions as the answer; generate a complete meal plan that satisfies the requested structure.",
 		"Do not include nutrient totals, calories, or compliance judgments.",
 		"Every food item must include either quantity plus unit, or quantity_text with resolution_status unresolved and unresolved_reason.",
-		"Allowed units are g, oz, cup, tbsp, tsp, and serving.",
+		"Allowed units are g, oz, cup, tbsp, tsp, slice, and serving.",
 		"Do not override declared allergies, excluded foods, or constraints.",
 		"Do not provide medical claims.",
 	}
@@ -480,7 +480,7 @@ func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, err
 		"Shape: {\"i\":[[source_item_id,day,meal_code,food,quantity,unit]]}.",
 		"Meal codes: b=breakfast, m=morning snack, l=lunch, a=afternoon snack, d=dinner, s=snack, e=evening snack.",
 		"When the user states the exact allowed meal codes, use only those meal codes.",
-		"Allowed units: g, oz, cup, tbsp, tsp, serving.",
+		"Allowed units: g, oz, cup, tbsp, tsp, slice, serving.",
 	}, " ")
 	userParts := []string{
 		"Extract this meal plan into compact row JSON.",
@@ -563,8 +563,8 @@ type localModelDaySection struct {
 }
 
 var (
-	localLlamaResolvedItemLinePattern = regexp.MustCompile(`(?i)^\s*(?:[-*]|\d+[.)])\s+(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s*(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|servings?)\b`)
-	localLlamaInlineItemPattern       = regexp.MustCompile(`(?i)^\s*((?:\d+(?:\.\d+)?)|(?:\d+\s*/\s*\d+)|(?:\d+\s+\d+\s*/\s*\d+))\s+((?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|servings?)\s+)?(.+?)\s*$`)
+	localLlamaResolvedItemLinePattern = regexp.MustCompile(`(?i)^\s*(?:[-*]|\d+[.)])\s+(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s*(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\b`)
+	localLlamaInlineItemPattern       = regexp.MustCompile(`(?i)^\s*((?:\d+(?:\.\d+)?)|(?:\d+\s*/\s*\d+)|(?:\d+\s+\d+\s*/\s*\d+))\s+((?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\s+)?(.+?)\s*$`)
 	localLlamaInlineAndItemBoundary   = regexp.MustCompile(`(?i)\s+\band\s+((?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s+)`)
 	localLlamaInlineLeadingAnd        = regexp.MustCompile(`(?i)^\s*and\s+`)
 	localLlamaSourceItemMarkerPattern = regexp.MustCompile(`^\s*(?:[-*]|\d+[.)])\s+`)
@@ -783,6 +783,8 @@ func localLlamaNormalizeSourceUnit(unit string) string {
 		return "tbsp"
 	case "teaspoon", "teaspoons":
 		return "tsp"
+	case "slices":
+		return "slice"
 	case "servings":
 		return "serving"
 	default:
@@ -999,7 +1001,7 @@ func validateGeneratedPlanAgainstConstraints(plan checker.Plan, constraints chec
 
 func allowedUnit(unit string) bool {
 	switch unit {
-	case "g", "oz", "cup", "tbsp", "tsp", "serving":
+	case "g", "oz", "cup", "tbsp", "tsp", "slice", "serving":
 		return true
 	default:
 		return false

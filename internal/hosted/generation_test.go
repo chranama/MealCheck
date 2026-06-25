@@ -133,6 +133,26 @@ func TestLocalModelExtractionMessagesPreservesAndInsideFoodNames(t *testing.T) {
 	}
 }
 
+func TestLocalModelExtractionMessagesNormalizesSliceUnitAndSlicedOrange(t *testing.T) {
+	messages, err := localModelExtractionMessages(PendingRunInput{
+		CandidateText: "Day 2 breakfast: 1 serving boiled egg, 2 slices whole wheat bread, and 1 cup sliced oranges.",
+	})
+	if err != nil {
+		t.Fatalf("localModelExtractionMessages error: %v", err)
+	}
+	userPrompt := messages[1].Content
+	for _, want := range []string{
+		"The source contains exactly 3 resolved food item line(s); return exactly 3 row(s).",
+		"1 | day=2 | meal_code=b | source_text=1 serving boiled egg",
+		"2 | day=2 | meal_code=b | source_text=2 slice whole wheat bread",
+		"3 | day=2 | meal_code=b | source_text=1 cup sliced oranges",
+	} {
+		if !strings.Contains(userPrompt, want) {
+			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
+		}
+	}
+}
+
 func TestLocalModelDaySectionsRewritesEachDayForSingleDayExtraction(t *testing.T) {
 	sections, ok := localModelDaySections(strings.Join([]string{
 		"Day 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.",

@@ -61,7 +61,7 @@ func mealPlanShapeInstructions(constraints checker.VerificationConstraints) map[
 		"food_item_numeric_quantity": map[string]any{
 			"food":     "food name",
 			"quantity": "positive number",
-			"unit":     "g, oz, cup, tbsp, tsp, or serving",
+			"unit":     "g, oz, cup, tbsp, tsp, slice, or serving",
 		},
 		"food_item_unresolved_quantity": map[string]any{
 			"food":              "food name",
@@ -116,7 +116,7 @@ func strictMealPlanResponseSchema() map[string]any {
 				},
 				"unit": map[string]any{
 					"type": []string{"string", "null"},
-					"enum": []any{"g", "oz", "cup", "tbsp", "tsp", "serving", nil},
+					"enum": []any{"g", "oz", "cup", "tbsp", "tsp", "slice", "serving", nil},
 				},
 				"preparation": map[string]any{
 					"type": []string{"string", "null"},

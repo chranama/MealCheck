@@ -33,7 +33,7 @@
           },
           {
             "type": "string",
-            "enum": ["g", "oz", "cup", "tbsp", "tsp", "serving"]
+            "enum": ["g", "oz", "cup", "tbsp", "tsp", "slice", "serving"]
           }
         ],
         "additionalItems": false

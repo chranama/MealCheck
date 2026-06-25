@@ -60,6 +60,7 @@ Supported unit vocabulary for the first robustness dataset:
 - `cup` or cups
 - `tbsp` or tablespoons
 - `tsp` or teaspoons
+- `slice` or slices
 - `serving` or servings
 
 Acceptable variability:
@@ -78,7 +79,7 @@ Not acceptable for this dataset:
 - recipes that need decomposition into ingredients
 - nutrition totals without food items
 - foods with no quantity
-- quantities with unsupported units such as slice, handful, bowl, scoop, or
+- quantities with unsupported units such as handful, bowl, scoop, or
   small/medium/large
 - clinical, pediatric, pregnancy, or disease-specific scenarios
 - inputs longer than the hosted character limit

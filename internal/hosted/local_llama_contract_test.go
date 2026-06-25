@@ -86,11 +86,12 @@ func TestDecodeLocalLlamaCompactPlanAcceptsV2TupleItems(t *testing.T) {
 func TestDecodeLocalLlamaCompactPlanCleansDuplicateQuantityFromFood(t *testing.T) {
 	plan, err := DecodeLocalLlamaCompactPlan(`{
 		"i":[
-			[1,1,"b","1 cup cooked oatmeal",1,"cup"],
-			[2,1,"b","1/2 cup blueberries",0.5,"cup"],
-			[3,1,"l","1 1/2 cup brown rice",1.5,"cup"],
-			[4,1,"d","1 tbsp olive oil",1,"tsp"]
-		]
+				[1,1,"b","1 cup cooked oatmeal",1,"cup"],
+				[2,1,"b","1/2 cup blueberries",0.5,"cup"],
+				[5,1,"b","2 slice whole wheat bread",2,"slice"],
+				[3,1,"l","1 1/2 cup brown rice",1.5,"cup"],
+				[4,1,"d","1 tbsp olive oil",1,"tsp"]
+			]
 	}`, "duplicate-quantity-test")
 	if err != nil {
 		t.Fatalf("DecodeLocalLlamaCompactPlan error: %v", err)
@@ -101,6 +102,9 @@ func TestDecodeLocalLlamaCompactPlanCleansDuplicateQuantityFromFood(t *testing.T
 	}
 	if breakfast[1].Food != "blueberries" || breakfast[1].Unit != "cup" {
 		t.Fatalf("second item = %+v, want cleaned blueberries cup", breakfast[1])
+	}
+	if breakfast[2].Food != "whole wheat bread" || breakfast[2].Unit != "slice" {
+		t.Fatalf("slice item = %+v, want cleaned whole wheat bread slice", breakfast[2])
 	}
 	lunch := plan.Days[0].Meals[1].Items
 	if lunch[0].Food != "brown rice" || lunch[0].Unit != "cup" {
@@ -176,7 +180,7 @@ func TestDecodeLocalLlamaCompactPlanRejectsInvalidShape(t *testing.T) {
 		},
 		{
 			name: "unsupported unit",
-			text: `{"b":[["toast",1,"slice"]],"l":[["rice",1,"cup"]],"d":[["salmon",4,"oz"]]}`,
+			text: `{"b":[["toast",1,"loaf"]],"l":[["rice",1,"cup"]],"d":[["salmon",4,"oz"]]}`,
 		},
 		{
 			name: "nonpositive quantity",

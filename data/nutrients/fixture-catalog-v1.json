@@ -2957,7 +2957,10 @@
       "name": "orange",
       "aliases": [
         "raw orange",
-        "Orange, raw"
+        "Orange, raw",
+        "sliced orange",
+        "sliced oranges",
+        "orange segments"
       ],
       "base_quantity_g": 100,
       "nutrients_per_100g": {

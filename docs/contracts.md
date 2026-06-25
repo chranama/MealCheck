@@ -207,7 +207,7 @@ MVP behavior:
 - Resolve foods by exact match plus reviewed aliases only.
 - Do not use fuzzy matching in the MVP.
 - Normalize quantities to grams internally.
-- Accept `g`, `oz`, `cup`, `tbsp`, `tsp`, and `serving` only when the fixture
+- Accept `g`, `oz`, `cup`, `tbsp`, `tsp`, `slice`, and `serving` only when the fixture
   defines the conversion for that food.
 - Mark unresolved foods explicitly.
 - Warn or block when too much of the plan cannot be resolved.

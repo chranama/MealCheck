@@ -844,7 +844,7 @@ func TestPromptGenerationMarksUnsupportedUnitsUnresolved(t *testing.T) {
 	seeded.Settings.VerificationConstraints.Days = 1
 	seeded.Settings.VerificationConstraints.MealsPerDay = 3
 	provider := &fakeProvider{responses: []string{
-		`{"schema_version":"0.1","plan_id":"unsupported-unit","days":[{"day":1,"meals":[{"name":"breakfast","items":[{"food":"Whole Wheat Bread","quantity":1,"unit":"slice"}]},{"name":"lunch","items":[{"food":"chicken breast","quantity":4,"unit":"oz"}]},{"name":"dinner","items":[{"food":"broccoli","quantity":1,"unit":"cup"}]}]}]}`,
+		`{"schema_version":"0.1","plan_id":"unsupported-unit","days":[{"day":1,"meals":[{"name":"breakfast","items":[{"food":"Whole Wheat Bread","quantity":1,"unit":"loaf"}]},{"name":"lunch","items":[{"food":"chicken breast","quantity":4,"unit":"oz"}]},{"name":"dinner","items":[{"food":"broccoli","quantity":1,"unit":"cup"}]}]}]}`,
 	}}
 
 	body := marshalJSON(t, CreateRunRequest{
@@ -895,7 +895,7 @@ func TestPromptGenerationMarksUnsupportedUnitsUnresolved(t *testing.T) {
 	var plan checker.Plan
 	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "normalized-plan.json")), &plan)
 	item := plan.Days[0].Meals[0].Items[0]
-	if item.Quantity != nil || item.Unit != "" || item.QuantityText != "1 slice" || item.ResolutionStatus != "unresolved" || item.UnresolvedReason != "unsupported_unit" {
+	if item.Quantity != nil || item.Unit != "" || item.QuantityText != "1 loaf" || item.ResolutionStatus != "unresolved" || item.UnresolvedReason != "unsupported_unit" {
 		t.Fatalf("unsupported unit item was not preserved as unresolved: %+v", item)
 	}
 	var decision checker.DecisionDocument
@@ -904,7 +904,7 @@ func TestPromptGenerationMarksUnsupportedUnitsUnresolved(t *testing.T) {
 		t.Fatalf("len(unresolved_items) = %d, want 1: %+v", len(decision.UnresolvedItems), decision.UnresolvedItems)
 	}
 	unresolved := decision.UnresolvedItems[0]
-	if unresolved.Food != "Whole Wheat Bread" || unresolved.QuantityText != "1 slice" || unresolved.UnresolvedReason != "unsupported_unit" {
+	if unresolved.Food != "Whole Wheat Bread" || unresolved.QuantityText != "1 loaf" || unresolved.UnresolvedReason != "unsupported_unit" {
 		t.Fatalf("unexpected unresolved item: %+v", unresolved)
 	}
 }

@@ -264,7 +264,7 @@ func hasRecipeSignal(text string) bool {
 	return false
 }
 
-var quantitySignalPattern = regexp.MustCompile(`(?i)(\b\d+(\.\d+)?\b.*\b(g|gram|grams|oz|ounce|ounces|cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|serving|servings)\b)|(\b(g|oz|cup|cups|tbsp|tsp|serving|servings)\b.*\b\d+(\.\d+)?\b)`)
+var quantitySignalPattern = regexp.MustCompile(`(?i)(\b\d+(\.\d+)?\b.*\b(g|gram|grams|oz|ounce|ounces|cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|slice|slices|serving|servings)\b)|(\b(g|oz|cup|cups|tbsp|tsp|slice|slices|serving|servings)\b.*\b\d+(\.\d+)?\b)`)
 
 func hasQuantitySignal(text string) bool {
 	return quantitySignalPattern.MatchString(text)

@@ -500,7 +500,7 @@ func LocalLlamaCompactResponseSchema() map[string]any {
 			},
 			{
 				"type": "string",
-				"enum": []string{"g", "oz", "cup", "tbsp", "tsp", "serving"},
+				"enum": []string{"g", "oz", "cup", "tbsp", "tsp", "slice", "serving"},
 			},
 		},
 		"additionalItems": false,
