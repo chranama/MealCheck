@@ -94,6 +94,7 @@ production tunnel, hosted local model, and optional external provider paths.
 - [Documentation Index](docs/README.md)
 - [Product](docs/product.md)
 - [User Story](docs/user-story.md)
+- [Current Priorities](docs/current-priorities.md)
 - [Plan Recommendation](docs/plan_recommendation.md)
 - [Nutritional Guidelines](docs/nutritional-guidelines.md)
 - [Privacy And Safety](docs/privacy-and-safety.md)

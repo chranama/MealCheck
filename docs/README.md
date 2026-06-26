@@ -10,6 +10,7 @@ spreading across separate ADR, RFC, and planning documents.
 
 - [Product](product.md): problem, users, scope, non-goals, and success criteria.
 - [User Story](user-story.md): MVP user story, flow, LLM role, checks, and acceptance criteria.
+- [Current Priorities](current-priorities.md): active engineering priority order, target metrics, and next slices.
 - [Meal Plan Input Robustness](meal-plan-input-robustness.md): acceptable pasted-input boundary and synthetic normalization dataset.
 - [Plan Recommendation](plan_recommendation.md): deterministic recommendation principles and artifact boundary.
 - [Nutritional Guidelines](nutritional-guidelines.md): source selection, guideline-pack preprocessing, and meal-plan JSON normalization.
