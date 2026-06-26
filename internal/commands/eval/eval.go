@@ -1,4 +1,4 @@
-package evalcmd
+package eval
 
 import (
 	"encoding/json"

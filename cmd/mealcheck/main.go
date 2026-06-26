@@ -12,7 +12,7 @@ import (
 
 	"github.com/chranama/MealCheck/internal/artifacts"
 	"github.com/chranama/MealCheck/internal/checker"
-	evalcmd "github.com/chranama/MealCheck/internal/commands/eval"
+	"github.com/chranama/MealCheck/internal/commands/eval"
 	"github.com/chranama/MealCheck/internal/commands/fixturecheck"
 	"github.com/chranama/MealCheck/internal/commands/localsmoke"
 	"github.com/chranama/MealCheck/internal/hosted"
@@ -36,7 +36,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	case "decision":
 		return runDecisionCommand(args[1:], stdout, stderr)
 	case "eval":
-		return evalcmd.Run(args[1:], stdout, stderr)
+		return eval.Run(args[1:], stdout, stderr)
 	case "fixture-check":
 		return fixturecheck.Run(args[1:], stdout, stderr)
 	case "invite":
