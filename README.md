@@ -2,8 +2,10 @@
 
 [![CI](https://github.com/chranama/MealCheck/actions/workflows/ci.yml/badge.svg)](https://github.com/chranama/MealCheck/actions/workflows/ci.yml)
 
-MealCheck verifies LLM-generated or LLM-normalized meal plans against user
-constraints and versioned public guideline sources.
+MealCheck verifies ingredient-level meal plans against user constraints and
+versioned public guideline sources. Plans may come from a user, an LLM, or a
+bounded normalization workflow, but guideline compliance is checked
+deterministically.
 
 It answers one practical question:
 
@@ -12,26 +14,29 @@ It answers one practical question:
 
 ## What It Does
 
-- Accepts concise ingredient-level meal plans through the hosted local-model
-  path, plus BYOK/custom-provider and structured JSON workflows in the local
-  CLI/API/debug surfaces.
+- Accepts concise ingredient-level meal-plan text through the hosted
+  local-model path.
+- Keeps BYOK/custom-provider generation and repair in the configurable backend
+  API for local, self-hosted, and debug deployments.
+- Keeps the local CLI as a deterministic case-file verifier and artifact
+  writer; it does not call remote model providers.
 - Defines a qualification boundary for whether candidate content is specific
   enough to become a verifiable meal plan.
 - Normalizes the plan into a strict meal-plan schema.
-- Resolves foods and portions against a nutrient catalog.
+- Resolves foods and portions against a reviewed nutrient catalog, with an
+  optional exact-match FNDDS SQLite fallback for eligible gram-based misses.
 - Applies deterministic checks from a versioned guideline pack.
 - Produces a `pass`, `warn`, or `block` decision with evidence.
-- Supports server-local model verification, seeded repo proof artifacts,
-  BYOK/custom endpoint verification for local/API users, and local structured JSON
-  verification.
+- Preserves seeded proof artifacts, local structured case-file verification,
+  and a local llama compact-output adapter for development and regression work.
 
 ## Current Shape
 
-The project has a Vite/React frontend and hosted API. It has seeded fixtures,
-JSON Schemas, a small local nutrient catalog, a checker core, a local CLI that
-writes the artifact bundle, a static frontend with a hosted local-model
-verification workflow, a hosted API/worker wrapper, and local/API
-bring-your-own-key generation and repair paths.
+The repository contains a Vite/React static frontend, a hosted API/worker, a
+checker core, JSON Schemas, seeded fixtures, a reviewed nutrient catalog, an
+optional FNDDS fallback path, and a local CLI that writes artifact bundles from
+case files. The hosted API can be configured either for the public local-model
+workflow or for local/self-hosted BYOK provider workflows.
 
 The deployed MVP shape is:
 
@@ -45,18 +50,21 @@ The deployed MVP shape is:
   served by GitHub Pages from the
   [checked-in source file](docs/seeded-report.html)
 - BYOK OpenAI, Anthropic, Gemini, and custom OpenAI-compatible providers
-  preserved for repo/CLI/API and self-hosted deployments
-- structured manual JSON verification preserved in the local CLI/debug path
+  preserved for local or self-hosted backend/API deployments, plus debug and
+  regression tests
+- deterministic structured case-file verification preserved in the local CLI
+  and debug path
 
 The Cloudflare Pages frontend is connected
 to the GitHub repository and automatically deploys from `main`.
 
 The hosted website is a bounded local-model verification demo: paste a concise
 ingredient-level meal plan and receive a source-backed report. The downloaded
-repository is the higher-control local verifier/debug surface, the BYOK/custom
-endpoint surface, and the intended base for future agent-tool integration.
+repository is the deterministic local verifier/debug surface, the self-hostable
+BYOK/custom endpoint surface, and the intended base for future agent-tool
+integration.
 Multi-day hosted inputs work best when each day is labeled explicitly, such as
-`Day 1`, `Day 2`, and `Day 3`, with meals and ingredient amounts grouped under
+`Day 1`, `Day 2`, and so on, with meals and ingredient amounts grouped under
 the correct day. Clear day sections let the backend process each day in a
 smaller local-model call; ambiguous multi-day text falls back to the unbatched
 whole-plan path.
