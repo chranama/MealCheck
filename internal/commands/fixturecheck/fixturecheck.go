@@ -1,4 +1,4 @@
-package main
+package fixturecheck
 
 import (
 	"bufio"
@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -21,16 +22,21 @@ type validationTarget struct {
 	instancePath string
 }
 
-func main() {
-	root := flag.String("root", ".", "repository root")
-	flag.Parse()
-
-	if err := run(*root); err != nil {
-		fmt.Fprintf(os.Stderr, "fixture check failed: %v\n", err)
-		os.Exit(1)
+func Run(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("fixture-check", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	root := flags.String("root", ".", "repository root")
+	if err := flags.Parse(args); err != nil {
+		return 2
 	}
 
-	fmt.Println("fixture check passed")
+	if err := run(*root); err != nil {
+		fmt.Fprintf(stderr, "fixture check failed: %v\n", err)
+		return 1
+	}
+
+	fmt.Fprintln(stdout, "fixture check passed")
+	return 0
 }
 
 func run(root string) error {

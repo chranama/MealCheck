@@ -33,19 +33,19 @@ jobs:
         run: go mod download
 
       - name: Validate fixtures
-        run: go run ./cmd/mealcheck-fixture-check
+        run: go run ./cmd/mealcheck fixture-check
 
       - name: Run FNDDS evaluation
-        run: go run ./cmd/mealcheck-eval
+        run: go run ./cmd/mealcheck eval
 
       - name: Run WWEIA/NHANES evaluation
-        run: go run ./cmd/mealcheck-eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json
+        run: go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json
 
       - name: Run Go tests
         run: go test ./...
 
       - name: Run local smoke proof
-        run: go run ./cmd/mealcheck-local-smoke
+        run: go run ./cmd/mealcheck local-smoke
 
   frontend:
     name: Frontend Proof Gates

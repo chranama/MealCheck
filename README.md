@@ -78,9 +78,9 @@ undecomposed, eligible, or eligible with unresolved items.
 GitHub Actions runs the core proof gates on every push to `main`, pull request,
 and manual dispatch:
 
-- fixture validation with `go run ./cmd/mealcheck-fixture-check`
+- fixture validation with `go run ./cmd/mealcheck fixture-check`
 - backend tests with `go test ./...`
-- local CLI/API smoke proof with `go run ./cmd/mealcheck-local-smoke`
+- local CLI/API smoke proof with `go run ./cmd/mealcheck local-smoke`
 - frontend typecheck, unit tests, and build
 - mocked Playwright browser workflow
 - local-stack Playwright workflow against the real Go backend, memory storage,

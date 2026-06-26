@@ -596,7 +596,7 @@ paths needed by the seeded example.
 MealCheck will use a native Go fixture validator:
 
 ```bash
-go run ./cmd/mealcheck-fixture-check
+go run ./cmd/mealcheck fixture-check
 ```
 
 The validator checks JSON Schema conformance plus cross-file integrity for case
@@ -953,7 +953,7 @@ Decision:
 Milestone 7 is accepted for local development/prototyping scope. Local
 acceptance is demonstrated by:
 
-- `go run ./cmd/mealcheck-local-smoke`
+- `go run ./cmd/mealcheck local-smoke`
 - `cd ui && npm run test:e2e:local`
 
 The Go smoke command builds the CLI in a temporary clean build directory,

@@ -1,9 +1,10 @@
-package main
+package evalcmd
 
 import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"sort"
@@ -97,41 +98,46 @@ type categoryAccumulator struct {
 	unresolved int
 }
 
-func main() {
-	root := flag.String("root", ".", "repository root")
-	datasetPath := flag.String("dataset", "data/evaluation/fndds-grounded-meal-plans-v1.json", "evaluation dataset path")
-	catalogOverride := flag.String("catalog", "", "optional nutrient catalog path override")
-	fallbackPath := flag.String("fndds-fallback", "", "optional FNDDS SQLite fallback database path")
-	skipExpected := flag.Bool("skip-expected", false, "skip expected outcome comparisons and report coverage only")
-	outPath := flag.String("out", "", "optional path to write JSON results")
-	allowMismatch := flag.Bool("allow-mismatch", false, "exit successfully even when expected outcomes mismatch")
-	flag.Parse()
+func Run(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("eval", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	root := flags.String("root", ".", "repository root")
+	datasetPath := flags.String("dataset", "data/evaluation/fndds-grounded-meal-plans-v1.json", "evaluation dataset path")
+	catalogOverride := flags.String("catalog", "", "optional nutrient catalog path override")
+	fallbackPath := flags.String("fndds-fallback", "", "optional FNDDS SQLite fallback database path")
+	skipExpected := flags.Bool("skip-expected", false, "skip expected outcome comparisons and report coverage only")
+	outPath := flags.String("out", "", "optional path to write JSON results")
+	allowMismatch := flags.Bool("allow-mismatch", false, "exit successfully even when expected outcomes mismatch")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
 
 	result, err := run(*root, *datasetPath, *catalogOverride, *fallbackPath, *skipExpected)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "mealcheck eval failed: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(stderr, "mealcheck eval failed: %v\n", err)
+		return 1
 	}
 
 	encoded, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "encode eval result: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(stderr, "encode eval result: %v\n", err)
+		return 1
 	}
 	encoded = append(encoded, '\n')
 
 	if *outPath != "" {
 		if err := os.WriteFile(resolvePath(*root, *outPath), encoded, 0o644); err != nil {
-			fmt.Fprintf(os.Stderr, "write eval result: %v\n", err)
-			os.Exit(1)
+			fmt.Fprintf(stderr, "write eval result: %v\n", err)
+			return 1
 		}
 	} else {
-		fmt.Print(string(encoded))
+		fmt.Fprint(stdout, string(encoded))
 	}
 
 	if result.CasesWithMismatches > 0 && !*allowMismatch {
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 func run(root, datasetPath, catalogOverride, fallbackPath string, skipExpected bool) (evalResult, error) {

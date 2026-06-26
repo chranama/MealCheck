@@ -107,6 +107,52 @@ func TestDecisionCommandReturnsDecisionExit(t *testing.T) {
 	}
 }
 
+func TestEvalCommandWritesResult(t *testing.T) {
+	root := repoRoot(t)
+	out := filepath.Join(t.TempDir(), "eval-result.json")
+
+	code := run([]string{
+		"eval",
+		"-root", root,
+		"-out", out,
+	}, &bytes.Buffer{}, &bytes.Buffer{})
+
+	if code != 0 {
+		t.Fatalf("eval exit code = %d, want 0", code)
+	}
+
+	var result struct {
+		SchemaVersion       string `json:"schema_version"`
+		DatasetID           string `json:"dataset_id"`
+		TotalCases          int    `json:"total_cases"`
+		CasesWithMismatches int    `json:"cases_with_mismatches"`
+	}
+	readJSON(t, out, &result)
+	if result.SchemaVersion != "0.1" {
+		t.Fatalf("schema_version = %q, want 0.1", result.SchemaVersion)
+	}
+	if result.DatasetID != "fndds-grounded-meal-plans-v1" {
+		t.Fatalf("dataset_id = %q, want fndds-grounded-meal-plans-v1", result.DatasetID)
+	}
+	if result.TotalCases != 100 {
+		t.Fatalf("total_cases = %d, want 100", result.TotalCases)
+	}
+	if result.CasesWithMismatches != 0 {
+		t.Fatalf("cases_with_mismatches = %d, want 0", result.CasesWithMismatches)
+	}
+}
+
+func TestFixtureCheckCommandReturnsOK(t *testing.T) {
+	code := run([]string{
+		"fixture-check",
+		"-root", repoRoot(t),
+	}, &bytes.Buffer{}, &bytes.Buffer{})
+
+	if code != 0 {
+		t.Fatalf("fixture-check exit code = %d, want 0", code)
+	}
+}
+
 func TestLocalLlamaNormalizeCommandWritesCanonicalPlan(t *testing.T) {
 	dir := t.TempDir()
 	input := filepath.Join(dir, "compact.json")

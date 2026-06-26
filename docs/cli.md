@@ -1,12 +1,12 @@
 # CLI
 
 MealCheck exposes a local CLI for deterministic meal-plan checking, artifact
-bundle generation, decision exit-code enforcement, and hosted access-code
-administration.
+bundle generation, decision exit-code enforcement, fixture and evaluation proof
+gates, local smoke checks, and hosted access-code administration.
 
 The CLI is intended for local validation and operator workflows. It does not
-call remote LLM providers, does not use BYOK provider keys, and does not start
-the hosted API. Hosted live generation is documented in [API](api.md).
+call remote LLM providers or use BYOK provider keys during deterministic
+validation. Hosted live generation is documented in [API](api.md).
 
 Run commands from the repository root unless a command uses `--root`.
 
@@ -44,8 +44,11 @@ The deployed MacBook layout uses:
 | `mealcheck validate` | Evaluate a case file and write the full artifact bundle. |
 | `mealcheck compare` | Exercise the baseline/candidate command surface and write a compare-mode bundle. |
 | `mealcheck decision` | Read an existing `decision.json` and apply MealCheck exit-code policy. |
+| `mealcheck eval` | Run deterministic evaluation datasets and write coverage results. |
+| `mealcheck fixture-check` | Validate checked-in schemas, fixtures, catalogs, and reference data. |
 | `mealcheck local-llama normalize` | Expand compact local llama JSON into canonical MealCheck plan JSON. |
 | `mealcheck local-llama schema` | Print the compact local llama response schema. |
+| `mealcheck local-smoke` | Run the local CLI/API smoke proof with a fake provider. |
 | `mealcheck invite create` | Create a hosted API access code in Postgres. |
 | `mealcheck invite list` | List hosted API access-code metadata from Postgres. |
 | `mealcheck invite revoke` | Revoke a hosted API access code by id. |
@@ -57,8 +60,11 @@ usage:
   mealcheck validate --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]
   mealcheck compare --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]
   mealcheck decision [--strict] <decision.json>
+  mealcheck eval [-dataset dataset.json] [-out results.json] [-fndds-fallback fndds.sqlite] [-skip-expected]
+  mealcheck fixture-check [-root repo-root]
   mealcheck local-llama normalize --input compact.json [--out normalized-plan.json]
   mealcheck local-llama schema
+  mealcheck local-smoke [-root repo-root] [-work-dir dir] [-keep-work-dir]
   mealcheck invite create --label <label> [--expires YYYY-MM-DD] [--max-runs N]
   mealcheck invite list
   mealcheck invite revoke <access-code-id>
@@ -176,6 +182,43 @@ Options:
 
 `decision` requires exactly one positional path to a `decision.json` file.
 Unknown fields in that file are rejected.
+
+## Run Evaluation
+
+`eval` runs a checked-in evaluation dataset through the deterministic resolver
+and reports coverage, unresolved food frequency, category summaries, and
+expected-outcome mismatches.
+
+```bash
+go run ./cmd/mealcheck eval
+```
+
+Options:
+
+| Option | Default | Meaning |
+|---|---|---|
+| `-root` | `.` | Repository root used to resolve dataset, catalog, and fallback paths. |
+| `-dataset` | `data/evaluation/fndds-grounded-meal-plans-v1.json` | Evaluation dataset path. |
+| `-catalog` | dataset catalog path | Optional nutrient catalog override. |
+| `-fndds-fallback` | unset | Optional FNDDS SQLite fallback database path. |
+| `-skip-expected` | `false` | Skip expected outcome comparisons and report coverage only. |
+| `-out` | stdout | Optional path to write JSON results. |
+| `-allow-mismatch` | `false` | Exit successfully even when expected outcomes mismatch. |
+
+## Check Fixtures
+
+`fixture-check` validates checked-in schemas, example fixtures, guideline
+references, catalog quality, evaluation datasets, and FNDDS reference artifacts.
+
+```bash
+go run ./cmd/mealcheck fixture-check
+```
+
+Options:
+
+| Option | Default | Meaning |
+|---|---|---|
+| `-root` | `.` | Repository root used to resolve checked-in artifacts. |
 
 ## Local llama Adapter
 
@@ -393,7 +436,7 @@ run artifacts are not deleted by revoking an access code.
 Run the local CLI smoke command from the repository root:
 
 ```bash
-go run ./cmd/mealcheck-local-smoke
+go run ./cmd/mealcheck local-smoke
 ```
 
 The smoke command builds the CLI in a temporary clean build directory, runs the

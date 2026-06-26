@@ -1,4 +1,4 @@
-package main
+package localsmoke
 
 import (
 	"bytes"
@@ -32,18 +32,21 @@ const (
 type runner struct {
 	root    string
 	workDir string
+	stdout  io.Writer
 	logs    bytes.Buffer
 }
 
-func main() {
-	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintf(os.Stderr, "mealcheck-local-smoke failed: %v\n", err)
-		os.Exit(1)
+func Run(args []string, stdout, stderr io.Writer) int {
+	if err := run(args, stdout, stderr); err != nil {
+		fmt.Fprintf(stderr, "mealcheck local-smoke failed: %v\n", err)
+		return 1
 	}
+	return 0
 }
 
-func run(args []string) error {
-	flags := flag.NewFlagSet("mealcheck-local-smoke", flag.ContinueOnError)
+func run(args []string, stdout, stderr io.Writer) error {
+	flags := flag.NewFlagSet("local-smoke", flag.ContinueOnError)
+	flags.SetOutput(stderr)
 	rootFlag := flags.String("root", ".", "repository root")
 	workDirFlag := flags.String("work-dir", "", "optional smoke-test work directory")
 	keepWorkDir := flags.Bool("keep-work-dir", false, "keep the smoke-test work directory")
@@ -57,7 +60,7 @@ func run(args []string) error {
 	}
 	workDir := *workDirFlag
 	if workDir == "" {
-		workDir, err = os.MkdirTemp("", "mealcheck-local-smoke-*")
+		workDir, err = os.MkdirTemp("", "mealcheck-smoke-*")
 		if err != nil {
 			return err
 		}
@@ -68,7 +71,7 @@ func run(args []string) error {
 		defer os.RemoveAll(workDir)
 	}
 
-	r := &runner{root: root, workDir: workDir}
+	r := &runner{root: root, workDir: workDir, stdout: stdout}
 	r.logf("work_dir=%s", workDir)
 	if err := r.cliDeploymentSmoke(); err != nil {
 		return err
@@ -85,7 +88,7 @@ func run(args []string) error {
 
 func (r *runner) logf(format string, args ...any) {
 	message := fmt.Sprintf(format, args...)
-	fmt.Fprintln(os.Stdout, message)
+	fmt.Fprintln(r.stdout, message)
 	r.logs.WriteString(message + "\n")
 }
 

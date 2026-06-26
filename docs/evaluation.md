@@ -74,7 +74,7 @@ Regeneration expects them at:
 - `data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json`:
   coverage run for the same real-recall dataset with the optional FNDDS SQLite
   fallback enabled.
-- `cmd/mealcheck-eval`: deterministic runner for case coverage, unresolved food
+- `mealcheck eval`: deterministic runner for case coverage, unresolved food
   frequency, category summaries, and expected-outcome mismatches.
 - `scripts/generate-fndds-evaluation.py`: reproducible generator for the
   expanded fixture catalog and FNDDS-grounded evaluation dataset.
@@ -265,20 +265,20 @@ python3 scripts/generate-wweia-nhanes-evaluation.py
 Run the expanded catalog evaluation:
 
 ```bash
-go run ./cmd/mealcheck-eval
+go run ./cmd/mealcheck eval
 ```
 
 Write a result artifact:
 
 ```bash
-go run ./cmd/mealcheck-eval \
+go run ./cmd/mealcheck eval \
   -out data/evaluation/results/fndds-grounded-catalog-v1.json
 ```
 
 Write the WWEIA/NHANES result artifact:
 
 ```bash
-go run ./cmd/mealcheck-eval \
+go run ./cmd/mealcheck eval \
   -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json \
   -out data/evaluation/results/wweia-nhanes-real-recalls-v1.json
 ```
@@ -286,7 +286,7 @@ go run ./cmd/mealcheck-eval \
 Write the WWEIA/NHANES FNDDS fallback coverage artifact:
 
 ```bash
-go run ./cmd/mealcheck-eval \
+go run ./cmd/mealcheck eval \
   -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json \
   -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite \
   -skip-expected \
@@ -296,7 +296,7 @@ go run ./cmd/mealcheck-eval \
 Run a comparison against another catalog:
 
 ```bash
-go run ./cmd/mealcheck-eval \
+go run ./cmd/mealcheck eval \
   -catalog /path/to/catalog.json \
   -out data/evaluation/results/custom.json \
   -allow-mismatch
@@ -307,7 +307,7 @@ outcomes are not supposed to pass yet.
 
 ## CI Role
 
-`go run ./cmd/mealcheck-fixture-check` verifies that:
+`go run ./cmd/mealcheck fixture-check` verifies that:
 
 - the expanded catalog has at least 100 foods
 - catalog food IDs, names, and aliases do not collide
@@ -326,13 +326,13 @@ outcomes are not supposed to pass yet.
 The strict evaluation can be used as a release gate:
 
 ```bash
-go run ./cmd/mealcheck-eval
+go run ./cmd/mealcheck eval
 ```
 
 The WWEIA/NHANES layer can also be run as a release or catalog-expansion gate:
 
 ```bash
-go run ./cmd/mealcheck-eval \
+go run ./cmd/mealcheck eval \
   -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json
 ```
 
@@ -340,7 +340,7 @@ The FNDDS fallback coverage run is useful for catalog expansion analysis but is
 not a strict release gate:
 
 ```bash
-go run ./cmd/mealcheck-eval \
+go run ./cmd/mealcheck eval \
   -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json \
   -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite \
   -skip-expected

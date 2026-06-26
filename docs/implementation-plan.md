@@ -449,7 +449,7 @@ Acceptance:
 - seeded candidate includes at least one block-worthy failure
 - expected report evidence can be described without implementation
 - repeatable fixture validation runs through
-  `go run ./cmd/mealcheck-fixture-check`
+  `go run ./cmd/mealcheck fixture-check`
 
 Current status:
 
@@ -462,7 +462,7 @@ Current status:
   `examples/seeded-3-day-peanut-allergy/`
 - the fixture catalog is intentionally scoped to the seeded case for Milestone 0
 - artifact filenames are fixed in `docs/contracts.md`
-- a native Go fixture validator exists under `cmd/mealcheck-fixture-check`
+- a native Go fixture validator is available as `mealcheck fixture-check`
 
 ## Milestone 1: Resolver And Checks
 
@@ -829,7 +829,7 @@ Completed implementation notes:
      deletion, and secret non-persistence
 7. Re-ran local verification with `npm run typecheck`, `npm test`,
    `npm run test:e2e`, `npm run build`, `go test ./...`, and
-   `go run ./cmd/mealcheck-fixture-check`.
+   `go run ./cmd/mealcheck fixture-check`.
 
 ## Milestone 7: Local Full-Stack Validation And Security
 
@@ -875,12 +875,12 @@ Acceptance:
 
 Accepted local commands:
 
-- `go run ./cmd/mealcheck-local-smoke`
+- `go run ./cmd/mealcheck local-smoke`
 - `cd ui && npm run test:e2e:local`
 
 Completed implementation notes:
 
-1. Added `cmd/mealcheck-local-smoke` to build the CLI into a temporary clean
+1. Added `mealcheck local-smoke` to build the CLI into a temporary clean
    build directory, run the seeded validation, inspect `decision.json`, verify
    the expected `block` exit policy, exercise invite-gated manual and fake-BYOK
    hosted runs, verify run events/report/artifact listing/deletion, check CORS,
@@ -2773,7 +2773,7 @@ Implemented:
 2. Configured Go from `go.mod` and frontend CI with Node 22 to match the
    documented Cloudflare Pages runtime.
 3. Added fixture validation and `go test ./...` as backend gates.
-4. Added `go run ./cmd/mealcheck-local-smoke` so CLI artifact generation,
+4. Added `go run ./cmd/mealcheck local-smoke` so CLI artifact generation,
    hosted API behavior, CORS, run deletion, and provider-secret redaction remain
    covered in CI.
 5. Added frontend typecheck, unit tests, production build, and mocked
@@ -2786,9 +2786,9 @@ Implemented:
 Acceptance:
 
 - CI runs automatically on pushes to `main` and pull requests.
-- `go run ./cmd/mealcheck-fixture-check` passes in CI.
+- `go run ./cmd/mealcheck fixture-check` passes in CI.
 - `go test ./...` passes in CI.
-- `go run ./cmd/mealcheck-local-smoke` passes in CI.
+- `go run ./cmd/mealcheck local-smoke` passes in CI.
 - `cd ui && npm run typecheck` passes in CI.
 - `cd ui && npm test` passes in CI.
 - `cd ui && npm run build` passes in CI.
@@ -2958,7 +2958,7 @@ Implemented:
    catalog schema.
 4. Added `data/evaluation/fndds-grounded-meal-plans-v1.json` with 100
    structured one-day meal-plan cases and expected outcomes.
-5. Added `cmd/mealcheck-eval` as a deterministic resolver/evaluation runner.
+5. Added `mealcheck eval` as a deterministic resolver/evaluation runner.
 6. Updated fixture validation to require at least 100 foods, source-compatible
    catalog quality, and the 100-case evaluation dataset.
 7. Recorded baseline and expanded resolver results:
@@ -2985,8 +2985,8 @@ Verification:
 
 - `python3 scripts/generate-fndds-evaluation.py` passes.
 - `python3 -m py_compile scripts/generate-fndds-evaluation.py` passes.
-- `go run ./cmd/mealcheck-fixture-check` passes.
-- `go run ./cmd/mealcheck-eval` passes.
+- `go run ./cmd/mealcheck fixture-check` passes.
+- `go run ./cmd/mealcheck eval` passes.
 
 ## Milestone 39: WWEIA/NHANES Real-Recall Evaluation Layer
 
@@ -3027,7 +3027,7 @@ Implemented:
    FNDDS food codes to user-facing food descriptions.
 4. Marked nonlocal FNDDS foods as intentional `unknown_food` unresolved items
    so the dataset drives catalog expansion instead of guessing.
-5. Extended `cmd/mealcheck-eval` to accept per-case source refs, source metrics,
+5. Extended `mealcheck eval` to accept per-case source refs, source metrics,
    and top-level dataset summaries.
 6. Added `data/evaluation/results/wweia-nhanes-real-recalls-v1.json`.
 7. Updated fixture validation so both evaluation datasets must contain exactly
@@ -3060,8 +3060,8 @@ Verification:
 
 - `python3 scripts/generate-wweia-nhanes-evaluation.py` passes.
 - `python3 -m py_compile scripts/generate-wweia-nhanes-evaluation.py` passes.
-- `go run ./cmd/mealcheck-fixture-check` passes.
-- `go run ./cmd/mealcheck-eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -out data/evaluation/results/wweia-nhanes-real-recalls-v1.json` passes.
+- `go run ./cmd/mealcheck fixture-check` passes.
+- `go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -out data/evaluation/results/wweia-nhanes-real-recalls-v1.json` passes.
 
 ## Milestone 40: FNDDS Reference Database And Candidate Preprocessing
 
@@ -3108,7 +3108,7 @@ Implemented:
    nutrients, and multi-component allergen risk.
 6. Added allowlist handling for common safe generic foods such as tap water,
    bottled water, brewed coffee, brewed tea, cooked rice, and 100% juice.
-7. Extended `cmd/mealcheck-fixture-check` to validate the FNDDS reference layer.
+7. Extended `mealcheck fixture-check` to validate the FNDDS reference layer.
 8. Updated `docs/evaluation.md` with artifact descriptions, generation command,
    current counts, and the role of quarantined rows.
 
@@ -3140,7 +3140,7 @@ Verification:
 
 - `python3 scripts/import-fndds-reference.py` passes.
 - `python3 -m py_compile scripts/import-fndds-reference.py` passes.
-- `go run ./cmd/mealcheck-fixture-check` passes.
+- `go run ./cmd/mealcheck fixture-check` passes.
 
 ## Milestone 41: FNDDS SQLite Fallback Resolver
 
@@ -3183,9 +3183,9 @@ Implemented:
 4. Allowed explicit `unknown_food` items with quantities to retry the fallback,
    while preserving unresolved behavior for vague quantities, unsupported
    units, and other unresolved reasons.
-5. Added `-fndds-fallback` to `cmd/mealcheck-eval`, `mealcheck validate`, and
+5. Added `-fndds-fallback` to `mealcheck eval`, `mealcheck validate`, and
    `mealcheck compare`.
-6. Added `-skip-expected` to `cmd/mealcheck-eval` for coverage runs where the
+6. Added `-skip-expected` to `mealcheck eval` for coverage runs where the
    expected unresolved counts describe no-fallback mode.
 7. Wired hosted workers to pass `MEALCHECK_FNDDS_FALLBACK_PATH` into artifact
    generation when explicitly configured.
@@ -3224,8 +3224,8 @@ Verification:
 - `python3 scripts/import-fndds-reference.py` passes.
 - `python3 -m py_compile scripts/import-fndds-reference.py` passes.
 - `go test ./internal/checker` passes.
-- `go run ./cmd/mealcheck-fixture-check` passes.
-- `go run ./cmd/mealcheck-eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
+- `go run ./cmd/mealcheck fixture-check` passes.
+- `go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
 
 ## Milestone 42: FNDDS Resolver Well-Defined Food Gate
 
@@ -3275,8 +3275,8 @@ Verification:
 
 - `go test ./internal/checker` passes.
 - `go test ./...` passes.
-- `go run ./cmd/mealcheck-fixture-check` passes.
-- `go run ./cmd/mealcheck-eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
+- `go run ./cmd/mealcheck fixture-check` passes.
+- `go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
 - `cd ui && npm run typecheck` passes.
 - `cd ui && npm run test` passes.
 - `cd ui && npm run build` passes.
@@ -3320,7 +3320,7 @@ Policy:
 Verification:
 
 - `go test ./...` passes.
-- `go run ./cmd/mealcheck-fixture-check` passes.
+- `go run ./cmd/mealcheck fixture-check` passes.
 - `cd ui && npm run typecheck` passes.
 - `cd ui && npm run test` passes.
 - `cd ui && npm run build` passes.

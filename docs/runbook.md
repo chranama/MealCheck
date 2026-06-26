@@ -24,7 +24,7 @@ Run commands from the repository root unless a command explicitly changes into
 Validate fixtures:
 
 ```bash
-go run ./cmd/mealcheck-fixture-check
+go run ./cmd/mealcheck fixture-check
 ```
 
 Run the Go test suite:
@@ -51,7 +51,7 @@ go run ./cmd/mealcheck decision artifacts/latest/decision.json
 Run the local full-stack/security smoke command:
 
 ```bash
-go run ./cmd/mealcheck-local-smoke
+go run ./cmd/mealcheck local-smoke
 ```
 
 Build local deployment binaries:
@@ -101,9 +101,9 @@ fail independently.
 Backend proof gates:
 
 ```bash
-go run ./cmd/mealcheck-fixture-check
+go run ./cmd/mealcheck fixture-check
 go test ./...
-go run ./cmd/mealcheck-local-smoke
+go run ./cmd/mealcheck local-smoke
 ```
 
 Frontend proof gates:
@@ -158,7 +158,7 @@ https://mealcheck.dev/status
 Milestone 0 fixtures should validate locally with:
 
 ```bash
-go run ./cmd/mealcheck-fixture-check
+go run ./cmd/mealcheck fixture-check
 ```
 
 This command validates JSON fixtures against the checked-in JSON Schemas and
@@ -1037,7 +1037,7 @@ Provider failure:
 Run the local smoke command from the repository root:
 
 ```bash
-go run ./cmd/mealcheck-local-smoke
+go run ./cmd/mealcheck local-smoke
 ```
 
 This command:
@@ -1301,7 +1301,7 @@ runtime edits.
 3. Validate fixture cross-references:
 
 ```bash
-go run ./cmd/mealcheck-fixture-check
+go run ./cmd/mealcheck fixture-check
 ```
 
 4. Regenerate and inspect the seeded artifact bundle:
@@ -1335,7 +1335,7 @@ changes what public live runs can honestly verify.
 4. Validate fixtures:
 
 ```bash
-go run ./cmd/mealcheck-fixture-check
+go run ./cmd/mealcheck fixture-check
 ```
 
 5. Run the full Go test suite:
