@@ -1,0 +1,163 @@
+{
+  "schema_version": "0.1",
+  "release": "2021-2023",
+  "description": "Curated decomposition templates for composed foods whose total gram weight can be split across known FNDDS components.",
+  "templates": [
+    {
+      "template_id": "ham_sandwich_wheat_cheese_v1",
+      "pattern": "ham sandwich on wheat, with cheese",
+      "confidence": "medium",
+      "notes": "Curated sandwich split from total grams.",
+      "components": [
+        {
+          "food_code": "51300110",
+          "role": "bread, whole wheat",
+          "fraction": 0.4,
+          "required": true
+        },
+        {
+          "food_code": "25230210",
+          "role": "ham, deli",
+          "fraction": 0.35,
+          "required": true
+        },
+        {
+          "food_code": "14410110",
+          "role": "cheese, american",
+          "fraction": 0.25,
+          "required": true
+        }
+      ],
+      "normalized_pattern": "ham sandwich on wheat with cheese"
+    },
+    {
+      "template_id": "ham_sandwich_white_cheese_v1",
+      "pattern": "ham sandwich on white, with cheese",
+      "confidence": "medium",
+      "notes": "Curated sandwich split from total grams.",
+      "components": [
+        {
+          "food_code": "51101000",
+          "role": "bread, white",
+          "fraction": 0.4,
+          "required": true
+        },
+        {
+          "food_code": "25230210",
+          "role": "ham, deli",
+          "fraction": 0.35,
+          "required": true
+        },
+        {
+          "food_code": "14410110",
+          "role": "cheese, american",
+          "fraction": 0.25,
+          "required": true
+        }
+      ],
+      "normalized_pattern": "ham sandwich on white with cheese"
+    },
+    {
+      "template_id": "pbj_sandwich_wheat_v1",
+      "pattern": "peanut butter and jelly sandwich, with regular peanut butter, regular jelly, on wheat bread",
+      "confidence": "medium",
+      "notes": "Curated sandwich split from total grams.",
+      "components": [
+        {
+          "food_code": "51300110",
+          "role": "bread, whole wheat",
+          "fraction": 0.55,
+          "required": true
+        },
+        {
+          "food_code": "42202000",
+          "role": "peanut butter",
+          "fraction": 0.3,
+          "required": true
+        },
+        {
+          "food_code": "91401000",
+          "role": "jelly",
+          "fraction": 0.15,
+          "required": true
+        }
+      ],
+      "normalized_pattern": "peanut butter and jelly sandwich with regular peanut butter regular jelly on wheat bread"
+    },
+    {
+      "template_id": "peanut_butter_sandwich_wheat_v1",
+      "pattern": "peanut butter sandwich, with regular peanut butter, on wheat bread",
+      "confidence": "medium",
+      "notes": "Curated sandwich split from total grams.",
+      "components": [
+        {
+          "food_code": "51300110",
+          "role": "bread, whole wheat",
+          "fraction": 0.65,
+          "required": true
+        },
+        {
+          "food_code": "42202000",
+          "role": "peanut butter",
+          "fraction": 0.35,
+          "required": true
+        }
+      ],
+      "normalized_pattern": "peanut butter sandwich with regular peanut butter on wheat bread"
+    },
+    {
+      "template_id": "taco_corn_beef_cheese_v1",
+      "pattern": "taco, corn tortilla, beef, cheese",
+      "confidence": "medium",
+      "notes": "Curated taco split from total grams.",
+      "components": [
+        {
+          "food_code": "52215100",
+          "role": "corn tortilla",
+          "fraction": 0.35,
+          "required": true
+        },
+        {
+          "food_code": "21500100",
+          "role": "ground beef",
+          "fraction": 0.45,
+          "required": true
+        },
+        {
+          "food_code": "14410110",
+          "role": "cheese, american",
+          "fraction": 0.2,
+          "required": true
+        }
+      ],
+      "normalized_pattern": "taco corn tortilla beef cheese"
+    },
+    {
+      "template_id": "turkey_sandwich_wheat_cheese_v1",
+      "pattern": "turkey sandwich on wheat, with cheese",
+      "confidence": "medium",
+      "notes": "Curated sandwich split from total grams.",
+      "components": [
+        {
+          "food_code": "51300110",
+          "role": "bread, whole wheat",
+          "fraction": 0.4,
+          "required": true
+        },
+        {
+          "food_code": "25230780",
+          "role": "turkey, deli",
+          "fraction": 0.35,
+          "required": true
+        },
+        {
+          "food_code": "14410110",
+          "role": "cheese, american",
+          "fraction": 0.25,
+          "required": true
+        }
+      ],
+      "normalized_pattern": "turkey sandwich on wheat with cheese"
+    }
+  ]
+}

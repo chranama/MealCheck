@@ -8,6 +8,8 @@
   "resolver_match_key_count": 6201,
   "auto_match_key_count": 3839,
   "unit_conversion_count": 25928,
+  "approximation_proxy_count": 6,
+  "decomposition_template_count": 6,
   "status_counts": {
     "eligible_generic": 8,
     "eligible_specific": 3048,

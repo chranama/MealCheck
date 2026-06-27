@@ -7,15 +7,16 @@ import (
 )
 
 type resolver struct {
-	foods    map[string]CatalogFood
-	fallback FNDDSReference
+	foods       map[string]CatalogFood
+	fallback    FNDDSReference
+	constraints VerificationConstraints
 }
 
 func newResolver(catalog NutrientCatalog) resolver {
 	return newResolverWithFallback(catalog, nil)
 }
 
-func newResolverWithFallback(catalog NutrientCatalog, fallback FNDDSReference) resolver {
+func newResolverWithFallback(catalog NutrientCatalog, fallback FNDDSReference, constraints ...VerificationConstraints) resolver {
 	foods := map[string]CatalogFood{}
 	for _, food := range catalog.Foods {
 		foods[normalizeName(food.Name)] = food
@@ -23,7 +24,11 @@ func newResolverWithFallback(catalog NutrientCatalog, fallback FNDDSReference) r
 			foods[normalizeName(alias)] = food
 		}
 	}
-	return resolver{foods: foods, fallback: fallback}
+	var constraintSet VerificationConstraints
+	if len(constraints) > 0 {
+		constraintSet = constraints[0]
+	}
+	return resolver{foods: foods, fallback: fallback, constraints: constraintSet}
 }
 
 func (r resolver) resolvePlan(plan Plan) ([]ResolvedItem, []UnresolvedItem) {
@@ -93,6 +98,16 @@ func (r resolver) resolveItem(day int, meal string, item FoodItem) (ResolvedItem
 func (r resolver) resolveFallbackCandidate(day int, meal string, item FoodItem) (ResolvedItem, UnresolvedItem, bool, error) {
 	filter := filterFallbackLookupCandidate(item)
 	if !filter.LookupAllowed {
+		if filter.Reason == unresolvedAmbiguousFood && broadFoodName(item.Food) {
+			if resolved, unresolved, ok, err := r.resolveApproximationCandidate(day, meal, item); err != nil || ok || unresolved.UnresolvedReason != "" {
+				return resolved, unresolved, ok, err
+			}
+		}
+		if filter.Reason == unresolvedComposedFoodNeedsDecomposition {
+			if resolved, unresolved, ok, err := r.resolveDecompositionCandidate(day, meal, item); err != nil || ok || unresolved.UnresolvedReason != "" {
+				return resolved, unresolved, ok, err
+			}
+		}
 		u := unresolvedItem(day, meal, item)
 		u.UnresolvedReason = filter.Reason
 		return ResolvedItem{}, u, false, nil
@@ -114,6 +129,100 @@ func (r resolver) resolveFallbackCandidate(day int, meal string, item FoodItem) 
 	return resolveKnownFood(day, meal, item, food)
 }
 
+func (r resolver) resolveApproximationCandidate(day int, meal string, item FoodItem) (ResolvedItem, UnresolvedItem, bool, error) {
+	if r.fallback == nil || item.Quantity == nil {
+		return ResolvedItem{}, UnresolvedItem{}, false, nil
+	}
+	proxy, ok, err := r.fallback.LookupApproximationProxy(item.Food)
+	if err != nil || !ok {
+		return ResolvedItem{}, UnresolvedItem{}, false, err
+	}
+	if len(r.constraints.Allergies) > 0 && !proxy.AllowWhenAllergiesPresent {
+		return ResolvedItem{}, UnresolvedItem{}, false, nil
+	}
+	if len(r.constraints.ExcludedFoods) > 0 && !proxy.AllowWhenExclusionsPresent {
+		return ResolvedItem{}, UnresolvedItem{}, false, nil
+	}
+	resolved, unresolved, ok, err := resolveKnownFood(day, meal, item, proxy.Food)
+	if err != nil || !ok {
+		return resolved, unresolved, ok, err
+	}
+	resolved.ResolutionMethod = "estimated"
+	resolved.Confidence = proxy.Confidence
+	resolved.ProxyFoodID = proxy.Food.FoodID
+	resolved.ProxyFood = proxy.Food.Name
+	resolved.EstimateReason = proxy.EstimateReason
+	return resolved, UnresolvedItem{}, true, nil
+}
+
+func (r resolver) resolveDecompositionCandidate(day int, meal string, item FoodItem) (ResolvedItem, UnresolvedItem, bool, error) {
+	if r.fallback == nil || item.Quantity == nil {
+		return ResolvedItem{}, UnresolvedItem{}, false, nil
+	}
+	template, ok, err := r.fallback.LookupDecompositionTemplate(item.Food)
+	if err != nil || !ok {
+		return ResolvedItem{}, UnresolvedItem{}, false, err
+	}
+	gramsPerUnit, ok := deterministicMassUnitFactor(item.Unit)
+	if !ok {
+		u := unresolvedItem(day, meal, item)
+		u.UnresolvedReason = unresolvedUnsupportedUnit
+		return ResolvedItem{}, u, false, nil
+	}
+	totalGrams := *item.Quantity * gramsPerUnit
+	resolved := ResolvedItem{
+		Day:              day,
+		Meal:             meal,
+		Food:             item.Food,
+		FoodID:           "decomposed_" + template.TemplateID,
+		Quantity:         *item.Quantity,
+		Unit:             item.Unit,
+		Grams:            totalGrams,
+		ResolutionMethod: "decomposed",
+		Confidence:       template.Confidence,
+		EstimateReason:   template.Notes,
+	}
+	for _, component := range template.Components {
+		food, ok, err := r.fallback.LookupFoodByCode(component.FoodCode)
+		if err != nil {
+			return ResolvedItem{}, UnresolvedItem{}, false, err
+		}
+		if !ok {
+			u := unresolvedItem(day, meal, item)
+			u.UnresolvedReason = unresolvedUnknownFood
+			return ResolvedItem{}, u, false, nil
+		}
+		componentGrams := totalGrams * component.Fraction
+		componentQuantity := componentGrams
+		componentItem := FoodItem{
+			Food:     food.Name,
+			Quantity: &componentQuantity,
+			Unit:     "g",
+		}
+		resolvedComponent, unresolved, ok, err := resolveKnownFood(day, meal, componentItem, food)
+		if err != nil || !ok {
+			return ResolvedItem{}, unresolved, false, err
+		}
+		resolved.Nutrients = addNutrients(resolved.Nutrients, resolvedComponent.Nutrients)
+		for _, allergen := range resolvedComponent.Allergens {
+			resolved.Allergens = appendUniqueString(resolved.Allergens, allergen)
+		}
+		for _, group := range resolvedComponent.FoodGroups {
+			resolved.FoodGroups = appendUniqueString(resolved.FoodGroups, group)
+		}
+		resolved.Components = append(resolved.Components, ResolvedComponent{
+			Food:       resolvedComponent.Food,
+			FoodID:     resolvedComponent.FoodID,
+			Fraction:   component.Fraction,
+			Grams:      componentGrams,
+			Nutrients:  resolvedComponent.Nutrients,
+			Allergens:  resolvedComponent.Allergens,
+			FoodGroups: resolvedComponent.FoodGroups,
+		})
+	}
+	return resolved, UnresolvedItem{}, true, nil
+}
+
 func resolveKnownFood(day int, meal string, item FoodItem, food CatalogFood) (ResolvedItem, UnresolvedItem, bool, error) {
 	gramsPerUnit, ok := food.UnitConversions[item.Unit]
 	if !ok {
@@ -127,16 +236,18 @@ func resolveKnownFood(day int, meal string, item FoodItem, food CatalogFood) (Re
 	grams := *item.Quantity * gramsPerUnit
 	factor := grams / 100
 	return ResolvedItem{
-		Day:        day,
-		Meal:       meal,
-		Food:       item.Food,
-		FoodID:     food.FoodID,
-		Quantity:   *item.Quantity,
-		Unit:       item.Unit,
-		Grams:      grams,
-		Nutrients:  scaleNutrients(food.NutrientsPer100G, factor),
-		Allergens:  append([]string(nil), food.Allergens...),
-		FoodGroups: append([]string(nil), food.FoodGroups...),
+		Day:              day,
+		Meal:             meal,
+		Food:             item.Food,
+		FoodID:           food.FoodID,
+		Quantity:         *item.Quantity,
+		Unit:             item.Unit,
+		Grams:            grams,
+		Nutrients:        scaleNutrients(food.NutrientsPer100G, factor),
+		Allergens:        append([]string(nil), food.Allergens...),
+		FoodGroups:       append([]string(nil), food.FoodGroups...),
+		ResolutionMethod: "exact",
+		Confidence:       "high",
 	}, UnresolvedItem{}, true, nil
 }
 

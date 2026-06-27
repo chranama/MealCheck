@@ -161,12 +161,28 @@ type CheckResult struct {
 }
 
 type ResolvedItem struct {
-	Day        int       `json:"day"`
-	Meal       string    `json:"meal"`
+	Day              int                 `json:"day"`
+	Meal             string              `json:"meal"`
+	Food             string              `json:"food"`
+	FoodID           string              `json:"food_id"`
+	Quantity         float64             `json:"quantity"`
+	Unit             string              `json:"unit"`
+	Grams            float64             `json:"grams"`
+	Nutrients        Nutrients           `json:"nutrients"`
+	Allergens        []string            `json:"allergens"`
+	FoodGroups       []string            `json:"food_groups"`
+	ResolutionMethod string              `json:"resolution_method,omitempty"`
+	Confidence       string              `json:"confidence,omitempty"`
+	ProxyFoodID      string              `json:"proxy_food_id,omitempty"`
+	ProxyFood        string              `json:"proxy_food,omitempty"`
+	EstimateReason   string              `json:"estimate_reason,omitempty"`
+	Components       []ResolvedComponent `json:"components,omitempty"`
+}
+
+type ResolvedComponent struct {
 	Food       string    `json:"food"`
 	FoodID     string    `json:"food_id"`
-	Quantity   float64   `json:"quantity"`
-	Unit       string    `json:"unit"`
+	Fraction   float64   `json:"fraction"`
 	Grams      float64   `json:"grams"`
 	Nutrients  Nutrients `json:"nutrients"`
 	Allergens  []string  `json:"allergens"`

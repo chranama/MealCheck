@@ -216,6 +216,131 @@ SANDWICH_COMPONENT_BASES = {
     "tomatoes",
 }
 
+APPROXIMATION_PROXIES = [
+    {
+        "input_key": "water",
+        "proxy_food_code": "94000100",
+        "proxy_description": "Water, tap",
+        "confidence": "medium",
+        "allow_when_allergies_present": True,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Broad water proxy using tap water.",
+    },
+    {
+        "input_key": "tea",
+        "proxy_food_code": "92302000",
+        "proxy_description": "Tea, black, brewed",
+        "confidence": "medium",
+        "allow_when_allergies_present": True,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Broad tea proxy using brewed black tea.",
+    },
+    {
+        "input_key": "coffee",
+        "proxy_food_code": "92101000",
+        "proxy_description": "Coffee, brewed",
+        "confidence": "medium",
+        "allow_when_allergies_present": True,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Broad coffee proxy using brewed coffee.",
+    },
+    {
+        "input_key": "rice",
+        "proxy_food_code": "56205001",
+        "proxy_description": "Rice, white, cooked, NS as to fat",
+        "confidence": "medium",
+        "allow_when_allergies_present": True,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Broad rice proxy using cooked white rice.",
+    },
+    {
+        "input_key": "pasta",
+        "proxy_food_code": "56130000",
+        "proxy_description": "Pasta, cooked",
+        "confidence": "low",
+        "allow_when_allergies_present": False,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Broad pasta proxy using cooked pasta.",
+    },
+    {
+        "input_key": "bread",
+        "proxy_food_code": "51101000",
+        "proxy_description": "Bread, white",
+        "confidence": "low",
+        "allow_when_allergies_present": False,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Broad bread proxy using white bread.",
+    },
+]
+
+DECOMPOSITION_TEMPLATES = [
+    {
+        "template_id": "ham_sandwich_white_cheese_v1",
+        "pattern": "ham sandwich on white, with cheese",
+        "confidence": "medium",
+        "notes": "Curated sandwich split from total grams.",
+        "components": [
+            {"food_code": "51101000", "role": "bread, white", "fraction": 0.40, "required": True},
+            {"food_code": "25230210", "role": "ham, deli", "fraction": 0.35, "required": True},
+            {"food_code": "14410110", "role": "cheese, american", "fraction": 0.25, "required": True},
+        ],
+    },
+    {
+        "template_id": "ham_sandwich_wheat_cheese_v1",
+        "pattern": "ham sandwich on wheat, with cheese",
+        "confidence": "medium",
+        "notes": "Curated sandwich split from total grams.",
+        "components": [
+            {"food_code": "51300110", "role": "bread, whole wheat", "fraction": 0.40, "required": True},
+            {"food_code": "25230210", "role": "ham, deli", "fraction": 0.35, "required": True},
+            {"food_code": "14410110", "role": "cheese, american", "fraction": 0.25, "required": True},
+        ],
+    },
+    {
+        "template_id": "turkey_sandwich_wheat_cheese_v1",
+        "pattern": "turkey sandwich on wheat, with cheese",
+        "confidence": "medium",
+        "notes": "Curated sandwich split from total grams.",
+        "components": [
+            {"food_code": "51300110", "role": "bread, whole wheat", "fraction": 0.40, "required": True},
+            {"food_code": "25230780", "role": "turkey, deli", "fraction": 0.35, "required": True},
+            {"food_code": "14410110", "role": "cheese, american", "fraction": 0.25, "required": True},
+        ],
+    },
+    {
+        "template_id": "peanut_butter_sandwich_wheat_v1",
+        "pattern": "peanut butter sandwich, with regular peanut butter, on wheat bread",
+        "confidence": "medium",
+        "notes": "Curated sandwich split from total grams.",
+        "components": [
+            {"food_code": "51300110", "role": "bread, whole wheat", "fraction": 0.65, "required": True},
+            {"food_code": "42202000", "role": "peanut butter", "fraction": 0.35, "required": True},
+        ],
+    },
+    {
+        "template_id": "pbj_sandwich_wheat_v1",
+        "pattern": "peanut butter and jelly sandwich, with regular peanut butter, regular jelly, on wheat bread",
+        "confidence": "medium",
+        "notes": "Curated sandwich split from total grams.",
+        "components": [
+            {"food_code": "51300110", "role": "bread, whole wheat", "fraction": 0.55, "required": True},
+            {"food_code": "42202000", "role": "peanut butter", "fraction": 0.30, "required": True},
+            {"food_code": "91401000", "role": "jelly", "fraction": 0.15, "required": True},
+        ],
+    },
+    {
+        "template_id": "taco_corn_beef_cheese_v1",
+        "pattern": "taco, corn tortilla, beef, cheese",
+        "confidence": "medium",
+        "notes": "Curated taco split from total grams.",
+        "components": [
+            {"food_code": "52215100", "role": "corn tortilla", "fraction": 0.35, "required": True},
+            {"food_code": "21500100", "role": "ground beef", "fraction": 0.45, "required": True},
+            {"food_code": "14410110", "role": "cheese, american", "fraction": 0.20, "required": True},
+        ],
+    },
+]
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -290,6 +415,10 @@ def main() -> None:
     review_required_foods = [row for row in food_rows if row["candidate_status"] == STATUS_REVIEW_REQUIRED]
     resolver_match_keys = resolver_match_keys_for(food_rows)
     unit_conversions = unit_conversions_for(food_rows)
+    food_by_code = {row["food_code"]: row for row in food_rows}
+    validate_curated_resolution_references(food_by_code, APPROXIMATION_PROXIES, DECOMPOSITION_TEMPLATES)
+    approximation_proxy_doc = approximation_proxy_document(APPROXIMATION_PROXIES)
+    decomposition_template_doc = decomposition_template_document(DECOMPOSITION_TEMPLATES)
     summary = classification_summary(
         food_rows,
         resolver_candidates,
@@ -297,6 +426,8 @@ def main() -> None:
         review_required_foods,
         resolver_match_keys,
         unit_conversions,
+        APPROXIMATION_PROXIES,
+        DECOMPOSITION_TEMPLATES,
     )
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -308,10 +439,19 @@ def main() -> None:
     write_jsonl(out_dir / "unit-conversions.jsonl", unit_conversions)
     write_jsonl(out_dir / "quarantined-foods.jsonl", quarantined_foods)
     write_jsonl(out_dir / "review-required-foods.jsonl", review_required_foods)
+    write_json(out_dir / "approximation-proxies.json", approximation_proxy_doc)
+    write_json(out_dir / "decomposition-templates.json", decomposition_template_doc)
     write_json(out_dir / "food-index.json", food_index(food_rows))
     write_json(out_dir / "classification-summary.json", summary)
     write_json(out_dir / "manifest.json", release_manifest(summary))
-    write_sqlite(out_dir / "fndds.sqlite", food_rows, resolver_match_keys, unit_conversions)
+    write_sqlite(
+        out_dir / "fndds.sqlite",
+        food_rows,
+        resolver_match_keys,
+        unit_conversions,
+        APPROXIMATION_PROXIES,
+        DECOMPOSITION_TEMPLATES,
+    )
     ROOT_MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
     write_json(ROOT_MANIFEST_PATH, source_manifest())
 
@@ -821,6 +961,80 @@ def source_text(source_food: dict[str, str]) -> str:
     ).lower()
 
 
+def validate_curated_resolution_references(
+    food_by_code: dict[str, dict[str, Any]],
+    approximation_proxies: list[dict[str, Any]],
+    decomposition_templates: list[dict[str, Any]],
+) -> None:
+    seen_proxy_keys: set[str] = set()
+    for proxy in approximation_proxies:
+        input_key = proxy["input_key"]
+        normalized_key = normalize_match_key(input_key)
+        if normalized_key in seen_proxy_keys:
+            raise ValueError(f"duplicate approximation proxy input_key {input_key!r}")
+        seen_proxy_keys.add(normalized_key)
+        code = proxy["proxy_food_code"]
+        if code not in food_by_code:
+            raise ValueError(f"approximation proxy {input_key!r} references unknown food_code {code}")
+
+    seen_template_ids: set[str] = set()
+    seen_patterns: set[str] = set()
+    for template in decomposition_templates:
+        template_id = template["template_id"]
+        if template_id in seen_template_ids:
+            raise ValueError(f"duplicate decomposition template_id {template_id!r}")
+        seen_template_ids.add(template_id)
+        pattern = template["pattern"]
+        normalized_pattern = normalize_match_key(pattern)
+        if normalized_pattern in seen_patterns:
+            raise ValueError(f"duplicate decomposition template pattern {pattern!r}")
+        seen_patterns.add(normalized_pattern)
+        components = template["components"]
+        if not components:
+            raise ValueError(f"decomposition template {template_id!r} must define components")
+        fraction_total = 0.0
+        for component in components:
+            code = component["food_code"]
+            if code not in food_by_code:
+                raise ValueError(f"decomposition template {template_id!r} references unknown food_code {code}")
+            fraction = component["fraction"]
+            if fraction <= 0 or fraction >= 1:
+                raise ValueError(f"decomposition template {template_id!r} has invalid fraction {fraction}")
+            fraction_total += fraction
+        if not math.isclose(fraction_total, 1.0, rel_tol=0.0, abs_tol=0.001):
+            raise ValueError(f"decomposition template {template_id!r} fractions sum to {fraction_total}")
+
+
+def approximation_proxy_document(proxies: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "schema_version": "0.1",
+        "release": RELEASE,
+        "description": "Curated broad-food proxy mappings used only after exact resolver gates block a one-word broad food.",
+        "proxies": [
+            {
+                **proxy,
+                "normalized_input_key": normalize_match_key(proxy["input_key"]),
+            }
+            for proxy in sorted(proxies, key=lambda row: normalize_match_key(row["input_key"]))
+        ],
+    }
+
+
+def decomposition_template_document(templates: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "schema_version": "0.1",
+        "release": RELEASE,
+        "description": "Curated decomposition templates for composed foods whose total gram weight can be split across known FNDDS components.",
+        "templates": [
+            {
+                **template,
+                "normalized_pattern": normalize_match_key(template["pattern"]),
+            }
+            for template in sorted(templates, key=lambda row: normalize_match_key(row["pattern"]))
+        ],
+    }
+
+
 def classification_summary(
     foods: list[dict[str, Any]],
     resolver_candidates: list[dict[str, Any]],
@@ -828,6 +1042,8 @@ def classification_summary(
     review_required_foods: list[dict[str, Any]],
     resolver_match_keys: list[dict[str, Any]],
     unit_conversions: list[dict[str, Any]],
+    approximation_proxies: list[dict[str, Any]],
+    decomposition_templates: list[dict[str, Any]],
 ) -> dict[str, Any]:
     status_counts = Counter(row["candidate_status"] for row in foods)
     flag_counts = Counter(flag for row in foods for flag in row["ambiguity_flags"])
@@ -843,6 +1059,8 @@ def classification_summary(
         "resolver_match_key_count": len(resolver_match_keys),
         "auto_match_key_count": match_status_counts[MATCH_STATUS_AUTO],
         "unit_conversion_count": len(unit_conversions),
+        "approximation_proxy_count": len(approximation_proxies),
+        "decomposition_template_count": len(decomposition_templates),
         "status_counts": dict(sorted(status_counts.items())),
         "flag_counts": dict(sorted(flag_counts.items())),
         "match_status_counts": dict(sorted(match_status_counts.items())),
@@ -888,6 +1106,8 @@ def release_manifest(summary: dict[str, Any]) -> dict[str, Any]:
             "unit-conversions.jsonl",
             "quarantined-foods.jsonl",
             "review-required-foods.jsonl",
+            "approximation-proxies.json",
+            "decomposition-templates.json",
             "food-index.json",
             "classification-summary.json",
             "fndds.sqlite",
@@ -1053,7 +1273,14 @@ def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
             file.write(json.dumps(row, sort_keys=True) + "\n")
 
 
-def write_sqlite(path: Path, foods: list[dict[str, Any]], resolver_match_keys: list[dict[str, Any]], unit_conversions: list[dict[str, Any]]) -> None:
+def write_sqlite(
+    path: Path,
+    foods: list[dict[str, Any]],
+    resolver_match_keys: list[dict[str, Any]],
+    unit_conversions: list[dict[str, Any]],
+    approximation_proxies: list[dict[str, Any]],
+    decomposition_templates: list[dict[str, Any]],
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
@@ -1118,6 +1345,35 @@ def write_sqlite(path: Path, foods: list[dict[str, Any]], resolver_match_keys: l
               primary key(food_code, normalized_unit)
             );
 
+            create table fndds_approximation_proxies(
+              input_key text primary key,
+              normalized_input_key text not null,
+              proxy_food_code text not null references fndds_foods(food_code),
+              proxy_description text not null,
+              confidence text not null,
+              allow_when_allergies_present integer not null,
+              allow_when_exclusions_present integer not null,
+              estimate_reason text not null
+            );
+
+            create table fndds_decomposition_templates(
+              template_id text primary key,
+              pattern text not null,
+              normalized_pattern text not null,
+              confidence text not null,
+              notes text
+            );
+
+            create table fndds_decomposition_components(
+              template_id text not null references fndds_decomposition_templates(template_id),
+              position integer not null,
+              food_code text not null references fndds_foods(food_code),
+              role text not null,
+              fraction real not null,
+              required integer not null,
+              primary key(template_id, position)
+            );
+
             create table fndds_ambiguity_flags(
               food_code text not null references fndds_foods(food_code),
               flag text not null,
@@ -1148,6 +1404,12 @@ def write_sqlite(path: Path, foods: list[dict[str, Any]], resolver_match_keys: l
               on fndds_match_keys(food_code);
             create index idx_fndds_unit_conversions_food_code
               on fndds_unit_conversions(food_code);
+            create index idx_fndds_approximation_proxies_normalized_input_key
+              on fndds_approximation_proxies(normalized_input_key);
+            create index idx_fndds_decomposition_templates_normalized_pattern
+              on fndds_decomposition_templates(normalized_pattern);
+            create index idx_fndds_decomposition_components_template_id
+              on fndds_decomposition_components(template_id);
             create index idx_fndds_flags_food_code
               on fndds_ambiguity_flags(food_code);
             create index idx_fndds_allergens_food_code
@@ -1262,6 +1524,57 @@ def write_sqlite(path: Path, foods: list[dict[str, Any]], resolver_match_keys: l
                         conversion["confidence"],
                     ),
                 )
+            for proxy in approximation_proxies:
+                conn.execute(
+                    """
+                    insert into fndds_approximation_proxies(
+                      input_key, normalized_input_key, proxy_food_code,
+                      proxy_description, confidence, allow_when_allergies_present,
+                      allow_when_exclusions_present, estimate_reason
+                    ) values (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        proxy["input_key"],
+                        normalize_match_key(proxy["input_key"]),
+                        proxy["proxy_food_code"],
+                        proxy["proxy_description"],
+                        proxy["confidence"],
+                        int(bool(proxy["allow_when_allergies_present"])),
+                        int(bool(proxy["allow_when_exclusions_present"])),
+                        proxy["estimate_reason"],
+                    ),
+                )
+            for template in decomposition_templates:
+                conn.execute(
+                    """
+                    insert into fndds_decomposition_templates(
+                      template_id, pattern, normalized_pattern, confidence, notes
+                    ) values (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        template["template_id"],
+                        template["pattern"],
+                        normalize_match_key(template["pattern"]),
+                        template["confidence"],
+                        template["notes"],
+                    ),
+                )
+                for position, component in enumerate(template["components"], start=1):
+                    conn.execute(
+                        """
+                        insert into fndds_decomposition_components(
+                          template_id, position, food_code, role, fraction, required
+                        ) values (?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            template["template_id"],
+                            position,
+                            component["food_code"],
+                            component["role"],
+                            component["fraction"],
+                            int(bool(component["required"])),
+                        ),
+                    )
         conn.execute("pragma optimize")
     finally:
         conn.close()

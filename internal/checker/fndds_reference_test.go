@@ -87,6 +87,45 @@ func TestSQLiteFNDDSReferenceRejectsQuarantinedAndReviewRequiredRows(t *testing.
 	}
 }
 
+func TestSQLiteFNDDSReferenceLookupApproximationProxy(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+
+	proxy, ok, err := ref.LookupApproximationProxy(" Rice ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("rice approximation proxy did not resolve")
+	}
+	if proxy.ProxyFoodCode != "56205001" {
+		t.Fatalf("ProxyFoodCode = %q, want 56205001", proxy.ProxyFoodCode)
+	}
+	if proxy.Food.FoodID != "fndds_56205001" {
+		t.Fatalf("proxy FoodID = %q, want fndds_56205001", proxy.Food.FoodID)
+	}
+}
+
+func TestSQLiteFNDDSReferenceLookupDecompositionTemplate(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+
+	template, ok, err := ref.LookupDecompositionTemplate("Ham sandwich on white, with cheese")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("ham sandwich decomposition template did not resolve")
+	}
+	if template.TemplateID != "ham_sandwich_white_cheese_v1" {
+		t.Fatalf("TemplateID = %q, want ham_sandwich_white_cheese_v1", template.TemplateID)
+	}
+	if len(template.Components) != 3 {
+		t.Fatalf("len(Components) = %d, want 3", len(template.Components))
+	}
+	if template.Components[0].FoodCode != "51101000" || template.Components[0].Fraction != 0.40 {
+		t.Fatalf("first component = %+v, want white bread at 0.40", template.Components[0])
+	}
+}
+
 func TestResolverUsesReviewedCatalogBeforeFNDDSFallback(t *testing.T) {
 	ref := openTestFNDDSReference(t)
 	qty := 100.0
@@ -321,6 +360,48 @@ func TestResolverGateBlocksBroadFallbackLookup(t *testing.T) {
 	}
 }
 
+func TestResolverUsesApproximationProxyForCuratedBroadFood(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 100.0
+	plan := singleItemPlan("Rice", &qty, "g")
+
+	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unresolved) != 0 {
+		t.Fatalf("unresolved = %+v, want none", unresolved)
+	}
+	if len(resolved) != 1 {
+		t.Fatalf("len(resolved) = %d, want 1", len(resolved))
+	}
+	item := resolved[0]
+	if item.ResolutionMethod != "estimated" || item.ProxyFoodID != "fndds_56205001" {
+		t.Fatalf("resolved = %+v, want estimated rice proxy", item)
+	}
+	if item.Food != "Rice" || item.ProxyFood == "" {
+		t.Fatalf("resolved food/proxy = %q/%q, want original food plus proxy label", item.Food, item.ProxyFood)
+	}
+}
+
+func TestResolverBlocksApproximationProxyWhenExcludedFoodsAreConfigured(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 100.0
+	plan := singleItemPlan("Rice", &qty, "g")
+	constraints := VerificationConstraints{ExcludedFoods: []string{"broccoli"}}
+
+	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref, constraints).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resolved) != 0 {
+		t.Fatalf("resolved = %+v, want none", resolved)
+	}
+	if len(unresolved) != 1 || unresolved[0].UnresolvedReason != unresolvedAmbiguousFood {
+		t.Fatalf("unresolved = %+v, want ambiguous broad-food block", unresolved)
+	}
+}
+
 func TestResolverGateBlocksMixedDishFallbackLookup(t *testing.T) {
 	fallback := &recordingFNDDSReference{}
 	qty := 100.0
@@ -341,6 +422,56 @@ func TestResolverGateBlocksMixedDishFallbackLookup(t *testing.T) {
 	}
 	if fallback.calls != 0 {
 		t.Fatalf("fallback calls = %d, want 0", fallback.calls)
+	}
+}
+
+func TestResolverUsesDecompositionTemplateForCuratedComposedFood(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 100.0
+	plan := singleItemPlan("Ham sandwich on white, with cheese", &qty, "g")
+
+	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unresolved) != 0 {
+		t.Fatalf("unresolved = %+v, want none", unresolved)
+	}
+	if len(resolved) != 1 {
+		t.Fatalf("len(resolved) = %d, want 1", len(resolved))
+	}
+	item := resolved[0]
+	if item.ResolutionMethod != "decomposed" || item.FoodID != "decomposed_ham_sandwich_white_cheese_v1" {
+		t.Fatalf("resolved = %+v, want decomposed ham sandwich", item)
+	}
+	if len(item.Components) != 3 {
+		t.Fatalf("len(Components) = %d, want 3", len(item.Components))
+	}
+	if item.Components[0].Grams != 40 {
+		t.Fatalf("first component grams = %.1f, want 40", item.Components[0].Grams)
+	}
+}
+
+func TestEvaluateWarnsWhenApproximateResolutionIsUsed(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 100.0
+	plan := singleItemPlan("Rice", &qty, "g")
+	c := Case{
+		CaseID: "approximation-warning",
+		Settings: Settings{
+			NutritionTargets: NutritionTargets{CalorieTargetKcal: 2000, ProteinTargetG: 50},
+		},
+	}
+
+	evaluation, err := EvaluateWithFallback(c, plan, NutrientCatalog{}, ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(evaluation.UnresolvedItems) != 0 {
+		t.Fatalf("UnresolvedItems = %+v, want none", evaluation.UnresolvedItems)
+	}
+	if checkStatus(evaluation.Checks)["estimated_or_decomposed_foods"] != "warn" {
+		t.Fatalf("estimated_or_decomposed_foods = %q, want warn", checkStatus(evaluation.Checks)["estimated_or_decomposed_foods"])
 	}
 }
 
@@ -441,5 +572,17 @@ type recordingFNDDSReference struct {
 
 func (r *recordingFNDDSReference) LookupEligibleByDescription(description string) (CatalogFood, bool, error) {
 	r.calls++
+	return CatalogFood{}, false, nil
+}
+
+func (r *recordingFNDDSReference) LookupApproximationProxy(inputKey string) (FNDDSApproximationProxy, bool, error) {
+	return FNDDSApproximationProxy{}, false, nil
+}
+
+func (r *recordingFNDDSReference) LookupDecompositionTemplate(description string) (FNDDSDecompositionTemplate, bool, error) {
+	return FNDDSDecompositionTemplate{}, false, nil
+}
+
+func (r *recordingFNDDSReference) LookupFoodByCode(foodCode string) (CatalogFood, bool, error) {
 	return CatalogFood{}, false, nil
 }

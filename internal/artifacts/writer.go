@@ -60,6 +60,9 @@ type metricsDocument struct {
 	CaseID                  string `json:"case_id"`
 	Decision                string `json:"decision"`
 	ResolvedItems           int    `json:"resolved_items"`
+	ExactResolvedItems      int    `json:"exact_resolved_items"`
+	EstimatedItems          int    `json:"estimated_items"`
+	DecomposedItems         int    `json:"decomposed_items"`
 	UnresolvedItems         int    `json:"unresolved_items"`
 	ExcludedUnresolvedItems int    `json:"excluded_unresolved_items"`
 	CheckCount              int    `json:"check_count"`
@@ -268,8 +271,13 @@ func buildReport(c checker.Case, e checker.Evaluation) reportDocument {
 				Items: excludedUnresolvedItems(e.ExcludedUnresolvedItems),
 			},
 			{
+				Title: "Estimated And Decomposed Foods",
+				Body:  fmt.Sprintf("%d estimated or decomposed food items.", approximateResolutionCount(e.ResolvedItems)),
+				Items: approximateResolutionItems(e.ResolvedItems),
+			},
+			{
 				Title: "Daily Totals",
-				Body:  "Calculated from the fixture nutrient catalog.",
+				Body:  "Calculated from resolved, estimated, and decomposed food items.",
 				Items: dailyTotalItems(e.DailyTotals),
 			},
 		},
@@ -288,10 +296,26 @@ func buildMetrics(e checker.Evaluation) metricsDocument {
 			warnCount++
 		}
 	}
+	exactCount := 0
+	estimatedCount := 0
+	decomposedCount := 0
+	for _, item := range e.ResolvedItems {
+		switch item.ResolutionMethod {
+		case "estimated":
+			estimatedCount++
+		case "decomposed":
+			decomposedCount++
+		default:
+			exactCount++
+		}
+	}
 	return metricsDocument{
 		CaseID:                  e.CaseID,
 		Decision:                e.Decision,
 		ResolvedItems:           len(e.ResolvedItems),
+		ExactResolvedItems:      exactCount,
+		EstimatedItems:          estimatedCount,
+		DecomposedItems:         decomposedCount,
 		UnresolvedItems:         len(e.UnresolvedItems),
 		ExcludedUnresolvedItems: len(e.ExcludedUnresolvedItems),
 		CheckCount:              len(e.Checks),
@@ -353,6 +377,42 @@ func excludedUnresolvedItems(excluded []checker.ExcludedUnresolvedItem) []map[st
 			"exclusion_reason":    item.ExclusionReason,
 			"policy_id":           item.PolicyID,
 		})
+	}
+	return items
+}
+
+func approximateResolutionCount(resolved []checker.ResolvedItem) int {
+	count := 0
+	for _, item := range resolved {
+		if item.ResolutionMethod == "estimated" || item.ResolutionMethod == "decomposed" {
+			count++
+		}
+	}
+	return count
+}
+
+func approximateResolutionItems(resolved []checker.ResolvedItem) []map[string]any {
+	items := make([]map[string]any, 0, approximateResolutionCount(resolved))
+	for _, item := range resolved {
+		if item.ResolutionMethod != "estimated" && item.ResolutionMethod != "decomposed" {
+			continue
+		}
+		entry := map[string]any{
+			"day":               item.Day,
+			"meal":              item.Meal,
+			"food":              item.Food,
+			"resolution_method": item.ResolutionMethod,
+			"confidence":        item.Confidence,
+			"estimate_reason":   item.EstimateReason,
+		}
+		if item.ProxyFood != "" {
+			entry["proxy_food"] = item.ProxyFood
+			entry["proxy_food_id"] = item.ProxyFoodID
+		}
+		if len(item.Components) > 0 {
+			entry["component_count"] = len(item.Components)
+		}
+		items = append(items, entry)
 	}
 	return items
 }
@@ -429,6 +489,21 @@ func writeMarkdown(path string, report reportDocument, e checker.Evaluation) err
 			fmt.Fprintf(&b, "- Day %d %s: `%s` %.1f %s / %.1f g excluded (%s)\n", item.Day, item.Meal, item.Food, item.Quantity, item.Unit, item.DeterministicGrams, item.ExclusionReason)
 		}
 	}
+	fmt.Fprintf(&b, "\n## Estimated And Decomposed Foods\n\n")
+	if approximateResolutionCount(e.ResolvedItems) == 0 {
+		fmt.Fprintf(&b, "None.\n")
+	} else {
+		for _, item := range e.ResolvedItems {
+			if item.ResolutionMethod != "estimated" && item.ResolutionMethod != "decomposed" {
+				continue
+			}
+			if item.ProxyFood != "" {
+				fmt.Fprintf(&b, "- Day %d %s: `%s` resolved as `%s` (%s, %s)\n", item.Day, item.Meal, item.Food, item.ProxyFood, item.ResolutionMethod, item.Confidence)
+				continue
+			}
+			fmt.Fprintf(&b, "- Day %d %s: `%s` resolved by %s (%s, %d components)\n", item.Day, item.Meal, item.Food, item.ResolutionMethod, item.Confidence, len(item.Components))
+		}
+	}
 	fmt.Fprintf(&b, "\n## Daily Totals\n\n")
 	for _, total := range e.DailyTotals {
 		fmt.Fprintf(&b, "- Day %d: %.1f kcal, %.1f g protein, %.1f mg sodium\n", total.Day, total.Nutrients.EnergyKcal, total.Nutrients.ProteinG, total.Nutrients.SodiumMG)
@@ -453,6 +528,17 @@ func writeHTML(path string, report reportDocument, e checker.Evaluation) error {
 	md.WriteString("</ul><h2>Excluded Unresolved Foods</h2><ul>")
 	for _, item := range e.ExcludedUnresolvedItems {
 		fmt.Fprintf(&md, "<li>Day %d %s: <code>%s</code> %.1f %s / %.1f g excluded (%s)</li>", item.Day, html.EscapeString(item.Meal), html.EscapeString(item.Food), item.Quantity, html.EscapeString(item.Unit), item.DeterministicGrams, html.EscapeString(item.ExclusionReason))
+	}
+	md.WriteString("</ul><h2>Estimated And Decomposed Foods</h2><ul>")
+	for _, item := range e.ResolvedItems {
+		if item.ResolutionMethod != "estimated" && item.ResolutionMethod != "decomposed" {
+			continue
+		}
+		if item.ProxyFood != "" {
+			fmt.Fprintf(&md, "<li>Day %d %s: <code>%s</code> resolved as <code>%s</code> (%s, %s)</li>", item.Day, html.EscapeString(item.Meal), html.EscapeString(item.Food), html.EscapeString(item.ProxyFood), html.EscapeString(item.ResolutionMethod), html.EscapeString(item.Confidence))
+			continue
+		}
+		fmt.Fprintf(&md, "<li>Day %d %s: <code>%s</code> resolved by %s (%s, %d components)</li>", item.Day, html.EscapeString(item.Meal), html.EscapeString(item.Food), html.EscapeString(item.ResolutionMethod), html.EscapeString(item.Confidence), len(item.Components))
 	}
 	md.WriteString("</ul><h2>Daily Totals</h2><ul>")
 	for _, total := range e.DailyTotals {
@@ -495,6 +581,21 @@ func writePDF(path string, report reportDocument, e checker.Evaluation) error {
 	} else {
 		for _, item := range e.ExcludedUnresolvedItems {
 			lines = append(lines, fmt.Sprintf("Day %d %s: %s %.1f %s / %.1f g excluded (%s)", item.Day, item.Meal, item.Food, item.Quantity, item.Unit, item.DeterministicGrams, item.ExclusionReason))
+		}
+	}
+	lines = append(lines, "", "Estimated And Decomposed Foods")
+	if approximateResolutionCount(e.ResolvedItems) == 0 {
+		lines = append(lines, "None.")
+	} else {
+		for _, item := range e.ResolvedItems {
+			if item.ResolutionMethod != "estimated" && item.ResolutionMethod != "decomposed" {
+				continue
+			}
+			if item.ProxyFood != "" {
+				lines = append(lines, fmt.Sprintf("Day %d %s: %s resolved as %s (%s, %s)", item.Day, item.Meal, item.Food, item.ProxyFood, item.ResolutionMethod, item.Confidence))
+				continue
+			}
+			lines = append(lines, fmt.Sprintf("Day %d %s: %s resolved by %s (%s, %d components)", item.Day, item.Meal, item.Food, item.ResolutionMethod, item.Confidence, len(item.Components)))
 		}
 	}
 	lines = append(lines, "", "Daily Totals")

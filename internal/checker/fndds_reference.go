@@ -13,10 +13,39 @@ import (
 
 type FNDDSReference interface {
 	LookupEligibleByDescription(description string) (CatalogFood, bool, error)
+	LookupApproximationProxy(inputKey string) (FNDDSApproximationProxy, bool, error)
+	LookupDecompositionTemplate(description string) (FNDDSDecompositionTemplate, bool, error)
+	LookupFoodByCode(foodCode string) (CatalogFood, bool, error)
 }
 
 type SQLiteFNDDSReference struct {
 	db *sql.DB
+}
+
+type FNDDSApproximationProxy struct {
+	InputKey                   string
+	ProxyFoodCode              string
+	ProxyDescription           string
+	Confidence                 string
+	AllowWhenAllergiesPresent  bool
+	AllowWhenExclusionsPresent bool
+	EstimateReason             string
+	Food                       CatalogFood
+}
+
+type FNDDSDecompositionTemplate struct {
+	TemplateID string
+	Pattern    string
+	Confidence string
+	Notes      string
+	Components []FNDDSDecompositionComponent
+}
+
+type FNDDSDecompositionComponent struct {
+	FoodCode string
+	Role     string
+	Fraction float64
+	Required bool
 }
 
 func OpenSQLiteFNDDSReference(path string) (*SQLiteFNDDSReference, error) {
@@ -58,7 +87,145 @@ func (r *SQLiteFNDDSReference) LookupEligibleByDescription(description string) (
 	normalized := normalizeFNDDSMatchKey(description)
 	rows, err := r.db.Query(`
 		select distinct
-			f.food_code,
+			key.food_code
+		from fndds_match_keys key
+		where key.normalized_match_key = ?
+		  and key.resolver_status = 'auto'
+		  and key.confidence in ('exact', 'high')
+		order by key.food_code
+		limit 2
+	`, normalized)
+	if err != nil {
+		return CatalogFood{}, false, err
+	}
+	defer rows.Close()
+
+	var matches []string
+	for rows.Next() {
+		var foodCode string
+		if err := rows.Scan(&foodCode); err != nil {
+			return CatalogFood{}, false, err
+		}
+		matches = append(matches, foodCode)
+	}
+	if err := rows.Err(); err != nil {
+		return CatalogFood{}, false, err
+	}
+	if err := rows.Close(); err != nil {
+		return CatalogFood{}, false, err
+	}
+	if len(matches) != 1 {
+		return CatalogFood{}, false, nil
+	}
+	return r.lookupCatalogFoodByCode(matches[0])
+}
+
+func (r *SQLiteFNDDSReference) LookupApproximationProxy(inputKey string) (FNDDSApproximationProxy, bool, error) {
+	if r == nil || r.db == nil {
+		return FNDDSApproximationProxy{}, false, nil
+	}
+	normalized := normalizeFNDDSMatchKey(inputKey)
+	var proxy FNDDSApproximationProxy
+	var allowAllergies int
+	var allowExclusions int
+	err := r.db.QueryRow(`
+		select input_key, proxy_food_code, proxy_description, confidence,
+		       allow_when_allergies_present, allow_when_exclusions_present,
+		       estimate_reason
+		  from fndds_approximation_proxies
+		 where normalized_input_key = ?
+		 order by input_key
+		 limit 1
+	`, normalized).Scan(
+		&proxy.InputKey,
+		&proxy.ProxyFoodCode,
+		&proxy.ProxyDescription,
+		&proxy.Confidence,
+		&allowAllergies,
+		&allowExclusions,
+		&proxy.EstimateReason,
+	)
+	if err == sql.ErrNoRows {
+		return FNDDSApproximationProxy{}, false, nil
+	}
+	if err != nil {
+		return FNDDSApproximationProxy{}, false, err
+	}
+	food, ok, err := r.lookupCatalogFoodByCode(proxy.ProxyFoodCode)
+	if err != nil || !ok {
+		return FNDDSApproximationProxy{}, ok, err
+	}
+	proxy.AllowWhenAllergiesPresent = allowAllergies != 0
+	proxy.AllowWhenExclusionsPresent = allowExclusions != 0
+	proxy.Food = food
+	return proxy, true, nil
+}
+
+func (r *SQLiteFNDDSReference) LookupDecompositionTemplate(description string) (FNDDSDecompositionTemplate, bool, error) {
+	if r == nil || r.db == nil {
+		return FNDDSDecompositionTemplate{}, false, nil
+	}
+	normalized := normalizeFNDDSMatchKey(description)
+	var template FNDDSDecompositionTemplate
+	var notes sql.NullString
+	err := r.db.QueryRow(`
+		select template_id, pattern, confidence, notes
+		  from fndds_decomposition_templates
+		 where normalized_pattern = ?
+		 order by template_id
+		 limit 1
+	`, normalized).Scan(&template.TemplateID, &template.Pattern, &template.Confidence, &notes)
+	if err == sql.ErrNoRows {
+		return FNDDSDecompositionTemplate{}, false, nil
+	}
+	if err != nil {
+		return FNDDSDecompositionTemplate{}, false, err
+	}
+	if notes.Valid {
+		template.Notes = notes.String
+	}
+	rows, err := r.db.Query(`
+		select food_code, role, fraction, required
+		  from fndds_decomposition_components
+		 where template_id = ?
+		 order by position
+	`, template.TemplateID)
+	if err != nil {
+		return FNDDSDecompositionTemplate{}, false, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var component FNDDSDecompositionComponent
+		var required int
+		if err := rows.Scan(&component.FoodCode, &component.Role, &component.Fraction, &required); err != nil {
+			return FNDDSDecompositionTemplate{}, false, err
+		}
+		component.Required = required != 0
+		template.Components = append(template.Components, component)
+	}
+	if err := rows.Err(); err != nil {
+		return FNDDSDecompositionTemplate{}, false, err
+	}
+	if len(template.Components) == 0 {
+		return FNDDSDecompositionTemplate{}, false, nil
+	}
+	return template, true, nil
+}
+
+func (r *SQLiteFNDDSReference) LookupFoodByCode(foodCode string) (CatalogFood, bool, error) {
+	if r == nil || r.db == nil {
+		return CatalogFood{}, false, nil
+	}
+	return r.lookupCatalogFoodByCode(foodCode)
+}
+
+func (r *SQLiteFNDDSReference) lookupCatalogFoodByCode(foodCode string) (CatalogFood, bool, error) {
+	foodCode = strings.TrimPrefix(strings.TrimSpace(foodCode), "fndds_")
+	var name string
+	var nutrients Nutrients
+	var totalSugarG float64
+	err := r.db.QueryRow(`
+		select
 			f.main_description,
 			n.energy_kcal,
 			n.protein_g,
@@ -70,74 +237,44 @@ func (r *SQLiteFNDDSReference) LookupEligibleByDescription(description string) (
 			n.fiber_g
 		from fndds_foods f
 		join fndds_nutrients n on n.food_code = f.food_code
-		join fndds_match_keys key on key.food_code = f.food_code
-		where key.normalized_match_key = ?
-		  and key.resolver_status = 'auto'
-		  and key.confidence in ('exact', 'high')
-		order by f.food_code
-		limit 2
-	`, normalized)
+		where f.food_code = ?
+	`, foodCode).Scan(
+		&name,
+		&nutrients.EnergyKcal,
+		&nutrients.ProteinG,
+		&nutrients.CarbohydrateG,
+		&nutrients.FatG,
+		&nutrients.SaturatedFatG,
+		&nutrients.SodiumMG,
+		&totalSugarG,
+		&nutrients.FiberG,
+	)
+	if err == sql.ErrNoRows {
+		return CatalogFood{}, false, nil
+	}
 	if err != nil {
 		return CatalogFood{}, false, err
 	}
-	defer rows.Close()
 
-	type match struct {
-		foodCode    string
-		name        string
-		nutrients   Nutrients
-		totalSugarG float64
-	}
-	var matches []match
-	for rows.Next() {
-		var m match
-		if err := rows.Scan(
-			&m.foodCode,
-			&m.name,
-			&m.nutrients.EnergyKcal,
-			&m.nutrients.ProteinG,
-			&m.nutrients.CarbohydrateG,
-			&m.nutrients.FatG,
-			&m.nutrients.SaturatedFatG,
-			&m.nutrients.SodiumMG,
-			&m.totalSugarG,
-			&m.nutrients.FiberG,
-		); err != nil {
-			return CatalogFood{}, false, err
-		}
-		matches = append(matches, m)
-	}
-	if err := rows.Err(); err != nil {
-		return CatalogFood{}, false, err
-	}
-	if err := rows.Close(); err != nil {
-		return CatalogFood{}, false, err
-	}
-	if len(matches) != 1 {
-		return CatalogFood{}, false, nil
-	}
-
-	m := matches[0]
-	nutrients := m.nutrients
 	// FNDDS At A Glance does not expose added-sugar grams. For fallback
 	// rows, use total sugar as a conservative proxy until a reviewed
 	// added-sugar source is added.
-	nutrients.AddedSugarG = m.totalSugarG
-	allergens, err := r.lookupStrings("fndds_allergens", "allergen", m.foodCode)
+	nutrients.AddedSugarG = totalSugarG
+	allergens, err := r.lookupStrings("fndds_allergens", "allergen", foodCode)
 	if err != nil {
 		return CatalogFood{}, false, err
 	}
-	foodGroups, err := r.lookupStrings("fndds_food_groups", "food_group", m.foodCode)
+	foodGroups, err := r.lookupStrings("fndds_food_groups", "food_group", foodCode)
 	if err != nil {
 		return CatalogFood{}, false, err
 	}
-	unitConversions, err := r.lookupUnitConversions(m.foodCode)
+	unitConversions, err := r.lookupUnitConversions(foodCode)
 	if err != nil {
 		return CatalogFood{}, false, err
 	}
 	return CatalogFood{
-		FoodID:           "fndds_" + m.foodCode,
-		Name:             m.name,
+		FoodID:           "fndds_" + foodCode,
+		Name:             name,
 		Aliases:          nil,
 		BaseQuantityG:    100,
 		NutrientsPer100G: nutrients,
@@ -147,7 +284,7 @@ func (r *SQLiteFNDDSReference) LookupEligibleByDescription(description string) (
 		SourceRefs: []CatalogSourceRef{
 			{
 				Source:   "fndds-2021-2023",
-				SourceID: m.foodCode,
+				SourceID: foodCode,
 				DataType: "FNDDS SQLite fallback",
 				Note:     "Auto match-key fallback with source-backed unit conversions.",
 			},

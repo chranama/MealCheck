@@ -356,13 +356,17 @@ Responsibilities:
 - `report.md`: lightweight text report for terminals and PRs.
 - `failures.jsonl`: failed or review-needed checks.
 - `daily-totals.json`: calculated daily and aggregate nutrition values.
-- `resolved-foods.json`: resolver matches, normalized quantities, and nutrient
-  contributions.
+- `resolved-foods.json`: resolver matches, normalized quantities, nutrient
+  contributions, and resolution metadata. Exact matches use
+  `resolution_method: "exact"`; curated broad-food proxies use
+  `resolution_method: "estimated"` with proxy metadata; curated composed-food
+  templates use `resolution_method: "decomposed"` with component metadata.
 - `unresolved-foods.json`: foods and quantities the resolver could not verify
   and that still block verification.
 - `excluded-unresolved-foods.json`: opt-in de minimis unresolved mass items
   excluded from nutrition totals; these stay visible and produce a warning.
-- `metrics.json`: aggregate runtime, resolution, and check metrics.
+- `metrics.json`: aggregate runtime, exact/estimated/decomposed resolution,
+  unresolved-item, and check metrics.
 - `manifest.json`: MealCheck version, timestamps, config hashes, and provenance.
 - `normalized-plan.json`: schema-normalized evaluated plan.
 - `optional/llm-output.json`: original LLM output when an LLM was used; omitted

@@ -16,7 +16,7 @@ func Evaluate(c Case, plan Plan, catalog NutrientCatalog) Evaluation {
 }
 
 func EvaluateWithFallback(c Case, plan Plan, catalog NutrientCatalog, fallback FNDDSReference) (Evaluation, error) {
-	resolved, unresolved, err := newResolverWithFallback(catalog, fallback).resolvePlanWithError(plan)
+	resolved, unresolved, err := newResolverWithFallback(catalog, fallback, c.Settings.VerificationConstraints).resolvePlanWithError(plan)
 	if err != nil {
 		return Evaluation{}, err
 	}
@@ -33,6 +33,7 @@ func EvaluateWithFallback(c Case, plan Plan, catalog NutrientCatalog, fallback F
 		checkSchemaValid(),
 		checkRequiredMeals(c, plan),
 		checkQuantitiesResolvable(blockingUnresolved, excludedUnresolved),
+		checkApproximateResolution(resolved),
 		checkAllergensAbsent(c, resolved),
 		checkExcludedFoodsAbsent(c, resolved),
 		checkCaloriesWithinTolerance(c, dailyTotals),
@@ -306,6 +307,40 @@ func checkQuantitiesResolvable(unresolved []UnresolvedItem, excluded []ExcludedU
 	return CheckResult{CheckID: "quantities_resolvable", Status: "block", Severity: "block", Message: "The candidate includes unresolved food quantities or units.", Evidence: evidence, AffectedDays: days, AffectedMeals: meals}
 }
 
+func checkApproximateResolution(items []ResolvedItem) CheckResult {
+	var evidence []map[string]any
+	var days []int
+	var meals []string
+	for _, item := range items {
+		switch item.ResolutionMethod {
+		case "estimated", "decomposed":
+			entry := map[string]any{
+				"day":               item.Day,
+				"meal":              item.Meal,
+				"food":              item.Food,
+				"resolution_method": item.ResolutionMethod,
+				"confidence":        item.Confidence,
+			}
+			if item.ProxyFood != "" {
+				entry["proxy_food"] = item.ProxyFood
+			}
+			if item.EstimateReason != "" {
+				entry["estimate_reason"] = item.EstimateReason
+			}
+			if len(item.Components) > 0 {
+				entry["component_count"] = len(item.Components)
+			}
+			evidence = append(evidence, entry)
+			days = appendUniqueInt(days, item.Day)
+			meals = appendUniqueString(meals, item.Meal)
+		}
+	}
+	if len(evidence) == 0 {
+		return CheckResult{CheckID: "estimated_or_decomposed_foods", Status: "pass", Severity: "info", Message: "No estimated or decomposed food representations were used."}
+	}
+	return CheckResult{CheckID: "estimated_or_decomposed_foods", Status: "warn", Severity: "warn", Message: "Some foods used approximate proxy or decomposition nutrition.", Evidence: evidence, AffectedDays: days, AffectedMeals: meals}
+}
+
 func checkAllergensAbsent(c Case, items []ResolvedItem) CheckResult {
 	allergies := normalizedSet(c.Settings.VerificationConstraints.Allergies)
 	var evidence []map[string]any
@@ -332,6 +367,14 @@ func checkExcludedFoodsAbsent(c Case, items []ResolvedItem) CheckResult {
 	for _, item := range items {
 		if excluded[normalizeName(item.Food)] {
 			evidence = append(evidence, map[string]any{"day": item.Day, "meal": item.Meal, "food": item.Food})
+		}
+		if item.ProxyFood != "" && excluded[normalizeName(item.ProxyFood)] {
+			evidence = append(evidence, map[string]any{"day": item.Day, "meal": item.Meal, "food": item.Food, "matched_food": item.ProxyFood, "match_type": "proxy"})
+		}
+		for _, component := range item.Components {
+			if excluded[normalizeName(component.Food)] {
+				evidence = append(evidence, map[string]any{"day": item.Day, "meal": item.Meal, "food": item.Food, "matched_food": component.Food, "match_type": "component"})
+			}
 		}
 	}
 	if len(evidence) > 0 {

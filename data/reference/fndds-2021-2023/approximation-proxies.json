@@ -1,0 +1,67 @@
+{
+  "schema_version": "0.1",
+  "release": "2021-2023",
+  "description": "Curated broad-food proxy mappings used only after exact resolver gates block a one-word broad food.",
+  "proxies": [
+    {
+      "input_key": "bread",
+      "proxy_food_code": "51101000",
+      "proxy_description": "Bread, white",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Broad bread proxy using white bread.",
+      "normalized_input_key": "bread"
+    },
+    {
+      "input_key": "coffee",
+      "proxy_food_code": "92101000",
+      "proxy_description": "Coffee, brewed",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Broad coffee proxy using brewed coffee.",
+      "normalized_input_key": "coffee"
+    },
+    {
+      "input_key": "pasta",
+      "proxy_food_code": "56130000",
+      "proxy_description": "Pasta, cooked",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Broad pasta proxy using cooked pasta.",
+      "normalized_input_key": "pasta"
+    },
+    {
+      "input_key": "rice",
+      "proxy_food_code": "56205001",
+      "proxy_description": "Rice, white, cooked, NS as to fat",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Broad rice proxy using cooked white rice.",
+      "normalized_input_key": "rice"
+    },
+    {
+      "input_key": "tea",
+      "proxy_food_code": "92302000",
+      "proxy_description": "Tea, black, brewed",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Broad tea proxy using brewed black tea.",
+      "normalized_input_key": "tea"
+    },
+    {
+      "input_key": "water",
+      "proxy_food_code": "94000100",
+      "proxy_description": "Water, tap",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Broad water proxy using tap water.",
+      "normalized_input_key": "water"
+    }
+  ]
+}

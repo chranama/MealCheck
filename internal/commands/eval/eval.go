@@ -62,6 +62,9 @@ type evalResult struct {
 	TotalCases           int               `json:"total_cases"`
 	TotalFoodItems       int               `json:"total_food_items"`
 	ResolvedItems        int               `json:"resolved_items"`
+	ExactResolvedItems   int               `json:"exact_resolved_items"`
+	EstimatedItems       int               `json:"estimated_items"`
+	DecomposedItems      int               `json:"decomposed_items"`
 	UnresolvedItems      int               `json:"unresolved_items"`
 	ResolvedRate         float64           `json:"resolved_rate"`
 	CasesWithMismatches  int               `json:"cases_with_mismatches"`
@@ -72,12 +75,15 @@ type evalResult struct {
 }
 
 type categorySummary struct {
-	Category        string  `json:"category"`
-	Cases           int     `json:"cases"`
-	FoodItems       int     `json:"food_items"`
-	ResolvedItems   int     `json:"resolved_items"`
-	UnresolvedItems int     `json:"unresolved_items"`
-	ResolvedRate    float64 `json:"resolved_rate"`
+	Category           string  `json:"category"`
+	Cases              int     `json:"cases"`
+	FoodItems          int     `json:"food_items"`
+	ResolvedItems      int     `json:"resolved_items"`
+	ExactResolvedItems int     `json:"exact_resolved_items"`
+	EstimatedItems     int     `json:"estimated_items"`
+	DecomposedItems    int     `json:"decomposed_items"`
+	UnresolvedItems    int     `json:"unresolved_items"`
+	ResolvedRate       float64 `json:"resolved_rate"`
 }
 
 type rankedCount struct {
@@ -95,6 +101,9 @@ type categoryAccumulator struct {
 	cases      int
 	total      int
 	resolved   int
+	exact      int
+	estimated  int
+	decomposed int
 	unresolved int
 }
 
@@ -207,9 +216,13 @@ func run(root, datasetPath, catalogOverride, fallbackPath string, skipExpected b
 		itemCount := countPlanItems(evalCase.Plan)
 		resolvedCount := len(evaluation.ResolvedItems)
 		unresolvedCount := len(evaluation.UnresolvedItems)
+		exactCount, estimatedCount, decomposedCount := countResolutionMethods(evaluation.ResolvedItems)
 
 		result.TotalFoodItems += itemCount
 		result.ResolvedItems += resolvedCount
+		result.ExactResolvedItems += exactCount
+		result.EstimatedItems += estimatedCount
+		result.DecomposedItems += decomposedCount
 		result.UnresolvedItems += unresolvedCount
 
 		acc := categoryCounts[evalCase.Category]
@@ -220,6 +233,9 @@ func run(root, datasetPath, catalogOverride, fallbackPath string, skipExpected b
 		acc.cases++
 		acc.total += itemCount
 		acc.resolved += resolvedCount
+		acc.exact += exactCount
+		acc.estimated += estimatedCount
+		acc.decomposed += decomposedCount
 		acc.unresolved += unresolvedCount
 
 		for _, unresolved := range evaluation.UnresolvedItems {
@@ -291,6 +307,23 @@ func countPlanItems(plan checker.Plan) int {
 	return total
 }
 
+func countResolutionMethods(items []checker.ResolvedItem) (int, int, int) {
+	exact := 0
+	estimated := 0
+	decomposed := 0
+	for _, item := range items {
+		switch item.ResolutionMethod {
+		case "estimated":
+			estimated++
+		case "decomposed":
+			decomposed++
+		default:
+			exact++
+		}
+	}
+	return exact, estimated, decomposed
+}
+
 func categorySummaries(counts map[string]*categoryAccumulator) []categorySummary {
 	categories := make([]string, 0, len(counts))
 	for category := range counts {
@@ -301,12 +334,15 @@ func categorySummaries(counts map[string]*categoryAccumulator) []categorySummary
 	for _, category := range categories {
 		count := counts[category]
 		summaries = append(summaries, categorySummary{
-			Category:        category,
-			Cases:           count.cases,
-			FoodItems:       count.total,
-			ResolvedItems:   count.resolved,
-			UnresolvedItems: count.unresolved,
-			ResolvedRate:    ratio(count.resolved, count.total),
+			Category:           category,
+			Cases:              count.cases,
+			FoodItems:          count.total,
+			ResolvedItems:      count.resolved,
+			ExactResolvedItems: count.exact,
+			EstimatedItems:     count.estimated,
+			DecomposedItems:    count.decomposed,
+			UnresolvedItems:    count.unresolved,
+			ResolvedRate:       ratio(count.resolved, count.total),
 		})
 	}
 	return summaries

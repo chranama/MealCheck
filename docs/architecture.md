@@ -221,6 +221,10 @@ produce or repair a meal-plan JSON document, but nutrition compliance,
 guideline checks, and report decisions are still produced by the local
 deterministic checker. Repair is limited to one attempt and must not invent
 missing foods, quantities, units, nutrition totals, or compliance judgments.
+The checker resolves foods against the reviewed local catalog first, then the
+FNDDS fallback. Curated broad-food proxies and composed-food decomposition
+templates may improve coverage, but those rows are reported as estimated or
+decomposed and produce a warning rather than being treated as exact matches.
 
 ## Full Stack Hosting Shape
 

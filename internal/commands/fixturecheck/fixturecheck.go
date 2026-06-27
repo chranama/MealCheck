@@ -495,6 +495,8 @@ func validateFNDDSReference(root string) error {
 		"unit-conversions.jsonl",
 		"quarantined-foods.jsonl",
 		"review-required-foods.jsonl",
+		"approximation-proxies.json",
+		"decomposition-templates.json",
 		"food-index.json",
 		"classification-summary.json",
 		"manifest.json",
@@ -541,6 +543,14 @@ func validateFNDDSReference(root string) error {
 	if err != nil {
 		return err
 	}
+	approximationProxyDoc, err := readObject(filepath.Join(base, "approximation-proxies.json"))
+	if err != nil {
+		return err
+	}
+	decompositionTemplateDoc, err := readObject(filepath.Join(base, "decomposition-templates.json"))
+	if err != nil {
+		return err
+	}
 	summary, err := readObject(filepath.Join(base, "classification-summary.json"))
 	if err != nil {
 		return err
@@ -576,6 +586,14 @@ func validateFNDDSReference(root string) error {
 	}
 	if got := int(mustNumber(summary, "unit_conversion_count")); got != len(unitConversions) {
 		return fmt.Errorf("FNDDS summary unit_conversion_count = %d, want %d", got, len(unitConversions))
+	}
+	approximationProxies := objectSlice(approximationProxyDoc, "proxies")
+	decompositionTemplates := objectSlice(decompositionTemplateDoc, "templates")
+	if got := int(mustNumber(summary, "approximation_proxy_count")); got != len(approximationProxies) {
+		return fmt.Errorf("FNDDS summary approximation_proxy_count = %d, want %d", got, len(approximationProxies))
+	}
+	if got := int(mustNumber(summary, "decomposition_template_count")); got != len(decompositionTemplates) {
+		return fmt.Errorf("FNDDS summary decomposition_template_count = %d, want %d", got, len(decompositionTemplates))
 	}
 	if got := int(mustNumber(index, "food_count")); got != len(foods) {
 		return fmt.Errorf("FNDDS food-index food_count = %d, want %d", got, len(foods))
@@ -672,6 +690,12 @@ func validateFNDDSReference(root string) error {
 	if err := validateReferenceUnitConversions(unitConversions, foodByCode); err != nil {
 		return err
 	}
+	if err := validateReferenceApproximationProxies(approximationProxies, foodByCode); err != nil {
+		return err
+	}
+	if err := validateReferenceDecompositionTemplates(decompositionTemplates, foodByCode); err != nil {
+		return err
+	}
 
 	expectedStatuses := map[string]string{
 		"11000000": "review_required",
@@ -688,13 +712,13 @@ func validateFNDDSReference(root string) error {
 			return fmt.Errorf("FNDDS food %s candidate_status = %s, want %s", code, got, want)
 		}
 	}
-	if err := validateFNDDSReferenceSQLite(base, foods, nutrients, portions, matchKeys, unitConversions); err != nil {
+	if err := validateFNDDSReferenceSQLite(base, foods, nutrients, portions, matchKeys, unitConversions, approximationProxies, decompositionTemplates); err != nil {
 		return err
 	}
 	return nil
 }
 
-func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions, matchKeys, unitConversions []map[string]any) error {
+func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions, matchKeys, unitConversions, approximationProxies, decompositionTemplates []map[string]any) error {
 	sqlitePath := filepath.Join(base, "fndds.sqlite")
 	abs, err := filepath.Abs(sqlitePath)
 	if err != nil {
@@ -718,16 +742,23 @@ func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions, match
 		allergenCount += len(stringSlice(food, "allergens"))
 		foodGroupCount += len(stringSlice(food, "food_groups"))
 	}
+	decompositionComponentCount := 0
+	for _, template := range decompositionTemplates {
+		decompositionComponentCount += len(objectSlice(template, "components"))
+	}
 
 	expectedCounts := map[string]int{
-		"fndds_foods":            len(foods),
-		"fndds_nutrients":        len(nutrients),
-		"fndds_portions":         len(portions),
-		"fndds_match_keys":       len(matchKeys),
-		"fndds_unit_conversions": len(unitConversions),
-		"fndds_ambiguity_flags":  flagCount,
-		"fndds_allergens":        allergenCount,
-		"fndds_food_groups":      foodGroupCount,
+		"fndds_foods":                    len(foods),
+		"fndds_nutrients":                len(nutrients),
+		"fndds_portions":                 len(portions),
+		"fndds_match_keys":               len(matchKeys),
+		"fndds_unit_conversions":         len(unitConversions),
+		"fndds_approximation_proxies":    len(approximationProxies),
+		"fndds_decomposition_templates":  len(decompositionTemplates),
+		"fndds_decomposition_components": decompositionComponentCount,
+		"fndds_ambiguity_flags":          flagCount,
+		"fndds_allergens":                allergenCount,
+		"fndds_food_groups":              foodGroupCount,
 	}
 	for table, want := range expectedCounts {
 		got, err := sqliteCount(db, fmt.Sprintf("select count(*) from %s", table))
@@ -791,6 +822,9 @@ func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions, match
 		"idx_fndds_match_keys_normalized_status",
 		"idx_fndds_match_keys_food_code",
 		"idx_fndds_unit_conversions_food_code",
+		"idx_fndds_approximation_proxies_normalized_input_key",
+		"idx_fndds_decomposition_templates_normalized_pattern",
+		"idx_fndds_decomposition_components_template_id",
 		"idx_fndds_flags_food_code",
 		"idx_fndds_allergens_food_code",
 		"idx_fndds_food_groups_food_code",
@@ -924,6 +958,96 @@ func validateReferenceUnitConversions(rows []map[string]any, foodByCode map[stri
 		}
 		if _, err := stringField(row, "source_description"); err != nil {
 			return fmt.Errorf("FNDDS unit conversion %s for food %s: %w", unit, code, err)
+		}
+	}
+	return nil
+}
+
+func validateReferenceApproximationProxies(rows []map[string]any, foodByCode map[string]map[string]any) error {
+	if len(rows) == 0 {
+		return errors.New("approximation-proxies.json must define at least one proxy")
+	}
+	seen := map[string]bool{}
+	validConfidences := map[string]bool{"low": true, "medium": true, "high": true}
+	for _, row := range rows {
+		inputKey := mustString(row, "input_key")
+		normalized := mustString(row, "normalized_input_key")
+		if normalized != normalizeMatchKey(inputKey) {
+			return fmt.Errorf("approximation proxy %q normalized_input_key = %q, want %q", inputKey, normalized, normalizeMatchKey(inputKey))
+		}
+		if seen[normalized] {
+			return fmt.Errorf("duplicate approximation proxy %q", normalized)
+		}
+		seen[normalized] = true
+		code := mustString(row, "proxy_food_code")
+		if foodByCode[code] == nil {
+			return fmt.Errorf("approximation proxy %q references unknown food_code %s", inputKey, code)
+		}
+		if !validConfidences[mustString(row, "confidence")] {
+			return fmt.Errorf("approximation proxy %q has invalid confidence %q", inputKey, mustString(row, "confidence"))
+		}
+		if _, err := stringField(row, "estimate_reason"); err != nil {
+			return fmt.Errorf("approximation proxy %q: %w", inputKey, err)
+		}
+		if _, ok := row["allow_when_allergies_present"].(bool); !ok {
+			return fmt.Errorf("approximation proxy %q allow_when_allergies_present must be boolean", inputKey)
+		}
+		if _, ok := row["allow_when_exclusions_present"].(bool); !ok {
+			return fmt.Errorf("approximation proxy %q allow_when_exclusions_present must be boolean", inputKey)
+		}
+	}
+	return nil
+}
+
+func validateReferenceDecompositionTemplates(rows []map[string]any, foodByCode map[string]map[string]any) error {
+	if len(rows) == 0 {
+		return errors.New("decomposition-templates.json must define at least one template")
+	}
+	seenIDs := map[string]bool{}
+	seenPatterns := map[string]bool{}
+	validConfidences := map[string]bool{"low": true, "medium": true, "high": true}
+	for _, row := range rows {
+		templateID := mustString(row, "template_id")
+		if seenIDs[templateID] {
+			return fmt.Errorf("duplicate decomposition template_id %s", templateID)
+		}
+		seenIDs[templateID] = true
+		pattern := mustString(row, "pattern")
+		normalized := mustString(row, "normalized_pattern")
+		if normalized != normalizeMatchKey(pattern) {
+			return fmt.Errorf("decomposition template %s normalized_pattern = %q, want %q", templateID, normalized, normalizeMatchKey(pattern))
+		}
+		if seenPatterns[normalized] {
+			return fmt.Errorf("duplicate decomposition template pattern %q", normalized)
+		}
+		seenPatterns[normalized] = true
+		if !validConfidences[mustString(row, "confidence")] {
+			return fmt.Errorf("decomposition template %s has invalid confidence %q", templateID, mustString(row, "confidence"))
+		}
+		components := objectSlice(row, "components")
+		if len(components) == 0 {
+			return fmt.Errorf("decomposition template %s must define components", templateID)
+		}
+		totalFraction := 0.0
+		for _, component := range components {
+			code := mustString(component, "food_code")
+			if foodByCode[code] == nil {
+				return fmt.Errorf("decomposition template %s references unknown food_code %s", templateID, code)
+			}
+			if _, err := stringField(component, "role"); err != nil {
+				return fmt.Errorf("decomposition template %s component %s: %w", templateID, code, err)
+			}
+			fraction, err := numericField(component, "fraction")
+			if err != nil || fraction <= 0 || fraction >= 1 {
+				return fmt.Errorf("decomposition template %s component %s has invalid fraction", templateID, code)
+			}
+			totalFraction += fraction
+			if _, ok := component["required"].(bool); !ok {
+				return fmt.Errorf("decomposition template %s component %s required must be boolean", templateID, code)
+			}
+		}
+		if totalFraction < 0.999 || totalFraction > 1.001 {
+			return fmt.Errorf("decomposition template %s fractions sum to %.3f", templateID, totalFraction)
 		}
 	}
 	return nil
@@ -1085,4 +1209,19 @@ func planHasAnyFood(plan map[string]any) bool {
 
 func normalizeLabel(value string) string {
 	return strings.Join(strings.Fields(strings.ToLower(strings.TrimSpace(value))), " ")
+}
+
+func normalizeMatchKey(value string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(value) {
+		switch {
+		case r >= 'a' && r <= 'z':
+			b.WriteRune(r)
+		case r >= '0' && r <= '9':
+			b.WriteRune(r)
+		default:
+			b.WriteByte(' ')
+		}
+	}
+	return strings.Join(strings.Fields(b.String()), " ")
 }
