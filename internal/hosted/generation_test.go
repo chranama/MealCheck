@@ -1,6 +1,10 @@
 package hosted
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -150,6 +154,111 @@ func TestLocalModelExtractionMessagesNormalizesSliceUnitAndSlicedOrange(t *testi
 		if !strings.Contains(userPrompt, want) {
 			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
 		}
+	}
+}
+
+func TestMealPlanInputRobustnessManifestSourceInventory(t *testing.T) {
+	root := repoRoot(t)
+	manifestPath := filepath.Join(root, "examples/meal-plan-input-robustness/manifest.json")
+	var manifest struct {
+		Cases []struct {
+			ID                     string              `json:"id"`
+			File                   string              `json:"file"`
+			ExpectedDays           int                 `json:"expected_days"`
+			ExpectedMealCodesByDay map[string][]string `json:"expected_meal_codes_by_day"`
+			ExpectedItemCount      int                 `json:"expected_item_count"`
+		} `json:"cases"`
+	}
+	manifestBytes, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("read robustness manifest: %v", err)
+	}
+	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
+		t.Fatalf("decode robustness manifest: %v", err)
+	}
+	if len(manifest.Cases) == 0 {
+		t.Fatal("robustness manifest has no cases")
+	}
+
+	for _, tc := range manifest.Cases {
+		t.Run(tc.ID, func(t *testing.T) {
+			casePath := filepath.Join(root, "examples/meal-plan-input-robustness", tc.File)
+			caseBytes, err := os.ReadFile(casePath)
+			if err != nil {
+				t.Fatalf("read robustness case: %v", err)
+			}
+			text := string(caseBytes)
+			items := localLlamaResolvedSourceItems(text)
+			if len(items) != tc.ExpectedItemCount {
+				t.Fatalf("resolved source item count = %d, want %d\nitems=%+v", len(items), tc.ExpectedItemCount, items)
+			}
+			itemCountInstruction := localLlamaItemCountInstruction(text)
+			if !strings.Contains(itemCountInstruction, "exactly "+strconv.Itoa(tc.ExpectedItemCount)+" resolved food item") {
+				t.Fatalf("item count instruction does not include expected count %d: %s", tc.ExpectedItemCount, itemCountInstruction)
+			}
+
+			seen := map[int]map[string]int{}
+			for index, item := range items {
+				if item.ID != index+1 {
+					t.Fatalf("source item id at index %d = %d, want %d", index, item.ID, index+1)
+				}
+				if item.Day < 1 {
+					t.Fatalf("source item has invalid day: %+v", item)
+				}
+				if item.MealCode == "" {
+					t.Fatalf("source item missing meal code: %+v", item)
+				}
+				if seen[item.Day] == nil {
+					seen[item.Day] = map[string]int{}
+				}
+				seen[item.Day][item.MealCode]++
+			}
+
+			if tc.ID == "default_hosted_natural_rewrite" {
+				sourceTexts := map[string]bool{}
+				for _, item := range items {
+					sourceTexts[item.Text] = true
+				}
+				for _, want := range []string{
+					"1 cup cooked oatmeal",
+					"2 slice whole wheat bread",
+					"1 cup sliced oranges",
+				} {
+					if !sourceTexts[want] {
+						t.Fatalf("natural rewrite missing normalized source text %q; got=%v", want, sourceTexts)
+					}
+				}
+			}
+
+			for dayText, codes := range tc.ExpectedMealCodesByDay {
+				day, err := strconv.Atoi(dayText)
+				if err != nil {
+					t.Fatalf("invalid expected day %q: %v", dayText, err)
+				}
+				for _, code := range codes {
+					if seen[day][code] == 0 {
+						t.Fatalf("missing source items for day %d meal code %s; seen=%v", day, code, seen)
+					}
+				}
+			}
+
+			if tc.ExpectedDays > 1 {
+				sections, ok := localModelDaySections(text)
+				if !ok {
+					t.Fatalf("multi-day case did not decompose into day sections")
+				}
+				if len(sections) != tc.ExpectedDays {
+					t.Fatalf("day sections = %d, want %d: %+v", len(sections), tc.ExpectedDays, sections)
+				}
+				total := 0
+				for _, section := range sections {
+					total += localLlamaExpectedResolvedItemCount(section.Text)
+				}
+				if total != tc.ExpectedItemCount {
+					t.Fatalf("day section item total = %d, want %d", total, tc.ExpectedItemCount)
+				}
+			}
+		})
 	}
 }
 

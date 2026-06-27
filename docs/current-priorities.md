@@ -4,7 +4,7 @@ This document is MealCheck's active engineering-priority surface. The
 implementation plan records milestone history; this document ranks the next
 work by user impact, observed failure modes, and proof value.
 
-Last reviewed: 2026-06-26.
+Last reviewed: 2026-06-27.
 
 ## Prioritization Rule
 

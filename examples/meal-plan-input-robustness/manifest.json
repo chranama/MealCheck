@@ -65,6 +65,34 @@
       "coverage_tags": ["two_day", "three_meals", "bullets", "day_headings", "supported_units"]
     },
     {
+      "id": "default_hosted_example",
+      "file": "cases/default-hosted-example.txt",
+      "title": "Default hosted example",
+      "expected_days": 2,
+      "expected_meals_per_day": 3,
+      "expected_meal_codes_by_day": {
+        "1": ["b", "l", "d"],
+        "2": ["b", "l", "d"]
+      },
+      "expected_item_count": 18,
+      "smoke_harness_compatible": false,
+      "coverage_tags": ["two_day", "three_meals", "default_ui_example", "inline_text", "slice_unit", "supported_units"]
+    },
+    {
+      "id": "default_hosted_natural_rewrite",
+      "file": "cases/default-hosted-natural-rewrite.txt",
+      "title": "Default hosted example natural rewrite",
+      "expected_days": 2,
+      "expected_meals_per_day": 3,
+      "expected_meal_codes_by_day": {
+        "1": ["b", "l", "d"],
+        "2": ["b", "l", "d"]
+      },
+      "expected_item_count": 18,
+      "smoke_harness_compatible": false,
+      "coverage_tags": ["two_day", "three_meals", "default_ui_example", "natural_rewrite", "inline_text", "of_after_unit", "with_plus_boundaries", "slice_unit", "supported_units"]
+    },
+    {
       "id": "one_day_with_snacks",
       "file": "cases/one-day-with-snacks.txt",
       "title": "One-day plan with snacks",

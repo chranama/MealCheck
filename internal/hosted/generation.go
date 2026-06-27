@@ -565,8 +565,9 @@ type localModelDaySection struct {
 var (
 	localLlamaResolvedItemLinePattern = regexp.MustCompile(`(?i)^\s*(?:[-*]|\d+[.)])\s+(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s*(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\b`)
 	localLlamaInlineItemPattern       = regexp.MustCompile(`(?i)^\s*((?:\d+(?:\.\d+)?)|(?:\d+\s*/\s*\d+)|(?:\d+\s+\d+\s*/\s*\d+))\s+((?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\s+)?(.+?)\s*$`)
-	localLlamaInlineAndItemBoundary   = regexp.MustCompile(`(?i)\s+\band\s+((?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s+)`)
+	localLlamaInlineAndItemBoundary   = regexp.MustCompile(`(?i)\s+\b(?:and|with|plus)\s+((?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s+)`)
 	localLlamaInlineLeadingAnd        = regexp.MustCompile(`(?i)^\s*and\s+`)
+	localLlamaLeadingOf               = regexp.MustCompile(`(?i)^of\s+`)
 	localLlamaSourceItemMarkerPattern = regexp.MustCompile(`^\s*(?:[-*]|\d+[.)])\s+`)
 	localLlamaDayHeadingPattern       = regexp.MustCompile(`(?i)\bday\s*([1-7])\b`)
 )
@@ -622,6 +623,9 @@ func localModelDaySections(text string) ([]localModelDaySection, bool) {
 			}
 			line = localLlamaRewriteDayHeading(line, 1)
 		} else if currentDay == 0 {
+			if localLlamaExpectedResolvedItemCount(trimmed) == 0 {
+				continue
+			}
 			return nil, false
 		}
 		current.WriteString(line)
@@ -762,6 +766,9 @@ func localLlamaNormalizeInlineItemPhrase(phrase string) (string, bool) {
 	food := strings.TrimSpace(matches[3])
 	if quantity == "" || food == "" {
 		return "", false
+	}
+	if unit != "" {
+		food = strings.TrimSpace(localLlamaLeadingOf.ReplaceAllString(food, ""))
 	}
 	if unit == "" {
 		unit = "serving"

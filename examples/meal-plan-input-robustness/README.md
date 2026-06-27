@@ -39,6 +39,11 @@ Suggested progression:
 3. Use the multi-day and snack cases for hosted local-model regression,
    especially after changes to day-section splitting or the unbatched fallback.
 
+The Go hosted test suite also reads the manifest and checks the deterministic
+source-item inventory for every acceptable case. That coverage is intentionally
+model-free: it verifies the item count, day coverage, meal-code coverage, and
+prompt item-count instruction before a local model is involved.
+
 The acceptable-input manifest does not include intentionally invalid inputs.
 Invalid and vague inputs belong in qualification tests, not in the successful
 normalization set. The separate `failure-manifest.json` tracks representative
