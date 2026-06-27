@@ -12326,10 +12326,8 @@
     "31106010": {
       "main_description": "Egg, whole, baked, no added fat",
       "wweia_category_description": "Eggs and omelets",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "31106020": {
       "main_description": "Egg, whole, baked, fat added",
@@ -12364,7 +12362,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -12394,10 +12391,8 @@
     "31111010": {
       "main_description": "Egg, yolk only, cooked, no added fat",
       "wweia_category_description": "Eggs and omelets",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "31111020": {
       "main_description": "Egg, yolk only, cooked, fat added",
@@ -12595,10 +12590,8 @@
     "32130070": {
       "main_description": "Egg omelet or scrambled egg, no added fat",
       "wweia_category_description": "Eggs and omelets",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "32130080": {
       "main_description": "Egg omelet or scrambled egg, from fast food / restaurant",
@@ -12654,7 +12647,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -12721,7 +12713,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -12788,7 +12779,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -12803,10 +12793,8 @@
     "32130410": {
       "main_description": "Egg omelet or scrambled egg, with tomatoes, no added fat",
       "wweia_category_description": "Eggs and omelets",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "32130420": {
       "main_description": "Egg omelet or scrambled egg, with tomatoes, NS as to fat",
@@ -12827,10 +12815,8 @@
     "32130440": {
       "main_description": "Egg omelet or scrambled egg, with dark-green vegetables, no added fat",
       "wweia_category_description": "Eggs and omelets",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "32130450": {
       "main_description": "Egg omelet or scrambled egg, with dark-green vegetables, NS as to fat",
@@ -12878,7 +12864,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -12905,7 +12890,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -12932,7 +12916,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -12959,7 +12942,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -12986,7 +12968,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -13013,7 +12994,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -13040,7 +13020,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -13067,7 +13046,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -13094,7 +13072,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -13121,7 +13098,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -13148,7 +13124,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -13175,7 +13150,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -13202,7 +13176,6 @@
       "wweia_category_description": "Eggs and omelets",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -13226,10 +13199,8 @@
     "32131210": {
       "main_description": "Egg omelet or scrambled egg, with potatoes and/or onions, no added fat",
       "wweia_category_description": "Eggs and omelets",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "32131220": {
       "main_description": "Egg omelet or scrambled egg, with potatoes and/or onions, NS as to fat",
@@ -13306,10 +13277,8 @@
     "32400080": {
       "main_description": "Egg white omelet, scrambled, or fried, no added fat",
       "wweia_category_description": "Eggs and omelets",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "32400100": {
       "main_description": "Egg white, omelet, scrambled, or fried, with cheese",
@@ -13384,10 +13353,8 @@
     "33001050": {
       "main_description": "Egg substitute, omelet, scrambled, or fried, no added fat",
       "wweia_category_description": "Eggs and omelets",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "33401000": {
       "main_description": "Egg substitute, omelet, scrambled, or fried, with cheese",
@@ -13808,7 +13775,6 @@
       "wweia_category_description": "Beans, peas, legumes",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -13826,7 +13792,6 @@
       "wweia_category_description": "Beans, peas, legumes",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -13859,10 +13824,8 @@
     "41101120": {
       "main_description": "White beans, from dried, no added fat",
       "wweia_category_description": "Beans, peas, legumes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "41101140": {
       "main_description": "White beans, from canned, fat added",
@@ -13876,10 +13839,8 @@
     "41101180": {
       "main_description": "White beans, from canned, no added fat",
       "wweia_category_description": "Beans, peas, legumes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "41101210": {
       "main_description": "White beans, from canned, reduced sodium",
@@ -13909,10 +13870,8 @@
     "41102020": {
       "main_description": "Black beans, from dried, no added fat",
       "wweia_category_description": "Beans, peas, legumes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "41102040": {
       "main_description": "Black beans, from canned, fat added",
@@ -13926,10 +13885,8 @@
     "41102080": {
       "main_description": "Black beans, from canned, no added fat",
       "wweia_category_description": "Beans, peas, legumes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "41102110": {
       "main_description": "Black beans, from canned, reduced sodium",
@@ -14007,10 +13964,8 @@
     "41104020": {
       "main_description": "Pinto beans, from dried, no added fat",
       "wweia_category_description": "Beans, peas, legumes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "41104040": {
       "main_description": "Pinto beans, from canned, fat added",
@@ -14024,10 +13979,8 @@
     "41104080": {
       "main_description": "Pinto beans, from canned, no added fat",
       "wweia_category_description": "Beans, peas, legumes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "41104110": {
       "main_description": "Pinto beans, from canned, reduced sodium",
@@ -14073,10 +14026,8 @@
     "41106020": {
       "main_description": "Kidney beans, from dried, no added fat",
       "wweia_category_description": "Beans, peas, legumes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "41106040": {
       "main_description": "Kidney beans, from canned, fat added",
@@ -14090,10 +14041,8 @@
     "41106080": {
       "main_description": "Kidney beans, from canned, no added fat",
       "wweia_category_description": "Beans, peas, legumes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "41106110": {
       "main_description": "Kidney beans, from canned, reduced sodium",
@@ -14168,10 +14117,8 @@
     "41202505": {
       "main_description": "Beans and tomatoes, no added fat",
       "wweia_category_description": "Beans, peas, legumes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "41202510": {
       "main_description": "Beans and tomatoes, fat added",
@@ -14336,10 +14283,8 @@
     "41302020": {
       "main_description": "Chickpeas, from dried, no added fat",
       "wweia_category_description": "Beans, peas, legumes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "41302040": {
       "main_description": "Chickpeas, from canned, fat added",
@@ -14353,10 +14298,8 @@
     "41302080": {
       "main_description": "Chickpeas, from canned, no added fat",
       "wweia_category_description": "Beans, peas, legumes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "41302110": {
       "main_description": "Chickpeas, from canned, reduced sodium",
@@ -14369,10 +14312,8 @@
     "41303000": {
       "main_description": "Split peas, from dried, no added fat",
       "wweia_category_description": "Beans, peas, legumes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "41303010": {
       "main_description": "Split peas, from dried, fat added",
@@ -14409,10 +14350,8 @@
     "41305000": {
       "main_description": "Lentils, from dried, no added fat",
       "wweia_category_description": "Beans, peas, legumes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "41305020": {
       "main_description": "Lentils, from canned",
@@ -20683,10 +20622,8 @@
     "56201051": {
       "main_description": "Grits, regular or quick, made with water, no added fat",
       "wweia_category_description": "Grits and other cooked cereals",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56201052": {
       "main_description": "Grits, regular or quick, made with water, fat added",
@@ -20710,7 +20647,6 @@
       "wweia_category_description": "Grits and other cooked cereals",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -20726,10 +20662,8 @@
     "56201210": {
       "main_description": "Grits, instant, made with water, no added fat",
       "wweia_category_description": "Grits and other cooked cereals",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56201220": {
       "main_description": "Grits, instant, made with water, fat added",
@@ -20761,7 +20695,6 @@
       "wweia_category_description": "Grits and other cooked cereals",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "nfs"
       ]
     },
@@ -20815,7 +20748,6 @@
       "wweia_category_description": "Oatmeal",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -20831,10 +20763,8 @@
     "56203066": {
       "main_description": "Oatmeal, regular or quick, made with milk, no added fat",
       "wweia_category_description": "Oatmeal",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56203067": {
       "main_description": "Oatmeal, regular or quick, made with milk, fat added",
@@ -20847,10 +20777,8 @@
     "56203076": {
       "main_description": "Oatmeal, regular or quick, made with non-dairy milk, no added fat",
       "wweia_category_description": "Oatmeal",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56203077": {
       "main_description": "Oatmeal, regular or quick, made with non-dairy milk, fat added",
@@ -20865,7 +20793,6 @@
       "wweia_category_description": "Oatmeal",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -20881,10 +20808,8 @@
     "56203096": {
       "main_description": "Oatmeal, instant, plain, made with milk, no added fat",
       "wweia_category_description": "Oatmeal",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56203097": {
       "main_description": "Oatmeal, instant, plain, made with milk, fat added",
@@ -20897,10 +20822,8 @@
     "56203106": {
       "main_description": "Oatmeal, instant, plain, made with non-dairy milk, no added fat",
       "wweia_category_description": "Oatmeal",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56203107": {
       "main_description": "Oatmeal, instant, plain, made with non-dairy milk, fat added",
@@ -20915,7 +20838,6 @@
       "wweia_category_description": "Oatmeal",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -20932,7 +20854,6 @@
       "wweia_category_description": "Oatmeal",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -20967,10 +20888,8 @@
     "56204005": {
       "main_description": "Quinoa, no added fat",
       "wweia_category_description": "Pasta, noodles, cooked grains",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56204010": {
       "main_description": "Quinoa, fat added",
@@ -21024,10 +20943,8 @@
     "56205008": {
       "main_description": "Rice, white, cooked, no added fat",
       "wweia_category_description": "Rice",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56205011": {
       "main_description": "Rice, brown, cooked, NS as to fat",
@@ -21067,10 +20984,8 @@
     "56205018": {
       "main_description": "Rice, brown, cooked, no added fat",
       "wweia_category_description": "Rice",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56205050": {
       "main_description": "Cream of rice",
@@ -21107,10 +21022,8 @@
     "56205150": {
       "main_description": "Yellow rice, cooked, no added fat",
       "wweia_category_description": "Rice",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56205170": {
       "main_description": "Yellow rice, cooked, fat added",
@@ -21137,10 +21050,8 @@
     "56205210": {
       "main_description": "Rice, wild, 100%, cooked, no added fat",
       "wweia_category_description": "Rice",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56205215": {
       "main_description": "Rice, wild, 100%, cooked, fat added",
@@ -21153,18 +21064,14 @@
     "56205300": {
       "main_description": "Rice, white and wild, cooked, no added fat",
       "wweia_category_description": "Rice",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56205310": {
       "main_description": "Rice, brown and wild, cooked, no added fat",
       "wweia_category_description": "Rice",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56205320": {
       "main_description": "Rice, white and wild, cooked, fat added",
@@ -21219,7 +21126,6 @@
       "wweia_category_description": "Grits and other cooked cereals",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -21236,7 +21142,6 @@
       "wweia_category_description": "Grits and other cooked cereals",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -21251,10 +21156,8 @@
     "56207110": {
       "main_description": "Bulgur, no added fat",
       "wweia_category_description": "Pasta, noodles, cooked grains",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "56207120": {
       "main_description": "Bulgur, fat added",
@@ -25826,10 +25729,8 @@
     "58160410": {
       "main_description": "Rice, white, with corn, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58160420": {
       "main_description": "Rice, white, with corn, fat added",
@@ -25850,10 +25751,8 @@
     "58160440": {
       "main_description": "Rice, white, with peas, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58160450": {
       "main_description": "Rice, white, with peas, fat added",
@@ -25874,10 +25773,8 @@
     "58160470": {
       "main_description": "Rice, white, with carrots, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58160480": {
       "main_description": "Rice, white, with carrots, fat added",
@@ -25898,10 +25795,8 @@
     "58160500": {
       "main_description": "Rice, white, with peas and carrots, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58160510": {
       "main_description": "Rice, white, with peas and carrots, fat added",
@@ -25922,10 +25817,8 @@
     "58160530": {
       "main_description": "Rice, white, with tomatoes and/or tomato-based sauce, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58160540": {
       "main_description": "Rice, white, with tomatoes and/or tomato-based sauce, fat added",
@@ -25947,10 +25840,8 @@
     "58160560": {
       "main_description": "Rice, white, with dark green vegetables, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58160570": {
       "main_description": "Rice, white, with dark green vegetables, fat added",
@@ -25971,10 +25862,8 @@
     "58160590": {
       "main_description": "Rice, white, with carrots and tomatoes and/or tomato-based sauce, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58160600": {
       "main_description": "Rice, white, with carrots and tomatoes and/or tomato-based sauce, fat added",
@@ -25995,10 +25884,8 @@
     "58160620": {
       "main_description": "Rice, white, with dark green vegetables and tomatoes and/or tomato-based sauce, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58160630": {
       "main_description": "Rice, white, with dark green vegetables and tomatoes and/or tomato-based sauce, fat added",
@@ -26019,10 +25906,8 @@
     "58160650": {
       "main_description": "Rice, white, with carrots and dark green vegetables, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58160660": {
       "main_description": "Rice, white, with carrots and dark green vegetables, fat added",
@@ -26043,10 +25928,8 @@
     "58160680": {
       "main_description": "Rice, white, with carrots, dark green vegetables, and tomatoes and/or tomato-based sauce, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58160690": {
       "main_description": "Rice, white, with carrots, dark green vegetables, and tomatoes and/or tomato-based sauce, fat added",
@@ -26067,10 +25950,8 @@
     "58160710": {
       "main_description": "Rice, white, with other vegetables, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58160720": {
       "main_description": "Rice, white, with other vegetables, fat added",
@@ -26099,10 +25980,8 @@
     "58160810": {
       "main_description": "Rice, white, with lentils, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58161200": {
       "main_description": "Rice, cooked with coconut milk",
@@ -26145,10 +26024,8 @@
     "58161422": {
       "main_description": "Rice, brown, with corn, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58161424": {
       "main_description": "Rice, brown, with corn, fat added",
@@ -26169,10 +26046,8 @@
     "58161432": {
       "main_description": "Rice, brown, with peas, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58161434": {
       "main_description": "Rice, brown, with peas, fat added",
@@ -26193,10 +26068,8 @@
     "58161437": {
       "main_description": "Rice, brown, with carrots, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58161439": {
       "main_description": "Rice, brown, with carrots, fat added",
@@ -26217,10 +26090,8 @@
     "58161442": {
       "main_description": "Rice, brown, with peas and carrots, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58161444": {
       "main_description": "Rice, brown, with peas and carrots, fat added",
@@ -26241,10 +26112,8 @@
     "58161462": {
       "main_description": "Rice, brown, with tomatoes and/or tomato based sauce, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58161464": {
       "main_description": "Rice, brown, with tomatoes and/or tomato based sauce, fat added",
@@ -26265,10 +26134,8 @@
     "58161472": {
       "main_description": "Rice, brown, with dark green vegetables, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58161474": {
       "main_description": "Rice, brown, with dark green vegetables, fat added",
@@ -26289,10 +26156,8 @@
     "58161482": {
       "main_description": "Rice, brown, with carrots and tomatoes and/or tomato-based sauce, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58161484": {
       "main_description": "Rice, brown, with carrots and tomatoes and/or tomato-based sauce, fat added",
@@ -26313,10 +26178,8 @@
     "58161492": {
       "main_description": "Rice, brown, with dark green vegetables and tomatoes and/or tomato-based sauce, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58161494": {
       "main_description": "Rice, brown, with dark green vegetables and tomatoes and/or tomato-based sauce, fat added",
@@ -26337,10 +26200,8 @@
     "58161502": {
       "main_description": "Rice, brown, with carrots and dark green vegetables, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58161504": {
       "main_description": "Rice, brown, with carrots and dark green vegetables, fat added",
@@ -26367,10 +26228,8 @@
     "58161522": {
       "main_description": "Rice, brown, with carrots, dark green vegetables, and tomatoes and/or tomato-based sauce, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58161524": {
       "main_description": "Rice, brown, with carrots, dark green vegetables, and tomatoes and/or tomato-based sauce, fat added",
@@ -26391,10 +26250,8 @@
     "58161532": {
       "main_description": "Rice, brown, with other vegetables, no added fat",
       "wweia_category_description": "Rice mixed dishes",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58161534": {
       "main_description": "Rice, brown, with other vegetables, fat added",
@@ -26516,7 +26373,6 @@
       "wweia_category_description": "Rice mixed dishes",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "nfs"
       ]
     },
@@ -26568,7 +26424,6 @@
       "wweia_category_description": "Rice mixed dishes",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk",
         "soup_or_stew"
       ]
@@ -26597,7 +26452,6 @@
       "wweia_category_description": "Rice mixed dishes",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -26621,10 +26475,8 @@
     "58164570": {
       "main_description": "Rice, white, with soy-based sauce, no added fat",
       "wweia_category_description": "Fried rice and lo/chow mein",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58164580": {
       "main_description": "Rice, white, with soy-based sauce, fat added",
@@ -26649,7 +26501,6 @@
       "wweia_category_description": "Rice mixed dishes",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk",
         "soup_or_stew"
       ]
@@ -26678,7 +26529,6 @@
       "wweia_category_description": "Rice mixed dishes",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -26702,10 +26552,8 @@
     "58164870": {
       "main_description": "Rice, brown, with soy-based sauce, no added fat",
       "wweia_category_description": "Fried rice and lo/chow mein",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "58164880": {
       "main_description": "Rice, brown, with soy-based sauce, fat added",
@@ -26730,7 +26578,6 @@
       "wweia_category_description": "Rice mixed dishes",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk",
         "soup_or_stew"
       ]
@@ -26759,7 +26606,6 @@
       "wweia_category_description": "Rice mixed dishes",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -26786,7 +26632,6 @@
       "wweia_category_description": "Fried rice and lo/chow mein",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -26814,7 +26659,6 @@
       "wweia_category_description": "Rice mixed dishes",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk",
         "soup_or_stew"
       ]
@@ -26843,7 +26687,6 @@
       "wweia_category_description": "Rice mixed dishes",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -26870,7 +26713,6 @@
       "wweia_category_description": "Fried rice and lo/chow mein",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "multi_component_allergen_risk"
       ]
     },
@@ -28619,7 +28461,6 @@
       "wweia_category_description": "White potatoes, baked or boiled",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -28678,7 +28519,6 @@
       "wweia_category_description": "White potatoes, baked or boiled",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -28726,10 +28566,8 @@
     "71103320": {
       "main_description": "Potato, canned, no added fat",
       "wweia_category_description": "White potatoes, baked or boiled",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "71104030": {
       "main_description": "Potato, roasted, NFS",
@@ -28750,10 +28588,8 @@
     "71104050": {
       "main_description": "Potato, roasted, from fresh, peel eaten, no added fat",
       "wweia_category_description": "White potatoes, baked or boiled",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "71104060": {
       "main_description": "Potato, roasted, from fresh, peel eaten, fat added, NS as to fat type",
@@ -28804,7 +28640,6 @@
       "wweia_category_description": "White potatoes, baked or boiled",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -29863,10 +29698,8 @@
     "71900100": {
       "main_description": "Plantain, cooked, no added fat",
       "wweia_category_description": "Other starchy vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "71900200": {
       "main_description": "Plantain, cooked with oil",
@@ -29985,18 +29818,14 @@
     "72107211": {
       "main_description": "Collards, fresh, cooked, no added fat",
       "wweia_category_description": "Other dark green vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72107212": {
       "main_description": "Collards, frozen, cooked, no added fat",
       "wweia_category_description": "Other dark green vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72107220": {
       "main_description": "Collards, NS as to form, cooked",
@@ -30095,18 +29924,14 @@
     "72118211": {
       "main_description": "Greens, fresh, cooked, no added fat",
       "wweia_category_description": "Other dark green vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72118212": {
       "main_description": "Greens, frozen, cooked, no added fat",
       "wweia_category_description": "Other dark green vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72118220": {
       "main_description": "Greens, NS as to form, cooked",
@@ -30150,18 +29975,14 @@
     "72119211": {
       "main_description": "Kale, fresh, cooked, no added fat",
       "wweia_category_description": "Other dark green vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72119212": {
       "main_description": "Kale, frozen, cooked, no added fat",
       "wweia_category_description": "Other dark green vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72119220": {
       "main_description": "Kale, NS as to form, cooked",
@@ -30205,18 +30026,14 @@
     "72122211": {
       "main_description": "Mustard greens, fresh, cooked, no added fat",
       "wweia_category_description": "Other dark green vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72122212": {
       "main_description": "Mustard greens, frozen, cooked, no added fat",
       "wweia_category_description": "Other dark green vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72122220": {
       "main_description": "Mustard greens, NS as to form, cooked",
@@ -30266,26 +30083,20 @@
     "72125211": {
       "main_description": "Spinach, fresh, cooked, no added fat",
       "wweia_category_description": "Spinach",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72125212": {
       "main_description": "Spinach, frozen, cooked, no added fat",
       "wweia_category_description": "Spinach",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72125213": {
       "main_description": "Spinach, canned, cooked, no added fat",
       "wweia_category_description": "Spinach",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72125217": {
       "main_description": "Spinach, fresh, cooked with oil",
@@ -30403,18 +30214,14 @@
     "72128211": {
       "main_description": "Turnip greens, fresh, cooked, no added fat",
       "wweia_category_description": "Other dark green vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72128212": {
       "main_description": "Turnip greens, frozen, cooked, no added fat",
       "wweia_category_description": "Other dark green vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72128220": {
       "main_description": "Turrnip greens, NS as to form, cooked",
@@ -30484,18 +30291,14 @@
     "72201211": {
       "main_description": "Broccoli, fresh, cooked, no added fat",
       "wweia_category_description": "Broccoli",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72201212": {
       "main_description": "Broccoli, frozen, cooked, no added fat",
       "wweia_category_description": "Broccoli",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "72201220": {
       "main_description": "Broccoli, NS as to form, cooked",
@@ -30618,26 +30421,20 @@
     "73102211": {
       "main_description": "Carrots, fresh, cooked, no added fat",
       "wweia_category_description": "Carrots",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "73102212": {
       "main_description": "Carrots, frozen, cooked, no added fat",
       "wweia_category_description": "Carrots",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "73102213": {
       "main_description": "Carrots, canned, cooked, no added fat",
       "wweia_category_description": "Carrots",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "73102217": {
       "main_description": "Carrots, fresh, cooked with oil",
@@ -30719,10 +30516,8 @@
     "73103010": {
       "main_description": "Carrots, canned, reduced sodium, cooked, no added fat",
       "wweia_category_description": "Carrots",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "73103020": {
       "main_description": "Carrots, canned, reduced sodium, cooked, fat added, NS as to fat type",
@@ -30760,26 +30555,20 @@
     "73111211": {
       "main_description": "Peas and carrots, fresh, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "73111212": {
       "main_description": "Peas and carrots, frozen, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "73111213": {
       "main_description": "Peas and carrots, canned, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "73111220": {
       "main_description": "Peas and carrots, cooked, NS as to form",
@@ -30838,10 +30627,8 @@
     "73303010": {
       "main_description": "Winter squash, cooked, no added fat",
       "wweia_category_description": "Other red and orange vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "73303020": {
       "main_description": "Winter squash, cooked, fat added",
@@ -30878,10 +30665,8 @@
     "73403010": {
       "main_description": "Sweet potato, baked, no added fat",
       "wweia_category_description": "Other red and orange vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "73403020": {
       "main_description": "Sweet potato, baked, fat added",
@@ -30902,10 +30687,8 @@
     "73405010": {
       "main_description": "Sweet potato, boiled, no added fat",
       "wweia_category_description": "Other red and orange vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "73405020": {
       "main_description": "Sweet potato, boiled, fat added",
@@ -30932,10 +30715,8 @@
     "73407050": {
       "main_description": "Sweet potato, canned, no added fat",
       "wweia_category_description": "Other red and orange vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "73407060": {
       "main_description": "Sweet potato, canned, fat added",
@@ -31801,26 +31582,20 @@
     "75202011": {
       "main_description": "Asparagus, fresh, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75202012": {
       "main_description": "Asparagus, frozen, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75202013": {
       "main_description": "Asparagus, canned, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75202020": {
       "main_description": "Asparagus, NS as to form, cooked",
@@ -31904,10 +31679,8 @@
     "75204012": {
       "main_description": "Lima beans, from frozen, no added fat",
       "wweia_category_description": "Other starchy vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75204022": {
       "main_description": "Lima beans, from frozen, fat added",
@@ -31937,26 +31710,20 @@
     "75205021": {
       "main_description": "Green beans, fresh, cooked, no added fat",
       "wweia_category_description": "String beans",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75205022": {
       "main_description": "Green beans, frozen, cooked, no added fat",
       "wweia_category_description": "String beans",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75205023": {
       "main_description": "Green beans, canned, cooked, no added fat",
       "wweia_category_description": "String beans",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75205030": {
       "main_description": "Green beans, NS as to form, cooked",
@@ -32032,10 +31799,8 @@
     "75205120": {
       "main_description": "Green beans, canned, reduced sodium, cooked, no added fat",
       "wweia_category_description": "String beans",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75205130": {
       "main_description": "Green beans, canned, reduced sodium, cooked, fat added, NS as to fat type",
@@ -32079,18 +31844,14 @@
     "75208011": {
       "main_description": "Beets, fresh, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75208013": {
       "main_description": "Beets, canned, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75208020": {
       "main_description": "Beets, NS as to form, cooked",
@@ -32146,18 +31907,14 @@
     "75209011": {
       "main_description": "Brussels sprouts, fresh, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75209012": {
       "main_description": "Brussels sprouts, frozen, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75209020": {
       "main_description": "Brussels sprouts, NS as to form, cooked",
@@ -32195,10 +31952,8 @@
     "75210010": {
       "main_description": "Cabbage, Chinese, cooked, no added fat",
       "wweia_category_description": "Cabbage",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75210020": {
       "main_description": "Cabbage, Chinese, cooked, fat added",
@@ -32215,7 +31970,6 @@
       "wweia_category_description": "Cabbage",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -32260,10 +32014,8 @@
     "75213110": {
       "main_description": "Cactus, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75213120": {
       "main_description": "Cactus, cooked, fat added",
@@ -32278,18 +32030,14 @@
     "75214011": {
       "main_description": "Cauliflower, fresh, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75214012": {
       "main_description": "Cauliflower, frozen, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75214020": {
       "main_description": "Cauliflower, NS as to form, cooked",
@@ -32372,26 +32120,20 @@
     "75216111": {
       "main_description": "Corn, fresh, cooked, no added fat",
       "wweia_category_description": "Corn",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75216112": {
       "main_description": "Corn, frozen, cooked, no added fat",
       "wweia_category_description": "Corn",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75216113": {
       "main_description": "Corn, canned, cooked, no added fat",
       "wweia_category_description": "Corn",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75216120": {
       "main_description": "Corn, NS as to form, cooked",
@@ -32473,10 +32215,8 @@
     "75216310": {
       "main_description": "Corn, canned, reduced sodium, cooked, no added fat",
       "wweia_category_description": "Corn",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75216320": {
       "main_description": "Corn, canned, reduced sodium, cooked, fat added, NS as to fat type",
@@ -32508,10 +32248,8 @@
     "75217010": {
       "main_description": "Eggplant, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75217020": {
       "main_description": "Eggplant, cooked, fat added",
@@ -32562,10 +32300,8 @@
     "75219011": {
       "main_description": "Mushrooms, fresh, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75219020": {
       "main_description": "Mushrooms, NS as to form, cooked",
@@ -32613,18 +32349,14 @@
     "75220011": {
       "main_description": "Okra, fresh, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75220012": {
       "main_description": "Okra, frozen, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75220020": {
       "main_description": "Okra, NS as to form, cooked",
@@ -32662,10 +32394,8 @@
     "75221011": {
       "main_description": "Onions, cooked, no added fat",
       "wweia_category_description": "Onions",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75221021": {
       "main_description": "Onions, cooked, fat added",
@@ -32728,26 +32458,20 @@
     "75224021": {
       "main_description": "Green peas, fresh, cooked, no added fat",
       "wweia_category_description": "Other starchy vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75224022": {
       "main_description": "Green peas, frozen, cooked, no added fat",
       "wweia_category_description": "Other starchy vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75224023": {
       "main_description": "Green peas, canned, cooked, no added fat",
       "wweia_category_description": "Other starchy vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75224030": {
       "main_description": "Green peas, NS as to form, cooked",
@@ -32823,10 +32547,8 @@
     "75224120": {
       "main_description": "Green peas, canned, reduced sodium, cooked, no added fat",
       "wweia_category_description": "Other starchy vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75224130": {
       "main_description": "Green peas, canned, reduced sodium, cooked, fat added, NS as to fat type",
@@ -32896,18 +32618,14 @@
     "75231011": {
       "main_description": "Snowpeas, fresh, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75231012": {
       "main_description": "Snowpeas, frozen, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75231020": {
       "main_description": "Snowpeas, NS as to form, cooked",
@@ -32945,10 +32663,8 @@
     "75232110": {
       "main_description": "Seaweed, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75232120": {
       "main_description": "Seaweed, cooked, fat added",
@@ -32965,7 +32681,6 @@
       "wweia_category_description": "Other vegetables and combinations",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -32974,7 +32689,6 @@
       "wweia_category_description": "Other vegetables and combinations",
       "candidate_status": "quarantined_ambiguous",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "not_specified_as_to"
       ]
     },
@@ -33085,10 +32799,8 @@
     "75301110": {
       "main_description": "Lima beans and corn, cooked, no added fat",
       "wweia_category_description": "Other starchy vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75301120": {
       "main_description": "Lima beans and corn, cooked, fat added",
@@ -33109,10 +32821,8 @@
     "75306998": {
       "main_description": "Peppers and onions, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75307000": {
       "main_description": "Peppers and onions, cooked, fat added",
@@ -33135,18 +32845,14 @@
     "75311012": {
       "main_description": "Classic mixed vegetables, frozen, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75311013": {
       "main_description": "Classic mixed vegetables, canned, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75311020": {
       "main_description": "Classic mixed vegetables, NS as to form, cooked",
@@ -33202,10 +32908,8 @@
     "75311110": {
       "main_description": "Classic mixed vegetables, canned, reduced sodium, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75311120": {
       "main_description": "Classic mixed vegetables, canned, reduced sodium, cooked, fat added, NS as to fat type",
@@ -33231,10 +32935,8 @@
     "75315010": {
       "main_description": "Peas and corn, cooked, no added fat",
       "wweia_category_description": "Other starchy vegetables",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75315020": {
       "main_description": "Peas and corn, cooked, fat added",
@@ -33268,17 +32970,14 @@
       "wweia_category_description": "Other vegetables and combinations",
       "candidate_status": "quarantined_mixed_dish",
       "ambiguity_flags": [
-        "added_fat_unspecified",
         "soup_or_stew"
       ]
     },
     "75330050": {
       "main_description": "Broccoli and cauliflower, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75330060": {
       "main_description": "Broccoli and cauliflower, cooked, fat added",
@@ -33293,10 +32992,8 @@
     "75330080": {
       "main_description": "Broccoli, cauliflower and carrots, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75330090": {
       "main_description": "Broccoli, cauliflower and carrots, cooked, fat added",
@@ -33311,10 +33008,8 @@
     "75340010": {
       "main_description": "Asian stir fry vegetables, cooked, no added fat",
       "wweia_category_description": "Other vegetables and combinations",
-      "candidate_status": "quarantined_preparation_unclear",
-      "ambiguity_flags": [
-        "added_fat_unspecified"
-      ]
+      "candidate_status": "eligible_specific",
+      "ambiguity_flags": []
     },
     "75340020": {
       "main_description": "Asian stir fry vegetables, cooked, fat added",

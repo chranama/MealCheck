@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -54,9 +55,9 @@ func (r *SQLiteFNDDSReference) LookupEligibleByDescription(description string) (
 	if r == nil || r.db == nil {
 		return CatalogFood{}, false, nil
 	}
-	normalized := normalizeName(description)
+	normalized := normalizeFNDDSMatchKey(description)
 	rows, err := r.db.Query(`
-		select
+		select distinct
 			f.food_code,
 			f.main_description,
 			n.energy_kcal,
@@ -69,11 +70,10 @@ func (r *SQLiteFNDDSReference) LookupEligibleByDescription(description string) (
 			n.fiber_g
 		from fndds_foods f
 		join fndds_nutrients n on n.food_code = f.food_code
-		where f.normalized_description = ?
-		  and f.candidate_status in ('eligible_specific', 'eligible_generic')
-		  and not exists (
-		    select 1 from fndds_ambiguity_flags flag where flag.food_code = f.food_code
-		  )
+		join fndds_match_keys key on key.food_code = f.food_code
+		where key.normalized_match_key = ?
+		  and key.resolver_status = 'auto'
+		  and key.confidence in ('exact', 'high')
 		order by f.food_code
 		limit 2
 	`, normalized)
@@ -131,13 +131,17 @@ func (r *SQLiteFNDDSReference) LookupEligibleByDescription(description string) (
 	if err != nil {
 		return CatalogFood{}, false, err
 	}
+	unitConversions, err := r.lookupUnitConversions(m.foodCode)
+	if err != nil {
+		return CatalogFood{}, false, err
+	}
 	return CatalogFood{
 		FoodID:           "fndds_" + m.foodCode,
 		Name:             m.name,
 		Aliases:          nil,
 		BaseQuantityG:    100,
 		NutrientsPer100G: nutrients,
-		UnitConversions:  map[string]float64{"g": 1, "gram": 1, "grams": 1},
+		UnitConversions:  unitConversions,
 		Allergens:        allergens,
 		FoodGroups:       foodGroups,
 		SourceRefs: []CatalogSourceRef{
@@ -145,7 +149,7 @@ func (r *SQLiteFNDDSReference) LookupEligibleByDescription(description string) (
 				Source:   "fndds-2021-2023",
 				SourceID: m.foodCode,
 				DataType: "FNDDS SQLite fallback",
-				Note:     "Eligible exact-match fallback; grams only.",
+				Note:     "Auto match-key fallback with source-backed unit conversions.",
 			},
 		},
 	}, true, nil
@@ -166,4 +170,58 @@ func (r *SQLiteFNDDSReference) lookupStrings(table, column, foodCode string) ([]
 		values = append(values, value)
 	}
 	return values, rows.Err()
+}
+
+func (r *SQLiteFNDDSReference) lookupUnitConversions(foodCode string) (map[string]float64, error) {
+	rows, err := r.db.Query(`
+		select normalized_unit, grams
+		from fndds_unit_conversions
+		where food_code = ?
+		order by normalized_unit
+	`, foodCode)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	conversions := map[string]float64{}
+	for rows.Next() {
+		var unit string
+		var grams float64
+		if err := rows.Scan(&unit, &grams); err != nil {
+			return nil, err
+		}
+		conversions[unit] = grams
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if conversions["g"] == 0 {
+		conversions["g"] = 1
+	}
+	if conversions["gram"] == 0 {
+		conversions["gram"] = 1
+	}
+	if conversions["grams"] == 0 {
+		conversions["grams"] = 1
+	}
+	return conversions, nil
+}
+
+func normalizeFNDDSMatchKey(value string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(value) {
+		switch {
+		case r >= 'a' && r <= 'z':
+			b.WriteRune(r)
+		case r >= '0' && r <= '9':
+			b.WriteRune(r)
+		default:
+			b.WriteByte(' ')
+		}
+	}
+	return strings.Join(strings.Fields(b.String()), " ")
+}
+
+func normalizeUnit(value string) string {
+	return strings.Join(strings.Fields(strings.ToLower(strings.TrimSpace(value))), " ")
 }

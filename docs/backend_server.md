@@ -256,7 +256,7 @@ Supported configuration:
 - `MEALCHECK_RETENTION`
 - `MEALCHECK_WORKER_POLL`
 - `MEALCHECK_CLEANUP_INTERVAL`
-- `MEALCHECK_FNDDS_FALLBACK_PATH` for optional exact-match FNDDS SQLite fallback
+- `MEALCHECK_FNDDS_FALLBACK_PATH` for optional FNDDS SQLite fallback
 - `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` for local smoke tests only
 
 The Postgres schema is applied at server startup by the Postgres store.
@@ -272,7 +272,7 @@ present in MacBook deployment environment files.
 
 `MEALCHECK_FNDDS_FALLBACK_PATH` is optional. When set, hosted worker artifact
 generation uses the reviewed local catalog first, then the FNDDS SQLite
-fallback for exact eligible gram-based food matches.
+fallback for unique auto-approved match keys and source-backed unit conversions.
 
 ## Operating Requirements
 

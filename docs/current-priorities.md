@@ -111,8 +111,8 @@ Near-term engineering slices:
 2. Rank gaps by commonness and user-facing credibility, not by raw catalog
    completeness.
 3. Add reviewed aliases and conversions for high-frequency safe cases.
-4. Keep the FNDDS fallback exact-match and gate-limited; do not turn it into
-   fuzzy food search.
+4. Keep the FNDDS fallback match-key based and gate-limited; do not turn it
+   into fuzzy food search.
 5. Improve report labels and recovery copy for unresolved reasons so users know
    whether to rename a food, use grams, decompose a dish, or add a measured
    quantity.

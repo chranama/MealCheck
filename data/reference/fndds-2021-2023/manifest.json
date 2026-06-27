@@ -12,6 +12,8 @@
     "nutrients.jsonl",
     "portions.jsonl",
     "resolver-candidates.jsonl",
+    "resolver-match-keys.jsonl",
+    "unit-conversions.jsonl",
     "quarantined-foods.jsonl",
     "review-required-foods.jsonl",
     "food-index.json",
@@ -23,20 +25,23 @@
     "schema_version": "0.1",
     "release": "2021-2023",
     "food_count": 5432,
-    "resolver_candidate_count": 2926,
-    "quarantined_count": 2505,
+    "resolver_candidate_count": 3056,
+    "quarantined_count": 2375,
     "review_required_count": 1,
+    "resolver_match_key_count": 6201,
+    "auto_match_key_count": 3839,
+    "unit_conversion_count": 25928,
     "status_counts": {
       "eligible_generic": 8,
-      "eligible_specific": 2918,
+      "eligible_specific": 3048,
       "quarantined_ambiguous": 1160,
       "quarantined_mixed_dish": 1027,
-      "quarantined_preparation_unclear": 217,
+      "quarantined_preparation_unclear": 87,
       "quarantined_restaurant_or_brand": 101,
       "review_required": 1
     },
     "flag_counts": {
-      "added_fat_unspecified": 354,
+      "added_fat_unspecified": 179,
       "brand_or_product_style": 9,
       "burrito": 35,
       "casserole": 22,
@@ -55,15 +60,34 @@
       "soup_or_stew": 103,
       "taco": 37
     },
+    "match_status_counts": {
+      "auto": 3839,
+      "blocked": 1343,
+      "decompose": 1018,
+      "review": 1
+    },
+    "match_key_type_counts": {
+      "canonical": 5432,
+      "component_alias": 12,
+      "reordered": 322,
+      "stripped_qualifier": 435
+    },
     "allowlist_codes": {
-      "56205001": "Rice, white, cooked, no added fat",
-      "56205011": "Rice, brown, cooked, no added fat",
+      "56205001": "Rice, white, cooked, NS as to fat",
+      "56205011": "Rice, brown, cooked, NS as to fat",
       "61210000": "Orange juice, 100%",
       "64104010": "Apple juice, 100%",
       "92101000": "Coffee, brewed",
       "92302000": "Tea, black, brewed",
       "94000100": "Water, tap",
       "94100100": "Water, bottled"
+    },
+    "match_key_auto_allowlist_codes": {
+      "51101010": "Bread, white, toasted",
+      "51150000": "Roll, white, soft",
+      "54325000": "Crackers, saltine",
+      "91101010": "Sugar, white, granulated or lump",
+      "92103000": "Coffee, instant, reconstituted"
     }
   }
 }

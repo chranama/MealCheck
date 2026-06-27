@@ -491,6 +491,8 @@ func validateFNDDSReference(root string) error {
 		"nutrients.jsonl",
 		"portions.jsonl",
 		"resolver-candidates.jsonl",
+		"resolver-match-keys.jsonl",
+		"unit-conversions.jsonl",
 		"quarantined-foods.jsonl",
 		"review-required-foods.jsonl",
 		"food-index.json",
@@ -520,6 +522,14 @@ func validateFNDDSReference(root string) error {
 		return err
 	}
 	candidates, err := readJSONLObjects(filepath.Join(base, "resolver-candidates.jsonl"))
+	if err != nil {
+		return err
+	}
+	matchKeys, err := readJSONLObjects(filepath.Join(base, "resolver-match-keys.jsonl"))
+	if err != nil {
+		return err
+	}
+	unitConversions, err := readJSONLObjects(filepath.Join(base, "unit-conversions.jsonl"))
 	if err != nil {
 		return err
 	}
@@ -561,6 +571,12 @@ func validateFNDDSReference(root string) error {
 	if got := int(mustNumber(summary, "review_required_count")); got != len(reviewRequired) {
 		return fmt.Errorf("FNDDS summary review_required_count = %d, want %d", got, len(reviewRequired))
 	}
+	if got := int(mustNumber(summary, "resolver_match_key_count")); got != len(matchKeys) {
+		return fmt.Errorf("FNDDS summary resolver_match_key_count = %d, want %d", got, len(matchKeys))
+	}
+	if got := int(mustNumber(summary, "unit_conversion_count")); got != len(unitConversions) {
+		return fmt.Errorf("FNDDS summary unit_conversion_count = %d, want %d", got, len(unitConversions))
+	}
 	if got := int(mustNumber(index, "food_count")); got != len(foods) {
 		return fmt.Errorf("FNDDS food-index food_count = %d, want %d", got, len(foods))
 	}
@@ -582,6 +598,12 @@ func validateFNDDSReference(root string) error {
 		"home_recipe": true, "brand_or_product_style": true, "preparation_unclear": true,
 		"added_fat_unspecified": true, "multi_component_allergen_risk": true,
 		"missing_required_nutrients": true, "missing_portion_data": true,
+	}
+	validResolverStatuses := map[string]bool{
+		"auto": true, "review": true, "decompose": true, "blocked": true,
+	}
+	validMatchConfidences := map[string]bool{
+		"exact": true, "high": true, "review": true,
 	}
 	hardQuarantineFlags := map[string]bool{
 		"nfs": true, "not_further_specified": true, "not_specified_as_to": true,
@@ -644,6 +666,12 @@ func validateFNDDSReference(root string) error {
 	if err := validateReferenceSplit("review-required-foods.jsonl", reviewRequired, foodByCode, func(status string) bool { return status == "review_required" }); err != nil {
 		return err
 	}
+	if err := validateReferenceMatchKeys(matchKeys, foodByCode, validResolverStatuses, validMatchConfidences); err != nil {
+		return err
+	}
+	if err := validateReferenceUnitConversions(unitConversions, foodByCode); err != nil {
+		return err
+	}
 
 	expectedStatuses := map[string]string{
 		"11000000": "review_required",
@@ -660,13 +688,13 @@ func validateFNDDSReference(root string) error {
 			return fmt.Errorf("FNDDS food %s candidate_status = %s, want %s", code, got, want)
 		}
 	}
-	if err := validateFNDDSReferenceSQLite(base, foods, nutrients, portions); err != nil {
+	if err := validateFNDDSReferenceSQLite(base, foods, nutrients, portions, matchKeys, unitConversions); err != nil {
 		return err
 	}
 	return nil
 }
 
-func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions []map[string]any) error {
+func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions, matchKeys, unitConversions []map[string]any) error {
 	sqlitePath := filepath.Join(base, "fndds.sqlite")
 	abs, err := filepath.Abs(sqlitePath)
 	if err != nil {
@@ -692,12 +720,14 @@ func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions []map[
 	}
 
 	expectedCounts := map[string]int{
-		"fndds_foods":           len(foods),
-		"fndds_nutrients":       len(nutrients),
-		"fndds_portions":        len(portions),
-		"fndds_ambiguity_flags": flagCount,
-		"fndds_allergens":       allergenCount,
-		"fndds_food_groups":     foodGroupCount,
+		"fndds_foods":            len(foods),
+		"fndds_nutrients":        len(nutrients),
+		"fndds_portions":         len(portions),
+		"fndds_match_keys":       len(matchKeys),
+		"fndds_unit_conversions": len(unitConversions),
+		"fndds_ambiguity_flags":  flagCount,
+		"fndds_allergens":        allergenCount,
+		"fndds_food_groups":      foodGroupCount,
 	}
 	for table, want := range expectedCounts {
 		got, err := sqliteCount(db, fmt.Sprintf("select count(*) from %s", table))
@@ -725,20 +755,25 @@ func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions []map[
 	}
 
 	resolverExamples := map[string]int{
-		"water, tap":  1,
-		"milk, nfs":   0,
-		"milk, human": 0,
+		"water tap":                      1,
+		"instant coffee":                 1,
+		"granulated sugar":               1,
+		"lettuce":                        1,
+		"rice white cooked no added fat": 1,
+		"milk nfs":                       0,
+		"milk human":                     0,
 	}
 	for description, want := range resolverExamples {
 		got, err := sqliteCount(
 			db,
 			`select count(*)
-			   from fndds_foods f
-			  where f.normalized_description = ?
-			    and f.candidate_status in ('eligible_specific', 'eligible_generic')
-			    and not exists (
-			      select 1 from fndds_ambiguity_flags flag where flag.food_code = f.food_code
-			    )`,
+			   from (
+			     select distinct key.food_code
+			       from fndds_match_keys key
+			      where key.normalized_match_key = ?
+			        and key.resolver_status = 'auto'
+			        and key.confidence in ('exact', 'high')
+			   )`,
 			description,
 		)
 		if err != nil {
@@ -753,6 +788,9 @@ func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions []map[
 		"idx_fndds_foods_normalized_description",
 		"idx_fndds_foods_candidate_status",
 		"idx_fndds_portions_food_code",
+		"idx_fndds_match_keys_normalized_status",
+		"idx_fndds_match_keys_food_code",
+		"idx_fndds_unit_conversions_food_code",
 		"idx_fndds_flags_food_code",
 		"idx_fndds_allergens_food_code",
 		"idx_fndds_food_groups_food_code",
@@ -824,6 +862,68 @@ func validateReferenceSplit(name string, rows []map[string]any, foodByCode map[s
 		}
 		if !matches(status) {
 			return fmt.Errorf("%s food %s has unexpected status %s", name, code, status)
+		}
+	}
+	return nil
+}
+
+func validateReferenceMatchKeys(rows []map[string]any, foodByCode map[string]map[string]any, validStatuses, validConfidences map[string]bool) error {
+	seen := map[string]bool{}
+	for _, row := range rows {
+		code := mustString(row, "food_code")
+		if foodByCode[code] == nil {
+			return fmt.Errorf("resolver-match-keys.jsonl references unknown food_code %s", code)
+		}
+		normalized := mustString(row, "normalized_match_key")
+		if strings.TrimSpace(normalized) == "" {
+			return fmt.Errorf("FNDDS match key for food %s has empty normalized_match_key", code)
+		}
+		keyType := mustString(row, "key_type")
+		if strings.TrimSpace(keyType) == "" {
+			return fmt.Errorf("FNDDS match key for food %s has empty key_type", code)
+		}
+		dedupeKey := code + "\x00" + normalized + "\x00" + keyType
+		if seen[dedupeKey] {
+			return fmt.Errorf("duplicate FNDDS match key %s for food %s key_type %s", normalized, code, keyType)
+		}
+		seen[dedupeKey] = true
+		status := mustString(row, "resolver_status")
+		if !validStatuses[status] {
+			return fmt.Errorf("FNDDS match key %s for food %s has invalid resolver_status %s", normalized, code, status)
+		}
+		confidence := mustString(row, "confidence")
+		if !validConfidences[confidence] {
+			return fmt.Errorf("FNDDS match key %s for food %s has invalid confidence %s", normalized, code, confidence)
+		}
+		if status == "auto" && mustString(row, "block_reason") != "" {
+			return fmt.Errorf("FNDDS auto match key %s for food %s has block_reason", normalized, code)
+		}
+	}
+	return nil
+}
+
+func validateReferenceUnitConversions(rows []map[string]any, foodByCode map[string]map[string]any) error {
+	seen := map[string]bool{}
+	for _, row := range rows {
+		code := mustString(row, "food_code")
+		if foodByCode[code] == nil {
+			return fmt.Errorf("unit-conversions.jsonl references unknown food_code %s", code)
+		}
+		unit := mustString(row, "normalized_unit")
+		if strings.TrimSpace(unit) == "" {
+			return fmt.Errorf("FNDDS unit conversion for food %s has empty normalized_unit", code)
+		}
+		dedupeKey := code + "\x00" + unit
+		if seen[dedupeKey] {
+			return fmt.Errorf("duplicate FNDDS unit conversion %s for food %s", unit, code)
+		}
+		seen[dedupeKey] = true
+		grams, err := numericField(row, "grams")
+		if err != nil || grams <= 0 {
+			return fmt.Errorf("FNDDS unit conversion %s for food %s has invalid grams", unit, code)
+		}
+		if _, err := stringField(row, "source_description"); err != nil {
+			return fmt.Errorf("FNDDS unit conversion %s for food %s: %w", unit, code, err)
 		}
 	}
 	return nil

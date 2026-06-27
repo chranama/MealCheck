@@ -35,6 +35,15 @@ STATUS_QUARANTINED_MIXED_DISH = "quarantined_mixed_dish"
 STATUS_QUARANTINED_RESTAURANT_OR_BRAND = "quarantined_restaurant_or_brand"
 STATUS_QUARANTINED_PREPARATION_UNCLEAR = "quarantined_preparation_unclear"
 
+MATCH_STATUS_AUTO = "auto"
+MATCH_STATUS_REVIEW = "review"
+MATCH_STATUS_DECOMPOSE = "decompose"
+MATCH_STATUS_BLOCKED = "blocked"
+
+MATCH_CONFIDENCE_EXACT = "exact"
+MATCH_CONFIDENCE_HIGH = "high"
+MATCH_CONFIDENCE_REVIEW = "review"
+
 VALID_STATUSES = {
     STATUS_ELIGIBLE_SPECIFIC,
     STATUS_ELIGIBLE_GENERIC,
@@ -43,6 +52,19 @@ VALID_STATUSES = {
     STATUS_QUARANTINED_MIXED_DISH,
     STATUS_QUARANTINED_RESTAURANT_OR_BRAND,
     STATUS_QUARANTINED_PREPARATION_UNCLEAR,
+}
+
+VALID_MATCH_STATUSES = {
+    MATCH_STATUS_AUTO,
+    MATCH_STATUS_REVIEW,
+    MATCH_STATUS_DECOMPOSE,
+    MATCH_STATUS_BLOCKED,
+}
+
+VALID_MATCH_CONFIDENCES = {
+    MATCH_CONFIDENCE_EXACT,
+    MATCH_CONFIDENCE_HIGH,
+    MATCH_CONFIDENCE_REVIEW,
 }
 
 VALID_FLAGS = {
@@ -69,14 +91,22 @@ VALID_FLAGS = {
 }
 
 ALLOWLIST_CODES = {
-    "56205001": "Rice, white, cooked, no added fat",
-    "56205011": "Rice, brown, cooked, no added fat",
+    "56205001": "Rice, white, cooked, NS as to fat",
+    "56205011": "Rice, brown, cooked, NS as to fat",
     "61210000": "Orange juice, 100%",
     "64104010": "Apple juice, 100%",
     "92101000": "Coffee, brewed",
     "92302000": "Tea, black, brewed",
     "94000100": "Water, tap",
     "94100100": "Water, bottled",
+}
+
+MATCH_KEY_AUTO_ALLOWLIST_CODES = {
+    "51101010": "Bread, white, toasted",
+    "51150000": "Roll, white, soft",
+    "54325000": "Crackers, saltine",
+    "91101010": "Sugar, white, granulated or lump",
+    "92103000": "Coffee, instant, reconstituted",
 }
 
 AMBIGUOUS_PATTERNS = [
@@ -117,7 +147,6 @@ RESTAURANT_OR_BRAND_PATTERNS = [
 PREPARATION_PATTERNS = [
     (r"\bfat added\b", "added_fat_unspecified"),
     (r"\bwith added fat\b", "added_fat_unspecified"),
-    (r"\badded fat\b", "added_fat_unspecified"),
     (r"\bfried\b.*\bunknown\b", "preparation_unclear"),
     (r"\bas ingredient\b", "preparation_unclear"),
 ]
@@ -146,6 +175,46 @@ REQUIRED_NUTRIENT_KEYS = [
     "total_sugar_g",
     "fiber_g",
 ]
+
+AUTO_BLOCK_FLAGS = {
+    "nfs",
+    "not_further_specified",
+    "not_specified_as_to",
+    "generic_other",
+    "generic_name",
+    "mixed_dish",
+    "sandwich",
+    "pizza",
+    "burrito",
+    "taco",
+    "casserole",
+    "soup_or_stew",
+    "restaurant_or_fast_food",
+    "home_recipe",
+    "brand_or_product_style",
+    "preparation_unclear",
+    "added_fat_unspecified",
+    "multi_component_allergen_risk",
+    "missing_required_nutrients",
+}
+
+BENIGN_ALIAS_QUALIFIERS = {
+    "no added fat",
+    "reconstituted",
+    "for use on a sandwich",
+}
+
+SANDWICH_COMPONENT_BASES = {
+    "avocado",
+    "bacon",
+    "cucumber",
+    "lettuce",
+    "mushrooms",
+    "onions",
+    "pepper",
+    "spinach",
+    "tomatoes",
+}
 
 
 def main() -> None:
@@ -219,19 +288,30 @@ def main() -> None:
     resolver_candidates = [row for row in food_rows if row["candidate_status"] in {STATUS_ELIGIBLE_SPECIFIC, STATUS_ELIGIBLE_GENERIC}]
     quarantined_foods = [row for row in food_rows if row["candidate_status"].startswith("quarantined_")]
     review_required_foods = [row for row in food_rows if row["candidate_status"] == STATUS_REVIEW_REQUIRED]
-    summary = classification_summary(food_rows, resolver_candidates, quarantined_foods, review_required_foods)
+    resolver_match_keys = resolver_match_keys_for(food_rows)
+    unit_conversions = unit_conversions_for(food_rows)
+    summary = classification_summary(
+        food_rows,
+        resolver_candidates,
+        quarantined_foods,
+        review_required_foods,
+        resolver_match_keys,
+        unit_conversions,
+    )
 
     out_dir.mkdir(parents=True, exist_ok=True)
     write_jsonl(out_dir / "foods.jsonl", food_rows)
     write_jsonl(out_dir / "nutrients.jsonl", nutrient_rows)
     write_jsonl(out_dir / "portions.jsonl", portion_rows)
     write_jsonl(out_dir / "resolver-candidates.jsonl", resolver_candidates)
+    write_jsonl(out_dir / "resolver-match-keys.jsonl", resolver_match_keys)
+    write_jsonl(out_dir / "unit-conversions.jsonl", unit_conversions)
     write_jsonl(out_dir / "quarantined-foods.jsonl", quarantined_foods)
     write_jsonl(out_dir / "review-required-foods.jsonl", review_required_foods)
     write_json(out_dir / "food-index.json", food_index(food_rows))
     write_json(out_dir / "classification-summary.json", summary)
     write_json(out_dir / "manifest.json", release_manifest(summary))
-    write_sqlite(out_dir / "fndds.sqlite", food_rows)
+    write_sqlite(out_dir / "fndds.sqlite", food_rows, resolver_match_keys, unit_conversions)
     ROOT_MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
     write_json(ROOT_MANIFEST_PATH, source_manifest())
 
@@ -390,6 +470,281 @@ def missing_required_nutrients(nutrients: dict[str, float]) -> bool:
     return False
 
 
+def resolver_match_keys_for(foods: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = []
+    for food in foods:
+        rows.extend(match_keys_for_food(food))
+    rows.sort(
+        key=lambda row: (
+            row["normalized_match_key"],
+            row["resolver_status"],
+            row["food_code"],
+            row["key_type"],
+            row["match_key"],
+        )
+    )
+    return rows
+
+
+def match_keys_for_food(food: dict[str, Any]) -> list[dict[str, Any]]:
+    resolver_status = resolver_status_for(food)
+    block_reason = "" if resolver_status == MATCH_STATUS_AUTO else food["candidate_status"]
+    rows: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    add_match_key(
+        rows,
+        seen,
+        food,
+        food["main_description"],
+        "canonical",
+        MATCH_CONFIDENCE_EXACT if resolver_status == MATCH_STATUS_AUTO else MATCH_CONFIDENCE_REVIEW,
+        resolver_status,
+        block_reason,
+    )
+    if resolver_status == MATCH_STATUS_AUTO and alias_generation_allowed(food):
+        for key, key_type in alias_match_keys(food["main_description"]):
+            add_match_key(
+                rows,
+                seen,
+                food,
+                key,
+                key_type,
+                MATCH_CONFIDENCE_HIGH,
+                resolver_status,
+                block_reason,
+            )
+    return rows
+
+
+def add_match_key(
+    rows: list[dict[str, Any]],
+    seen: set[tuple[str, str]],
+    food: dict[str, Any],
+    match_key: str,
+    key_type: str,
+    confidence: str,
+    resolver_status: str,
+    block_reason: str,
+) -> None:
+    match_key = normalize_label(match_key)
+    normalized = normalize_match_key(match_key)
+    if not normalized:
+        return
+    if resolver_status not in VALID_MATCH_STATUSES:
+        raise ValueError(f"invalid resolver_status {resolver_status}")
+    if confidence not in VALID_MATCH_CONFIDENCES:
+        raise ValueError(f"invalid match confidence {confidence}")
+    dedupe_key = (normalized, key_type)
+    if dedupe_key in seen:
+        return
+    seen.add(dedupe_key)
+    rows.append(
+        {
+            "release": RELEASE,
+            "food_code": food["food_code"],
+            "source_description": food["main_description"],
+            "match_key": match_key,
+            "normalized_match_key": normalized,
+            "key_type": key_type,
+            "confidence": confidence,
+            "resolver_status": resolver_status,
+            "block_reason": block_reason,
+        }
+    )
+
+
+def resolver_status_for(food: dict[str, Any]) -> str:
+    if auto_resolver_candidate(food):
+        return MATCH_STATUS_AUTO
+    status = food["candidate_status"]
+    if status == STATUS_REVIEW_REQUIRED:
+        return MATCH_STATUS_REVIEW
+    if status == STATUS_QUARANTINED_MIXED_DISH:
+        return MATCH_STATUS_DECOMPOSE
+    return MATCH_STATUS_BLOCKED
+
+
+def auto_resolver_candidate(food: dict[str, Any]) -> bool:
+    flags = set(food["ambiguity_flags"])
+    if "missing_required_nutrients" in flags:
+        return False
+    if food["food_code"] in MATCH_KEY_AUTO_ALLOWLIST_CODES:
+        return True
+    if sandwich_component_base(food["main_description"]):
+        return True
+    if food["candidate_status"] not in {STATUS_ELIGIBLE_SPECIFIC, STATUS_ELIGIBLE_GENERIC}:
+        return False
+    return not (flags & AUTO_BLOCK_FLAGS)
+
+
+def alias_generation_allowed(food: dict[str, Any]) -> bool:
+    if food["food_code"] in MATCH_KEY_AUTO_ALLOWLIST_CODES:
+        return True
+    if sandwich_component_base(food["main_description"]):
+        return True
+    return "no added fat" in normalize_match_key(food["main_description"])
+
+
+def alias_match_keys(main_description: str) -> list[tuple[str, str]]:
+    aliases: list[tuple[str, str]] = []
+    component = sandwich_component_base(main_description)
+    if component:
+        aliases.append((component, "component_alias"))
+        singular = singularize(component)
+        if singular != component:
+            aliases.append((singular, "component_alias"))
+        return aliases
+
+    parts = [part.strip() for part in main_description.split(",") if part.strip()]
+    if len(parts) < 2:
+        return aliases
+
+    base = parts[0].lower()
+    qualifiers = normalized_alias_qualifiers(parts[1:])
+    if not qualifiers:
+        return aliases
+
+    aliases.append((" ".join(qualifiers + [base]), "reordered"))
+    if len(qualifiers) > 1:
+        aliases.append((" ".join(list(reversed(qualifiers)) + [base]), "reordered"))
+    for qualifier in qualifiers:
+        aliases.append((f"{qualifier} {base}", "stripped_qualifier"))
+    if "cooked" in qualifiers:
+        without_cooked = [qualifier for qualifier in qualifiers if qualifier != "cooked"]
+        if without_cooked:
+            aliases.append((" ".join(["cooked", *without_cooked, base]), "stripped_qualifier"))
+            aliases.append((f"cooked {base}", "stripped_qualifier"))
+    if base.endswith("s"):
+        singular_base = singularize(base)
+        for key, key_type in list(aliases):
+            aliases.append((key.replace(base, singular_base), key_type))
+    return aliases
+
+
+def normalized_alias_qualifiers(parts: list[str]) -> list[str]:
+    qualifiers = []
+    for part in parts:
+        value = normalize_match_key(part)
+        if value in BENIGN_ALIAS_QUALIFIERS:
+            continue
+        if value.startswith("ns as to") or value in {"nfs", "not specified", "quantity not specified"}:
+            continue
+        if " or " in value:
+            value = value.split(" or ", 1)[0].strip()
+        if value and value not in qualifiers:
+            qualifiers.append(value)
+    return qualifiers
+
+
+def sandwich_component_base(main_description: str) -> str:
+    normalized = normalize_match_key(main_description)
+    suffix = " for use on a sandwich"
+    if not normalized.endswith(suffix):
+        return ""
+    base = normalized[: -len(suffix)].strip()
+    if base in SANDWICH_COMPONENT_BASES:
+        return base
+    return ""
+
+
+def singularize(value: str) -> str:
+    words = value.split()
+    if not words:
+        return value
+    last = words[-1]
+    if last == "tomatoes":
+        words[-1] = "tomato"
+    elif last.endswith("ies") and len(last) > 3:
+        words[-1] = last[:-3] + "y"
+    elif last.endswith("s") and not last.endswith("ss") and len(last) > 3:
+        words[-1] = last[:-1]
+    return " ".join(words)
+
+
+def unit_conversions_for(foods: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = []
+    for food in foods:
+        rows.extend(unit_conversions_for_food(food))
+    rows.sort(key=lambda row: (row["food_code"], row["normalized_unit"], row["grams"]))
+    return rows
+
+
+def unit_conversions_for_food(food: dict[str, Any]) -> list[dict[str, Any]]:
+    candidates: dict[str, list[tuple[float, str, str]]] = {}
+    add_unit_candidates(candidates, ["g", "gram", "grams"], 1.0, "100 g base quantity", MATCH_CONFIDENCE_EXACT)
+    for portion in food["portion_options"]:
+        aliases = unit_aliases_for_portion(portion["description"])
+        if not aliases:
+            continue
+        add_unit_candidates(candidates, aliases, portion["grams"], portion["description"], MATCH_CONFIDENCE_EXACT)
+
+    rows = []
+    for unit, values in sorted(candidates.items()):
+        grams_values = {round(value[0], 6) for value in values}
+        if len(grams_values) != 1:
+            continue
+        grams, source_description, confidence = values[0]
+        rows.append(
+            {
+                "release": RELEASE,
+                "food_code": food["food_code"],
+                "unit": unit,
+                "normalized_unit": normalize_unit_lookup(unit),
+                "grams": grams,
+                "source_description": source_description,
+                "confidence": confidence,
+            }
+        )
+    return rows
+
+
+def add_unit_candidates(
+    candidates: dict[str, list[tuple[float, str, str]]],
+    units: list[str],
+    grams: float,
+    source_description: str,
+    confidence: str,
+) -> None:
+    for unit in units:
+        normalized = normalize_unit_lookup(unit)
+        if not normalized:
+            continue
+        candidates.setdefault(normalized, []).append((grams, source_description, confidence))
+
+
+def unit_aliases_for_portion(description: str) -> list[str]:
+    normalized = normalize_unit_lookup(description)
+    if (
+        not normalized
+        or "nfs" in normalized
+        or "quantity not specified" in normalized
+        or normalized.startswith("guideline amount")
+        or "(" in description
+        or ")" in description
+    ):
+        return []
+    exact_aliases = {
+        "1 cup": ["cup", "cups"],
+        "1 fl oz": ["fl oz", "fluid ounce", "fluid ounces"],
+        "1 fluid ounce": ["fl oz", "fluid ounce", "fluid ounces"],
+        "1 oz": ["oz", "ounce", "ounces"],
+        "1 ounce": ["oz", "ounce", "ounces"],
+        "1 tbsp": ["tbsp", "tablespoon", "tablespoons"],
+        "1 tablespoon": ["tbsp", "tablespoon", "tablespoons"],
+        "1 tsp": ["tsp", "teaspoon", "teaspoons"],
+        "1 teaspoon": ["tsp", "teaspoon", "teaspoons"],
+        "1 slice": ["slice", "slices"],
+        "1 piece": ["piece", "pieces"],
+        "1 container": ["container", "containers"],
+        "1 packet": ["packet", "packets"],
+        "1 roll": ["roll", "rolls"],
+        "1 cracker": ["cracker", "crackers"],
+        "1 patty": ["patty", "patties"],
+        "1 link": ["link", "links"],
+    }
+    return exact_aliases.get(normalized, [])
+
+
 def source_refs(food_code: str, source_food: dict[str, str], *, data_type: str = "FNDDS At A Glance") -> list[dict[str, str]]:
     return [
         {
@@ -471,9 +826,13 @@ def classification_summary(
     resolver_candidates: list[dict[str, Any]],
     quarantined_foods: list[dict[str, Any]],
     review_required_foods: list[dict[str, Any]],
+    resolver_match_keys: list[dict[str, Any]],
+    unit_conversions: list[dict[str, Any]],
 ) -> dict[str, Any]:
     status_counts = Counter(row["candidate_status"] for row in foods)
     flag_counts = Counter(flag for row in foods for flag in row["ambiguity_flags"])
+    match_status_counts = Counter(row["resolver_status"] for row in resolver_match_keys)
+    match_key_type_counts = Counter(row["key_type"] for row in resolver_match_keys)
     return {
         "schema_version": "0.1",
         "release": RELEASE,
@@ -481,9 +840,15 @@ def classification_summary(
         "resolver_candidate_count": len(resolver_candidates),
         "quarantined_count": len(quarantined_foods),
         "review_required_count": len(review_required_foods),
+        "resolver_match_key_count": len(resolver_match_keys),
+        "auto_match_key_count": match_status_counts[MATCH_STATUS_AUTO],
+        "unit_conversion_count": len(unit_conversions),
         "status_counts": dict(sorted(status_counts.items())),
         "flag_counts": dict(sorted(flag_counts.items())),
+        "match_status_counts": dict(sorted(match_status_counts.items())),
+        "match_key_type_counts": dict(sorted(match_key_type_counts.items())),
         "allowlist_codes": dict(sorted(ALLOWLIST_CODES.items())),
+        "match_key_auto_allowlist_codes": dict(sorted(MATCH_KEY_AUTO_ALLOWLIST_CODES.items())),
     }
 
 
@@ -519,6 +884,8 @@ def release_manifest(summary: dict[str, Any]) -> dict[str, Any]:
             "nutrients.jsonl",
             "portions.jsonl",
             "resolver-candidates.jsonl",
+            "resolver-match-keys.jsonl",
+            "unit-conversions.jsonl",
             "quarantined-foods.jsonl",
             "review-required-foods.jsonl",
             "food-index.json",
@@ -638,6 +1005,16 @@ def normalize_lookup(value: str) -> str:
     return " ".join(value.lower().strip().split())
 
 
+def normalize_match_key(value: str) -> str:
+    value = value.lower().replace("&", " and ")
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+
+def normalize_unit_lookup(value: str) -> str:
+    return " ".join(value.lower().strip().split())
+
+
 def normalize_header(value: str) -> str:
     return re.sub(r"\s+", " ", value.replace("\n", " ")).strip()
 
@@ -676,7 +1053,7 @@ def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
             file.write(json.dumps(row, sort_keys=True) + "\n")
 
 
-def write_sqlite(path: Path, foods: list[dict[str, Any]]) -> None:
+def write_sqlite(path: Path, foods: list[dict[str, Any]], resolver_match_keys: list[dict[str, Any]], unit_conversions: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
@@ -719,6 +1096,28 @@ def write_sqlite(path: Path, foods: list[dict[str, Any]]) -> None:
               primary key(food_code, description, grams)
             );
 
+            create table fndds_match_keys(
+              food_code text not null references fndds_foods(food_code),
+              source_description text not null,
+              match_key text not null,
+              normalized_match_key text not null,
+              key_type text not null,
+              confidence text not null,
+              resolver_status text not null,
+              block_reason text,
+              primary key(food_code, normalized_match_key, key_type)
+            );
+
+            create table fndds_unit_conversions(
+              food_code text not null references fndds_foods(food_code),
+              unit text not null,
+              normalized_unit text not null,
+              grams real not null,
+              source_description text not null,
+              confidence text not null,
+              primary key(food_code, normalized_unit)
+            );
+
             create table fndds_ambiguity_flags(
               food_code text not null references fndds_foods(food_code),
               flag text not null,
@@ -743,6 +1142,12 @@ def write_sqlite(path: Path, foods: list[dict[str, Any]]) -> None:
               on fndds_foods(candidate_status);
             create index idx_fndds_portions_food_code
               on fndds_portions(food_code);
+            create index idx_fndds_match_keys_normalized_status
+              on fndds_match_keys(normalized_match_key, resolver_status);
+            create index idx_fndds_match_keys_food_code
+              on fndds_match_keys(food_code);
+            create index idx_fndds_unit_conversions_food_code
+              on fndds_unit_conversions(food_code);
             create index idx_fndds_flags_food_code
               on fndds_ambiguity_flags(food_code);
             create index idx_fndds_allergens_food_code
@@ -822,6 +1227,41 @@ def write_sqlite(path: Path, foods: list[dict[str, Any]]) -> None:
                         "insert into fndds_food_groups(food_code, food_group) values (?, ?)",
                         (food["food_code"], food_group),
                     )
+            for match_key in resolver_match_keys:
+                conn.execute(
+                    """
+                    insert into fndds_match_keys(
+                      food_code, source_description, match_key, normalized_match_key,
+                      key_type, confidence, resolver_status, block_reason
+                    ) values (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        match_key["food_code"],
+                        match_key["source_description"],
+                        match_key["match_key"],
+                        match_key["normalized_match_key"],
+                        match_key["key_type"],
+                        match_key["confidence"],
+                        match_key["resolver_status"],
+                        match_key["block_reason"],
+                    ),
+                )
+            for conversion in unit_conversions:
+                conn.execute(
+                    """
+                    insert into fndds_unit_conversions(
+                      food_code, unit, normalized_unit, grams, source_description, confidence
+                    ) values (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        conversion["food_code"],
+                        conversion["unit"],
+                        conversion["normalized_unit"],
+                        conversion["grams"],
+                        conversion["source_description"],
+                        conversion["confidence"],
+                    ),
+                )
         conn.execute("pragma optimize")
     finally:
         conn.close()

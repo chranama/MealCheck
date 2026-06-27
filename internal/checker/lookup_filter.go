@@ -59,7 +59,7 @@ func filterFallbackLookupCandidate(item FoodItem) lookupFilterResult {
 		return blockLookup(unresolvedPreparationUnclear)
 	case ambiguousFood(text, tokens):
 		return blockLookup(unresolvedAmbiguousFood)
-	case composedFood(text, tokens):
+	case composedFood(food, text, tokens):
 		return blockLookup(unresolvedComposedFoodNeedsDecomposition)
 	case restaurantOrBrandedFood(item, text, tokens):
 		return blockLookup(unresolvedRestaurantOrBrandedFood)
@@ -101,7 +101,20 @@ func blockLookup(reason string) lookupFilterResult {
 
 func fallbackUnitAllowed(unit string) bool {
 	switch strings.ToLower(strings.TrimSpace(unit)) {
-	case "g", "gram", "grams":
+	case "g", "gram", "grams",
+		"oz", "ounce", "ounces",
+		"fl oz", "fluid ounce", "fluid ounces",
+		"cup", "cups",
+		"tbsp", "tablespoon", "tablespoons",
+		"tsp", "teaspoon", "teaspoons",
+		"slice", "slices",
+		"piece", "pieces",
+		"container", "containers",
+		"packet", "packets",
+		"roll", "rolls",
+		"cracker", "crackers",
+		"patty", "patties",
+		"link", "links":
 		return true
 	default:
 		return false
@@ -121,7 +134,10 @@ func ambiguousFood(text string, tokens map[string]bool) bool {
 	)
 }
 
-func composedFood(text string, tokens map[string]bool) bool {
+func composedFood(food, text string, tokens map[string]bool) bool {
+	if sandwichComponentFood(food) {
+		return false
+	}
 	if hasAnyToken(tokens, "sandwich", "pizza", "burrito", "taco", "casserole", "lasagna", "meal") {
 		return true
 	}
@@ -164,10 +180,24 @@ func restaurantOrBrandedFood(item FoodItem, text string, tokens map[string]bool)
 }
 
 func preparationUnclear(text string, tokens map[string]bool) bool {
-	if containsAny(text, "fat added", "with added fat", "added fat", "as ingredient") {
+	if containsAny(text, "fat added", "with added fat", "as ingredient") {
 		return true
 	}
 	return tokens["fried"] && tokens["unknown"]
+}
+
+func sandwichComponentFood(food string) bool {
+	food = normalizeFNDDSMatchKey(food)
+	const suffix = " for use on a sandwich"
+	if !strings.HasSuffix(food, suffix) {
+		return false
+	}
+	switch strings.TrimSpace(strings.TrimSuffix(food, suffix)) {
+	case "avocado", "bacon", "cucumber", "lettuce", "mushrooms", "onions", "pepper", "spinach", "tomatoes":
+		return true
+	default:
+		return false
+	}
 }
 
 func broadFoodName(food string) bool {

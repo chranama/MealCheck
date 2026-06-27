@@ -134,13 +134,13 @@ sugar, wine, apple juice, instant coffee, saltine crackers, flavored liquid
 coffee creamer, and common mixed dishes.
 
 With the optional FNDDS SQLite fallback enabled, the same WWEIA/NHANES
-real-recall dataset resolves 644 of 815 items, a 79.02% resolver rate. This is
+real-recall dataset resolves 688 of 815 items, an 84.42% resolver rate. This is
 a coverage run, not a strict expected-outcome regression, because the checked-in
 WWEIA expected unresolved counts describe the no-fallback catalog mode. The
-fallback removes common exact-match gaps such as tap water, bottled water, 100%
-juice, and many specific FNDDS foods while leaving ambiguous, composed,
-restaurant/product-style, review-required, and unsupported-unit rows
-unresolved.
+fallback removes common source-backed gaps such as water, 100% juice, instant
+coffee, white rolls, granulated sugar, no-added-fat vegetables and rice, and
+sandwich vegetable components while leaving ambiguous, composed,
+restaurant/product-style, review-required, and unsupported-unit rows unresolved.
 
 ## Catalog Expansion Policy
 
@@ -148,8 +148,10 @@ Expansion rules:
 
 1. Add foods in reviewed batches driven by evaluation coverage and unresolved
    frequency.
-2. Keep matching conservative: exact normalized names plus reviewed aliases.
-3. Keep units per food explicit; unsupported units remain unresolved.
+2. Keep matching conservative: exact normalized names plus preprocessed,
+   auto-approved match keys.
+3. Keep units per food explicit and source-backed; unsupported units remain
+   unresolved.
 4. Mark ambiguous, branded, vague, and long-tail foods unresolved instead of
    guessing.
 5. Store source references on every generated food.
@@ -159,20 +161,23 @@ Runtime lookup order:
 
 1. Use the reviewed local catalog first.
 2. If no reviewed catalog match exists, pass the item through the fallback
-   resolver gate. The gate only allows quantified gram-based foods that appear
-   specific enough for automatic lookup.
+   resolver gate. The gate only allows quantified foods with units supported by
+   the fallback surface and names that appear specific enough for automatic
+   lookup.
 3. The gate blocks broad one-word foods, mixed dishes that need ingredient
    decomposition, restaurant or branded foods, unclear preparation, non-food
    text, and unsupported fallback units.
 4. If the gate allows lookup, optionally check the FNDDS SQLite fallback.
-5. The fallback only resolves exact normalized FNDDS `main_description` matches
-   whose preprocessed status is `eligible_specific` or `eligible_generic` and
-   which have no ambiguity flags.
-6. The fallback supports gram units only: `g`, `gram`, and `grams`.
+5. The fallback only resolves preprocessed FNDDS match keys whose
+   `resolver_status` is `auto` and whose match is unique.
+6. The fallback supports gram units plus source-backed food-specific unit
+   conversions derived from FNDDS Portions and Weights.
 7. Explicit `unknown_food` items with quantities may retry the fallback.
    Explicit vague quantities, unsupported units, and other unresolved reasons
    remain unresolved.
-8. Quarantined or review-required FNDDS rows are never runtime resolver hits.
+8. Quarantined or review-required FNDDS rows are never runtime resolver hits
+   unless a specific generated match key is explicitly marked `auto`; broad keys
+   that map to multiple foods fail closed.
 
 Unresolved verification policy:
 
@@ -219,6 +224,10 @@ Artifacts:
 - `data/reference/fndds-2021-2023/portions.jsonl`: normalized portion rows.
 - `data/reference/fndds-2021-2023/resolver-candidates.jsonl`: eligible
   source-backed foods for future review.
+- `data/reference/fndds-2021-2023/resolver-match-keys.jsonl`: canonical and
+  alias match keys with resolver status, confidence, and block reason.
+- `data/reference/fndds-2021-2023/unit-conversions.jsonl`: source-backed
+  food-specific gram conversions derived from FNDDS portions.
 - `data/reference/fndds-2021-2023/quarantined-foods.jsonl`: ambiguous,
   composed, restaurant/product-style, or unclear-preparation foods.
 - `data/reference/fndds-2021-2023/review-required-foods.jsonl`: source rows
@@ -231,8 +240,10 @@ Artifacts:
 Current FNDDS reference import:
 
 - 5,432 food rows preserved
-- 2,926 eligible resolver candidates
-- 2,505 quarantined rows
+- 3,056 eligible resolver candidates
+- 2,375 quarantined rows
+- 6,201 resolver match keys
+- 25,928 source-backed unit conversions
 - 1 review-required row
 
 The preprocessing classifier quarantines rows with signals such as `NFS`,

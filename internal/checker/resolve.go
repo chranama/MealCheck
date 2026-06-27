@@ -117,6 +117,9 @@ func (r resolver) resolveFallbackCandidate(day int, meal string, item FoodItem) 
 func resolveKnownFood(day int, meal string, item FoodItem, food CatalogFood) (ResolvedItem, UnresolvedItem, bool, error) {
 	gramsPerUnit, ok := food.UnitConversions[item.Unit]
 	if !ok {
+		gramsPerUnit, ok = food.UnitConversions[normalizeUnit(item.Unit)]
+	}
+	if !ok {
 		u := unresolvedItem(day, meal, item)
 		u.UnresolvedReason = fmt.Sprintf("missing_conversion:%s", item.Unit)
 		return ResolvedItem{}, u, false, nil

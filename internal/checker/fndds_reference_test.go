@@ -24,8 +24,54 @@ func TestSQLiteFNDDSReferenceLookupEligibleExactMatch(t *testing.T) {
 	if food.UnitConversions["g"] != 1 || food.UnitConversions["gram"] != 1 || food.UnitConversions["grams"] != 1 {
 		t.Fatalf("unexpected gram conversions: %#v", food.UnitConversions)
 	}
+	if food.UnitConversions["cup"] != 240 || food.UnitConversions["cups"] != 240 {
+		t.Fatalf("unexpected cup conversions: %#v", food.UnitConversions)
+	}
 	if food.NutrientsPer100G.SodiumMG < 0 {
 		t.Fatalf("SodiumMG = %.1f, want non-negative", food.NutrientsPer100G.SodiumMG)
+	}
+}
+
+func TestSQLiteFNDDSReferenceLookupMatchKeyAliases(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+
+	tests := []struct {
+		description string
+		foodID      string
+		name        string
+	}{
+		{
+			description: "instant coffee",
+			foodID:      "fndds_92103000",
+			name:        "Coffee, instant, reconstituted",
+		},
+		{
+			description: "granulated sugar",
+			foodID:      "fndds_91101010",
+			name:        "Sugar, white, granulated or lump",
+		},
+		{
+			description: "lettuce",
+			foodID:      "fndds_89902020",
+			name:        "Lettuce, for use on a sandwich",
+		},
+		{
+			description: "cooked white rice",
+			foodID:      "fndds_56205008",
+			name:        "Rice, white, cooked, no added fat",
+		},
+	}
+	for _, tc := range tests {
+		food, ok, err := ref.LookupEligibleByDescription(tc.description)
+		if err != nil {
+			t.Fatalf("%s lookup returned error: %v", tc.description, err)
+		}
+		if !ok {
+			t.Fatalf("%s did not resolve through FNDDS fallback", tc.description)
+		}
+		if food.FoodID != tc.foodID || food.Name != tc.name {
+			t.Fatalf("%s resolved to %s %q, want %s %q", tc.description, food.FoodID, food.Name, tc.foodID, tc.name)
+		}
 	}
 }
 
@@ -215,10 +261,30 @@ func TestResolverRetriesExplicitUnknownFoodThroughFNDDSFallback(t *testing.T) {
 	}
 }
 
-func TestResolverKeepsFallbackHouseholdUnitsUnresolved(t *testing.T) {
+func TestResolverUsesFNDDSFallbackPortionConversions(t *testing.T) {
 	ref := openTestFNDDSReference(t)
 	qty := 1.0
 	plan := singleItemPlan("Water, tap", &qty, "cup")
+
+	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unresolved) != 0 {
+		t.Fatalf("unresolved = %+v, want none", unresolved)
+	}
+	if len(resolved) != 1 {
+		t.Fatalf("len(resolved) = %d, want 1", len(resolved))
+	}
+	if resolved[0].FoodID != "fndds_94000100" || resolved[0].Grams != 240 {
+		t.Fatalf("resolved = %+v, want water at 240g", resolved[0])
+	}
+}
+
+func TestResolverKeepsUnsupportedFallbackUnitsUnresolved(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 1.0
+	plan := singleItemPlan("Water, tap", &qty, "bunch")
 
 	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
 	if err != nil {
