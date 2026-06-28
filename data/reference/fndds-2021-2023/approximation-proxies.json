@@ -687,6 +687,54 @@
       "normalized_input_key": "peach"
     },
     {
+      "input_key": "Peanuts, dry roasted, salted",
+      "proxy_food_code": "42111200",
+      "proxy_description": "Peanuts, dry roasted, salted",
+      "confidence": "medium",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated nut approximation using the source-coded FNDDS nut row.",
+      "source_food_codes": [
+        "42111200"
+      ],
+      "generated": true,
+      "generation_rule": "plain_nuts",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "peanuts dry roasted salted"
+    },
+    {
+      "input_key": "Peanuts, NFS",
+      "proxy_food_code": "42111000",
+      "proxy_description": "Peanuts, NFS",
+      "confidence": "medium",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated nut approximation using the source-coded FNDDS nut row.",
+      "source_food_codes": [
+        "42111000"
+      ],
+      "generated": true,
+      "generation_rule": "plain_nuts",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "peanuts nfs"
+    },
+    {
+      "input_key": "Peanuts, roasted, salted",
+      "proxy_food_code": "42111100",
+      "proxy_description": "Peanuts, roasted, salted",
+      "confidence": "medium",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated nut approximation using the source-coded FNDDS nut row.",
+      "source_food_codes": [
+        "42111100"
+      ],
+      "generated": true,
+      "generation_rule": "plain_nuts",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "peanuts roasted salted"
+    },
+    {
       "input_key": "Pear",
       "proxy_food_code": "63137010",
       "proxy_description": "Pear, raw",

@@ -140,6 +140,7 @@ func TestSQLiteFNDDSReferenceLookupApproximationProxyBySourceFoodCode(t *testing
 		{name: "curated nfs", sourceFoodCode: "14010000", wantInputKey: "cheese", wantProxyFoodCode: "14010000", wantFoodID: "fndds_14010000"},
 		{name: "generated fruit", sourceFoodCode: "63129010", wantInputKey: "Mango", wantProxyFoodCode: "63129010", wantFoodID: "fndds_63129010"},
 		{name: "generated beverage", sourceFoodCode: "93401010", wantInputKey: "Wine, red", wantProxyFoodCode: "93401010", wantFoodID: "fndds_93401010"},
+		{name: "generated nuts", sourceFoodCode: "42111200", wantInputKey: "Peanuts, dry roasted, salted", wantProxyFoodCode: "42111200", wantFoodID: "fndds_42111200"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -577,6 +578,73 @@ func TestResolverUsesGeneratedSourceFoodCodeApproximation(t *testing.T) {
 	item := resolved[0]
 	if item.ResolutionMethod != "estimated" || item.ProxyFoodID != "fndds_63129010" || item.SourceFoodCode != "63129010" {
 		t.Fatalf("resolved = %+v, want source-code-backed estimated mango proxy", item)
+	}
+}
+
+func TestResolverUsesGeneratedNutApproximation(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 100.0
+	plan := singleItemPlan("Peanuts, dry roasted, salted", &qty, "g")
+	plan.Days[0].Meals[0].Items[0].SourceFoodCode = "42111200"
+
+	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unresolved) != 0 {
+		t.Fatalf("unresolved = %+v, want none", unresolved)
+	}
+	if len(resolved) != 1 {
+		t.Fatalf("len(resolved) = %d, want 1", len(resolved))
+	}
+	item := resolved[0]
+	if item.ResolutionMethod != "estimated" || item.ProxyFoodID != "fndds_42111200" || item.SourceFoodCode != "42111200" {
+		t.Fatalf("resolved = %+v, want source-code-backed estimated peanut proxy", item)
+	}
+}
+
+func TestResolverAllowsVitaminCDrinkFallback(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 100.0
+	tests := []struct {
+		name       string
+		food       string
+		sourceCode string
+		wantFoodID string
+	}{
+		{
+			name:       "fruit drink",
+			food:       "Fruit flavored drink, with high vitamin C, powdered, reconstituted",
+			sourceCode: "92542000",
+			wantFoodID: "fndds_92542000",
+		},
+		{
+			name:       "vegetable fruit juice",
+			food:       "Vegetable and fruit juice, 100% juice, with high vitamin C",
+			sourceCode: "78101000",
+			wantFoodID: "fndds_78101000",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			plan := singleItemPlan(tt.food, &qty, "g")
+			plan.Days[0].Meals[0].Items[0].SourceFoodCode = tt.sourceCode
+
+			resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(unresolved) != 0 {
+				t.Fatalf("unresolved = %+v, want none", unresolved)
+			}
+			if len(resolved) != 1 {
+				t.Fatalf("len(resolved) = %d, want 1", len(resolved))
+			}
+			item := resolved[0]
+			if item.ResolutionMethod != "exact" || item.FoodID != tt.wantFoodID {
+				t.Fatalf("resolved = %+v, want exact %s", item, tt.wantFoodID)
+			}
+		})
 	}
 }
 

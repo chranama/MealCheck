@@ -134,8 +134,8 @@ sugar, wine, apple juice, instant coffee, saltine crackers, flavored liquid
 coffee creamer, and common mixed dishes.
 
 With the optional FNDDS SQLite fallback enabled, the same WWEIA/NHANES
-real-recall dataset resolves 771 of 815 items, a 94.60% resolver rate. The run
-contains 688 exact fallback resolutions, 44 estimated approximation resolutions,
+real-recall dataset resolves 774 of 815 items, a 94.97% resolver rate. The run
+contains 690 exact fallback resolutions, 45 estimated approximation resolutions,
 and 39 decomposed resolutions. This is a coverage run, not a strict
 expected-outcome regression, because the checked-in WWEIA expected unresolved
 counts describe the no-fallback catalog mode. The fallback removes common
@@ -280,8 +280,8 @@ Current FNDDS reference import:
 - 2,375 quarantined rows
 - 6,201 resolver match keys
 - 25,928 source-backed unit conversions
-- 92 approximation proxies: 16 curated and 76 generated
-- 92 source-code mappings into approximation proxies
+- 95 approximation proxies: 16 curated and 79 generated
+- 95 source-code mappings into approximation proxies
 - 6 curated decomposition templates
 - 31 curated decomposition rules
 - 33 source-code mappings into decomposition rules

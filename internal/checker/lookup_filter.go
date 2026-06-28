@@ -53,7 +53,7 @@ func filterFallbackLookupCandidate(item FoodItem) lookupFilterResult {
 	text := lookupFilterText(item)
 	tokens := lookupFilterTokens(text)
 	switch {
-	case hasAnyToken(tokens, "medicine", "medication", "pill", "supplement", "vitamin", "workout", "exercise", "fasting"):
+	case nonFoodText(text, tokens):
 		return blockLookup(unresolvedNonFoodText)
 	case preparationUnclear(text, tokens):
 		return blockLookup(unresolvedPreparationUnclear)
@@ -73,6 +73,23 @@ func filterFallbackLookupCandidate(item FoodItem) lookupFilterResult {
 			Query:         food,
 		}
 	}
+}
+
+func nonFoodText(text string, tokens map[string]bool) bool {
+	if hasAnyToken(tokens, "medicine", "medication", "pill", "supplement", "workout", "exercise", "fasting") {
+		return true
+	}
+	if tokens["vitamin"] && !vitaminMentionAllowedInFood(text, tokens) {
+		return true
+	}
+	return false
+}
+
+func vitaminMentionAllowedInFood(text string, tokens map[string]bool) bool {
+	if !hasAnyToken(tokens, "drink", "juice", "beverage") {
+		return false
+	}
+	return containsAny(text, "vitamin c", "with high vitamin")
 }
 
 func lookupFilterText(item FoodItem) string {

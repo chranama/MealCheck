@@ -1518,7 +1518,7 @@ def food_groups_for(source_food: dict[str, str]) -> list[str]:
         groups.add("fats")
     if any(term in text for term in ["apple", "apricot", "banana", "blackberr", "blueberr", "cantaloupe", "cherr", "clementine", "fruit", "grape", "mango", "melon", "orange", "papaya", "pear", "peach", "pineapple", "plum", "raspberr", "strawberr", "watermelon"]):
         groups.add("fruits")
-    if any(term in text for term in ["chicken", "beef", "pork", "turkey", "ham", "bacon", "sausage", "hot dog", "fish", "salmon", "trout", "tuna", "shrimp", "tilapia", "cod", "egg", "tofu", "bean", "chickpea", "lentil", "hummus", "peanut butter", "almond", "cashew", "walnut", "protein"]):
+    if any(term in text for term in ["chicken", "beef", "pork", "turkey", "ham", "bacon", "sausage", "hot dog", "fish", "salmon", "trout", "tuna", "shrimp", "tilapia", "cod", "egg", "tofu", "bean", "chickpea", "lentil", "hummus", "peanut", "almond", "cashew", "walnut", "protein"]):
         groups.add("protein")
     if any(term in text for term in ["oatmeal", "brown rice", "quinoa", "whole wheat", "whole grain", "barley", "oat cereal"]):
         groups.add("whole_grains")
