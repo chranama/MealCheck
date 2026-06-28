@@ -167,8 +167,9 @@ Runtime lookup order:
 3. The gate blocks broad one-word foods, mixed dishes that need ingredient
    decomposition, restaurant or branded foods, unclear preparation, non-food
    text, and unsupported fallback units.
-4. If a blocked broad one-word food has a curated approximation proxy, and no
-   configured constraint makes proxy use unsafe, resolve it as `estimated`.
+4. If a blocked source-backed FNDDS food code or broad natural food name has a
+   curated approximation proxy, and no configured constraint makes proxy use
+   unsafe, resolve it as `estimated`.
 5. If a blocked composed food has a curated decomposition template and a
    deterministic gram or ounce quantity, split the item across exact FNDDS
    component foods and resolve it as `decomposed`.
@@ -188,6 +189,13 @@ Estimated and decomposed items remain in `resolved-foods.json` with
 `resolution_method`, confidence, proxy, reason, or component metadata. They also
 produce an `estimated_or_decomposed_foods` warning so the report does not
 silently treat approximate nutrition as an exact food match.
+
+Approximation proxies are concepts, not literal `NFS` text rules. WWEIA/NHANES
+eval rows can reach a proxy through `source_food_code`, which preserves the
+reported FNDDS food code behind descriptions such as `Cheese, NFS`. Real manual
+usage reaches the same proxy only through reviewed natural keys such as
+`cheese`, `butter`, or `pickles`; specific foods still attempt exact resolution
+first, while unreviewed ambiguous phrases remain blocked.
 
 Unresolved verification policy:
 
@@ -243,7 +251,8 @@ Artifacts:
 - `data/reference/fndds-2021-2023/review-required-foods.jsonl`: source rows
   that need manual handling before candidate use.
 - `data/reference/fndds-2021-2023/approximation-proxies.json`: curated
-  one-word broad-food proxies that can resolve as estimated nutrition.
+  broad and source-code-backed generic-food proxies that can resolve as
+  estimated nutrition.
 - `data/reference/fndds-2021-2023/decomposition-templates.json`: curated
   composed-food templates with component fractions and FNDDS food codes.
 - `data/reference/fndds-2021-2023/classification-summary.json`: counts by
@@ -258,7 +267,8 @@ Current FNDDS reference import:
 - 2,375 quarantined rows
 - 6,201 resolver match keys
 - 25,928 source-backed unit conversions
-- 6 curated approximation proxies
+- 16 curated approximation proxies
+- 16 source-code mappings into approximation proxies
 - 6 curated decomposition templates
 - 1 review-required row
 

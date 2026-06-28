@@ -592,6 +592,13 @@ func validateFNDDSReference(root string) error {
 	if got := int(mustNumber(summary, "approximation_proxy_count")); got != len(approximationProxies) {
 		return fmt.Errorf("FNDDS summary approximation_proxy_count = %d, want %d", got, len(approximationProxies))
 	}
+	approximationProxySourceCodeCount := 0
+	for _, proxy := range approximationProxies {
+		approximationProxySourceCodeCount += len(stringSlice(proxy, "source_food_codes"))
+	}
+	if got := int(mustNumber(summary, "approximation_proxy_source_code_count")); got != approximationProxySourceCodeCount {
+		return fmt.Errorf("FNDDS summary approximation_proxy_source_code_count = %d, want %d", got, approximationProxySourceCodeCount)
+	}
 	if got := int(mustNumber(summary, "decomposition_template_count")); got != len(decompositionTemplates) {
 		return fmt.Errorf("FNDDS summary decomposition_template_count = %d, want %d", got, len(decompositionTemplates))
 	}
@@ -746,19 +753,24 @@ func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions, match
 	for _, template := range decompositionTemplates {
 		decompositionComponentCount += len(objectSlice(template, "components"))
 	}
+	approximationProxySourceCodeCount := 0
+	for _, proxy := range approximationProxies {
+		approximationProxySourceCodeCount += len(stringSlice(proxy, "source_food_codes"))
+	}
 
 	expectedCounts := map[string]int{
-		"fndds_foods":                    len(foods),
-		"fndds_nutrients":                len(nutrients),
-		"fndds_portions":                 len(portions),
-		"fndds_match_keys":               len(matchKeys),
-		"fndds_unit_conversions":         len(unitConversions),
-		"fndds_approximation_proxies":    len(approximationProxies),
-		"fndds_decomposition_templates":  len(decompositionTemplates),
-		"fndds_decomposition_components": decompositionComponentCount,
-		"fndds_ambiguity_flags":          flagCount,
-		"fndds_allergens":                allergenCount,
-		"fndds_food_groups":              foodGroupCount,
+		"fndds_foods":                            len(foods),
+		"fndds_nutrients":                        len(nutrients),
+		"fndds_portions":                         len(portions),
+		"fndds_match_keys":                       len(matchKeys),
+		"fndds_unit_conversions":                 len(unitConversions),
+		"fndds_approximation_proxies":            len(approximationProxies),
+		"fndds_approximation_proxy_source_codes": approximationProxySourceCodeCount,
+		"fndds_decomposition_templates":          len(decompositionTemplates),
+		"fndds_decomposition_components":         decompositionComponentCount,
+		"fndds_ambiguity_flags":                  flagCount,
+		"fndds_allergens":                        allergenCount,
+		"fndds_food_groups":                      foodGroupCount,
 	}
 	for table, want := range expectedCounts {
 		got, err := sqliteCount(db, fmt.Sprintf("select count(*) from %s", table))
@@ -823,6 +835,7 @@ func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions, match
 		"idx_fndds_match_keys_food_code",
 		"idx_fndds_unit_conversions_food_code",
 		"idx_fndds_approximation_proxies_normalized_input_key",
+		"idx_fndds_approximation_proxy_source_codes_source",
 		"idx_fndds_decomposition_templates_normalized_pattern",
 		"idx_fndds_decomposition_components_template_id",
 		"idx_fndds_flags_food_code",
@@ -982,6 +995,16 @@ func validateReferenceApproximationProxies(rows []map[string]any, foodByCode map
 		code := mustString(row, "proxy_food_code")
 		if foodByCode[code] == nil {
 			return fmt.Errorf("approximation proxy %q references unknown food_code %s", inputKey, code)
+		}
+		seenSourceCodes := map[string]bool{}
+		for _, sourceCode := range stringSlice(row, "source_food_codes") {
+			if seenSourceCodes[sourceCode] {
+				return fmt.Errorf("approximation proxy %q contains duplicate source_food_code %s", inputKey, sourceCode)
+			}
+			seenSourceCodes[sourceCode] = true
+			if foodByCode[sourceCode] == nil {
+				return fmt.Errorf("approximation proxy %q references unknown source_food_code %s", inputKey, sourceCode)
+			}
 		}
 		if !validConfidences[mustString(row, "confidence")] {
 			return fmt.Errorf("approximation proxy %q has invalid confidence %q", inputKey, mustString(row, "confidence"))

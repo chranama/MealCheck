@@ -11,7 +11,47 @@
       "allow_when_allergies_present": false,
       "allow_when_exclusions_present": false,
       "estimate_reason": "Broad bread proxy using white bread.",
+      "source_food_codes": [],
       "normalized_input_key": "bread"
+    },
+    {
+      "input_key": "butter",
+      "proxy_food_code": "81100500",
+      "proxy_description": "Butter, NFS",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generic butter approximation using the FNDDS not-further-specified butter row.",
+      "source_food_codes": [
+        "81100500"
+      ],
+      "normalized_input_key": "butter"
+    },
+    {
+      "input_key": "cheese",
+      "proxy_food_code": "14010000",
+      "proxy_description": "Cheese, NFS",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generic cheese approximation using the FNDDS not-further-specified cheese row.",
+      "source_food_codes": [
+        "14010000"
+      ],
+      "normalized_input_key": "cheese"
+    },
+    {
+      "input_key": "chicken",
+      "proxy_food_code": "24100020",
+      "proxy_description": "Chicken, NS as to part and cooking method, skin not eaten",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generic chicken approximation using the FNDDS not-specified part and cooking-method row.",
+      "source_food_codes": [
+        "24100020"
+      ],
+      "normalized_input_key": "chicken"
     },
     {
       "input_key": "coffee",
@@ -21,7 +61,75 @@
       "allow_when_allergies_present": true,
       "allow_when_exclusions_present": false,
       "estimate_reason": "Broad coffee proxy using brewed coffee.",
+      "source_food_codes": [
+        "92101000"
+      ],
       "normalized_input_key": "coffee"
+    },
+    {
+      "input_key": "cream",
+      "proxy_food_code": "12100100",
+      "proxy_description": "Cream, NS as to light, heavy, or half and half",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generic cream approximation using the FNDDS not-specified cream row.",
+      "source_food_codes": [
+        "12100100"
+      ],
+      "normalized_input_key": "cream"
+    },
+    {
+      "input_key": "fruit",
+      "proxy_food_code": "63100100",
+      "proxy_description": "Fruit, NFS",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generic fruit approximation using the FNDDS not-further-specified fruit row.",
+      "source_food_codes": [
+        "63100100"
+      ],
+      "normalized_input_key": "fruit"
+    },
+    {
+      "input_key": "home fries",
+      "proxy_food_code": "71403020",
+      "proxy_description": "Potato, home fries, NFS",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generic home-fries approximation using the FNDDS not-further-specified home-fries row.",
+      "source_food_codes": [
+        "71403020"
+      ],
+      "normalized_input_key": "home fries"
+    },
+    {
+      "input_key": "hot chocolate",
+      "proxy_food_code": "11512005",
+      "proxy_description": "Hot chocolate / cocoa, NFS",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generic hot-chocolate approximation using the FNDDS not-further-specified cocoa row.",
+      "source_food_codes": [
+        "11512005"
+      ],
+      "normalized_input_key": "hot chocolate"
+    },
+    {
+      "input_key": "nutritional drink",
+      "proxy_food_code": "95120010",
+      "proxy_description": "Nutritional drink or shake, high protein, ready-to-drink, NFS",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generic nutritional-drink approximation using the FNDDS not-further-specified ready-to-drink row.",
+      "source_food_codes": [
+        "95120010"
+      ],
+      "normalized_input_key": "nutritional drink"
     },
     {
       "input_key": "pasta",
@@ -31,7 +139,34 @@
       "allow_when_allergies_present": false,
       "allow_when_exclusions_present": false,
       "estimate_reason": "Broad pasta proxy using cooked pasta.",
+      "source_food_codes": [],
       "normalized_input_key": "pasta"
+    },
+    {
+      "input_key": "pickles",
+      "proxy_food_code": "75511100",
+      "proxy_description": "Pickles, NFS",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generic pickle approximation using the FNDDS not-further-specified pickle row.",
+      "source_food_codes": [
+        "75511100"
+      ],
+      "normalized_input_key": "pickles"
+    },
+    {
+      "input_key": "pretzels",
+      "proxy_food_code": "54408000",
+      "proxy_description": "Pretzels, NFS",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generic pretzel approximation using the FNDDS not-further-specified pretzel row.",
+      "source_food_codes": [
+        "54408000"
+      ],
+      "normalized_input_key": "pretzels"
     },
     {
       "input_key": "rice",
@@ -41,6 +176,11 @@
       "allow_when_allergies_present": true,
       "allow_when_exclusions_present": false,
       "estimate_reason": "Broad rice proxy using cooked white rice.",
+      "source_food_codes": [
+        "56205001",
+        "56205007",
+        "56205011"
+      ],
       "normalized_input_key": "rice"
     },
     {
@@ -51,6 +191,9 @@
       "allow_when_allergies_present": true,
       "allow_when_exclusions_present": false,
       "estimate_reason": "Broad tea proxy using brewed black tea.",
+      "source_food_codes": [
+        "92302000"
+      ],
       "normalized_input_key": "tea"
     },
     {
@@ -61,6 +204,9 @@
       "allow_when_allergies_present": true,
       "allow_when_exclusions_present": false,
       "estimate_reason": "Broad water proxy using tap water.",
+      "source_food_codes": [
+        "94000100"
+      ],
       "normalized_input_key": "water"
     }
   ]

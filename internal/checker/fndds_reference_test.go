@@ -105,6 +105,24 @@ func TestSQLiteFNDDSReferenceLookupApproximationProxy(t *testing.T) {
 	}
 }
 
+func TestSQLiteFNDDSReferenceLookupApproximationProxyBySourceFoodCode(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+
+	proxy, ok, err := ref.LookupApproximationProxyBySourceFoodCode("14010000")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("cheese NFS source-code approximation proxy did not resolve")
+	}
+	if proxy.InputKey != "cheese" || proxy.ProxyFoodCode != "14010000" {
+		t.Fatalf("proxy = %+v, want cheese proxy for 14010000", proxy)
+	}
+	if proxy.Food.FoodID != "fndds_14010000" {
+		t.Fatalf("proxy FoodID = %q, want fndds_14010000", proxy.Food.FoodID)
+	}
+}
+
 func TestSQLiteFNDDSReferenceLookupDecompositionTemplate(t *testing.T) {
 	ref := openTestFNDDSReference(t)
 
@@ -340,10 +358,10 @@ func TestResolverKeepsUnsupportedFallbackUnitsUnresolved(t *testing.T) {
 	}
 }
 
-func TestResolverGateBlocksBroadFallbackLookup(t *testing.T) {
+func TestResolverGateBlocksUnproxiedBroadFallbackLookup(t *testing.T) {
 	ref := openTestFNDDSReference(t)
 	qty := 100.0
-	plan := singleItemPlan("Cheese", &qty, "g")
+	plan := singleItemPlan("Meat", &qty, "g")
 
 	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
 	if err != nil {
@@ -381,6 +399,49 @@ func TestResolverUsesApproximationProxyForCuratedBroadFood(t *testing.T) {
 	}
 	if item.Food != "Rice" || item.ProxyFood == "" {
 		t.Fatalf("resolved food/proxy = %q/%q, want original food plus proxy label", item.Food, item.ProxyFood)
+	}
+}
+
+func TestResolverUsesApproximationProxyForCuratedGenericFood(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 28.0
+	plan := singleItemPlan("Cheese", &qty, "g")
+
+	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unresolved) != 0 {
+		t.Fatalf("unresolved = %+v, want none", unresolved)
+	}
+	if len(resolved) != 1 {
+		t.Fatalf("len(resolved) = %d, want 1", len(resolved))
+	}
+	item := resolved[0]
+	if item.ResolutionMethod != "estimated" || item.ProxyFoodID != "fndds_14010000" {
+		t.Fatalf("resolved = %+v, want estimated generic cheese proxy", item)
+	}
+}
+
+func TestResolverUsesSourceFoodCodeApproximationForCuratedNFSFood(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 28.0
+	plan := singleItemPlan("Cheese, NFS", &qty, "g")
+	plan.Days[0].Meals[0].Items[0].SourceFoodCode = "14010000"
+
+	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unresolved) != 0 {
+		t.Fatalf("unresolved = %+v, want none", unresolved)
+	}
+	if len(resolved) != 1 {
+		t.Fatalf("len(resolved) = %d, want 1", len(resolved))
+	}
+	item := resolved[0]
+	if item.ResolutionMethod != "estimated" || item.ProxyFoodID != "fndds_14010000" || item.SourceFoodCode != "14010000" {
+		t.Fatalf("resolved = %+v, want source-code-backed estimated cheese proxy", item)
 	}
 }
 
@@ -576,6 +637,10 @@ func (r *recordingFNDDSReference) LookupEligibleByDescription(description string
 }
 
 func (r *recordingFNDDSReference) LookupApproximationProxy(inputKey string) (FNDDSApproximationProxy, bool, error) {
+	return FNDDSApproximationProxy{}, false, nil
+}
+
+func (r *recordingFNDDSReference) LookupApproximationProxyBySourceFoodCode(foodCode string) (FNDDSApproximationProxy, bool, error) {
 	return FNDDSApproximationProxy{}, false, nil
 }
 

@@ -225,6 +225,7 @@ APPROXIMATION_PROXIES = [
         "allow_when_allergies_present": True,
         "allow_when_exclusions_present": False,
         "estimate_reason": "Broad water proxy using tap water.",
+        "source_food_codes": ["94000100"],
     },
     {
         "input_key": "tea",
@@ -234,6 +235,7 @@ APPROXIMATION_PROXIES = [
         "allow_when_allergies_present": True,
         "allow_when_exclusions_present": False,
         "estimate_reason": "Broad tea proxy using brewed black tea.",
+        "source_food_codes": ["92302000"],
     },
     {
         "input_key": "coffee",
@@ -243,6 +245,7 @@ APPROXIMATION_PROXIES = [
         "allow_when_allergies_present": True,
         "allow_when_exclusions_present": False,
         "estimate_reason": "Broad coffee proxy using brewed coffee.",
+        "source_food_codes": ["92101000"],
     },
     {
         "input_key": "rice",
@@ -252,6 +255,7 @@ APPROXIMATION_PROXIES = [
         "allow_when_allergies_present": True,
         "allow_when_exclusions_present": False,
         "estimate_reason": "Broad rice proxy using cooked white rice.",
+        "source_food_codes": ["56205001", "56205007", "56205011"],
     },
     {
         "input_key": "pasta",
@@ -261,6 +265,7 @@ APPROXIMATION_PROXIES = [
         "allow_when_allergies_present": False,
         "allow_when_exclusions_present": False,
         "estimate_reason": "Broad pasta proxy using cooked pasta.",
+        "source_food_codes": [],
     },
     {
         "input_key": "bread",
@@ -270,6 +275,107 @@ APPROXIMATION_PROXIES = [
         "allow_when_allergies_present": False,
         "allow_when_exclusions_present": False,
         "estimate_reason": "Broad bread proxy using white bread.",
+        "source_food_codes": [],
+    },
+    {
+        "input_key": "cheese",
+        "proxy_food_code": "14010000",
+        "proxy_description": "Cheese, NFS",
+        "confidence": "low",
+        "allow_when_allergies_present": False,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Generic cheese approximation using the FNDDS not-further-specified cheese row.",
+        "source_food_codes": ["14010000"],
+    },
+    {
+        "input_key": "butter",
+        "proxy_food_code": "81100500",
+        "proxy_description": "Butter, NFS",
+        "confidence": "low",
+        "allow_when_allergies_present": False,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Generic butter approximation using the FNDDS not-further-specified butter row.",
+        "source_food_codes": ["81100500"],
+    },
+    {
+        "input_key": "pickles",
+        "proxy_food_code": "75511100",
+        "proxy_description": "Pickles, NFS",
+        "confidence": "low",
+        "allow_when_allergies_present": True,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Generic pickle approximation using the FNDDS not-further-specified pickle row.",
+        "source_food_codes": ["75511100"],
+    },
+    {
+        "input_key": "home fries",
+        "proxy_food_code": "71403020",
+        "proxy_description": "Potato, home fries, NFS",
+        "confidence": "low",
+        "allow_when_allergies_present": True,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Generic home-fries approximation using the FNDDS not-further-specified home-fries row.",
+        "source_food_codes": ["71403020"],
+    },
+    {
+        "input_key": "pretzels",
+        "proxy_food_code": "54408000",
+        "proxy_description": "Pretzels, NFS",
+        "confidence": "low",
+        "allow_when_allergies_present": False,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Generic pretzel approximation using the FNDDS not-further-specified pretzel row.",
+        "source_food_codes": ["54408000"],
+    },
+    {
+        "input_key": "cream",
+        "proxy_food_code": "12100100",
+        "proxy_description": "Cream, NS as to light, heavy, or half and half",
+        "confidence": "low",
+        "allow_when_allergies_present": False,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Generic cream approximation using the FNDDS not-specified cream row.",
+        "source_food_codes": ["12100100"],
+    },
+    {
+        "input_key": "hot chocolate",
+        "proxy_food_code": "11512005",
+        "proxy_description": "Hot chocolate / cocoa, NFS",
+        "confidence": "low",
+        "allow_when_allergies_present": False,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Generic hot-chocolate approximation using the FNDDS not-further-specified cocoa row.",
+        "source_food_codes": ["11512005"],
+    },
+    {
+        "input_key": "fruit",
+        "proxy_food_code": "63100100",
+        "proxy_description": "Fruit, NFS",
+        "confidence": "low",
+        "allow_when_allergies_present": True,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Generic fruit approximation using the FNDDS not-further-specified fruit row.",
+        "source_food_codes": ["63100100"],
+    },
+    {
+        "input_key": "nutritional drink",
+        "proxy_food_code": "95120010",
+        "proxy_description": "Nutritional drink or shake, high protein, ready-to-drink, NFS",
+        "confidence": "low",
+        "allow_when_allergies_present": False,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Generic nutritional-drink approximation using the FNDDS not-further-specified ready-to-drink row.",
+        "source_food_codes": ["95120010"],
+    },
+    {
+        "input_key": "chicken",
+        "proxy_food_code": "24100020",
+        "proxy_description": "Chicken, NS as to part and cooking method, skin not eaten",
+        "confidence": "low",
+        "allow_when_allergies_present": True,
+        "allow_when_exclusions_present": False,
+        "estimate_reason": "Generic chicken approximation using the FNDDS not-specified part and cooking-method row.",
+        "source_food_codes": ["24100020"],
     },
 ]
 
@@ -976,6 +1082,13 @@ def validate_curated_resolution_references(
         code = proxy["proxy_food_code"]
         if code not in food_by_code:
             raise ValueError(f"approximation proxy {input_key!r} references unknown food_code {code}")
+        seen_source_codes: set[str] = set()
+        for source_code in proxy.get("source_food_codes", []):
+            if source_code in seen_source_codes:
+                raise ValueError(f"approximation proxy {input_key!r} contains duplicate source_food_code {source_code}")
+            seen_source_codes.add(source_code)
+            if source_code not in food_by_code:
+                raise ValueError(f"approximation proxy {input_key!r} references unknown source_food_code {source_code}")
 
     seen_template_ids: set[str] = set()
     seen_patterns: set[str] = set()
@@ -1060,6 +1173,7 @@ def classification_summary(
         "auto_match_key_count": match_status_counts[MATCH_STATUS_AUTO],
         "unit_conversion_count": len(unit_conversions),
         "approximation_proxy_count": len(approximation_proxies),
+        "approximation_proxy_source_code_count": sum(len(proxy.get("source_food_codes", [])) for proxy in approximation_proxies),
         "decomposition_template_count": len(decomposition_templates),
         "status_counts": dict(sorted(status_counts.items())),
         "flag_counts": dict(sorted(flag_counts.items())),
@@ -1356,6 +1470,12 @@ def write_sqlite(
               estimate_reason text not null
             );
 
+            create table fndds_approximation_proxy_source_codes(
+              input_key text not null references fndds_approximation_proxies(input_key),
+              source_food_code text not null references fndds_foods(food_code),
+              primary key(input_key, source_food_code)
+            );
+
             create table fndds_decomposition_templates(
               template_id text primary key,
               pattern text not null,
@@ -1406,6 +1526,8 @@ def write_sqlite(
               on fndds_unit_conversions(food_code);
             create index idx_fndds_approximation_proxies_normalized_input_key
               on fndds_approximation_proxies(normalized_input_key);
+            create index idx_fndds_approximation_proxy_source_codes_source
+              on fndds_approximation_proxy_source_codes(source_food_code);
             create index idx_fndds_decomposition_templates_normalized_pattern
               on fndds_decomposition_templates(normalized_pattern);
             create index idx_fndds_decomposition_components_template_id
@@ -1544,6 +1666,18 @@ def write_sqlite(
                         proxy["estimate_reason"],
                     ),
                 )
+                for source_code in proxy.get("source_food_codes", []):
+                    conn.execute(
+                        """
+                        insert into fndds_approximation_proxy_source_codes(
+                          input_key, source_food_code
+                        ) values (?, ?)
+                        """,
+                        (
+                            proxy["input_key"],
+                            source_code,
+                        ),
+                    )
             for template in decomposition_templates:
                 conn.execute(
                     """

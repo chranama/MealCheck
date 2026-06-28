@@ -14,6 +14,7 @@ import (
 type FNDDSReference interface {
 	LookupEligibleByDescription(description string) (CatalogFood, bool, error)
 	LookupApproximationProxy(inputKey string) (FNDDSApproximationProxy, bool, error)
+	LookupApproximationProxyBySourceFoodCode(foodCode string) (FNDDSApproximationProxy, bool, error)
 	LookupDecompositionTemplate(description string) (FNDDSDecompositionTemplate, bool, error)
 	LookupFoodByCode(foodCode string) (CatalogFood, bool, error)
 }
@@ -125,18 +126,42 @@ func (r *SQLiteFNDDSReference) LookupApproximationProxy(inputKey string) (FNDDSA
 		return FNDDSApproximationProxy{}, false, nil
 	}
 	normalized := normalizeFNDDSMatchKey(inputKey)
+	return r.lookupApproximationProxy(`
+		select proxy.input_key, proxy.proxy_food_code, proxy.proxy_description, proxy.confidence,
+		       proxy.allow_when_allergies_present, proxy.allow_when_exclusions_present,
+		       proxy.estimate_reason
+		  from fndds_approximation_proxies proxy
+		 where proxy.normalized_input_key = ?
+		 order by proxy.input_key
+		 limit 1
+	`, normalized)
+}
+
+func (r *SQLiteFNDDSReference) LookupApproximationProxyBySourceFoodCode(foodCode string) (FNDDSApproximationProxy, bool, error) {
+	if r == nil || r.db == nil {
+		return FNDDSApproximationProxy{}, false, nil
+	}
+	foodCode = strings.TrimPrefix(strings.TrimSpace(foodCode), "fndds_")
+	if foodCode == "" {
+		return FNDDSApproximationProxy{}, false, nil
+	}
+	return r.lookupApproximationProxy(`
+		select proxy.input_key, proxy.proxy_food_code, proxy.proxy_description, proxy.confidence,
+		       proxy.allow_when_allergies_present, proxy.allow_when_exclusions_present,
+		       proxy.estimate_reason
+		  from fndds_approximation_proxy_source_codes source
+		  join fndds_approximation_proxies proxy on proxy.input_key = source.input_key
+		 where source.source_food_code = ?
+		 order by proxy.input_key
+		 limit 1
+	`, foodCode)
+}
+
+func (r *SQLiteFNDDSReference) lookupApproximationProxy(query string, arg string) (FNDDSApproximationProxy, bool, error) {
 	var proxy FNDDSApproximationProxy
 	var allowAllergies int
 	var allowExclusions int
-	err := r.db.QueryRow(`
-		select input_key, proxy_food_code, proxy_description, confidence,
-		       allow_when_allergies_present, allow_when_exclusions_present,
-		       estimate_reason
-		  from fndds_approximation_proxies
-		 where normalized_input_key = ?
-		 order by input_key
-		 limit 1
-	`, normalized).Scan(
+	err := r.db.QueryRow(query, arg).Scan(
 		&proxy.InputKey,
 		&proxy.ProxyFoodCode,
 		&proxy.ProxyDescription,

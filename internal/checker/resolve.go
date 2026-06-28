@@ -98,8 +98,8 @@ func (r resolver) resolveItem(day int, meal string, item FoodItem) (ResolvedItem
 func (r resolver) resolveFallbackCandidate(day int, meal string, item FoodItem) (ResolvedItem, UnresolvedItem, bool, error) {
 	filter := filterFallbackLookupCandidate(item)
 	if !filter.LookupAllowed {
-		if filter.Reason == unresolvedAmbiguousFood && broadFoodName(item.Food) {
-			if resolved, unresolved, ok, err := r.resolveApproximationCandidate(day, meal, item); err != nil || ok || unresolved.UnresolvedReason != "" {
+		if filter.Reason == unresolvedAmbiguousFood {
+			if resolved, unresolved, ok, err := r.resolveApproximationCandidate(day, meal, item, broadFoodName(item.Food)); err != nil || ok || unresolved.UnresolvedReason != "" {
 				return resolved, unresolved, ok, err
 			}
 		}
@@ -122,6 +122,9 @@ func (r resolver) resolveFallbackCandidate(day int, meal string, item FoodItem) 
 		return ResolvedItem{}, UnresolvedItem{}, false, err
 	}
 	if !ok {
+		if resolved, unresolved, ok, err := r.resolveApproximationCandidate(day, meal, item, true); err != nil || ok || unresolved.UnresolvedReason != "" {
+			return resolved, unresolved, ok, err
+		}
 		u := unresolvedItem(day, meal, item)
 		u.UnresolvedReason = unresolvedUnknownFood
 		return ResolvedItem{}, u, false, nil
@@ -129,13 +132,16 @@ func (r resolver) resolveFallbackCandidate(day int, meal string, item FoodItem) 
 	return resolveKnownFood(day, meal, item, food)
 }
 
-func (r resolver) resolveApproximationCandidate(day int, meal string, item FoodItem) (ResolvedItem, UnresolvedItem, bool, error) {
+func (r resolver) resolveApproximationCandidate(day int, meal string, item FoodItem, allowTextLookup bool) (ResolvedItem, UnresolvedItem, bool, error) {
 	if r.fallback == nil || item.Quantity == nil {
 		return ResolvedItem{}, UnresolvedItem{}, false, nil
 	}
-	proxy, ok, err := r.fallback.LookupApproximationProxy(item.Food)
-	if err != nil || !ok {
+	proxy, ok, err := r.lookupApproximationProxy(item, allowTextLookup)
+	if err != nil {
 		return ResolvedItem{}, UnresolvedItem{}, false, err
+	}
+	if !ok {
+		return ResolvedItem{}, UnresolvedItem{}, false, nil
 	}
 	if len(r.constraints.Allergies) > 0 && !proxy.AllowWhenAllergiesPresent {
 		return ResolvedItem{}, UnresolvedItem{}, false, nil
@@ -153,6 +159,19 @@ func (r resolver) resolveApproximationCandidate(day int, meal string, item FoodI
 	resolved.ProxyFood = proxy.Food.Name
 	resolved.EstimateReason = proxy.EstimateReason
 	return resolved, UnresolvedItem{}, true, nil
+}
+
+func (r resolver) lookupApproximationProxy(item FoodItem, allowTextLookup bool) (FNDDSApproximationProxy, bool, error) {
+	if item.SourceFoodCode != "" {
+		proxy, ok, err := r.fallback.LookupApproximationProxyBySourceFoodCode(item.SourceFoodCode)
+		if err != nil || ok {
+			return proxy, ok, err
+		}
+	}
+	if allowTextLookup {
+		return r.fallback.LookupApproximationProxy(item.Food)
+	}
+	return FNDDSApproximationProxy{}, false, nil
 }
 
 func (r resolver) resolveDecompositionCandidate(day int, meal string, item FoodItem) (ResolvedItem, UnresolvedItem, bool, error) {
@@ -175,6 +194,7 @@ func (r resolver) resolveDecompositionCandidate(day int, meal string, item FoodI
 		Meal:             meal,
 		Food:             item.Food,
 		FoodID:           "decomposed_" + template.TemplateID,
+		SourceFoodCode:   item.SourceFoodCode,
 		Quantity:         *item.Quantity,
 		Unit:             item.Unit,
 		Grams:            totalGrams,
@@ -240,6 +260,7 @@ func resolveKnownFood(day int, meal string, item FoodItem, food CatalogFood) (Re
 		Meal:             meal,
 		Food:             item.Food,
 		FoodID:           food.FoodID,
+		SourceFoodCode:   item.SourceFoodCode,
 		Quantity:         *item.Quantity,
 		Unit:             item.Unit,
 		Grams:            grams,
@@ -256,6 +277,7 @@ func unresolvedItem(day int, meal string, item FoodItem) UnresolvedItem {
 		Day:              day,
 		Meal:             meal,
 		Food:             item.Food,
+		SourceFoodCode:   item.SourceFoodCode,
 		Quantity:         item.Quantity,
 		QuantityText:     item.QuantityText,
 		Unit:             item.Unit,

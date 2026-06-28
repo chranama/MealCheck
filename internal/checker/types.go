@@ -78,6 +78,7 @@ type FoodItem struct {
 	Unit             string   `json:"unit,omitempty"`
 	Preparation      string   `json:"preparation,omitempty"`
 	Brand            string   `json:"brand,omitempty"`
+	SourceFoodCode   string   `json:"source_food_code,omitempty"`
 	ResolutionStatus string   `json:"resolution_status,omitempty"`
 	UnresolvedReason string   `json:"unresolved_reason,omitempty"`
 }
@@ -165,6 +166,7 @@ type ResolvedItem struct {
 	Meal             string              `json:"meal"`
 	Food             string              `json:"food"`
 	FoodID           string              `json:"food_id"`
+	SourceFoodCode   string              `json:"source_food_code,omitempty"`
 	Quantity         float64             `json:"quantity"`
 	Unit             string              `json:"unit"`
 	Grams            float64             `json:"grams"`
@@ -193,6 +195,7 @@ type UnresolvedItem struct {
 	Day              int      `json:"day"`
 	Meal             string   `json:"meal"`
 	Food             string   `json:"food"`
+	SourceFoodCode   string   `json:"source_food_code,omitempty"`
 	Quantity         *float64 `json:"quantity,omitempty"`
 	QuantityText     string   `json:"quantity_text,omitempty"`
 	Unit             string   `json:"unit,omitempty"`

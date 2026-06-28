@@ -408,6 +408,7 @@ def meals_from_items(group: list[RecallItem], *, full_day: bool) -> list[dict[st
 def food_item(item: RecallItem) -> dict[str, Any]:
     result: dict[str, Any] = {
         "food": item.food_description,
+        "source_food_code": item.food_code,
         "quantity": round2(item.grams),
         "unit": "g",
     }

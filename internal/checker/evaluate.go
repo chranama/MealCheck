@@ -282,6 +282,7 @@ func checkQuantitiesResolvable(unresolved []UnresolvedItem, excluded []ExcludedU
 			"day":               item.Day,
 			"meal":              item.Meal,
 			"food":              item.Food,
+			"source_food_code":  item.SourceFoodCode,
 			"quantity":          item.Quantity,
 			"quantity_text":     item.QuantityText,
 			"unit":              item.Unit,
@@ -318,6 +319,7 @@ func checkApproximateResolution(items []ResolvedItem) CheckResult {
 				"day":               item.Day,
 				"meal":              item.Meal,
 				"food":              item.Food,
+				"source_food_code":  item.SourceFoodCode,
 				"resolution_method": item.ResolutionMethod,
 				"confidence":        item.Confidence,
 			}
