@@ -76,10 +76,12 @@ seeded examples and common-food workflows. An optional SQLite FNDDS fallback can
 resolve preprocessed, auto-approved FNDDS match keys after the reviewed catalog
 misses and after a resolver gate confirms the item is specific enough for
 automatic lookup. The FNDDS layer carries source-backed unit conversions derived
-from Portions and Weights data. The gate keeps broad, mixed-dish, branded,
-unclear-preparation, non-food, and unsupported-unit entries visible as
-unresolved. A later version can add FoodData Central lookup and cache behavior
-for remaining long-tail foods.
+from Portions and Weights data. Curated broad-food proxies and composed-food
+decomposition templates/rules can resolve selected blocked rows as approximate
+nutrition. The gate keeps broad, mixed-dish, branded, unclear-preparation,
+non-food, and unsupported-unit entries visible as unresolved when no reviewed
+proxy or decomposition path applies. A later version can add FoodData Central
+lookup and cache behavior for remaining long-tail foods.
 
 The resolver should make uncertainty visible. Unresolved foods are not silently
 ignored.
@@ -222,9 +224,10 @@ guideline checks, and report decisions are still produced by the local
 deterministic checker. Repair is limited to one attempt and must not invent
 missing foods, quantities, units, nutrition totals, or compliance judgments.
 The checker resolves foods against the reviewed local catalog first, then the
-FNDDS fallback. Curated broad-food proxies and composed-food decomposition
-templates may improve coverage, but those rows are reported as estimated or
-decomposed and produce a warning rather than being treated as exact matches.
+FNDDS fallback. Curated broad-food proxies, exact decomposition templates, and
+source-code-backed decomposition rules may improve coverage, but those rows are
+reported as estimated or decomposed and produce a warning rather than being
+treated as exact matches.
 
 ## Full Stack Hosting Shape
 

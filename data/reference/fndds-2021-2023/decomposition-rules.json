@@ -1,0 +1,933 @@
+{
+  "schema_version": "0.1",
+  "release": "2021-2023",
+  "description": "Curated family-level decomposition rules for composed foods, matched by FNDDS source food code first and narrow text terms second.",
+  "rules": [
+    {
+      "rule_id": "pasta_tomato_meat_v1",
+      "family": "pasta_tomato_meat",
+      "priority": 100,
+      "confidence": "low",
+      "notes": "Low-confidence family split for pasta with tomato-based meat sauce; source-code bindings are preferred over text matching.",
+      "source_food_codes": [
+        "58146322",
+        "58146323"
+      ],
+      "match_terms": [
+        "pasta",
+        "sauce",
+        "meat"
+      ],
+      "exclude_terms": [
+        "cream",
+        "alfredo",
+        "poultry",
+        "chicken",
+        "seafood"
+      ],
+      "components": [
+        {
+          "food_code": "56130000",
+          "role": "pasta, cooked",
+          "fraction": 0.58,
+          "required": true
+        },
+        {
+          "food_code": "74404010",
+          "role": "spaghetti sauce",
+          "fraction": 0.32,
+          "required": true
+        },
+        {
+          "food_code": "21500100",
+          "role": "beef, ground",
+          "fraction": 0.1,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "pasta",
+        "sauce",
+        "meat"
+      ],
+      "normalized_exclude_terms": [
+        "cream",
+        "alfredo",
+        "poultry",
+        "chicken",
+        "seafood"
+      ]
+    },
+    {
+      "rule_id": "pasta_cream_poultry_v1",
+      "family": "pasta_cream_poultry",
+      "priority": 110,
+      "confidence": "low",
+      "notes": "Low-confidence family split for pasta with cream sauce and poultry.",
+      "source_food_codes": [
+        "58146422"
+      ],
+      "match_terms": [
+        "pasta",
+        "cream",
+        "poultry"
+      ],
+      "exclude_terms": [
+        "tomato",
+        "seafood"
+      ],
+      "components": [
+        {
+          "food_code": "56130000",
+          "role": "pasta, cooked",
+          "fraction": 0.55,
+          "required": true
+        },
+        {
+          "food_code": "14650160",
+          "role": "alfredo sauce",
+          "fraction": 0.3,
+          "required": true
+        },
+        {
+          "food_code": "24122130",
+          "role": "chicken breast, cooked",
+          "fraction": 0.15,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "pasta",
+        "cream",
+        "poultry"
+      ],
+      "normalized_exclude_terms": [
+        "tomato",
+        "seafood"
+      ]
+    },
+    {
+      "rule_id": "macaroni_cheese_v1",
+      "family": "macaroni_cheese",
+      "priority": 120,
+      "confidence": "low",
+      "notes": "Low-confidence family split for macaroni or noodles with cheese.",
+      "source_food_codes": [
+        "58145117"
+      ],
+      "match_terms": [
+        "macaroni",
+        "cheese"
+      ],
+      "exclude_terms": [
+        "meat",
+        "tuna",
+        "chicken",
+        "turkey",
+        "frankfurter",
+        "hot dog"
+      ],
+      "components": [
+        {
+          "food_code": "56130000",
+          "role": "pasta, cooked",
+          "fraction": 0.7,
+          "required": true
+        },
+        {
+          "food_code": "14104100",
+          "role": "cheese, cheddar",
+          "fraction": 0.2,
+          "required": true
+        },
+        {
+          "food_code": "11112110",
+          "role": "milk, reduced fat",
+          "fraction": 0.1,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "macaroni",
+        "cheese"
+      ],
+      "normalized_exclude_terms": [
+        "meat",
+        "tuna",
+        "chicken",
+        "turkey",
+        "frankfurter",
+        "hot dog"
+      ]
+    },
+    {
+      "rule_id": "macaroni_cheese_meat_v1",
+      "family": "macaroni_cheese_meat",
+      "priority": 125,
+      "confidence": "low",
+      "notes": "Low-confidence family split for macaroni or noodles with cheese and meat.",
+      "source_food_codes": [
+        "58145135",
+        "58145136"
+      ],
+      "match_terms": [
+        "macaroni",
+        "cheese",
+        "meat"
+      ],
+      "exclude_terms": [
+        "tuna",
+        "chicken",
+        "turkey",
+        "frankfurter",
+        "hot dog"
+      ],
+      "components": [
+        {
+          "food_code": "56130000",
+          "role": "pasta, cooked",
+          "fraction": 0.55,
+          "required": true
+        },
+        {
+          "food_code": "14104100",
+          "role": "cheese, cheddar",
+          "fraction": 0.2,
+          "required": true
+        },
+        {
+          "food_code": "11112110",
+          "role": "milk, reduced fat",
+          "fraction": 0.1,
+          "required": true
+        },
+        {
+          "food_code": "21500100",
+          "role": "beef, ground",
+          "fraction": 0.15,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "macaroni",
+        "cheese",
+        "meat"
+      ],
+      "normalized_exclude_terms": [
+        "tuna",
+        "chicken",
+        "turkey",
+        "frankfurter",
+        "hot dog"
+      ]
+    },
+    {
+      "rule_id": "egg_cheese_no_fat_v1",
+      "family": "egg_cheese",
+      "priority": 130,
+      "confidence": "low",
+      "notes": "Low-confidence family split for omelet or scrambled egg with cheese and no added fat.",
+      "source_food_codes": [
+        "32130170"
+      ],
+      "match_terms": [
+        "egg",
+        "cheese"
+      ],
+      "exclude_terms": [
+        "oil",
+        "butter",
+        "meat",
+        "potato"
+      ],
+      "components": [
+        {
+          "food_code": "31102000",
+          "role": "egg, whole cooked",
+          "fraction": 0.75,
+          "required": true
+        },
+        {
+          "food_code": "14104100",
+          "role": "cheese, cheddar",
+          "fraction": 0.25,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "egg",
+        "cheese"
+      ],
+      "normalized_exclude_terms": [
+        "oil",
+        "butter",
+        "meat",
+        "potato"
+      ]
+    },
+    {
+      "rule_id": "egg_cheese_oil_v1",
+      "family": "egg_cheese",
+      "priority": 131,
+      "confidence": "low",
+      "notes": "Low-confidence family split for omelet or scrambled egg with cheese made with oil.",
+      "source_food_codes": [
+        "32130110"
+      ],
+      "match_terms": [
+        "egg",
+        "cheese",
+        "oil"
+      ],
+      "exclude_terms": [
+        "butter",
+        "meat",
+        "potato"
+      ],
+      "components": [
+        {
+          "food_code": "31105030",
+          "role": "egg, whole fried with oil",
+          "fraction": 0.75,
+          "required": true
+        },
+        {
+          "food_code": "14104100",
+          "role": "cheese, cheddar",
+          "fraction": 0.2,
+          "required": true
+        },
+        {
+          "food_code": "82104000",
+          "role": "olive oil",
+          "fraction": 0.05,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "egg",
+        "cheese",
+        "oil"
+      ],
+      "normalized_exclude_terms": [
+        "butter",
+        "meat",
+        "potato"
+      ]
+    },
+    {
+      "rule_id": "mashed_potato_gravy_v1",
+      "family": "potato_gravy",
+      "priority": 140,
+      "confidence": "low",
+      "notes": "Low-confidence family split for mashed potato with gravy.",
+      "source_food_codes": [
+        "71501012"
+      ],
+      "match_terms": [
+        "potato",
+        "mashed",
+        "gravy"
+      ],
+      "exclude_terms": [
+        "cheese"
+      ],
+      "components": [
+        {
+          "food_code": "71501010",
+          "role": "mashed potato with milk",
+          "fraction": 0.8,
+          "required": true
+        },
+        {
+          "food_code": "28520010",
+          "role": "gravy",
+          "fraction": 0.2,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "potato",
+        "mashed",
+        "gravy"
+      ],
+      "normalized_exclude_terms": [
+        "cheese"
+      ]
+    },
+    {
+      "rule_id": "french_fries_cheese_v1",
+      "family": "fries_cheese",
+      "priority": 145,
+      "confidence": "low",
+      "notes": "Low-confidence family split for french fries with cheese.",
+      "source_food_codes": [
+        "71402500"
+      ],
+      "match_terms": [
+        "fries",
+        "cheese"
+      ],
+      "exclude_terms": [
+        "chili"
+      ],
+      "components": [
+        {
+          "food_code": "71401010",
+          "role": "french fries",
+          "fraction": 0.8,
+          "required": true
+        },
+        {
+          "food_code": "14104100",
+          "role": "cheese, cheddar",
+          "fraction": 0.2,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "fries",
+        "cheese"
+      ],
+      "normalized_exclude_terms": [
+        "chili"
+      ]
+    },
+    {
+      "rule_id": "ham_sandwich_white_v1",
+      "family": "sandwich_ham",
+      "priority": 150,
+      "confidence": "medium",
+      "notes": "Curated sandwich family split from total grams.",
+      "source_food_codes": [
+        "27520210"
+      ],
+      "match_terms": [
+        "ham",
+        "sandwich",
+        "white"
+      ],
+      "exclude_terms": [
+        "cheese",
+        "salad",
+        "wheat"
+      ],
+      "components": [
+        {
+          "food_code": "51101000",
+          "role": "bread, white",
+          "fraction": 0.55,
+          "required": true
+        },
+        {
+          "food_code": "25230210",
+          "role": "ham, deli",
+          "fraction": 0.45,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "ham",
+        "sandwich",
+        "white"
+      ],
+      "normalized_exclude_terms": [
+        "cheese",
+        "salad",
+        "wheat"
+      ]
+    },
+    {
+      "rule_id": "chicken_salad_sandwich_wheat_v1",
+      "family": "sandwich_chicken_salad",
+      "priority": 155,
+      "confidence": "medium",
+      "notes": "Curated sandwich family split from total grams.",
+      "source_food_codes": [
+        "27540121"
+      ],
+      "match_terms": [
+        "chicken salad",
+        "sandwich",
+        "wheat"
+      ],
+      "exclude_terms": [
+        "wrap",
+        "white"
+      ],
+      "components": [
+        {
+          "food_code": "51300110",
+          "role": "bread, whole wheat",
+          "fraction": 0.5,
+          "required": true
+        },
+        {
+          "food_code": "25240110",
+          "role": "chicken salad spread",
+          "fraction": 0.5,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "chicken salad",
+        "sandwich",
+        "wheat"
+      ],
+      "normalized_exclude_terms": [
+        "wrap",
+        "white"
+      ]
+    },
+    {
+      "rule_id": "barbecue_beef_sandwich_v1",
+      "family": "sandwich_barbecue_beef",
+      "priority": 160,
+      "confidence": "low",
+      "notes": "Low-confidence family split for barbecue beef sandwich on a white bun.",
+      "source_food_codes": [
+        "27510130"
+      ],
+      "match_terms": [
+        "barbecue",
+        "beef",
+        "sandwich"
+      ],
+      "exclude_terms": [
+        "pork",
+        "chicken",
+        "wheat"
+      ],
+      "components": [
+        {
+          "food_code": "51150000",
+          "role": "white roll",
+          "fraction": 0.45,
+          "required": true
+        },
+        {
+          "food_code": "21401000",
+          "role": "beef roast",
+          "fraction": 0.45,
+          "required": true
+        },
+        {
+          "food_code": "74406010",
+          "role": "barbecue sauce",
+          "fraction": 0.1,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "barbecue",
+        "beef",
+        "sandwich"
+      ],
+      "normalized_exclude_terms": [
+        "pork",
+        "chicken",
+        "wheat"
+      ]
+    },
+    {
+      "rule_id": "barbecue_pork_sauce_v1",
+      "family": "barbecue_pork",
+      "priority": 165,
+      "confidence": "low",
+      "notes": "Low-confidence family split for barbecue pork with sauce.",
+      "source_food_codes": [
+        "27120030"
+      ],
+      "match_terms": [
+        "barbecue",
+        "pork",
+        "sauce"
+      ],
+      "exclude_terms": [
+        "sandwich",
+        "bun",
+        "bread"
+      ],
+      "components": [
+        {
+          "food_code": "22400100",
+          "role": "pork roast",
+          "fraction": 0.85,
+          "required": true
+        },
+        {
+          "food_code": "74406010",
+          "role": "barbecue sauce",
+          "fraction": 0.15,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "barbecue",
+        "pork",
+        "sauce"
+      ],
+      "normalized_exclude_terms": [
+        "sandwich",
+        "bun",
+        "bread"
+      ]
+    },
+    {
+      "rule_id": "chili_meat_beans_v1",
+      "family": "chili",
+      "priority": 170,
+      "confidence": "low",
+      "notes": "Low-confidence family split for chili with meat and beans.",
+      "source_food_codes": [
+        "27111406"
+      ],
+      "match_terms": [
+        "chili",
+        "meat",
+        "beans"
+      ],
+      "exclude_terms": [
+        "vegetarian",
+        "macaroni",
+        "hot dog"
+      ],
+      "components": [
+        {
+          "food_code": "21500100",
+          "role": "beef, ground",
+          "fraction": 0.35,
+          "required": true
+        },
+        {
+          "food_code": "41106020",
+          "role": "kidney beans",
+          "fraction": 0.35,
+          "required": true
+        },
+        {
+          "food_code": "74404010",
+          "role": "spaghetti sauce",
+          "fraction": 0.2,
+          "required": true
+        },
+        {
+          "food_code": "75221011",
+          "role": "onions, cooked",
+          "fraction": 0.1,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "chili",
+        "meat",
+        "beans"
+      ],
+      "normalized_exclude_terms": [
+        "vegetarian",
+        "macaroni",
+        "hot dog"
+      ]
+    },
+    {
+      "rule_id": "chili_meat_canned_v1",
+      "family": "chili",
+      "priority": 171,
+      "confidence": "low",
+      "notes": "Low-confidence family split for canned chili with meat.",
+      "source_food_codes": [
+        "27111407"
+      ],
+      "match_terms": [
+        "chili",
+        "meat",
+        "canned"
+      ],
+      "exclude_terms": [
+        "vegetarian",
+        "macaroni",
+        "hot dog"
+      ],
+      "components": [
+        {
+          "food_code": "21500100",
+          "role": "beef, ground",
+          "fraction": 0.45,
+          "required": true
+        },
+        {
+          "food_code": "74404010",
+          "role": "spaghetti sauce",
+          "fraction": 0.4,
+          "required": true
+        },
+        {
+          "food_code": "41106020",
+          "role": "kidney beans",
+          "fraction": 0.15,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "chili",
+        "meat",
+        "canned"
+      ],
+      "normalized_exclude_terms": [
+        "vegetarian",
+        "macaroni",
+        "hot dog"
+      ]
+    },
+    {
+      "rule_id": "lentil_soup_v1",
+      "family": "soup_lentil",
+      "priority": 180,
+      "confidence": "low",
+      "notes": "Low-confidence soup split; only lentil soup is covered because the main legume component is explicit.",
+      "source_food_codes": [
+        "41603010"
+      ],
+      "match_terms": [
+        "lentil",
+        "soup"
+      ],
+      "exclude_terms": [
+        "meat"
+      ],
+      "components": [
+        {
+          "food_code": "41305000",
+          "role": "lentils",
+          "fraction": 0.4,
+          "required": true
+        },
+        {
+          "food_code": "28340120",
+          "role": "broth",
+          "fraction": 0.6,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "lentil",
+        "soup"
+      ],
+      "normalized_exclude_terms": [
+        "meat"
+      ]
+    },
+    {
+      "rule_id": "vegetable_soup_v1",
+      "family": "soup_vegetable",
+      "priority": 181,
+      "confidence": "low",
+      "notes": "Low-confidence soup split for plain vegetable soup where vegetables and broth are explicit.",
+      "source_food_codes": [
+        "75649010"
+      ],
+      "match_terms": [
+        "vegetable",
+        "soup"
+      ],
+      "exclude_terms": [
+        "beef",
+        "chicken",
+        "cream",
+        "cheese",
+        "meat"
+      ],
+      "components": [
+        {
+          "food_code": "75311020",
+          "role": "mixed vegetables",
+          "fraction": 0.35,
+          "required": true
+        },
+        {
+          "food_code": "28340120",
+          "role": "broth",
+          "fraction": 0.65,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "vegetable",
+        "soup"
+      ],
+      "normalized_exclude_terms": [
+        "beef",
+        "chicken",
+        "cream",
+        "cheese",
+        "meat"
+      ]
+    },
+    {
+      "rule_id": "beef_soup_v1",
+      "family": "soup_beef",
+      "priority": 182,
+      "confidence": "low",
+      "notes": "Low-confidence soup split for beef soup; generic noodle, pho, or restaurant soup variants remain unresolved.",
+      "source_food_codes": [
+        "75652010"
+      ],
+      "match_terms": [
+        "beef",
+        "soup"
+      ],
+      "exclude_terms": [
+        "pho",
+        "noodle",
+        "cream",
+        "restaurant"
+      ],
+      "components": [
+        {
+          "food_code": "21401000",
+          "role": "beef roast",
+          "fraction": 0.2,
+          "required": true
+        },
+        {
+          "food_code": "75311020",
+          "role": "mixed vegetables",
+          "fraction": 0.2,
+          "required": true
+        },
+        {
+          "food_code": "28340120",
+          "role": "broth",
+          "fraction": 0.6,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "beef",
+        "soup"
+      ],
+      "normalized_exclude_terms": [
+        "pho",
+        "noodle",
+        "cream",
+        "restaurant"
+      ]
+    },
+    {
+      "rule_id": "beef_stew_pasta_v1",
+      "family": "stew_beef_pasta",
+      "priority": 190,
+      "confidence": "low",
+      "notes": "Low-confidence stew split for beef stew with pasta.",
+      "source_food_codes": [
+        "27311430"
+      ],
+      "match_terms": [
+        "stew",
+        "beef",
+        "pasta"
+      ],
+      "exclude_terms": [
+        "pork",
+        "chicken"
+      ],
+      "components": [
+        {
+          "food_code": "21401000",
+          "role": "beef roast",
+          "fraction": 0.25,
+          "required": true
+        },
+        {
+          "food_code": "56130000",
+          "role": "pasta, cooked",
+          "fraction": 0.3,
+          "required": true
+        },
+        {
+          "food_code": "75317020",
+          "role": "stew vegetables",
+          "fraction": 0.25,
+          "required": true
+        },
+        {
+          "food_code": "13411000",
+          "role": "gravy or white sauce",
+          "fraction": 0.2,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "stew",
+        "beef",
+        "pasta"
+      ],
+      "normalized_exclude_terms": [
+        "pork",
+        "chicken"
+      ]
+    },
+    {
+      "rule_id": "taco_salad_meat_sour_cream_v1",
+      "family": "taco_salad",
+      "priority": 200,
+      "confidence": "low",
+      "notes": "Low-confidence family split for taco or tostada salad with meat and sour cream.",
+      "source_food_codes": [
+        "58101945"
+      ],
+      "match_terms": [
+        "taco",
+        "salad",
+        "meat",
+        "sour cream"
+      ],
+      "exclude_terms": [
+        "chicken",
+        "meatless"
+      ],
+      "components": [
+        {
+          "food_code": "75143050",
+          "role": "lettuce salad",
+          "fraction": 0.35,
+          "required": true
+        },
+        {
+          "food_code": "21500100",
+          "role": "beef, ground",
+          "fraction": 0.25,
+          "required": true
+        },
+        {
+          "food_code": "54401075",
+          "role": "tortilla chips",
+          "fraction": 0.2,
+          "required": true
+        },
+        {
+          "food_code": "12310100",
+          "role": "sour cream",
+          "fraction": 0.1,
+          "required": true
+        },
+        {
+          "food_code": "14104100",
+          "role": "cheese, cheddar",
+          "fraction": 0.1,
+          "required": true
+        }
+      ],
+      "normalized_match_terms": [
+        "taco",
+        "salad",
+        "meat",
+        "sour cream"
+      ],
+      "normalized_exclude_terms": [
+        "chicken",
+        "meatless"
+      ]
+    }
+  ]
+}

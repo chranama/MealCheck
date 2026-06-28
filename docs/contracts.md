@@ -360,9 +360,11 @@ Responsibilities:
   contributions, and resolution metadata. Exact matches use
   `resolution_method: "exact"`; curated broad-food proxies use
   `resolution_method: "estimated"` with proxy metadata; curated composed-food
-  templates use `resolution_method: "decomposed"` with component metadata.
+  templates and source-code-backed family rules use
+  `resolution_method: "decomposed"` with component metadata.
   Generated/evaluation plans may preserve a `source_food_code` on individual
-  food items so source-backed approximation decisions remain auditable.
+  food items so source-backed approximation and decomposition decisions remain
+  auditable.
 - `unresolved-foods.json`: foods and quantities the resolver could not verify
   and that still block verification.
 - `excluded-unresolved-foods.json`: opt-in de minimis unresolved mass items

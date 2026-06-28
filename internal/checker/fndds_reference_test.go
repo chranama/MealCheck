@@ -144,6 +144,48 @@ func TestSQLiteFNDDSReferenceLookupDecompositionTemplate(t *testing.T) {
 	}
 }
 
+func TestSQLiteFNDDSReferenceLookupDecompositionRuleBySourceFoodCode(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+
+	rule, ok, err := ref.LookupDecompositionRuleBySourceFoodCode("58146322")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("pasta tomato meat decomposition rule did not resolve")
+	}
+	if rule.RuleID != "pasta_tomato_meat_v1" {
+		t.Fatalf("RuleID = %q, want pasta_tomato_meat_v1", rule.RuleID)
+	}
+	if len(rule.Components) != 3 {
+		t.Fatalf("len(Components) = %d, want 3", len(rule.Components))
+	}
+	if rule.Components[0].FoodCode != "56130000" || rule.Components[0].Fraction != 0.58 {
+		t.Fatalf("first component = %+v, want pasta at 0.58", rule.Components[0])
+	}
+}
+
+func TestSQLiteFNDDSReferenceLookupDecompositionRuleByDescription(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+
+	rule, ok, err := ref.LookupDecompositionRuleByDescription("pasta with tomato sauce and meat")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("pasta tomato meat decomposition rule did not resolve by description")
+	}
+	if rule.RuleID != "pasta_tomato_meat_v1" {
+		t.Fatalf("RuleID = %q, want pasta_tomato_meat_v1", rule.RuleID)
+	}
+
+	if _, ok, err := ref.LookupDecompositionRuleByDescription("pasta with cream sauce and meat"); err != nil {
+		t.Fatal(err)
+	} else if ok {
+		t.Fatal("tomato-meat rule matched cream sauce text")
+	}
+}
+
 func TestResolverUsesReviewedCatalogBeforeFNDDSFallback(t *testing.T) {
 	ref := openTestFNDDSReference(t)
 	qty := 100.0
@@ -513,6 +555,52 @@ func TestResolverUsesDecompositionTemplateForCuratedComposedFood(t *testing.T) {
 	}
 }
 
+func TestResolverUsesDecompositionRuleForSourceCodedComposedFood(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 100.0
+	plan := Plan{
+		Days: []PlanDay{
+			{
+				Day: 1,
+				Meals: []Meal{
+					{
+						Name: "dinner",
+						Items: []FoodItem{
+							{
+								Food:           "Pasta with tomato-based sauce and meat, home recipe",
+								Quantity:       &qty,
+								Unit:           "g",
+								SourceFoodCode: "58146322",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unresolved) != 0 {
+		t.Fatalf("unresolved = %+v, want none", unresolved)
+	}
+	if len(resolved) != 1 {
+		t.Fatalf("len(resolved) = %d, want 1", len(resolved))
+	}
+	item := resolved[0]
+	if item.ResolutionMethod != "decomposed" || item.FoodID != "decomposed_rule_pasta_tomato_meat_v1" {
+		t.Fatalf("resolved = %+v, want decomposed pasta rule", item)
+	}
+	if len(item.Components) != 3 {
+		t.Fatalf("len(Components) = %d, want 3", len(item.Components))
+	}
+	if diff := item.Components[0].Grams - 58; diff < -0.0001 || diff > 0.0001 {
+		t.Fatalf("first component grams = %.1f, want 58", item.Components[0].Grams)
+	}
+}
+
 func TestEvaluateWarnsWhenApproximateResolutionIsUsed(t *testing.T) {
 	ref := openTestFNDDSReference(t)
 	qty := 100.0
@@ -646,6 +734,14 @@ func (r *recordingFNDDSReference) LookupApproximationProxyBySourceFoodCode(foodC
 
 func (r *recordingFNDDSReference) LookupDecompositionTemplate(description string) (FNDDSDecompositionTemplate, bool, error) {
 	return FNDDSDecompositionTemplate{}, false, nil
+}
+
+func (r *recordingFNDDSReference) LookupDecompositionRuleBySourceFoodCode(foodCode string) (FNDDSDecompositionRule, bool, error) {
+	return FNDDSDecompositionRule{}, false, nil
+}
+
+func (r *recordingFNDDSReference) LookupDecompositionRuleByDescription(description string) (FNDDSDecompositionRule, bool, error) {
+	return FNDDSDecompositionRule{}, false, nil
 }
 
 func (r *recordingFNDDSReference) LookupFoodByCode(foodCode string) (CatalogFood, bool, error) {

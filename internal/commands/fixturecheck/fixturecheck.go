@@ -497,6 +497,7 @@ func validateFNDDSReference(root string) error {
 		"review-required-foods.jsonl",
 		"approximation-proxies.json",
 		"decomposition-templates.json",
+		"decomposition-rules.json",
 		"food-index.json",
 		"classification-summary.json",
 		"manifest.json",
@@ -551,6 +552,10 @@ func validateFNDDSReference(root string) error {
 	if err != nil {
 		return err
 	}
+	decompositionRuleDoc, err := readObject(filepath.Join(base, "decomposition-rules.json"))
+	if err != nil {
+		return err
+	}
 	summary, err := readObject(filepath.Join(base, "classification-summary.json"))
 	if err != nil {
 		return err
@@ -589,6 +594,7 @@ func validateFNDDSReference(root string) error {
 	}
 	approximationProxies := objectSlice(approximationProxyDoc, "proxies")
 	decompositionTemplates := objectSlice(decompositionTemplateDoc, "templates")
+	decompositionRules := objectSlice(decompositionRuleDoc, "rules")
 	if got := int(mustNumber(summary, "approximation_proxy_count")); got != len(approximationProxies) {
 		return fmt.Errorf("FNDDS summary approximation_proxy_count = %d, want %d", got, len(approximationProxies))
 	}
@@ -601,6 +607,21 @@ func validateFNDDSReference(root string) error {
 	}
 	if got := int(mustNumber(summary, "decomposition_template_count")); got != len(decompositionTemplates) {
 		return fmt.Errorf("FNDDS summary decomposition_template_count = %d, want %d", got, len(decompositionTemplates))
+	}
+	if got := int(mustNumber(summary, "decomposition_rule_count")); got != len(decompositionRules) {
+		return fmt.Errorf("FNDDS summary decomposition_rule_count = %d, want %d", got, len(decompositionRules))
+	}
+	decompositionRuleSourceCodeCount := 0
+	decompositionRuleComponentCount := 0
+	for _, rule := range decompositionRules {
+		decompositionRuleSourceCodeCount += len(stringSlice(rule, "source_food_codes"))
+		decompositionRuleComponentCount += len(objectSlice(rule, "components"))
+	}
+	if got := int(mustNumber(summary, "decomposition_rule_source_code_count")); got != decompositionRuleSourceCodeCount {
+		return fmt.Errorf("FNDDS summary decomposition_rule_source_code_count = %d, want %d", got, decompositionRuleSourceCodeCount)
+	}
+	if got := int(mustNumber(summary, "decomposition_rule_component_count")); got != decompositionRuleComponentCount {
+		return fmt.Errorf("FNDDS summary decomposition_rule_component_count = %d, want %d", got, decompositionRuleComponentCount)
 	}
 	if got := int(mustNumber(index, "food_count")); got != len(foods) {
 		return fmt.Errorf("FNDDS food-index food_count = %d, want %d", got, len(foods))
@@ -703,6 +724,9 @@ func validateFNDDSReference(root string) error {
 	if err := validateReferenceDecompositionTemplates(decompositionTemplates, foodByCode); err != nil {
 		return err
 	}
+	if err := validateReferenceDecompositionRules(decompositionRules, foodByCode); err != nil {
+		return err
+	}
 
 	expectedStatuses := map[string]string{
 		"11000000": "review_required",
@@ -719,13 +743,13 @@ func validateFNDDSReference(root string) error {
 			return fmt.Errorf("FNDDS food %s candidate_status = %s, want %s", code, got, want)
 		}
 	}
-	if err := validateFNDDSReferenceSQLite(base, foods, nutrients, portions, matchKeys, unitConversions, approximationProxies, decompositionTemplates); err != nil {
+	if err := validateFNDDSReferenceSQLite(base, foods, nutrients, portions, matchKeys, unitConversions, approximationProxies, decompositionTemplates, decompositionRules); err != nil {
 		return err
 	}
 	return nil
 }
 
-func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions, matchKeys, unitConversions, approximationProxies, decompositionTemplates []map[string]any) error {
+func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions, matchKeys, unitConversions, approximationProxies, decompositionTemplates, decompositionRules []map[string]any) error {
 	sqlitePath := filepath.Join(base, "fndds.sqlite")
 	abs, err := filepath.Abs(sqlitePath)
 	if err != nil {
@@ -753,6 +777,15 @@ func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions, match
 	for _, template := range decompositionTemplates {
 		decompositionComponentCount += len(objectSlice(template, "components"))
 	}
+	decompositionRuleSourceCodeCount := 0
+	decompositionRuleTermCount := 0
+	decompositionRuleComponentCount := 0
+	for _, rule := range decompositionRules {
+		decompositionRuleSourceCodeCount += len(stringSlice(rule, "source_food_codes"))
+		decompositionRuleTermCount += len(stringSlice(rule, "match_terms"))
+		decompositionRuleTermCount += len(stringSlice(rule, "exclude_terms"))
+		decompositionRuleComponentCount += len(objectSlice(rule, "components"))
+	}
 	approximationProxySourceCodeCount := 0
 	for _, proxy := range approximationProxies {
 		approximationProxySourceCodeCount += len(stringSlice(proxy, "source_food_codes"))
@@ -768,6 +801,10 @@ func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions, match
 		"fndds_approximation_proxy_source_codes": approximationProxySourceCodeCount,
 		"fndds_decomposition_templates":          len(decompositionTemplates),
 		"fndds_decomposition_components":         decompositionComponentCount,
+		"fndds_decomposition_rules":              len(decompositionRules),
+		"fndds_decomposition_rule_source_codes":  decompositionRuleSourceCodeCount,
+		"fndds_decomposition_rule_terms":         decompositionRuleTermCount,
+		"fndds_decomposition_rule_components":    decompositionRuleComponentCount,
 		"fndds_ambiguity_flags":                  flagCount,
 		"fndds_allergens":                        allergenCount,
 		"fndds_food_groups":                      foodGroupCount,
@@ -838,6 +875,9 @@ func validateFNDDSReferenceSQLite(base string, foods, nutrients, portions, match
 		"idx_fndds_approximation_proxy_source_codes_source",
 		"idx_fndds_decomposition_templates_normalized_pattern",
 		"idx_fndds_decomposition_components_template_id",
+		"idx_fndds_decomposition_rule_source_codes_source",
+		"idx_fndds_decomposition_rule_terms_type",
+		"idx_fndds_decomposition_rule_components_rule_id",
 		"idx_fndds_flags_food_code",
 		"idx_fndds_allergens_food_code",
 		"idx_fndds_food_groups_food_code",
@@ -1072,6 +1112,111 @@ func validateReferenceDecompositionTemplates(rows []map[string]any, foodByCode m
 		if totalFraction < 0.999 || totalFraction > 1.001 {
 			return fmt.Errorf("decomposition template %s fractions sum to %.3f", templateID, totalFraction)
 		}
+	}
+	return nil
+}
+
+func validateReferenceDecompositionRules(rows []map[string]any, foodByCode map[string]map[string]any) error {
+	if len(rows) == 0 {
+		return errors.New("decomposition-rules.json must define at least one rule")
+	}
+	seenIDs := map[string]bool{}
+	seenSourceCodes := map[string]bool{}
+	validConfidences := map[string]bool{"low": true, "medium": true, "high": true}
+	for _, row := range rows {
+		ruleID := mustString(row, "rule_id")
+		if seenIDs[ruleID] {
+			return fmt.Errorf("duplicate decomposition rule_id %s", ruleID)
+		}
+		seenIDs[ruleID] = true
+		if _, err := stringField(row, "family"); err != nil {
+			return fmt.Errorf("decomposition rule %s: %w", ruleID, err)
+		}
+		priority, err := numericField(row, "priority")
+		if err != nil || priority <= 0 {
+			return fmt.Errorf("decomposition rule %s has invalid priority", ruleID)
+		}
+		if !validConfidences[mustString(row, "confidence")] {
+			return fmt.Errorf("decomposition rule %s has invalid confidence %q", ruleID, mustString(row, "confidence"))
+		}
+		if _, err := stringField(row, "notes"); err != nil {
+			return fmt.Errorf("decomposition rule %s: %w", ruleID, err)
+		}
+
+		sourceCodes := stringSlice(row, "source_food_codes")
+		matchTerms := stringSlice(row, "match_terms")
+		if len(sourceCodes) == 0 && len(matchTerms) == 0 {
+			return fmt.Errorf("decomposition rule %s must define source_food_codes or match_terms", ruleID)
+		}
+		for _, sourceCode := range sourceCodes {
+			if foodByCode[sourceCode] == nil {
+				return fmt.Errorf("decomposition rule %s references unknown source_food_code %s", ruleID, sourceCode)
+			}
+			if seenSourceCodes[sourceCode] {
+				return fmt.Errorf("decomposition source_food_code %s is assigned to multiple rules", sourceCode)
+			}
+			seenSourceCodes[sourceCode] = true
+		}
+
+		normalizedMatchTerms := stringSlice(row, "normalized_match_terms")
+		if len(normalizedMatchTerms) != len(matchTerms) {
+			return fmt.Errorf("decomposition rule %s normalized_match_terms count mismatch", ruleID)
+		}
+		if err := validateReferenceDecompositionRuleTerms(ruleID, "match_terms", matchTerms, normalizedMatchTerms); err != nil {
+			return err
+		}
+		excludeTerms := stringSlice(row, "exclude_terms")
+		normalizedExcludeTerms := stringSlice(row, "normalized_exclude_terms")
+		if len(normalizedExcludeTerms) != len(excludeTerms) {
+			return fmt.Errorf("decomposition rule %s normalized_exclude_terms count mismatch", ruleID)
+		}
+		if err := validateReferenceDecompositionRuleTerms(ruleID, "exclude_terms", excludeTerms, normalizedExcludeTerms); err != nil {
+			return err
+		}
+
+		components := objectSlice(row, "components")
+		if len(components) == 0 {
+			return fmt.Errorf("decomposition rule %s must define components", ruleID)
+		}
+		totalFraction := 0.0
+		for _, component := range components {
+			code := mustString(component, "food_code")
+			if foodByCode[code] == nil {
+				return fmt.Errorf("decomposition rule %s references unknown food_code %s", ruleID, code)
+			}
+			if _, err := stringField(component, "role"); err != nil {
+				return fmt.Errorf("decomposition rule %s component %s: %w", ruleID, code, err)
+			}
+			fraction, err := numericField(component, "fraction")
+			if err != nil || fraction <= 0 || fraction >= 1 {
+				return fmt.Errorf("decomposition rule %s component %s has invalid fraction", ruleID, code)
+			}
+			totalFraction += fraction
+			if _, ok := component["required"].(bool); !ok {
+				return fmt.Errorf("decomposition rule %s component %s required must be boolean", ruleID, code)
+			}
+		}
+		if totalFraction < 0.999 || totalFraction > 1.001 {
+			return fmt.Errorf("decomposition rule %s fractions sum to %.3f", ruleID, totalFraction)
+		}
+	}
+	return nil
+}
+
+func validateReferenceDecompositionRuleTerms(ruleID string, field string, terms []string, normalizedTerms []string) error {
+	seen := map[string]bool{}
+	for i, term := range terms {
+		normalized := normalizeMatchKey(term)
+		if normalized == "" {
+			return fmt.Errorf("decomposition rule %s has empty %s term", ruleID, field)
+		}
+		if normalizedTerms[i] != normalized {
+			return fmt.Errorf("decomposition rule %s %s normalized term = %q, want %q", ruleID, field, normalizedTerms[i], normalized)
+		}
+		if seen[normalized] {
+			return fmt.Errorf("decomposition rule %s has duplicate %s term %q", ruleID, field, normalized)
+		}
+		seen[normalized] = true
 	}
 	return nil
 }

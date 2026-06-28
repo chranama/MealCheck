@@ -447,6 +447,291 @@ DECOMPOSITION_TEMPLATES = [
     },
 ]
 
+DECOMPOSITION_RULES = [
+    {
+        "rule_id": "pasta_tomato_meat_v1",
+        "family": "pasta_tomato_meat",
+        "priority": 100,
+        "confidence": "low",
+        "notes": "Low-confidence family split for pasta with tomato-based meat sauce; source-code bindings are preferred over text matching.",
+        "source_food_codes": ["58146322", "58146323"],
+        "match_terms": ["pasta", "sauce", "meat"],
+        "exclude_terms": ["cream", "alfredo", "poultry", "chicken", "seafood"],
+        "components": [
+            {"food_code": "56130000", "role": "pasta, cooked", "fraction": 0.58, "required": True},
+            {"food_code": "74404010", "role": "spaghetti sauce", "fraction": 0.32, "required": True},
+            {"food_code": "21500100", "role": "beef, ground", "fraction": 0.10, "required": True},
+        ],
+    },
+    {
+        "rule_id": "pasta_cream_poultry_v1",
+        "family": "pasta_cream_poultry",
+        "priority": 110,
+        "confidence": "low",
+        "notes": "Low-confidence family split for pasta with cream sauce and poultry.",
+        "source_food_codes": ["58146422"],
+        "match_terms": ["pasta", "cream", "poultry"],
+        "exclude_terms": ["tomato", "seafood"],
+        "components": [
+            {"food_code": "56130000", "role": "pasta, cooked", "fraction": 0.55, "required": True},
+            {"food_code": "14650160", "role": "alfredo sauce", "fraction": 0.30, "required": True},
+            {"food_code": "24122130", "role": "chicken breast, cooked", "fraction": 0.15, "required": True},
+        ],
+    },
+    {
+        "rule_id": "macaroni_cheese_v1",
+        "family": "macaroni_cheese",
+        "priority": 120,
+        "confidence": "low",
+        "notes": "Low-confidence family split for macaroni or noodles with cheese.",
+        "source_food_codes": ["58145117"],
+        "match_terms": ["macaroni", "cheese"],
+        "exclude_terms": ["meat", "tuna", "chicken", "turkey", "frankfurter", "hot dog"],
+        "components": [
+            {"food_code": "56130000", "role": "pasta, cooked", "fraction": 0.70, "required": True},
+            {"food_code": "14104100", "role": "cheese, cheddar", "fraction": 0.20, "required": True},
+            {"food_code": "11112110", "role": "milk, reduced fat", "fraction": 0.10, "required": True},
+        ],
+    },
+    {
+        "rule_id": "macaroni_cheese_meat_v1",
+        "family": "macaroni_cheese_meat",
+        "priority": 125,
+        "confidence": "low",
+        "notes": "Low-confidence family split for macaroni or noodles with cheese and meat.",
+        "source_food_codes": ["58145135", "58145136"],
+        "match_terms": ["macaroni", "cheese", "meat"],
+        "exclude_terms": ["tuna", "chicken", "turkey", "frankfurter", "hot dog"],
+        "components": [
+            {"food_code": "56130000", "role": "pasta, cooked", "fraction": 0.55, "required": True},
+            {"food_code": "14104100", "role": "cheese, cheddar", "fraction": 0.20, "required": True},
+            {"food_code": "11112110", "role": "milk, reduced fat", "fraction": 0.10, "required": True},
+            {"food_code": "21500100", "role": "beef, ground", "fraction": 0.15, "required": True},
+        ],
+    },
+    {
+        "rule_id": "egg_cheese_no_fat_v1",
+        "family": "egg_cheese",
+        "priority": 130,
+        "confidence": "low",
+        "notes": "Low-confidence family split for omelet or scrambled egg with cheese and no added fat.",
+        "source_food_codes": ["32130170"],
+        "match_terms": ["egg", "cheese"],
+        "exclude_terms": ["oil", "butter", "meat", "potato"],
+        "components": [
+            {"food_code": "31102000", "role": "egg, whole cooked", "fraction": 0.75, "required": True},
+            {"food_code": "14104100", "role": "cheese, cheddar", "fraction": 0.25, "required": True},
+        ],
+    },
+    {
+        "rule_id": "egg_cheese_oil_v1",
+        "family": "egg_cheese",
+        "priority": 131,
+        "confidence": "low",
+        "notes": "Low-confidence family split for omelet or scrambled egg with cheese made with oil.",
+        "source_food_codes": ["32130110"],
+        "match_terms": ["egg", "cheese", "oil"],
+        "exclude_terms": ["butter", "meat", "potato"],
+        "components": [
+            {"food_code": "31105030", "role": "egg, whole fried with oil", "fraction": 0.75, "required": True},
+            {"food_code": "14104100", "role": "cheese, cheddar", "fraction": 0.20, "required": True},
+            {"food_code": "82104000", "role": "olive oil", "fraction": 0.05, "required": True},
+        ],
+    },
+    {
+        "rule_id": "mashed_potato_gravy_v1",
+        "family": "potato_gravy",
+        "priority": 140,
+        "confidence": "low",
+        "notes": "Low-confidence family split for mashed potato with gravy.",
+        "source_food_codes": ["71501012"],
+        "match_terms": ["potato", "mashed", "gravy"],
+        "exclude_terms": ["cheese"],
+        "components": [
+            {"food_code": "71501010", "role": "mashed potato with milk", "fraction": 0.80, "required": True},
+            {"food_code": "28520010", "role": "gravy", "fraction": 0.20, "required": True},
+        ],
+    },
+    {
+        "rule_id": "french_fries_cheese_v1",
+        "family": "fries_cheese",
+        "priority": 145,
+        "confidence": "low",
+        "notes": "Low-confidence family split for french fries with cheese.",
+        "source_food_codes": ["71402500"],
+        "match_terms": ["fries", "cheese"],
+        "exclude_terms": ["chili"],
+        "components": [
+            {"food_code": "71401010", "role": "french fries", "fraction": 0.80, "required": True},
+            {"food_code": "14104100", "role": "cheese, cheddar", "fraction": 0.20, "required": True},
+        ],
+    },
+    {
+        "rule_id": "ham_sandwich_white_v1",
+        "family": "sandwich_ham",
+        "priority": 150,
+        "confidence": "medium",
+        "notes": "Curated sandwich family split from total grams.",
+        "source_food_codes": ["27520210"],
+        "match_terms": ["ham", "sandwich", "white"],
+        "exclude_terms": ["cheese", "salad", "wheat"],
+        "components": [
+            {"food_code": "51101000", "role": "bread, white", "fraction": 0.55, "required": True},
+            {"food_code": "25230210", "role": "ham, deli", "fraction": 0.45, "required": True},
+        ],
+    },
+    {
+        "rule_id": "chicken_salad_sandwich_wheat_v1",
+        "family": "sandwich_chicken_salad",
+        "priority": 155,
+        "confidence": "medium",
+        "notes": "Curated sandwich family split from total grams.",
+        "source_food_codes": ["27540121"],
+        "match_terms": ["chicken salad", "sandwich", "wheat"],
+        "exclude_terms": ["wrap", "white"],
+        "components": [
+            {"food_code": "51300110", "role": "bread, whole wheat", "fraction": 0.50, "required": True},
+            {"food_code": "25240110", "role": "chicken salad spread", "fraction": 0.50, "required": True},
+        ],
+    },
+    {
+        "rule_id": "barbecue_beef_sandwich_v1",
+        "family": "sandwich_barbecue_beef",
+        "priority": 160,
+        "confidence": "low",
+        "notes": "Low-confidence family split for barbecue beef sandwich on a white bun.",
+        "source_food_codes": ["27510130"],
+        "match_terms": ["barbecue", "beef", "sandwich"],
+        "exclude_terms": ["pork", "chicken", "wheat"],
+        "components": [
+            {"food_code": "51150000", "role": "white roll", "fraction": 0.45, "required": True},
+            {"food_code": "21401000", "role": "beef roast", "fraction": 0.45, "required": True},
+            {"food_code": "74406010", "role": "barbecue sauce", "fraction": 0.10, "required": True},
+        ],
+    },
+    {
+        "rule_id": "barbecue_pork_sauce_v1",
+        "family": "barbecue_pork",
+        "priority": 165,
+        "confidence": "low",
+        "notes": "Low-confidence family split for barbecue pork with sauce.",
+        "source_food_codes": ["27120030"],
+        "match_terms": ["barbecue", "pork", "sauce"],
+        "exclude_terms": ["sandwich", "bun", "bread"],
+        "components": [
+            {"food_code": "22400100", "role": "pork roast", "fraction": 0.85, "required": True},
+            {"food_code": "74406010", "role": "barbecue sauce", "fraction": 0.15, "required": True},
+        ],
+    },
+    {
+        "rule_id": "chili_meat_beans_v1",
+        "family": "chili",
+        "priority": 170,
+        "confidence": "low",
+        "notes": "Low-confidence family split for chili with meat and beans.",
+        "source_food_codes": ["27111406"],
+        "match_terms": ["chili", "meat", "beans"],
+        "exclude_terms": ["vegetarian", "macaroni", "hot dog"],
+        "components": [
+            {"food_code": "21500100", "role": "beef, ground", "fraction": 0.35, "required": True},
+            {"food_code": "41106020", "role": "kidney beans", "fraction": 0.35, "required": True},
+            {"food_code": "74404010", "role": "spaghetti sauce", "fraction": 0.20, "required": True},
+            {"food_code": "75221011", "role": "onions, cooked", "fraction": 0.10, "required": True},
+        ],
+    },
+    {
+        "rule_id": "chili_meat_canned_v1",
+        "family": "chili",
+        "priority": 171,
+        "confidence": "low",
+        "notes": "Low-confidence family split for canned chili with meat.",
+        "source_food_codes": ["27111407"],
+        "match_terms": ["chili", "meat", "canned"],
+        "exclude_terms": ["vegetarian", "macaroni", "hot dog"],
+        "components": [
+            {"food_code": "21500100", "role": "beef, ground", "fraction": 0.45, "required": True},
+            {"food_code": "74404010", "role": "spaghetti sauce", "fraction": 0.40, "required": True},
+            {"food_code": "41106020", "role": "kidney beans", "fraction": 0.15, "required": True},
+        ],
+    },
+    {
+        "rule_id": "lentil_soup_v1",
+        "family": "soup_lentil",
+        "priority": 180,
+        "confidence": "low",
+        "notes": "Low-confidence soup split; only lentil soup is covered because the main legume component is explicit.",
+        "source_food_codes": ["41603010"],
+        "match_terms": ["lentil", "soup"],
+        "exclude_terms": ["meat"],
+        "components": [
+            {"food_code": "41305000", "role": "lentils", "fraction": 0.40, "required": True},
+            {"food_code": "28340120", "role": "broth", "fraction": 0.60, "required": True},
+        ],
+    },
+    {
+        "rule_id": "vegetable_soup_v1",
+        "family": "soup_vegetable",
+        "priority": 181,
+        "confidence": "low",
+        "notes": "Low-confidence soup split for plain vegetable soup where vegetables and broth are explicit.",
+        "source_food_codes": ["75649010"],
+        "match_terms": ["vegetable", "soup"],
+        "exclude_terms": ["beef", "chicken", "cream", "cheese", "meat"],
+        "components": [
+            {"food_code": "75311020", "role": "mixed vegetables", "fraction": 0.35, "required": True},
+            {"food_code": "28340120", "role": "broth", "fraction": 0.65, "required": True},
+        ],
+    },
+    {
+        "rule_id": "beef_soup_v1",
+        "family": "soup_beef",
+        "priority": 182,
+        "confidence": "low",
+        "notes": "Low-confidence soup split for beef soup; generic noodle, pho, or restaurant soup variants remain unresolved.",
+        "source_food_codes": ["75652010"],
+        "match_terms": ["beef", "soup"],
+        "exclude_terms": ["pho", "noodle", "cream", "restaurant"],
+        "components": [
+            {"food_code": "21401000", "role": "beef roast", "fraction": 0.20, "required": True},
+            {"food_code": "75311020", "role": "mixed vegetables", "fraction": 0.20, "required": True},
+            {"food_code": "28340120", "role": "broth", "fraction": 0.60, "required": True},
+        ],
+    },
+    {
+        "rule_id": "beef_stew_pasta_v1",
+        "family": "stew_beef_pasta",
+        "priority": 190,
+        "confidence": "low",
+        "notes": "Low-confidence stew split for beef stew with pasta.",
+        "source_food_codes": ["27311430"],
+        "match_terms": ["stew", "beef", "pasta"],
+        "exclude_terms": ["pork", "chicken"],
+        "components": [
+            {"food_code": "21401000", "role": "beef roast", "fraction": 0.25, "required": True},
+            {"food_code": "56130000", "role": "pasta, cooked", "fraction": 0.30, "required": True},
+            {"food_code": "75317020", "role": "stew vegetables", "fraction": 0.25, "required": True},
+            {"food_code": "13411000", "role": "gravy or white sauce", "fraction": 0.20, "required": True},
+        ],
+    },
+    {
+        "rule_id": "taco_salad_meat_sour_cream_v1",
+        "family": "taco_salad",
+        "priority": 200,
+        "confidence": "low",
+        "notes": "Low-confidence family split for taco or tostada salad with meat and sour cream.",
+        "source_food_codes": ["58101945"],
+        "match_terms": ["taco", "salad", "meat", "sour cream"],
+        "exclude_terms": ["chicken", "meatless"],
+        "components": [
+            {"food_code": "75143050", "role": "lettuce salad", "fraction": 0.35, "required": True},
+            {"food_code": "21500100", "role": "beef, ground", "fraction": 0.25, "required": True},
+            {"food_code": "54401075", "role": "tortilla chips", "fraction": 0.20, "required": True},
+            {"food_code": "12310100", "role": "sour cream", "fraction": 0.10, "required": True},
+            {"food_code": "14104100", "role": "cheese, cheddar", "fraction": 0.10, "required": True},
+        ],
+    },
+]
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -522,9 +807,10 @@ def main() -> None:
     resolver_match_keys = resolver_match_keys_for(food_rows)
     unit_conversions = unit_conversions_for(food_rows)
     food_by_code = {row["food_code"]: row for row in food_rows}
-    validate_curated_resolution_references(food_by_code, APPROXIMATION_PROXIES, DECOMPOSITION_TEMPLATES)
+    validate_curated_resolution_references(food_by_code, APPROXIMATION_PROXIES, DECOMPOSITION_TEMPLATES, DECOMPOSITION_RULES)
     approximation_proxy_doc = approximation_proxy_document(APPROXIMATION_PROXIES)
     decomposition_template_doc = decomposition_template_document(DECOMPOSITION_TEMPLATES)
+    decomposition_rule_doc = decomposition_rule_document(DECOMPOSITION_RULES)
     summary = classification_summary(
         food_rows,
         resolver_candidates,
@@ -534,6 +820,7 @@ def main() -> None:
         unit_conversions,
         APPROXIMATION_PROXIES,
         DECOMPOSITION_TEMPLATES,
+        DECOMPOSITION_RULES,
     )
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -547,6 +834,7 @@ def main() -> None:
     write_jsonl(out_dir / "review-required-foods.jsonl", review_required_foods)
     write_json(out_dir / "approximation-proxies.json", approximation_proxy_doc)
     write_json(out_dir / "decomposition-templates.json", decomposition_template_doc)
+    write_json(out_dir / "decomposition-rules.json", decomposition_rule_doc)
     write_json(out_dir / "food-index.json", food_index(food_rows))
     write_json(out_dir / "classification-summary.json", summary)
     write_json(out_dir / "manifest.json", release_manifest(summary))
@@ -557,6 +845,7 @@ def main() -> None:
         unit_conversions,
         APPROXIMATION_PROXIES,
         DECOMPOSITION_TEMPLATES,
+        DECOMPOSITION_RULES,
     )
     ROOT_MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
     write_json(ROOT_MANIFEST_PATH, source_manifest())
@@ -1071,6 +1360,7 @@ def validate_curated_resolution_references(
     food_by_code: dict[str, dict[str, Any]],
     approximation_proxies: list[dict[str, Any]],
     decomposition_templates: list[dict[str, Any]],
+    decomposition_rules: list[dict[str, Any]],
 ) -> None:
     seen_proxy_keys: set[str] = set()
     for proxy in approximation_proxies:
@@ -1117,6 +1407,54 @@ def validate_curated_resolution_references(
         if not math.isclose(fraction_total, 1.0, rel_tol=0.0, abs_tol=0.001):
             raise ValueError(f"decomposition template {template_id!r} fractions sum to {fraction_total}")
 
+    seen_rule_ids: set[str] = set()
+    seen_rule_source_codes: set[str] = set()
+    for rule in decomposition_rules:
+        rule_id = rule["rule_id"]
+        if rule_id in seen_rule_ids:
+            raise ValueError(f"duplicate decomposition rule_id {rule_id!r}")
+        seen_rule_ids.add(rule_id)
+        if rule["confidence"] not in {"low", "medium", "high"}:
+            raise ValueError(f"decomposition rule {rule_id!r} has invalid confidence {rule['confidence']!r}")
+        if rule["priority"] <= 0:
+            raise ValueError(f"decomposition rule {rule_id!r} has invalid priority {rule['priority']}")
+        seen_source_codes: set[str] = set()
+        for source_code in rule.get("source_food_codes", []):
+            if source_code in seen_source_codes:
+                raise ValueError(f"decomposition rule {rule_id!r} contains duplicate source_food_code {source_code}")
+            if source_code in seen_rule_source_codes:
+                raise ValueError(f"decomposition source_food_code {source_code} is assigned to multiple rules")
+            seen_source_codes.add(source_code)
+            seen_rule_source_codes.add(source_code)
+            if source_code not in food_by_code:
+                raise ValueError(f"decomposition rule {rule_id!r} references unknown source_food_code {source_code}")
+        for term_field in ["match_terms", "exclude_terms"]:
+            terms = rule.get(term_field, [])
+            seen_terms: set[str] = set()
+            for term in terms:
+                normalized = normalize_match_key(term)
+                if not normalized:
+                    raise ValueError(f"decomposition rule {rule_id!r} has empty {term_field} term {term!r}")
+                if normalized in seen_terms:
+                    raise ValueError(f"decomposition rule {rule_id!r} has duplicate {term_field} term {term!r}")
+                seen_terms.add(normalized)
+        if not rule.get("source_food_codes") and not rule.get("match_terms"):
+            raise ValueError(f"decomposition rule {rule_id!r} must define source_food_codes or match_terms")
+        components = rule["components"]
+        if not components:
+            raise ValueError(f"decomposition rule {rule_id!r} must define components")
+        fraction_total = 0.0
+        for component in components:
+            code = component["food_code"]
+            if code not in food_by_code:
+                raise ValueError(f"decomposition rule {rule_id!r} references unknown food_code {code}")
+            fraction = component["fraction"]
+            if fraction <= 0 or fraction >= 1:
+                raise ValueError(f"decomposition rule {rule_id!r} has invalid fraction {fraction}")
+            fraction_total += fraction
+        if not math.isclose(fraction_total, 1.0, rel_tol=0.0, abs_tol=0.001):
+            raise ValueError(f"decomposition rule {rule_id!r} fractions sum to {fraction_total}")
+
 
 def approximation_proxy_document(proxies: list[dict[str, Any]]) -> dict[str, Any]:
     return {
@@ -1148,6 +1486,22 @@ def decomposition_template_document(templates: list[dict[str, Any]]) -> dict[str
     }
 
 
+def decomposition_rule_document(rules: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "schema_version": "0.1",
+        "release": RELEASE,
+        "description": "Curated family-level decomposition rules for composed foods, matched by FNDDS source food code first and narrow text terms second.",
+        "rules": [
+            {
+                **rule,
+                "normalized_match_terms": [normalize_match_key(term) for term in rule.get("match_terms", [])],
+                "normalized_exclude_terms": [normalize_match_key(term) for term in rule.get("exclude_terms", [])],
+            }
+            for rule in sorted(rules, key=lambda row: (row["priority"], row["rule_id"]))
+        ],
+    }
+
+
 def classification_summary(
     foods: list[dict[str, Any]],
     resolver_candidates: list[dict[str, Any]],
@@ -1157,6 +1511,7 @@ def classification_summary(
     unit_conversions: list[dict[str, Any]],
     approximation_proxies: list[dict[str, Any]],
     decomposition_templates: list[dict[str, Any]],
+    decomposition_rules: list[dict[str, Any]],
 ) -> dict[str, Any]:
     status_counts = Counter(row["candidate_status"] for row in foods)
     flag_counts = Counter(flag for row in foods for flag in row["ambiguity_flags"])
@@ -1175,6 +1530,9 @@ def classification_summary(
         "approximation_proxy_count": len(approximation_proxies),
         "approximation_proxy_source_code_count": sum(len(proxy.get("source_food_codes", [])) for proxy in approximation_proxies),
         "decomposition_template_count": len(decomposition_templates),
+        "decomposition_rule_count": len(decomposition_rules),
+        "decomposition_rule_source_code_count": sum(len(rule.get("source_food_codes", [])) for rule in decomposition_rules),
+        "decomposition_rule_component_count": sum(len(rule.get("components", [])) for rule in decomposition_rules),
         "status_counts": dict(sorted(status_counts.items())),
         "flag_counts": dict(sorted(flag_counts.items())),
         "match_status_counts": dict(sorted(match_status_counts.items())),
@@ -1222,6 +1580,7 @@ def release_manifest(summary: dict[str, Any]) -> dict[str, Any]:
             "review-required-foods.jsonl",
             "approximation-proxies.json",
             "decomposition-templates.json",
+            "decomposition-rules.json",
             "food-index.json",
             "classification-summary.json",
             "fndds.sqlite",
@@ -1394,6 +1753,7 @@ def write_sqlite(
     unit_conversions: list[dict[str, Any]],
     approximation_proxies: list[dict[str, Any]],
     decomposition_templates: list[dict[str, Any]],
+    decomposition_rules: list[dict[str, Any]],
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
@@ -1494,6 +1854,39 @@ def write_sqlite(
               primary key(template_id, position)
             );
 
+            create table fndds_decomposition_rules(
+              rule_id text primary key,
+              family text not null,
+              priority integer not null,
+              confidence text not null,
+              notes text
+            );
+
+            create table fndds_decomposition_rule_source_codes(
+              rule_id text not null references fndds_decomposition_rules(rule_id),
+              source_food_code text not null references fndds_foods(food_code),
+              primary key(rule_id, source_food_code)
+            );
+
+            create table fndds_decomposition_rule_terms(
+              rule_id text not null references fndds_decomposition_rules(rule_id),
+              term_type text not null,
+              position integer not null,
+              term text not null,
+              normalized_term text not null,
+              primary key(rule_id, term_type, position)
+            );
+
+            create table fndds_decomposition_rule_components(
+              rule_id text not null references fndds_decomposition_rules(rule_id),
+              position integer not null,
+              food_code text not null references fndds_foods(food_code),
+              role text not null,
+              fraction real not null,
+              required integer not null,
+              primary key(rule_id, position)
+            );
+
             create table fndds_ambiguity_flags(
               food_code text not null references fndds_foods(food_code),
               flag text not null,
@@ -1532,6 +1925,12 @@ def write_sqlite(
               on fndds_decomposition_templates(normalized_pattern);
             create index idx_fndds_decomposition_components_template_id
               on fndds_decomposition_components(template_id);
+            create index idx_fndds_decomposition_rule_source_codes_source
+              on fndds_decomposition_rule_source_codes(source_food_code);
+            create index idx_fndds_decomposition_rule_terms_type
+              on fndds_decomposition_rule_terms(term_type, normalized_term);
+            create index idx_fndds_decomposition_rule_components_rule_id
+              on fndds_decomposition_rule_components(rule_id);
             create index idx_fndds_flags_food_code
               on fndds_ambiguity_flags(food_code);
             create index idx_fndds_allergens_food_code
@@ -1702,6 +2101,65 @@ def write_sqlite(
                         """,
                         (
                             template["template_id"],
+                            position,
+                            component["food_code"],
+                            component["role"],
+                            component["fraction"],
+                            int(bool(component["required"])),
+                        ),
+                    )
+            for rule in decomposition_rules:
+                conn.execute(
+                    """
+                    insert into fndds_decomposition_rules(
+                      rule_id, family, priority, confidence, notes
+                    ) values (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        rule["rule_id"],
+                        rule["family"],
+                        rule["priority"],
+                        rule["confidence"],
+                        rule["notes"],
+                    ),
+                )
+                for source_code in rule.get("source_food_codes", []):
+                    conn.execute(
+                        """
+                        insert into fndds_decomposition_rule_source_codes(
+                          rule_id, source_food_code
+                        ) values (?, ?)
+                        """,
+                        (
+                            rule["rule_id"],
+                            source_code,
+                        ),
+                    )
+                for term_type, field in [("match", "match_terms"), ("exclude", "exclude_terms")]:
+                    for position, term in enumerate(rule.get(field, []), start=1):
+                        conn.execute(
+                            """
+                            insert into fndds_decomposition_rule_terms(
+                              rule_id, term_type, position, term, normalized_term
+                            ) values (?, ?, ?, ?, ?)
+                            """,
+                            (
+                                rule["rule_id"],
+                                term_type,
+                                position,
+                                term,
+                                normalize_match_key(term),
+                            ),
+                        )
+                for position, component in enumerate(rule["components"], start=1):
+                    conn.execute(
+                        """
+                        insert into fndds_decomposition_rule_components(
+                          rule_id, position, food_code, role, fraction, required
+                        ) values (?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            rule["rule_id"],
                             position,
                             component["food_code"],
                             component["role"],

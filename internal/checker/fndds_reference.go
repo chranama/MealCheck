@@ -16,6 +16,8 @@ type FNDDSReference interface {
 	LookupApproximationProxy(inputKey string) (FNDDSApproximationProxy, bool, error)
 	LookupApproximationProxyBySourceFoodCode(foodCode string) (FNDDSApproximationProxy, bool, error)
 	LookupDecompositionTemplate(description string) (FNDDSDecompositionTemplate, bool, error)
+	LookupDecompositionRuleBySourceFoodCode(foodCode string) (FNDDSDecompositionRule, bool, error)
+	LookupDecompositionRuleByDescription(description string) (FNDDSDecompositionRule, bool, error)
 	LookupFoodByCode(foodCode string) (CatalogFood, bool, error)
 }
 
@@ -37,6 +39,15 @@ type FNDDSApproximationProxy struct {
 type FNDDSDecompositionTemplate struct {
 	TemplateID string
 	Pattern    string
+	Confidence string
+	Notes      string
+	Components []FNDDSDecompositionComponent
+}
+
+type FNDDSDecompositionRule struct {
+	RuleID     string
+	Family     string
+	Priority   int
 	Confidence string
 	Notes      string
 	Components []FNDDSDecompositionComponent
@@ -237,6 +248,167 @@ func (r *SQLiteFNDDSReference) LookupDecompositionTemplate(description string) (
 	return template, true, nil
 }
 
+func (r *SQLiteFNDDSReference) LookupDecompositionRuleBySourceFoodCode(foodCode string) (FNDDSDecompositionRule, bool, error) {
+	if r == nil || r.db == nil {
+		return FNDDSDecompositionRule{}, false, nil
+	}
+	foodCode = strings.TrimPrefix(strings.TrimSpace(foodCode), "fndds_")
+	if foodCode == "" {
+		return FNDDSDecompositionRule{}, false, nil
+	}
+	return r.lookupDecompositionRule(`
+		select rule.rule_id, rule.family, rule.priority, rule.confidence, rule.notes
+		  from fndds_decomposition_rule_source_codes source
+		  join fndds_decomposition_rules rule on rule.rule_id = source.rule_id
+		 where source.source_food_code = ?
+		 order by rule.priority, rule.rule_id
+		 limit 1
+	`, foodCode)
+}
+
+func (r *SQLiteFNDDSReference) LookupDecompositionRuleByDescription(description string) (FNDDSDecompositionRule, bool, error) {
+	if r == nil || r.db == nil {
+		return FNDDSDecompositionRule{}, false, nil
+	}
+	normalized := normalizeFNDDSMatchKey(description)
+	if normalized == "" {
+		return FNDDSDecompositionRule{}, false, nil
+	}
+	rows, err := r.db.Query(`
+		select rule_id, family, priority, confidence, notes
+		  from fndds_decomposition_rules
+		 order by priority, rule_id
+	`)
+	if err != nil {
+		return FNDDSDecompositionRule{}, false, err
+	}
+	var rules []FNDDSDecompositionRule
+	for rows.Next() {
+		var rule FNDDSDecompositionRule
+		var notes sql.NullString
+		if err := rows.Scan(&rule.RuleID, &rule.Family, &rule.Priority, &rule.Confidence, &notes); err != nil {
+			rows.Close()
+			return FNDDSDecompositionRule{}, false, err
+		}
+		if notes.Valid {
+			rule.Notes = notes.String
+		}
+		rules = append(rules, rule)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return FNDDSDecompositionRule{}, false, err
+	}
+	if err := rows.Close(); err != nil {
+		return FNDDSDecompositionRule{}, false, err
+	}
+	for _, rule := range rules {
+		matches, err := r.decompositionRuleMatchesDescription(rule.RuleID, normalized)
+		if err != nil {
+			return FNDDSDecompositionRule{}, false, err
+		}
+		if !matches {
+			continue
+		}
+		components, ok, err := r.lookupDecompositionRuleComponents(rule.RuleID)
+		if err != nil || !ok {
+			return FNDDSDecompositionRule{}, ok, err
+		}
+		rule.Components = components
+		return rule, true, nil
+	}
+	return FNDDSDecompositionRule{}, false, nil
+}
+
+func (r *SQLiteFNDDSReference) lookupDecompositionRule(query string, arg string) (FNDDSDecompositionRule, bool, error) {
+	var rule FNDDSDecompositionRule
+	var notes sql.NullString
+	err := r.db.QueryRow(query, arg).Scan(&rule.RuleID, &rule.Family, &rule.Priority, &rule.Confidence, &notes)
+	if err == sql.ErrNoRows {
+		return FNDDSDecompositionRule{}, false, nil
+	}
+	if err != nil {
+		return FNDDSDecompositionRule{}, false, err
+	}
+	if notes.Valid {
+		rule.Notes = notes.String
+	}
+	components, ok, err := r.lookupDecompositionRuleComponents(rule.RuleID)
+	if err != nil || !ok {
+		return FNDDSDecompositionRule{}, ok, err
+	}
+	rule.Components = components
+	return rule, true, nil
+}
+
+func (r *SQLiteFNDDSReference) decompositionRuleMatchesDescription(ruleID string, normalizedDescription string) (bool, error) {
+	rows, err := r.db.Query(`
+		select term_type, normalized_term
+		  from fndds_decomposition_rule_terms
+		 where rule_id = ?
+		 order by term_type, position
+	`, ruleID)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	hasMatchTerm := false
+	for rows.Next() {
+		var termType string
+		var term string
+		if err := rows.Scan(&termType, &term); err != nil {
+			return false, err
+		}
+		switch termType {
+		case "match":
+			hasMatchTerm = true
+			if !normalizedFNDDSContainsTerm(normalizedDescription, term) {
+				return false, nil
+			}
+		case "exclude":
+			if normalizedFNDDSContainsTerm(normalizedDescription, term) {
+				return false, nil
+			}
+		default:
+			return false, fmt.Errorf("decomposition rule %s has unsupported term_type %q", ruleID, termType)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, err
+	}
+	return hasMatchTerm, nil
+}
+
+func (r *SQLiteFNDDSReference) lookupDecompositionRuleComponents(ruleID string) ([]FNDDSDecompositionComponent, bool, error) {
+	rows, err := r.db.Query(`
+		select food_code, role, fraction, required
+		  from fndds_decomposition_rule_components
+		 where rule_id = ?
+		 order by position
+	`, ruleID)
+	if err != nil {
+		return nil, false, err
+	}
+	defer rows.Close()
+	var components []FNDDSDecompositionComponent
+	for rows.Next() {
+		var component FNDDSDecompositionComponent
+		var required int
+		if err := rows.Scan(&component.FoodCode, &component.Role, &component.Fraction, &required); err != nil {
+			return nil, false, err
+		}
+		component.Required = required != 0
+		components = append(components, component)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false, err
+	}
+	if len(components) == 0 {
+		return nil, false, nil
+	}
+	return components, true, nil
+}
+
 func (r *SQLiteFNDDSReference) LookupFoodByCode(foodCode string) (CatalogFood, bool, error) {
 	if r == nil || r.db == nil {
 		return CatalogFood{}, false, nil
@@ -382,6 +554,15 @@ func normalizeFNDDSMatchKey(value string) string {
 		}
 	}
 	return strings.Join(strings.Fields(b.String()), " ")
+}
+
+func normalizedFNDDSContainsTerm(value string, term string) bool {
+	value = strings.TrimSpace(value)
+	term = strings.TrimSpace(term)
+	if value == "" || term == "" {
+		return false
+	}
+	return strings.Contains(" "+value+" ", " "+term+" ")
 }
 
 func normalizeUnit(value string) string {

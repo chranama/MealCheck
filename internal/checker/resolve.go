@@ -102,6 +102,9 @@ func (r resolver) resolveFallbackCandidate(day int, meal string, item FoodItem) 
 			if resolved, unresolved, ok, err := r.resolveApproximationCandidate(day, meal, item, broadFoodName(item.Food)); err != nil || ok || unresolved.UnresolvedReason != "" {
 				return resolved, unresolved, ok, err
 			}
+			if resolved, unresolved, ok, err := r.resolveDecompositionCandidate(day, meal, item); err != nil || ok || unresolved.UnresolvedReason != "" {
+				return resolved, unresolved, ok, err
+			}
 		}
 		if filter.Reason == unresolvedComposedFoodNeedsDecomposition {
 			if resolved, unresolved, ok, err := r.resolveDecompositionCandidate(day, meal, item); err != nil || ok || unresolved.UnresolvedReason != "" {
@@ -123,6 +126,9 @@ func (r resolver) resolveFallbackCandidate(day int, meal string, item FoodItem) 
 	}
 	if !ok {
 		if resolved, unresolved, ok, err := r.resolveApproximationCandidate(day, meal, item, true); err != nil || ok || unresolved.UnresolvedReason != "" {
+			return resolved, unresolved, ok, err
+		}
+		if resolved, unresolved, ok, err := r.resolveDecompositionCandidate(day, meal, item); err != nil || ok || unresolved.UnresolvedReason != "" {
 			return resolved, unresolved, ok, err
 		}
 		u := unresolvedItem(day, meal, item)
@@ -179,9 +185,30 @@ func (r resolver) resolveDecompositionCandidate(day int, meal string, item FoodI
 		return ResolvedItem{}, UnresolvedItem{}, false, nil
 	}
 	template, ok, err := r.fallback.LookupDecompositionTemplate(item.Food)
+	if err != nil {
+		return ResolvedItem{}, UnresolvedItem{}, false, err
+	}
+	if ok {
+		return r.resolveDecompositionComponents(day, meal, item, "decomposed_"+template.TemplateID, template.Confidence, template.Notes, template.Components)
+	}
+	rule, ok, err := r.lookupDecompositionRule(item)
 	if err != nil || !ok {
 		return ResolvedItem{}, UnresolvedItem{}, false, err
 	}
+	return r.resolveDecompositionComponents(day, meal, item, "decomposed_rule_"+rule.RuleID, rule.Confidence, rule.Notes, rule.Components)
+}
+
+func (r resolver) lookupDecompositionRule(item FoodItem) (FNDDSDecompositionRule, bool, error) {
+	if item.SourceFoodCode != "" {
+		rule, ok, err := r.fallback.LookupDecompositionRuleBySourceFoodCode(item.SourceFoodCode)
+		if err != nil || ok {
+			return rule, ok, err
+		}
+	}
+	return r.fallback.LookupDecompositionRuleByDescription(item.Food)
+}
+
+func (r resolver) resolveDecompositionComponents(day int, meal string, item FoodItem, foodID string, confidence string, notes string, components []FNDDSDecompositionComponent) (ResolvedItem, UnresolvedItem, bool, error) {
 	gramsPerUnit, ok := deterministicMassUnitFactor(item.Unit)
 	if !ok {
 		u := unresolvedItem(day, meal, item)
@@ -193,16 +220,16 @@ func (r resolver) resolveDecompositionCandidate(day int, meal string, item FoodI
 		Day:              day,
 		Meal:             meal,
 		Food:             item.Food,
-		FoodID:           "decomposed_" + template.TemplateID,
+		FoodID:           foodID,
 		SourceFoodCode:   item.SourceFoodCode,
 		Quantity:         *item.Quantity,
 		Unit:             item.Unit,
 		Grams:            totalGrams,
 		ResolutionMethod: "decomposed",
-		Confidence:       template.Confidence,
-		EstimateReason:   template.Notes,
+		Confidence:       confidence,
+		EstimateReason:   notes,
 	}
-	for _, component := range template.Components {
+	for _, component := range components {
 		food, ok, err := r.fallback.LookupFoodByCode(component.FoodCode)
 		if err != nil {
 			return ResolvedItem{}, UnresolvedItem{}, false, err

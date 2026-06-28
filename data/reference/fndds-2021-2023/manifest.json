@@ -18,6 +18,7 @@
     "review-required-foods.jsonl",
     "approximation-proxies.json",
     "decomposition-templates.json",
+    "decomposition-rules.json",
     "food-index.json",
     "classification-summary.json",
     "fndds.sqlite"
@@ -36,6 +37,9 @@
     "approximation_proxy_count": 16,
     "approximation_proxy_source_code_count": 16,
     "decomposition_template_count": 6,
+    "decomposition_rule_count": 19,
+    "decomposition_rule_source_code_count": 21,
+    "decomposition_rule_component_count": 54,
     "status_counts": {
       "eligible_generic": 8,
       "eligible_specific": 3048,

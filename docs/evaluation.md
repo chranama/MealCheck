@@ -170,18 +170,21 @@ Runtime lookup order:
 4. If a blocked source-backed FNDDS food code or broad natural food name has a
    curated approximation proxy, and no configured constraint makes proxy use
    unsafe, resolve it as `estimated`.
-5. If a blocked composed food has a curated decomposition template and a
-   deterministic gram or ounce quantity, split the item across exact FNDDS
-   component foods and resolve it as `decomposed`.
+5. If a blocked composed food has a curated exact decomposition template or a
+   source-code-backed family decomposition rule, and it has a deterministic
+   gram or ounce quantity, split the item across FNDDS component foods and
+   resolve it as `decomposed`.
 6. If the gate allows lookup, optionally check the FNDDS SQLite fallback.
-7. The fallback only resolves preprocessed FNDDS match keys whose
+7. If allowed fallback lookup misses, broad proxies and decomposition rules may
+   still resolve the item when their safety gates match.
+8. The fallback only resolves preprocessed FNDDS match keys whose
    `resolver_status` is `auto` and whose match is unique.
-8. The fallback supports gram units plus source-backed food-specific unit
+9. The fallback supports gram units plus source-backed food-specific unit
    conversions derived from FNDDS Portions and Weights.
-9. Explicit `unknown_food` items with quantities may retry the fallback.
+10. Explicit `unknown_food` items with quantities may retry the fallback.
    Explicit vague quantities, unsupported units, and other unresolved reasons
    remain unresolved.
-10. Quarantined or review-required FNDDS rows are never automatic exact resolver hits
+11. Quarantined or review-required FNDDS rows are never automatic exact resolver hits
    unless a specific generated match key is explicitly marked `auto`; broad keys
    that map to multiple foods fail closed.
 
@@ -255,6 +258,11 @@ Artifacts:
   estimated nutrition.
 - `data/reference/fndds-2021-2023/decomposition-templates.json`: curated
   composed-food templates with component fractions and FNDDS food codes.
+- `data/reference/fndds-2021-2023/decomposition-rules.json`: curated
+  family-level decomposition rules matched by FNDDS source food code first and
+  narrow text terms second. Soup and stew coverage is intentionally limited to
+  rules with explicit main components such as lentil soup, vegetable soup, beef
+  soup, and beef stew with pasta.
 - `data/reference/fndds-2021-2023/classification-summary.json`: counts by
   status and ambiguity flag.
 - `data/reference/fndds-2021-2023/fndds.sqlite`: indexed read-only runtime
@@ -270,6 +278,8 @@ Current FNDDS reference import:
 - 16 curated approximation proxies
 - 16 source-code mappings into approximation proxies
 - 6 curated decomposition templates
+- 19 curated decomposition rules
+- 21 source-code mappings into decomposition rules
 - 1 review-required row
 
 The preprocessing classifier quarantines rows with signals such as `NFS`,
@@ -355,10 +365,11 @@ outcomes are not supposed to pass yet.
 - each case has expected outcomes and food items
 - WWEIA/NHANES cases retain source refs and source metrics
 - FNDDS reference artifacts exist and have internally consistent counts
-- curated approximation proxies and decomposition templates reference valid
-  FNDDS food codes and have valid confidence/fraction metadata
+- curated approximation proxies, decomposition templates, and decomposition
+  rules reference valid FNDDS food codes and have valid confidence/fraction
+  metadata
 - the FNDDS SQLite fallback has table counts, indexes, known statuses, curated
-  proxy/template rows, and resolver examples consistent with the generated
+  proxy/template/rule rows, and resolver examples consistent with the generated
   reference artifacts
 - eligible FNDDS resolver candidates do not carry hard quarantine flags
 - known ambiguous and allowlisted FNDDS examples classify as expected
