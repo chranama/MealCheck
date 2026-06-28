@@ -147,21 +147,55 @@ func TestSQLiteFNDDSReferenceLookupDecompositionTemplate(t *testing.T) {
 func TestSQLiteFNDDSReferenceLookupDecompositionRuleBySourceFoodCode(t *testing.T) {
 	ref := openTestFNDDSReference(t)
 
-	rule, ok, err := ref.LookupDecompositionRuleBySourceFoodCode("58146322")
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		name          string
+		sourceCode    string
+		wantRuleID    string
+		wantFoodCode  string
+		wantComponent float64
+	}{
+		{
+			name:          "pasta tomato meat",
+			sourceCode:    "58146322",
+			wantRuleID:    "pasta_tomato_meat_v1",
+			wantFoodCode:  "56130000",
+			wantComponent: 0.58,
+		},
+		{
+			name:          "tuna salad sandwich",
+			sourceCode:    "27550720",
+			wantRuleID:    "tuna_salad_sandwich_white_v1",
+			wantFoodCode:  "51101000",
+			wantComponent: 0.50,
+		},
+		{
+			name:          "burrito beef beans rice cheese",
+			sourceCode:    "58102340",
+			wantRuleID:    "burrito_beef_beans_rice_cheese_v1",
+			wantFoodCode:  "52215200",
+			wantComponent: 0.25,
+		},
 	}
-	if !ok {
-		t.Fatal("pasta tomato meat decomposition rule did not resolve")
-	}
-	if rule.RuleID != "pasta_tomato_meat_v1" {
-		t.Fatalf("RuleID = %q, want pasta_tomato_meat_v1", rule.RuleID)
-	}
-	if len(rule.Components) != 3 {
-		t.Fatalf("len(Components) = %d, want 3", len(rule.Components))
-	}
-	if rule.Components[0].FoodCode != "56130000" || rule.Components[0].Fraction != 0.58 {
-		t.Fatalf("first component = %+v, want pasta at 0.58", rule.Components[0])
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rule, ok, err := ref.LookupDecompositionRuleBySourceFoodCode(tt.sourceCode)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !ok {
+				t.Fatalf("source code %s decomposition rule did not resolve", tt.sourceCode)
+			}
+			if rule.RuleID != tt.wantRuleID {
+				t.Fatalf("RuleID = %q, want %s", rule.RuleID, tt.wantRuleID)
+			}
+			if len(rule.Components) == 0 {
+				t.Fatal("rule has no components")
+			}
+			if rule.Components[0].FoodCode != tt.wantFoodCode || rule.Components[0].Fraction != tt.wantComponent {
+				t.Fatalf("first component = %+v, want %s at %.2f", rule.Components[0], tt.wantFoodCode, tt.wantComponent)
+			}
+		})
 	}
 }
 
@@ -557,47 +591,85 @@ func TestResolverUsesDecompositionTemplateForCuratedComposedFood(t *testing.T) {
 
 func TestResolverUsesDecompositionRuleForSourceCodedComposedFood(t *testing.T) {
 	ref := openTestFNDDSReference(t)
-	qty := 100.0
-	plan := Plan{
-		Days: []PlanDay{
-			{
-				Day: 1,
-				Meals: []Meal{
+	tests := []struct {
+		name           string
+		food           string
+		sourceCode     string
+		wantFoodID     string
+		wantComponents int
+		wantFirstGrams float64
+	}{
+		{
+			name:           "pasta tomato meat",
+			food:           "Pasta with tomato-based sauce and meat, home recipe",
+			sourceCode:     "58146322",
+			wantFoodID:     "decomposed_rule_pasta_tomato_meat_v1",
+			wantComponents: 3,
+			wantFirstGrams: 58,
+		},
+		{
+			name:           "tuna salad sandwich",
+			food:           "Tuna salad sandwich on white",
+			sourceCode:     "27550720",
+			wantFoodID:     "decomposed_rule_tuna_salad_sandwich_white_v1",
+			wantComponents: 2,
+			wantFirstGrams: 50,
+		},
+		{
+			name:           "burrito beef beans rice cheese",
+			food:           "Burrito, beef, with beans and rice, cheese",
+			sourceCode:     "58102340",
+			wantFoodID:     "decomposed_rule_burrito_beef_beans_rice_cheese_v1",
+			wantComponents: 5,
+			wantFirstGrams: 25,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			qty := 100.0
+			plan := Plan{
+				Days: []PlanDay{
 					{
-						Name: "dinner",
-						Items: []FoodItem{
+						Day: 1,
+						Meals: []Meal{
 							{
-								Food:           "Pasta with tomato-based sauce and meat, home recipe",
-								Quantity:       &qty,
-								Unit:           "g",
-								SourceFoodCode: "58146322",
+								Name: "dinner",
+								Items: []FoodItem{
+									{
+										Food:           tt.food,
+										Quantity:       &qty,
+										Unit:           "g",
+										SourceFoodCode: tt.sourceCode,
+									},
+								},
 							},
 						},
 					},
 				},
-			},
-		},
-	}
+			}
 
-	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(unresolved) != 0 {
-		t.Fatalf("unresolved = %+v, want none", unresolved)
-	}
-	if len(resolved) != 1 {
-		t.Fatalf("len(resolved) = %d, want 1", len(resolved))
-	}
-	item := resolved[0]
-	if item.ResolutionMethod != "decomposed" || item.FoodID != "decomposed_rule_pasta_tomato_meat_v1" {
-		t.Fatalf("resolved = %+v, want decomposed pasta rule", item)
-	}
-	if len(item.Components) != 3 {
-		t.Fatalf("len(Components) = %d, want 3", len(item.Components))
-	}
-	if diff := item.Components[0].Grams - 58; diff < -0.0001 || diff > 0.0001 {
-		t.Fatalf("first component grams = %.1f, want 58", item.Components[0].Grams)
+			resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(unresolved) != 0 {
+				t.Fatalf("unresolved = %+v, want none", unresolved)
+			}
+			if len(resolved) != 1 {
+				t.Fatalf("len(resolved) = %d, want 1", len(resolved))
+			}
+			item := resolved[0]
+			if item.ResolutionMethod != "decomposed" || item.FoodID != tt.wantFoodID {
+				t.Fatalf("resolved = %+v, want decomposed rule %s", item, tt.wantFoodID)
+			}
+			if len(item.Components) != tt.wantComponents {
+				t.Fatalf("len(Components) = %d, want %d", len(item.Components), tt.wantComponents)
+			}
+			if diff := item.Components[0].Grams - tt.wantFirstGrams; diff < -0.0001 || diff > 0.0001 {
+				t.Fatalf("first component grams = %.1f, want %.1f", item.Components[0].Grams, tt.wantFirstGrams)
+			}
+		})
 	}
 }
 

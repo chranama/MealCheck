@@ -278,8 +278,8 @@ Current FNDDS reference import:
 - 16 curated approximation proxies
 - 16 source-code mappings into approximation proxies
 - 6 curated decomposition templates
-- 19 curated decomposition rules
-- 21 source-code mappings into decomposition rules
+- 31 curated decomposition rules
+- 33 source-code mappings into decomposition rules
 - 1 review-required row
 
 The preprocessing classifier quarantines rows with signals such as `NFS`,
