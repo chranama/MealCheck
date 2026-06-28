@@ -994,8 +994,9 @@ def main() -> None:
     resolver_match_keys = resolver_match_keys_for(food_rows)
     unit_conversions = unit_conversions_for(food_rows)
     food_by_code = {row["food_code"]: row for row in food_rows}
-    validate_curated_resolution_references(food_by_code, APPROXIMATION_PROXIES, DECOMPOSITION_TEMPLATES, DECOMPOSITION_RULES)
-    approximation_proxy_doc = approximation_proxy_document(APPROXIMATION_PROXIES)
+    approximation_proxies = approximation_proxies_for(food_rows)
+    validate_resolution_references(food_by_code, approximation_proxies, DECOMPOSITION_TEMPLATES, DECOMPOSITION_RULES)
+    approximation_proxy_doc = approximation_proxy_document(approximation_proxies)
     decomposition_template_doc = decomposition_template_document(DECOMPOSITION_TEMPLATES)
     decomposition_rule_doc = decomposition_rule_document(DECOMPOSITION_RULES)
     summary = classification_summary(
@@ -1005,7 +1006,7 @@ def main() -> None:
         review_required_foods,
         resolver_match_keys,
         unit_conversions,
-        APPROXIMATION_PROXIES,
+        approximation_proxies,
         DECOMPOSITION_TEMPLATES,
         DECOMPOSITION_RULES,
     )
@@ -1030,7 +1031,7 @@ def main() -> None:
         food_rows,
         resolver_match_keys,
         unit_conversions,
-        APPROXIMATION_PROXIES,
+        approximation_proxies,
         DECOMPOSITION_TEMPLATES,
         DECOMPOSITION_RULES,
     )
@@ -1507,7 +1508,7 @@ def allergens_for(source_food: dict[str, str]) -> list[str]:
 def food_groups_for(source_food: dict[str, str]) -> list[str]:
     text = source_text(source_food)
     groups = set()
-    if any(term in text for term in ["water", "coffee", "tea", "juice", "soft drink", "soda", "lemonade", "sports drink", "smoothie", "beer", "wine"]):
+    if any(term in text for term in ["water", "coffee", "tea", "juice", "soft drink", "soda", "lemonade", "sports drink", "energy drink", "smoothie", "beer", "wine"]):
         groups.add("beverages")
     if any(term in text for term in ["sauce", "ketchup", "mustard", "salsa", "vinegar", "lemon juice", "hot sauce", "syrup", "jelly", "jam", "pickle"]):
         groups.add("condiments")
@@ -1515,9 +1516,9 @@ def food_groups_for(source_food: dict[str, str]) -> list[str]:
         groups.add("dairy")
     if any(term in text for term in ["oil", "butter", "mayonnaise", "dressing", "shortening", "margarine"]):
         groups.add("fats")
-    if any(term in text for term in ["apple", "banana", "orange", "strawberr", "blueberr", "grape", "watermelon", "pineapple", "cantaloupe", "clementine", "pear", "peach", "fruit"]):
+    if any(term in text for term in ["apple", "apricot", "banana", "blackberr", "blueberr", "cantaloupe", "cherr", "clementine", "fruit", "grape", "mango", "melon", "orange", "papaya", "pear", "peach", "pineapple", "plum", "raspberr", "strawberr", "watermelon"]):
         groups.add("fruits")
-    if any(term in text for term in ["chicken", "beef", "pork", "turkey", "ham", "bacon", "sausage", "hot dog", "salmon", "tuna", "shrimp", "tilapia", "cod", "egg", "tofu", "bean", "chickpea", "lentil", "hummus", "peanut butter", "almond", "cashew", "walnut", "protein"]):
+    if any(term in text for term in ["chicken", "beef", "pork", "turkey", "ham", "bacon", "sausage", "hot dog", "fish", "salmon", "trout", "tuna", "shrimp", "tilapia", "cod", "egg", "tofu", "bean", "chickpea", "lentil", "hummus", "peanut butter", "almond", "cashew", "walnut", "protein"]):
         groups.add("protein")
     if any(term in text for term in ["oatmeal", "brown rice", "quinoa", "whole wheat", "whole grain", "barley", "oat cereal"]):
         groups.add("whole_grains")
@@ -1543,7 +1544,273 @@ def source_text(source_food: dict[str, str]) -> str:
     ).lower()
 
 
-def validate_curated_resolution_references(
+def approximation_proxies_for(foods: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    proxies = [dict(proxy) for proxy in APPROXIMATION_PROXIES]
+    seen_keys = {normalize_match_key(proxy["input_key"]) for proxy in proxies}
+    seen_source_codes = {source_code for proxy in proxies for source_code in proxy.get("source_food_codes", [])}
+
+    for food in foods:
+        if food["food_code"] in seen_source_codes:
+            continue
+        proxy = generated_approximation_proxy(food)
+        if proxy is None:
+            continue
+        normalized_key = normalize_match_key(proxy["input_key"])
+        if normalized_key in seen_keys:
+            proxy["input_key"] = f"source {food['food_code']}"
+            proxy["text_lookup_enabled"] = False
+            normalized_key = normalize_match_key(proxy["input_key"])
+        else:
+            proxy["text_lookup_enabled"] = True
+        proxies.append(proxy)
+        seen_keys.add(normalized_key)
+        seen_source_codes.update(proxy.get("source_food_codes", []))
+
+    return proxies
+
+
+def generated_approximation_proxy(food: dict[str, Any]) -> dict[str, Any] | None:
+    if food["candidate_status"] != STATUS_QUARANTINED_AMBIGUOUS:
+        return None
+    if missing_required_nutrients(food["nutrients_per_100g"]):
+        return None
+
+    flags = set(food["ambiguity_flags"])
+    disallowed_flags = {
+        "mixed_dish",
+        "sandwich",
+        "pizza",
+        "burrito",
+        "taco",
+        "casserole",
+        "soup_or_stew",
+        "restaurant_or_fast_food",
+        "brand_or_product_style",
+        "home_recipe",
+        "preparation_unclear",
+        "added_fat_unspecified",
+        "multi_component_allergen_risk",
+        "missing_required_nutrients",
+        "missing_portion_data",
+    }
+    if flags & disallowed_flags:
+        return None
+
+    rule = generated_approximation_rule(food)
+    if rule is None:
+        return None
+
+    food_code = food["food_code"]
+    return {
+        "input_key": rule["input_key"],
+        "proxy_food_code": food_code,
+        "proxy_description": food["main_description"],
+        "confidence": rule["confidence"],
+        "allow_when_allergies_present": rule["allow_when_allergies_present"],
+        "allow_when_exclusions_present": False,
+        "estimate_reason": rule["estimate_reason"],
+        "source_food_codes": [food_code],
+        "generated": True,
+        "generation_rule": rule["generation_rule"],
+    }
+
+
+def generated_approximation_rule(food: dict[str, Any]) -> dict[str, Any] | None:
+    main = food["main_description"]
+    text = normalize_match_key(main)
+    groups = set(food["food_groups"])
+
+    if generated_plain_raw_fruit(food, text, groups):
+        return generated_rule(
+            "plain_raw_fruit",
+            clean_first_clause(main),
+            "medium",
+            True,
+            "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+        )
+
+    beverage_rule = generated_beverage_rule(main, text, groups)
+    if beverage_rule is not None:
+        return beverage_rule
+
+    if generated_plain_milk(food, text, groups):
+        return generated_rule(
+            "plain_milk",
+            main,
+            "medium",
+            False,
+            "Generated milk approximation using the source-coded FNDDS milk row.",
+        )
+
+    if generated_plain_nuts(food, text, groups):
+        return generated_rule(
+            "plain_nuts",
+            main,
+            "medium",
+            False,
+            "Generated nut approximation using the source-coded FNDDS nut row.",
+        )
+
+    if generated_simple_protein(food, text, groups):
+        return generated_rule(
+            "simple_protein",
+            main,
+            "low",
+            False if text.startswith("fish ") or "coated" in text else True,
+            "Generated simple-protein approximation using the source-coded FNDDS protein row.",
+        )
+
+    if generated_simple_condiment_or_topping(food, text, groups):
+        return generated_rule(
+            "simple_condiment_or_topping",
+            main,
+            "low",
+            False,
+            "Generated condiment or topping approximation using the source-coded FNDDS row.",
+        )
+
+    if generated_simple_legume(food, text, groups):
+        return generated_rule(
+            "simple_legume",
+            main,
+            "low",
+            True,
+            "Generated simple-legume approximation using the source-coded FNDDS legume row.",
+        )
+
+    return None
+
+
+def generated_rule(generation_rule: str, input_key: str, confidence: str, allow_allergies: bool, estimate_reason: str) -> dict[str, Any]:
+    return {
+        "generation_rule": generation_rule,
+        "input_key": normalize_label(input_key),
+        "confidence": confidence,
+        "allow_when_allergies_present": allow_allergies,
+        "estimate_reason": estimate_reason,
+    }
+
+
+def generated_plain_raw_fruit(food: dict[str, Any], text: str, groups: set[str]) -> bool:
+    main = food["main_description"].lower()
+    if "fruits" not in groups:
+        return False
+    if not main.endswith(", raw"):
+        return False
+    if text.startswith("fruit "):
+        return False
+    return not generated_text_has_any(text, ["juice", "drink", "salad", "canned", "dried", "pepper", "with"])
+
+
+def generated_beverage_rule(main: str, text: str, groups: set[str]) -> dict[str, Any] | None:
+    if "beverages" not in groups:
+        return None
+    if text.endswith(" dry") or "not reconstituted" in text:
+        return None
+    if text == "beer" or text.startswith("wine "):
+        return generated_rule(
+            "plain_alcoholic_beverage",
+            main,
+            "medium",
+            True,
+            "Generated beverage approximation using the source-coded FNDDS alcohol row.",
+        )
+    if text.startswith("soft drink "):
+        return generated_rule(
+            "plain_soft_drink",
+            main,
+            "medium",
+            True,
+            "Generated soft-drink approximation using the source-coded FNDDS beverage row.",
+        )
+    if text.startswith("tea iced ") or text.startswith("iced tea "):
+        return generated_rule(
+            "plain_tea_beverage",
+            main,
+            "medium",
+            True,
+            "Generated tea approximation using the source-coded FNDDS tea row.",
+        )
+    if text.startswith("iced coffee ") or text.startswith("coffee cappuccino "):
+        return generated_rule(
+            "coffee_beverage",
+            main,
+            "low",
+            False if "milk" in text else True,
+            "Generated coffee-beverage approximation using the source-coded FNDDS coffee row.",
+        )
+    if text.startswith("energy drink"):
+        return generated_rule(
+            "energy_drink",
+            main,
+            "low",
+            True,
+            "Generated energy-drink approximation using the source-coded FNDDS beverage row.",
+        )
+    if text.startswith("fruit flavored drink ") or text.startswith("fruit juice drink "):
+        return generated_rule(
+            "fruit_drink",
+            main,
+            "low",
+            True,
+            "Generated fruit-drink approximation using the source-coded FNDDS beverage row.",
+        )
+    return None
+
+
+def generated_plain_milk(food: dict[str, Any], text: str, groups: set[str]) -> bool:
+    if "dairy" not in groups:
+        return False
+    if not text.startswith("milk "):
+        return False
+    return not generated_text_has_any(text, ["chocolate", "dry mix", "evaporated", "flavored", "malted", "not reconstituted", "shake", "smoothie", "strawberry", "with"])
+
+
+def generated_plain_nuts(food: dict[str, Any], text: str, groups: set[str]) -> bool:
+    if "protein" not in groups:
+        return False
+    if not text.startswith(("peanuts ", "almonds ", "cashews ", "walnuts ")):
+        return False
+    return not generated_text_has_any(text, ["butter", "candy", "chocolate", "coated", "mixture"])
+
+
+def generated_simple_protein(food: dict[str, Any], text: str, groups: set[str]) -> bool:
+    if "protein" not in groups:
+        return False
+    if text.startswith("ham ") and "luncheon meat" in text:
+        return True
+    if text.startswith("pork chop ") and not generated_text_has_any(text, ["coated", "stuffed", "with"]):
+        return True
+    if text.startswith("fish trout ") and generated_text_has_any(text, ["baked", "broiled"]):
+        return True
+    if text.startswith("chicken breast fried coated prepared skinless"):
+        return True
+    return False
+
+
+def generated_simple_condiment_or_topping(food: dict[str, Any], text: str, groups: set[str]) -> bool:
+    if text == "thousand island dressing":
+        return True
+    if text == "whipped topping":
+        return True
+    if text.startswith("cheese spread ") and "dairy" in groups:
+        return True
+    return False
+
+
+def generated_simple_legume(food: dict[str, Any], text: str, groups: set[str]) -> bool:
+    return text == "baked beans" and "protein" in groups
+
+
+def clean_first_clause(value: str) -> str:
+    return normalize_label(value.split(",", 1)[0])
+
+
+def generated_text_has_any(text: str, terms: list[str]) -> bool:
+    return any(term in text for term in terms)
+
+
+def validate_resolution_references(
     food_by_code: dict[str, dict[str, Any]],
     approximation_proxies: list[dict[str, Any]],
     decomposition_templates: list[dict[str, Any]],
@@ -1704,6 +1971,7 @@ def classification_summary(
     flag_counts = Counter(flag for row in foods for flag in row["ambiguity_flags"])
     match_status_counts = Counter(row["resolver_status"] for row in resolver_match_keys)
     match_key_type_counts = Counter(row["key_type"] for row in resolver_match_keys)
+    generated_approximation_proxies = [proxy for proxy in approximation_proxies if proxy.get("generated")]
     return {
         "schema_version": "0.1",
         "release": RELEASE,
@@ -1715,6 +1983,9 @@ def classification_summary(
         "auto_match_key_count": match_status_counts[MATCH_STATUS_AUTO],
         "unit_conversion_count": len(unit_conversions),
         "approximation_proxy_count": len(approximation_proxies),
+        "curated_approximation_proxy_count": len(approximation_proxies) - len(generated_approximation_proxies),
+        "generated_approximation_proxy_count": len(generated_approximation_proxies),
+        "text_lookup_approximation_proxy_count": sum(1 for proxy in approximation_proxies if proxy.get("text_lookup_enabled", True)),
         "approximation_proxy_source_code_count": sum(len(proxy.get("source_food_codes", [])) for proxy in approximation_proxies),
         "decomposition_template_count": len(decomposition_templates),
         "decomposition_rule_count": len(decomposition_rules),
@@ -2012,6 +2283,7 @@ def write_sqlite(
               proxy_food_code text not null references fndds_foods(food_code),
               proxy_description text not null,
               confidence text not null,
+              text_lookup_enabled integer not null,
               allow_when_allergies_present integer not null,
               allow_when_exclusions_present integer not null,
               estimate_reason text not null
@@ -2237,9 +2509,9 @@ def write_sqlite(
                     """
                     insert into fndds_approximation_proxies(
                       input_key, normalized_input_key, proxy_food_code,
-                      proxy_description, confidence, allow_when_allergies_present,
+                      proxy_description, confidence, text_lookup_enabled, allow_when_allergies_present,
                       allow_when_exclusions_present, estimate_reason
-                    ) values (?, ?, ?, ?, ?, ?, ?, ?)
+                    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         proxy["input_key"],
@@ -2247,6 +2519,7 @@ def write_sqlite(
                         proxy["proxy_food_code"],
                         proxy["proxy_description"],
                         proxy["confidence"],
+                        int(bool(proxy.get("text_lookup_enabled", True))),
                         int(bool(proxy["allow_when_allergies_present"])),
                         int(bool(proxy["allow_when_exclusions_present"])),
                         proxy["estimate_reason"],

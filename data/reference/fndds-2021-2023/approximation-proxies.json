@@ -4,6 +4,134 @@
   "description": "Curated broad-food proxy mappings used only after exact resolver gates block a one-word broad food.",
   "proxies": [
     {
+      "input_key": "Almonds, NFS",
+      "proxy_food_code": "42100100",
+      "proxy_description": "Almonds, NFS",
+      "confidence": "medium",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated nut approximation using the source-coded FNDDS nut row.",
+      "source_food_codes": [
+        "42100100"
+      ],
+      "generated": true,
+      "generation_rule": "plain_nuts",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "almonds nfs"
+    },
+    {
+      "input_key": "Almonds, salted",
+      "proxy_food_code": "42101110",
+      "proxy_description": "Almonds, salted",
+      "confidence": "medium",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated nut approximation using the source-coded FNDDS nut row.",
+      "source_food_codes": [
+        "42101110"
+      ],
+      "generated": true,
+      "generation_rule": "plain_nuts",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "almonds salted"
+    },
+    {
+      "input_key": "Apple",
+      "proxy_food_code": "63101000",
+      "proxy_description": "Apple, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "63101000"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "apple"
+    },
+    {
+      "input_key": "Apricot",
+      "proxy_food_code": "63103010",
+      "proxy_description": "Apricot, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "63103010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "apricot"
+    },
+    {
+      "input_key": "Baked beans",
+      "proxy_food_code": "41201010",
+      "proxy_description": "Baked beans",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated simple-legume approximation using the source-coded FNDDS legume row.",
+      "source_food_codes": [
+        "41201010"
+      ],
+      "generated": true,
+      "generation_rule": "simple_legume",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "baked beans"
+    },
+    {
+      "input_key": "Beer",
+      "proxy_food_code": "93101000",
+      "proxy_description": "Beer",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated beverage approximation using the source-coded FNDDS alcohol row.",
+      "source_food_codes": [
+        "93101000"
+      ],
+      "generated": true,
+      "generation_rule": "plain_alcoholic_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "beer"
+    },
+    {
+      "input_key": "Blackberries",
+      "proxy_food_code": "63201010",
+      "proxy_description": "Blackberries, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "63201010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "blackberries"
+    },
+    {
+      "input_key": "Blueberries",
+      "proxy_food_code": "63203010",
+      "proxy_description": "Blueberries, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "63203010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "blueberries"
+    },
+    {
       "input_key": "bread",
       "proxy_food_code": "51101000",
       "proxy_description": "Bread, white",
@@ -28,6 +156,54 @@
       "normalized_input_key": "butter"
     },
     {
+      "input_key": "Cantaloupe",
+      "proxy_food_code": "63109010",
+      "proxy_description": "Cantaloupe, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "63109010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "cantaloupe"
+    },
+    {
+      "input_key": "Cashews, NFS",
+      "proxy_food_code": "42104000",
+      "proxy_description": "Cashews, NFS",
+      "confidence": "medium",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated nut approximation using the source-coded FNDDS nut row.",
+      "source_food_codes": [
+        "42104000"
+      ],
+      "generated": true,
+      "generation_rule": "plain_nuts",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "cashews nfs"
+    },
+    {
+      "input_key": "Cashews, salted",
+      "proxy_food_code": "42104100",
+      "proxy_description": "Cashews, salted",
+      "confidence": "medium",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated nut approximation using the source-coded FNDDS nut row.",
+      "source_food_codes": [
+        "42104100"
+      ],
+      "generated": true,
+      "generation_rule": "plain_nuts",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "cashews salted"
+    },
+    {
       "input_key": "cheese",
       "proxy_food_code": "14010000",
       "proxy_description": "Cheese, NFS",
@@ -39,6 +215,38 @@
         "14010000"
       ],
       "normalized_input_key": "cheese"
+    },
+    {
+      "input_key": "Cheese spread, American or Cheddar cheese base",
+      "proxy_food_code": "14420100",
+      "proxy_description": "Cheese spread, American or Cheddar cheese base",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated condiment or topping approximation using the source-coded FNDDS row.",
+      "source_food_codes": [
+        "14420100"
+      ],
+      "generated": true,
+      "generation_rule": "simple_condiment_or_topping",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "cheese spread american or cheddar cheese base"
+    },
+    {
+      "input_key": "Cherries",
+      "proxy_food_code": "63115010",
+      "proxy_description": "Cherries, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "63115010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "cherries"
     },
     {
       "input_key": "chicken",
@@ -54,6 +262,22 @@
       "normalized_input_key": "chicken"
     },
     {
+      "input_key": "Chicken breast, fried, coated, prepared skinless, coating eaten, from raw",
+      "proxy_food_code": "24127202",
+      "proxy_description": "Chicken breast, fried, coated, prepared skinless, coating eaten, from raw",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated simple-protein approximation using the source-coded FNDDS protein row.",
+      "source_food_codes": [
+        "24127202"
+      ],
+      "generated": true,
+      "generation_rule": "simple_protein",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "chicken breast fried coated prepared skinless coating eaten from raw"
+    },
+    {
       "input_key": "coffee",
       "proxy_food_code": "92101000",
       "proxy_description": "Coffee, brewed",
@@ -65,6 +289,38 @@
         "92101000"
       ],
       "normalized_input_key": "coffee"
+    },
+    {
+      "input_key": "Coffee, Cappuccino, nonfat",
+      "proxy_food_code": "92161001",
+      "proxy_description": "Coffee, Cappuccino, nonfat",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated coffee-beverage approximation using the source-coded FNDDS coffee row.",
+      "source_food_codes": [
+        "92161001"
+      ],
+      "generated": true,
+      "generation_rule": "coffee_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "coffee cappuccino nonfat"
+    },
+    {
+      "input_key": "Coffee, Cappuccino, with non-dairy milk",
+      "proxy_food_code": "92161002",
+      "proxy_description": "Coffee, Cappuccino, with non-dairy milk",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated coffee-beverage approximation using the source-coded FNDDS coffee row.",
+      "source_food_codes": [
+        "92161002"
+      ],
+      "generated": true,
+      "generation_rule": "coffee_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "coffee cappuccino with non dairy milk"
     },
     {
       "input_key": "cream",
@@ -80,6 +336,54 @@
       "normalized_input_key": "cream"
     },
     {
+      "input_key": "Energy Drink",
+      "proxy_food_code": "95311000",
+      "proxy_description": "Energy Drink",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated energy-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "95311000"
+      ],
+      "generated": true,
+      "generation_rule": "energy_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "energy drink"
+    },
+    {
+      "input_key": "Energy drink, sugar free",
+      "proxy_food_code": "95313200",
+      "proxy_description": "Energy drink, sugar free",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated energy-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "95313200"
+      ],
+      "generated": true,
+      "generation_rule": "energy_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "energy drink sugar free"
+    },
+    {
+      "input_key": "Fish, trout, baked or broiled",
+      "proxy_food_code": "26151120",
+      "proxy_description": "Fish, trout, baked or broiled",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated simple-protein approximation using the source-coded FNDDS protein row.",
+      "source_food_codes": [
+        "26151120"
+      ],
+      "generated": true,
+      "generation_rule": "simple_protein",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "fish trout baked or broiled"
+    },
+    {
       "input_key": "fruit",
       "proxy_food_code": "63100100",
       "proxy_description": "Fruit, NFS",
@@ -91,6 +395,118 @@
         "63100100"
       ],
       "normalized_input_key": "fruit"
+    },
+    {
+      "input_key": "Fruit flavored drink, powdered, reconstituted",
+      "proxy_food_code": "92541010",
+      "proxy_description": "Fruit flavored drink, powdered, reconstituted",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated fruit-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "92541010"
+      ],
+      "generated": true,
+      "generation_rule": "fruit_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "fruit flavored drink powdered reconstituted"
+    },
+    {
+      "input_key": "Fruit flavored drink, powdered, reconstituted, diet",
+      "proxy_food_code": "92552010",
+      "proxy_description": "Fruit flavored drink, powdered, reconstituted, diet",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated fruit-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "92552010"
+      ],
+      "generated": true,
+      "generation_rule": "fruit_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "fruit flavored drink powdered reconstituted diet"
+    },
+    {
+      "input_key": "Fruit juice drink (Capri Sun)",
+      "proxy_food_code": "92552030",
+      "proxy_description": "Fruit juice drink (Capri Sun)",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated fruit-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "92552030"
+      ],
+      "generated": true,
+      "generation_rule": "fruit_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "fruit juice drink capri sun"
+    },
+    {
+      "input_key": "Fruit juice drink, noncitrus, carbonated",
+      "proxy_food_code": "92433000",
+      "proxy_description": "Fruit juice drink, noncitrus, carbonated",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated fruit-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "92433000"
+      ],
+      "generated": true,
+      "generation_rule": "fruit_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "fruit juice drink noncitrus carbonated"
+    },
+    {
+      "input_key": "Fruit juice drink, with high vitamin C",
+      "proxy_food_code": "92530610",
+      "proxy_description": "Fruit juice drink, with high vitamin C",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated fruit-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "92530610"
+      ],
+      "generated": true,
+      "generation_rule": "fruit_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "fruit juice drink with high vitamin c"
+    },
+    {
+      "input_key": "Grapefruit",
+      "proxy_food_code": "61101010",
+      "proxy_description": "Grapefruit, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "61101010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "grapefruit"
+    },
+    {
+      "input_key": "Ham, prepackaged or deli, luncheon meat",
+      "proxy_food_code": "25230210",
+      "proxy_description": "Ham, prepackaged or deli, luncheon meat",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated simple-protein approximation using the source-coded FNDDS protein row.",
+      "source_food_codes": [
+        "25230210"
+      ],
+      "generated": true,
+      "generation_rule": "simple_protein",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "ham prepackaged or deli luncheon meat"
     },
     {
       "input_key": "home fries",
@@ -119,6 +535,102 @@
       "normalized_input_key": "hot chocolate"
     },
     {
+      "input_key": "Iced Coffee, brewed",
+      "proxy_food_code": "92102400",
+      "proxy_description": "Iced Coffee, brewed",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated coffee-beverage approximation using the source-coded FNDDS coffee row.",
+      "source_food_codes": [
+        "92102400"
+      ],
+      "generated": true,
+      "generation_rule": "coffee_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "iced coffee brewed"
+    },
+    {
+      "input_key": "Iced Coffee, pre-lightened and pre-sweetened",
+      "proxy_food_code": "92102450",
+      "proxy_description": "Iced Coffee, pre-lightened and pre-sweetened",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated coffee-beverage approximation using the source-coded FNDDS coffee row.",
+      "source_food_codes": [
+        "92102450"
+      ],
+      "generated": true,
+      "generation_rule": "coffee_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "iced coffee pre lightened and pre sweetened"
+    },
+    {
+      "input_key": "Mango",
+      "proxy_food_code": "63129010",
+      "proxy_description": "Mango, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "63129010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "mango"
+    },
+    {
+      "input_key": "Milk, dry, reconstituted, nonfat",
+      "proxy_food_code": "11120000",
+      "proxy_description": "Milk, dry, reconstituted, nonfat",
+      "confidence": "medium",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated milk approximation using the source-coded FNDDS milk row.",
+      "source_food_codes": [
+        "11120000"
+      ],
+      "generated": true,
+      "generation_rule": "plain_milk",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "milk dry reconstituted nonfat"
+    },
+    {
+      "input_key": "Milk, lactose free, reduced fat (2%)",
+      "proxy_food_code": "11114330",
+      "proxy_description": "Milk, lactose free, reduced fat (2%)",
+      "confidence": "medium",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated milk approximation using the source-coded FNDDS milk row.",
+      "source_food_codes": [
+        "11114330"
+      ],
+      "generated": true,
+      "generation_rule": "plain_milk",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "milk lactose free reduced fat 2"
+    },
+    {
+      "input_key": "Milk, NFS",
+      "proxy_food_code": "11100000",
+      "proxy_description": "Milk, NFS",
+      "confidence": "medium",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated milk approximation using the source-coded FNDDS milk row.",
+      "source_food_codes": [
+        "11100000"
+      ],
+      "generated": true,
+      "generation_rule": "plain_milk",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "milk nfs"
+    },
+    {
       "input_key": "nutritional drink",
       "proxy_food_code": "95120010",
       "proxy_description": "Nutritional drink or shake, high protein, ready-to-drink, NFS",
@@ -132,6 +644,22 @@
       "normalized_input_key": "nutritional drink"
     },
     {
+      "input_key": "Orange",
+      "proxy_food_code": "61119010",
+      "proxy_description": "Orange, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "61119010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "orange"
+    },
+    {
       "input_key": "pasta",
       "proxy_food_code": "56130000",
       "proxy_description": "Pasta, cooked",
@@ -141,6 +669,38 @@
       "estimate_reason": "Broad pasta proxy using cooked pasta.",
       "source_food_codes": [],
       "normalized_input_key": "pasta"
+    },
+    {
+      "input_key": "Peach",
+      "proxy_food_code": "63135010",
+      "proxy_description": "Peach, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "63135010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "peach"
+    },
+    {
+      "input_key": "Pear",
+      "proxy_food_code": "63137010",
+      "proxy_description": "Pear, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "63137010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "pear"
     },
     {
       "input_key": "pickles",
@@ -156,6 +716,86 @@
       "normalized_input_key": "pickles"
     },
     {
+      "input_key": "Pineapple",
+      "proxy_food_code": "63141010",
+      "proxy_description": "Pineapple, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "63141010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "pineapple"
+    },
+    {
+      "input_key": "Plum",
+      "proxy_food_code": "63143010",
+      "proxy_description": "Plum, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "63143010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "plum"
+    },
+    {
+      "input_key": "Pork, chop, lean and fat eaten",
+      "proxy_food_code": "22101010",
+      "proxy_description": "Pork, chop, lean and fat eaten",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated simple-protein approximation using the source-coded FNDDS protein row.",
+      "source_food_codes": [
+        "22101010"
+      ],
+      "generated": true,
+      "generation_rule": "simple_protein",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "pork chop lean and fat eaten"
+    },
+    {
+      "input_key": "Pork, chop, lean only eaten",
+      "proxy_food_code": "22101020",
+      "proxy_description": "Pork, chop, lean only eaten",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated simple-protein approximation using the source-coded FNDDS protein row.",
+      "source_food_codes": [
+        "22101020"
+      ],
+      "generated": true,
+      "generation_rule": "simple_protein",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "pork chop lean only eaten"
+    },
+    {
+      "input_key": "Pork, chop, NS as to fat eaten",
+      "proxy_food_code": "22101000",
+      "proxy_description": "Pork, chop, NS as to fat eaten",
+      "confidence": "low",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated simple-protein approximation using the source-coded FNDDS protein row.",
+      "source_food_codes": [
+        "22101000"
+      ],
+      "generated": true,
+      "generation_rule": "simple_protein",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "pork chop ns as to fat eaten"
+    },
+    {
       "input_key": "pretzels",
       "proxy_food_code": "54408000",
       "proxy_description": "Pretzels, NFS",
@@ -167,6 +807,22 @@
         "54408000"
       ],
       "normalized_input_key": "pretzels"
+    },
+    {
+      "input_key": "Raspberries",
+      "proxy_food_code": "63219000",
+      "proxy_description": "Raspberries, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "63219000"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "raspberries"
     },
     {
       "input_key": "rice",
@@ -184,6 +840,134 @@
       "normalized_input_key": "rice"
     },
     {
+      "input_key": "Soft drink, cola",
+      "proxy_food_code": "92410310",
+      "proxy_description": "Soft drink, cola",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated soft-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "92410310"
+      ],
+      "generated": true,
+      "generation_rule": "plain_soft_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "soft drink cola"
+    },
+    {
+      "input_key": "Soft drink, cola, diet",
+      "proxy_food_code": "92410320",
+      "proxy_description": "Soft drink, cola, diet",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated soft-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "92410320"
+      ],
+      "generated": true,
+      "generation_rule": "plain_soft_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "soft drink cola diet"
+    },
+    {
+      "input_key": "Soft drink, fruit flavored, caffeine containing",
+      "proxy_food_code": "92410550",
+      "proxy_description": "Soft drink, fruit flavored, caffeine containing",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated soft-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "92410550"
+      ],
+      "generated": true,
+      "generation_rule": "plain_soft_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "soft drink fruit flavored caffeine containing"
+    },
+    {
+      "input_key": "Soft drink, fruit flavored, caffeine free",
+      "proxy_food_code": "92410510",
+      "proxy_description": "Soft drink, fruit flavored, caffeine free",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated soft-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "92410510"
+      ],
+      "generated": true,
+      "generation_rule": "plain_soft_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "soft drink fruit flavored caffeine free"
+    },
+    {
+      "input_key": "Soft drink, fruit flavored, diet, caffeine free",
+      "proxy_food_code": "92410520",
+      "proxy_description": "Soft drink, fruit flavored, diet, caffeine free",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated soft-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "92410520"
+      ],
+      "generated": true,
+      "generation_rule": "plain_soft_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "soft drink fruit flavored diet caffeine free"
+    },
+    {
+      "input_key": "Soft drink, NFS",
+      "proxy_food_code": "92400000",
+      "proxy_description": "Soft drink, NFS",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated soft-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "92400000"
+      ],
+      "generated": true,
+      "generation_rule": "plain_soft_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "soft drink nfs"
+    },
+    {
+      "input_key": "Soft drink, NFS, diet",
+      "proxy_food_code": "92400100",
+      "proxy_description": "Soft drink, NFS, diet",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated soft-drink approximation using the source-coded FNDDS beverage row.",
+      "source_food_codes": [
+        "92400100"
+      ],
+      "generated": true,
+      "generation_rule": "plain_soft_drink",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "soft drink nfs diet"
+    },
+    {
+      "input_key": "Strawberries",
+      "proxy_food_code": "63223020",
+      "proxy_description": "Strawberries, raw",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated raw-fruit approximation using the source-coded FNDDS fruit row.",
+      "source_food_codes": [
+        "63223020"
+      ],
+      "generated": true,
+      "generation_rule": "plain_raw_fruit",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "strawberries"
+    },
+    {
       "input_key": "tea",
       "proxy_food_code": "92302000",
       "proxy_description": "Tea, black, brewed",
@@ -197,6 +981,406 @@
       "normalized_input_key": "tea"
     },
     {
+      "input_key": "Tea, iced, bottled, black",
+      "proxy_food_code": "92309000",
+      "proxy_description": "Tea, iced, bottled, black",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92309000"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced bottled black"
+    },
+    {
+      "input_key": "Tea, iced, bottled, black, decaffeinated",
+      "proxy_food_code": "92309010",
+      "proxy_description": "Tea, iced, bottled, black, decaffeinated",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92309010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced bottled black decaffeinated"
+    },
+    {
+      "input_key": "Tea, iced, bottled, black, decaffeinated, diet",
+      "proxy_food_code": "92309030",
+      "proxy_description": "Tea, iced, bottled, black, decaffeinated, diet",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92309030"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced bottled black decaffeinated diet"
+    },
+    {
+      "input_key": "Tea, iced, bottled, black, decaffeinated, unsweetened",
+      "proxy_food_code": "92309050",
+      "proxy_description": "Tea, iced, bottled, black, decaffeinated, unsweetened",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92309050"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced bottled black decaffeinated unsweetened"
+    },
+    {
+      "input_key": "Tea, iced, bottled, black, diet",
+      "proxy_food_code": "92309020",
+      "proxy_description": "Tea, iced, bottled, black, diet",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92309020"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced bottled black diet"
+    },
+    {
+      "input_key": "Tea, iced, bottled, black, unsweetened",
+      "proxy_food_code": "92309040",
+      "proxy_description": "Tea, iced, bottled, black, unsweetened",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92309040"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced bottled black unsweetened"
+    },
+    {
+      "input_key": "Tea, iced, brewed, black, decaffeinated, pre-sweetened with low calorie sweetener",
+      "proxy_food_code": "92308040",
+      "proxy_description": "Tea, iced, brewed, black, decaffeinated, pre-sweetened with low calorie sweetener",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92308040"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced brewed black decaffeinated pre sweetened with low calorie sweetener"
+    },
+    {
+      "input_key": "Tea, iced, brewed, black, decaffeinated, pre-sweetened with sugar",
+      "proxy_food_code": "92308030",
+      "proxy_description": "Tea, iced, brewed, black, decaffeinated, pre-sweetened with sugar",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92308030"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced brewed black decaffeinated pre sweetened with sugar"
+    },
+    {
+      "input_key": "Tea, iced, brewed, black, decaffeinated, unsweetened",
+      "proxy_food_code": "92308050",
+      "proxy_description": "Tea, iced, brewed, black, decaffeinated, unsweetened",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92308050"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced brewed black decaffeinated unsweetened"
+    },
+    {
+      "input_key": "Tea, iced, brewed, black, pre-sweetened with low calorie sweetener",
+      "proxy_food_code": "92308010",
+      "proxy_description": "Tea, iced, brewed, black, pre-sweetened with low calorie sweetener",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92308010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced brewed black pre sweetened with low calorie sweetener"
+    },
+    {
+      "input_key": "Tea, iced, brewed, black, pre-sweetened with sugar",
+      "proxy_food_code": "92308000",
+      "proxy_description": "Tea, iced, brewed, black, pre-sweetened with sugar",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92308000"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced brewed black pre sweetened with sugar"
+    },
+    {
+      "input_key": "Tea, iced, brewed, black, unsweetened",
+      "proxy_food_code": "92308020",
+      "proxy_description": "Tea, iced, brewed, black, unsweetened",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92308020"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced brewed black unsweetened"
+    },
+    {
+      "input_key": "Tea, iced, brewed, green, decaffeinated, pre-sweetened with sugar",
+      "proxy_food_code": "92308530",
+      "proxy_description": "Tea, iced, brewed, green, decaffeinated, pre-sweetened with sugar",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92308530"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced brewed green decaffeinated pre sweetened with sugar"
+    },
+    {
+      "input_key": "Tea, iced, brewed, green, pre-sweetened with low calorie sweetener",
+      "proxy_food_code": "92308510",
+      "proxy_description": "Tea, iced, brewed, green, pre-sweetened with low calorie sweetener",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92308510"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced brewed green pre sweetened with low calorie sweetener"
+    },
+    {
+      "input_key": "Tea, iced, brewed, green, pre-sweetened with sugar",
+      "proxy_food_code": "92308500",
+      "proxy_description": "Tea, iced, brewed, green, pre-sweetened with sugar",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92308500"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced brewed green pre sweetened with sugar"
+    },
+    {
+      "input_key": "Tea, iced, brewed, green, unsweetened",
+      "proxy_food_code": "92308520",
+      "proxy_description": "Tea, iced, brewed, green, unsweetened",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92308520"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced brewed green unsweetened"
+    },
+    {
+      "input_key": "Tea, iced, instant, black, decaffeinated, pre-sweetened with low calorie sweetener",
+      "proxy_food_code": "92305110",
+      "proxy_description": "Tea, iced, instant, black, decaffeinated, pre-sweetened with low calorie sweetener",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92305110"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced instant black decaffeinated pre sweetened with low calorie sweetener"
+    },
+    {
+      "input_key": "Tea, iced, instant, black, decaffeinated, pre-sweetened with sugar",
+      "proxy_food_code": "92305050",
+      "proxy_description": "Tea, iced, instant, black, decaffeinated, pre-sweetened with sugar",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92305050"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced instant black decaffeinated pre sweetened with sugar"
+    },
+    {
+      "input_key": "Tea, iced, instant, black, decaffeinated, unsweetened",
+      "proxy_food_code": "92305180",
+      "proxy_description": "Tea, iced, instant, black, decaffeinated, unsweetened",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92305180"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced instant black decaffeinated unsweetened"
+    },
+    {
+      "input_key": "Tea, iced, instant, black, pre-sweetened with low calorie sweetener",
+      "proxy_food_code": "92305090",
+      "proxy_description": "Tea, iced, instant, black, pre-sweetened with low calorie sweetener",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92305090"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced instant black pre sweetened with low calorie sweetener"
+    },
+    {
+      "input_key": "Tea, iced, instant, black, pre-sweetened with sugar",
+      "proxy_food_code": "92305040",
+      "proxy_description": "Tea, iced, instant, black, pre-sweetened with sugar",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92305040"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced instant black pre sweetened with sugar"
+    },
+    {
+      "input_key": "Tea, iced, instant, black, unsweetened",
+      "proxy_food_code": "92305010",
+      "proxy_description": "Tea, iced, instant, black, unsweetened",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92305010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced instant black unsweetened"
+    },
+    {
+      "input_key": "Tea, iced, instant, green, pre-sweetened with sugar",
+      "proxy_food_code": "92305910",
+      "proxy_description": "Tea, iced, instant, green, pre-sweetened with sugar",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated tea approximation using the source-coded FNDDS tea row.",
+      "source_food_codes": [
+        "92305910"
+      ],
+      "generated": true,
+      "generation_rule": "plain_tea_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "tea iced instant green pre sweetened with sugar"
+    },
+    {
+      "input_key": "Thousand Island dressing",
+      "proxy_food_code": "83114000",
+      "proxy_description": "Thousand Island dressing",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated condiment or topping approximation using the source-coded FNDDS row.",
+      "source_food_codes": [
+        "83114000"
+      ],
+      "generated": true,
+      "generation_rule": "simple_condiment_or_topping",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "thousand island dressing"
+    },
+    {
+      "input_key": "Walnuts, excluding honey roasted",
+      "proxy_food_code": "42116000",
+      "proxy_description": "Walnuts, excluding honey roasted",
+      "confidence": "medium",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated nut approximation using the source-coded FNDDS nut row.",
+      "source_food_codes": [
+        "42116000"
+      ],
+      "generated": true,
+      "generation_rule": "plain_nuts",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "walnuts excluding honey roasted"
+    },
+    {
       "input_key": "water",
       "proxy_food_code": "94000100",
       "proxy_description": "Water, tap",
@@ -208,6 +1392,38 @@
         "94000100"
       ],
       "normalized_input_key": "water"
+    },
+    {
+      "input_key": "Whipped topping",
+      "proxy_food_code": "12220200",
+      "proxy_description": "Whipped topping",
+      "confidence": "low",
+      "allow_when_allergies_present": false,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated condiment or topping approximation using the source-coded FNDDS row.",
+      "source_food_codes": [
+        "12220200"
+      ],
+      "generated": true,
+      "generation_rule": "simple_condiment_or_topping",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "whipped topping"
+    },
+    {
+      "input_key": "Wine, red",
+      "proxy_food_code": "93401010",
+      "proxy_description": "Wine, red",
+      "confidence": "medium",
+      "allow_when_allergies_present": true,
+      "allow_when_exclusions_present": false,
+      "estimate_reason": "Generated beverage approximation using the source-coded FNDDS alcohol row.",
+      "source_food_codes": [
+        "93401010"
+      ],
+      "generated": true,
+      "generation_rule": "plain_alcoholic_beverage",
+      "text_lookup_enabled": true,
+      "normalized_input_key": "wine red"
     }
   ]
 }

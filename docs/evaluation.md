@@ -134,13 +134,16 @@ sugar, wine, apple juice, instant coffee, saltine crackers, flavored liquid
 coffee creamer, and common mixed dishes.
 
 With the optional FNDDS SQLite fallback enabled, the same WWEIA/NHANES
-real-recall dataset resolves 688 of 815 items, an 84.42% resolver rate. This is
-a coverage run, not a strict expected-outcome regression, because the checked-in
-WWEIA expected unresolved counts describe the no-fallback catalog mode. The
-fallback removes common source-backed gaps such as water, 100% juice, instant
-coffee, white rolls, granulated sugar, no-added-fat vegetables and rice, and
-sandwich vegetable components while leaving ambiguous, composed,
-restaurant/product-style, review-required, and unsupported-unit rows unresolved.
+real-recall dataset resolves 771 of 815 items, a 94.60% resolver rate. The run
+contains 688 exact fallback resolutions, 44 estimated approximation resolutions,
+and 39 decomposed resolutions. This is a coverage run, not a strict
+expected-outcome regression, because the checked-in WWEIA expected unresolved
+counts describe the no-fallback catalog mode. The fallback removes common
+source-backed gaps such as water, 100% juice, instant coffee, white rolls,
+granulated sugar, no-added-fat vegetables and rice, sandwich vegetable
+components, simple source-coded beverages, raw fruit, nuts, and selected
+source-coded NFS rows while leaving ambiguous composed, restaurant/product-style,
+review-required, and unsupported-unit rows unresolved.
 
 ## Catalog Expansion Policy
 
@@ -168,8 +171,10 @@ Runtime lookup order:
    decomposition, restaurant or branded foods, unclear preparation, non-food
    text, and unsupported fallback units.
 4. If a blocked source-backed FNDDS food code or broad natural food name has a
-   curated approximation proxy, and no configured constraint makes proxy use
-   unsafe, resolve it as `estimated`.
+   curated or generated approximation proxy, and no configured constraint makes
+   proxy use unsafe, resolve it as `estimated`. Generated proxies are derived
+   from conservative FNDDS categories such as raw fruit, simple beverages, nuts,
+   milk, simple proteins, legumes, and simple toppings.
 5. If a blocked composed food has a curated exact decomposition template or a
    source-code-backed family decomposition rule, and it has a deterministic
    gram or ounce quantity, split the item across FNDDS component foods and
@@ -275,8 +280,8 @@ Current FNDDS reference import:
 - 2,375 quarantined rows
 - 6,201 resolver match keys
 - 25,928 source-backed unit conversions
-- 16 curated approximation proxies
-- 16 source-code mappings into approximation proxies
+- 92 approximation proxies: 16 curated and 76 generated
+- 92 source-code mappings into approximation proxies
 - 6 curated decomposition templates
 - 31 curated decomposition rules
 - 33 source-code mappings into decomposition rules
@@ -365,12 +370,12 @@ outcomes are not supposed to pass yet.
 - each case has expected outcomes and food items
 - WWEIA/NHANES cases retain source refs and source metrics
 - FNDDS reference artifacts exist and have internally consistent counts
-- curated approximation proxies, decomposition templates, and decomposition
+- curated/generated approximation proxies, decomposition templates, and decomposition
   rules reference valid FNDDS food codes and have valid confidence/fraction
   metadata
-- the FNDDS SQLite fallback has table counts, indexes, known statuses, curated
-  proxy/template/rule rows, and resolver examples consistent with the generated
-  reference artifacts
+- the FNDDS SQLite fallback has table counts, indexes, known statuses,
+  approximation proxy rows, template rows, rule rows, and resolver examples
+  consistent with the generated reference artifacts
 - eligible FNDDS resolver candidates do not carry hard quarantine flags
 - known ambiguous and allowlisted FNDDS examples classify as expected
 

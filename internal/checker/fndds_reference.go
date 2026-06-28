@@ -30,6 +30,7 @@ type FNDDSApproximationProxy struct {
 	ProxyFoodCode              string
 	ProxyDescription           string
 	Confidence                 string
+	TextLookupEnabled          bool
 	AllowWhenAllergiesPresent  bool
 	AllowWhenExclusionsPresent bool
 	EstimateReason             string
@@ -138,14 +139,15 @@ func (r *SQLiteFNDDSReference) LookupApproximationProxy(inputKey string) (FNDDSA
 	}
 	normalized := normalizeFNDDSMatchKey(inputKey)
 	return r.lookupApproximationProxy(`
-		select proxy.input_key, proxy.proxy_food_code, proxy.proxy_description, proxy.confidence,
-		       proxy.allow_when_allergies_present, proxy.allow_when_exclusions_present,
-		       proxy.estimate_reason
-		  from fndds_approximation_proxies proxy
-		 where proxy.normalized_input_key = ?
-		 order by proxy.input_key
-		 limit 1
-	`, normalized)
+			select proxy.input_key, proxy.proxy_food_code, proxy.proxy_description, proxy.confidence,
+			       proxy.text_lookup_enabled, proxy.allow_when_allergies_present, proxy.allow_when_exclusions_present,
+			       proxy.estimate_reason
+			  from fndds_approximation_proxies proxy
+			 where proxy.normalized_input_key = ?
+			   and proxy.text_lookup_enabled != 0
+			 order by proxy.input_key
+			 limit 1
+		`, normalized)
 }
 
 func (r *SQLiteFNDDSReference) LookupApproximationProxyBySourceFoodCode(foodCode string) (FNDDSApproximationProxy, bool, error) {
@@ -157,11 +159,11 @@ func (r *SQLiteFNDDSReference) LookupApproximationProxyBySourceFoodCode(foodCode
 		return FNDDSApproximationProxy{}, false, nil
 	}
 	return r.lookupApproximationProxy(`
-		select proxy.input_key, proxy.proxy_food_code, proxy.proxy_description, proxy.confidence,
-		       proxy.allow_when_allergies_present, proxy.allow_when_exclusions_present,
-		       proxy.estimate_reason
-		  from fndds_approximation_proxy_source_codes source
-		  join fndds_approximation_proxies proxy on proxy.input_key = source.input_key
+			select proxy.input_key, proxy.proxy_food_code, proxy.proxy_description, proxy.confidence,
+			       proxy.text_lookup_enabled, proxy.allow_when_allergies_present, proxy.allow_when_exclusions_present,
+			       proxy.estimate_reason
+			  from fndds_approximation_proxy_source_codes source
+			  join fndds_approximation_proxies proxy on proxy.input_key = source.input_key
 		 where source.source_food_code = ?
 		 order by proxy.input_key
 		 limit 1
@@ -170,6 +172,7 @@ func (r *SQLiteFNDDSReference) LookupApproximationProxyBySourceFoodCode(foodCode
 
 func (r *SQLiteFNDDSReference) lookupApproximationProxy(query string, arg string) (FNDDSApproximationProxy, bool, error) {
 	var proxy FNDDSApproximationProxy
+	var textLookupEnabled int
 	var allowAllergies int
 	var allowExclusions int
 	err := r.db.QueryRow(query, arg).Scan(
@@ -177,6 +180,7 @@ func (r *SQLiteFNDDSReference) lookupApproximationProxy(query string, arg string
 		&proxy.ProxyFoodCode,
 		&proxy.ProxyDescription,
 		&proxy.Confidence,
+		&textLookupEnabled,
 		&allowAllergies,
 		&allowExclusions,
 		&proxy.EstimateReason,
@@ -191,6 +195,7 @@ func (r *SQLiteFNDDSReference) lookupApproximationProxy(query string, arg string
 	if err != nil || !ok {
 		return FNDDSApproximationProxy{}, ok, err
 	}
+	proxy.TextLookupEnabled = textLookupEnabled != 0
 	proxy.AllowWhenAllergiesPresent = allowAllergies != 0
 	proxy.AllowWhenExclusionsPresent = allowExclusions != 0
 	proxy.Food = food

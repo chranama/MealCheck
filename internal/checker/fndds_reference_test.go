@@ -90,36 +90,73 @@ func TestSQLiteFNDDSReferenceRejectsQuarantinedAndReviewRequiredRows(t *testing.
 func TestSQLiteFNDDSReferenceLookupApproximationProxy(t *testing.T) {
 	ref := openTestFNDDSReference(t)
 
-	proxy, ok, err := ref.LookupApproximationProxy(" Rice ")
-	if err != nil {
+	tests := []struct {
+		input              string
+		wantProxyFoodCode  string
+		wantFoodID         string
+		wantTextLookupFlag bool
+	}{
+		{input: " Rice ", wantProxyFoodCode: "56205001", wantFoodID: "fndds_56205001", wantTextLookupFlag: true},
+		{input: "Mango", wantProxyFoodCode: "63129010", wantFoodID: "fndds_63129010", wantTextLookupFlag: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			proxy, ok, err := ref.LookupApproximationProxy(tt.input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !ok {
+				t.Fatalf("%s approximation proxy did not resolve", tt.input)
+			}
+			if proxy.ProxyFoodCode != tt.wantProxyFoodCode {
+				t.Fatalf("ProxyFoodCode = %q, want %s", proxy.ProxyFoodCode, tt.wantProxyFoodCode)
+			}
+			if proxy.Food.FoodID != tt.wantFoodID {
+				t.Fatalf("proxy FoodID = %q, want %s", proxy.Food.FoodID, tt.wantFoodID)
+			}
+			if proxy.TextLookupEnabled != tt.wantTextLookupFlag {
+				t.Fatalf("TextLookupEnabled = %v, want %v", proxy.TextLookupEnabled, tt.wantTextLookupFlag)
+			}
+		})
+	}
+
+	if proxy, ok, err := ref.LookupApproximationProxy("Peppers"); err != nil {
 		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("rice approximation proxy did not resolve")
-	}
-	if proxy.ProxyFoodCode != "56205001" {
-		t.Fatalf("ProxyFoodCode = %q, want 56205001", proxy.ProxyFoodCode)
-	}
-	if proxy.Food.FoodID != "fndds_56205001" {
-		t.Fatalf("proxy FoodID = %q, want fndds_56205001", proxy.Food.FoodID)
+	} else if ok {
+		t.Fatalf("Peppers resolved unexpectedly through approximation proxy: %+v", proxy)
 	}
 }
 
 func TestSQLiteFNDDSReferenceLookupApproximationProxyBySourceFoodCode(t *testing.T) {
 	ref := openTestFNDDSReference(t)
 
-	proxy, ok, err := ref.LookupApproximationProxyBySourceFoodCode("14010000")
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		name              string
+		sourceFoodCode    string
+		wantInputKey      string
+		wantProxyFoodCode string
+		wantFoodID        string
+	}{
+		{name: "curated nfs", sourceFoodCode: "14010000", wantInputKey: "cheese", wantProxyFoodCode: "14010000", wantFoodID: "fndds_14010000"},
+		{name: "generated fruit", sourceFoodCode: "63129010", wantInputKey: "Mango", wantProxyFoodCode: "63129010", wantFoodID: "fndds_63129010"},
+		{name: "generated beverage", sourceFoodCode: "93401010", wantInputKey: "Wine, red", wantProxyFoodCode: "93401010", wantFoodID: "fndds_93401010"},
 	}
-	if !ok {
-		t.Fatal("cheese NFS source-code approximation proxy did not resolve")
-	}
-	if proxy.InputKey != "cheese" || proxy.ProxyFoodCode != "14010000" {
-		t.Fatalf("proxy = %+v, want cheese proxy for 14010000", proxy)
-	}
-	if proxy.Food.FoodID != "fndds_14010000" {
-		t.Fatalf("proxy FoodID = %q, want fndds_14010000", proxy.Food.FoodID)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			proxy, ok, err := ref.LookupApproximationProxyBySourceFoodCode(tt.sourceFoodCode)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !ok {
+				t.Fatalf("%s source-code approximation proxy did not resolve", tt.sourceFoodCode)
+			}
+			if proxy.InputKey != tt.wantInputKey || proxy.ProxyFoodCode != tt.wantProxyFoodCode {
+				t.Fatalf("proxy = %+v, want %s proxy for %s", proxy, tt.wantInputKey, tt.wantProxyFoodCode)
+			}
+			if proxy.Food.FoodID != tt.wantFoodID {
+				t.Fatalf("proxy FoodID = %q, want %s", proxy.Food.FoodID, tt.wantFoodID)
+			}
+		})
 	}
 }
 
@@ -518,6 +555,28 @@ func TestResolverUsesSourceFoodCodeApproximationForCuratedNFSFood(t *testing.T) 
 	item := resolved[0]
 	if item.ResolutionMethod != "estimated" || item.ProxyFoodID != "fndds_14010000" || item.SourceFoodCode != "14010000" {
 		t.Fatalf("resolved = %+v, want source-code-backed estimated cheese proxy", item)
+	}
+}
+
+func TestResolverUsesGeneratedSourceFoodCodeApproximation(t *testing.T) {
+	ref := openTestFNDDSReference(t)
+	qty := 100.0
+	plan := singleItemPlan("Mango, raw", &qty, "g")
+	plan.Days[0].Meals[0].Items[0].SourceFoodCode = "63129010"
+
+	resolved, unresolved, err := newResolverWithFallback(NutrientCatalog{}, ref).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unresolved) != 0 {
+		t.Fatalf("unresolved = %+v, want none", unresolved)
+	}
+	if len(resolved) != 1 {
+		t.Fatalf("len(resolved) = %d, want 1", len(resolved))
+	}
+	item := resolved[0]
+	if item.ResolutionMethod != "estimated" || item.ProxyFoodID != "fndds_63129010" || item.SourceFoodCode != "63129010" {
+		t.Fatalf("resolved = %+v, want source-code-backed estimated mango proxy", item)
 	}
 }
 
