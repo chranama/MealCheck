@@ -1,8 +1,292 @@
-# MealCheck Evaluation Dataset
+# MealCheck Evaluation
 
-MealCheck uses evaluation datasets to expand the local nutrient catalog from
-measured resolver gaps and reviewed source data rather than from intuition.
-There are two checked-in layers:
+MealCheck evaluates two distinct tasks. Keeping them separate matters because a
+failure in the first task prevents the second task from running, and a failure
+in the second task does not necessarily mean the model normalized the user's
+input incorrectly.
+
+Task 1 is P0 meal-plan normalization. It asks whether an in-bound pasted meal
+plan can be turned into canonical MealCheck structure:
+
+```text
+natural meal-plan text
+  -> numbered source item inventory
+  -> compact row JSON
+  -> canonical MealCheck plan JSON
+  -> deterministic checker load
+```
+
+P0 measures source item preservation, day and meal assignment, quantity/unit
+parsing, schema validity, and whether unsupported or vague inputs fail at the
+right stage with useful guidance. P0 does not judge nutrient totals, final
+report decision, or resolver catalog coverage except as downstream smoke
+checks.
+
+Task 2 is P1 food and unit resolution. It asks whether a canonical MealCheck
+plan can resolve ordinary foods and measured portions to nutrient evidence
+without guessing. P1 measures local catalog coverage, FNDDS fallback coverage,
+unresolved reason quality, expected-outcome mismatches, and the conservative
+boundary between exact, estimated, decomposed, and unresolved foods.
+
+## P0 Meal-Plan Normalization
+
+P0 is the highest-priority user-facing evaluation because normalization is the
+gateway to every hosted live report. Recent live failures have come from hidden
+day or meal-count assumptions, unsupported-unit handling, natural phrasing, and
+local-model representation mismatch. A reasonable in-bound meal plan should
+normalize successfully before the deterministic verifier has any chance to be
+useful.
+
+The current checked-in P0 corpus is small and hand-authored:
+
+- `examples/meal-plan-input-robustness/manifest.json`: acceptable pasted meal
+  plans with expected day counts, meal-code coverage, item counts, and tags.
+- `examples/meal-plan-input-robustness/failure-manifest.json`: qualification
+  failures that should be refused before model normalization.
+- `scripts/test-meal-plan-input-robustness.sh`: local-model smoke harness for
+  compatible acceptable-input cases.
+
+The next P0 evaluation layer should use public ingredient-parsing datasets as
+source material for generated MealCheck normalization cases:
+
+- NYT Ingredient Phrase Tagger:
+  `https://github.com/nytimes/ingredient-phrase-tagger`
+- TASTEset:
+  `https://arxiv.org/abs/2204.07775`
+
+NYT Ingredient Phrase Tagger is the best first source for item-level gold data.
+Its labeled ingredient phrases map closely to MealCheck's compact rows:
+quantity, unit, food name, and comment. It does not contain meal-plan structure,
+so MealCheck should wrap selected ingredient lines in generated day and meal
+contexts.
+
+TASTEset is the best second source for harder natural language around food
+entities. Its recipe NER labels include food products, quantities, units,
+processes, and qualities. It is useful for prep adjectives, multi-token food
+boundaries, and recipe-like language. It should be transformed into MealCheck
+meal-plan snippets only after filtering out cases that require recipe
+decomposition or unsupported quantity inference.
+
+Both datasets should be treated as source data for evaluation generation, not
+as direct training data for MealCheck. Do not train or fine-tune the local
+model in this slice, expand the resolver catalog from this dataset, treat recipe
+instructions as valid P0 success cases, make fuzzy food matching part of the P0
+score, or check in raw third-party source datasets until license and size
+handling are reviewed.
+
+### P0 Case Format
+
+Generated P0 cases should live under:
+
+```text
+data/evaluation/p0-normalization/
+```
+
+Use JSONL for generated cases so larger datasets stay diffable and streamable.
+Each success case should include the raw prompt text, expected source item
+inventory, expected compact rows, and tags:
+
+```json
+{
+  "schema_version": "0.1",
+  "id": "nyt_supported_unit_000001",
+  "source_dataset": "nyt_ingredient_phrase_tagger",
+  "source_ref": {
+    "row_id": "12345"
+  },
+  "input_text": "Day 1 breakfast:\n- 1 cup cooked oatmeal\n- 1/2 cup blueberries",
+  "expected": {
+    "days": [1],
+    "source_items": [
+      {
+        "source_item_id": 1,
+        "day": 1,
+        "meal_code": "b",
+        "source_text": "1 cup cooked oatmeal",
+        "food": "cooked oatmeal",
+        "quantity": 1,
+        "unit": "cup"
+      }
+    ]
+  },
+  "tags": [
+    "success",
+    "supported_unit",
+    "fraction",
+    "generated_day_context"
+  ]
+}
+```
+
+Failure cases should use the same envelope, but their expectation should name
+the intended failure stage and reason:
+
+```json
+{
+  "schema_version": "0.1",
+  "id": "nyt_unsupported_unit_000001",
+  "source_dataset": "nyt_ingredient_phrase_tagger",
+  "input_text": "Day 1 breakfast:\n- 1 handful almonds",
+  "expected_failure": {
+    "stage": "qualification_or_source_inventory",
+    "reason": "unsupported_unit"
+  },
+  "tags": ["failure", "unsupported_unit"]
+}
+```
+
+### P0 Dataset Generation
+
+Add a generator script:
+
+```text
+scripts/generate-p0-normalization-evaluation.py
+```
+
+The generator should read external source files from environment variables:
+
+```text
+MEALCHECK_NYT_INGREDIENTS_CSV=/tmp/mealcheck-p0/nyt-ingredients-snapshot-2015.csv
+MEALCHECK_TASTESET_DIR=/tmp/mealcheck-p0/tasteset
+```
+
+The generator should write deterministic artifacts:
+
+```text
+data/evaluation/p0-normalization/manifest.json
+data/evaluation/p0-normalization/cases-v1.jsonl
+data/evaluation/p0-normalization/failure-cases-v1.jsonl
+```
+
+Generation rules:
+
+1. Keep only rows with a parseable numeric quantity, unit, and food/product
+   span for success cases.
+2. Map units only when the conversion is already supported by MealCheck's
+   normalization boundary: `g`, `oz`, `cup`, `tbsp`, `tsp`, `slice`, and
+   `serving`.
+3. Exclude ranges, optional amounts, "to taste", "as needed", and vague size
+   terms from success cases.
+4. Preserve preparation and quality words when they are part of the food phrase
+   a user would naturally paste, such as `cooked oatmeal` or `chopped carrots`.
+5. Put unsupported but common units into the failure set instead of silently
+   dropping them.
+6. Stratify selected cases by unit, fraction style, decimal style, food-name
+   length, prep adjective, comment text, and source dataset.
+7. Use a fixed random seed and stable sorted IDs so generation is reproducible.
+
+The source datasets contain ingredient lines, not full MealCheck plans. The
+generator should wrap selected item phrases into deterministic meal-plan
+contexts:
+
+- one-day canonical bullets
+- one-day inline sentences
+- numbered list items
+- two-day clear `Day N` sections
+- one-day snack-inclusive plans
+- compact multi-day text near the public input style
+- natural rewrites with `with`, `plus`, commas, and `of` after the unit
+
+The wrapper templates may be synthetic because the target is the MealCheck
+normalization contract, not recipe authenticity. The item-level gold comes from
+public annotation; the day and meal structure is generated so MealCheck-specific
+grouping can be tested.
+
+### P0 Evaluation Runner
+
+The P0 runner should operate in three tiers.
+
+Tier 1: deterministic source-inventory tests.
+
+- Run in ordinary CI.
+- Use MealCheck's deterministic source item inventory logic.
+- Verify expected item count, source item order, day, meal code, source text,
+  quantity token, and unit token.
+- Does not require llama.cpp.
+
+Tier 2: adapter contract tests.
+
+- Feed expected compact rows into the existing adapter.
+- Verify canonical plan JSON loads and preserves day, meal, quantity, unit, and
+  food values.
+- Does not require llama.cpp.
+
+Tier 3: local-model normalization eval.
+
+- Run manually or in a scheduled environment with the MacBook model server.
+- Send `input_text` through the same hosted local-model normalization path used
+  by live runs.
+- Compare actual compact rows and canonical plan JSON against expected rows.
+- Record output, normalization events, debug artifacts, stage timings, and
+  failure class.
+- Support repeats per case because the model path can be nondeterministic.
+
+The first implementation can be a Go command or script, but it should expose a
+stable command shape:
+
+```bash
+go run ./cmd/mealcheck eval-normalization \
+  -dataset data/evaluation/p0-normalization/cases-v1.jsonl \
+  -out /tmp/mealcheck-p0-normalization.json
+```
+
+### P0 Metrics And Gates
+
+Report P0 metrics separately for deterministic and local-model tiers:
+
+- `case_success_rate`
+- `source_item_preservation_rate`
+- `omitted_source_item_count`
+- `duplicate_source_item_count`
+- `day_assignment_accuracy`
+- `meal_assignment_accuracy`
+- `quantity_accuracy`
+- `unit_accuracy`
+- `food_phrase_accuracy`
+- `schema_validity_rate`
+- `unsupported_unit_false_failure_count`
+- `post_queue_normalization_failure_count`
+- `normalization_latency_ms_p50`
+- `normalization_latency_ms_p95`
+- `repair_attempt_rate`
+
+For model-tier runs, also emit a ranked failure inventory:
+
+- `source_inventory_failed`
+- `model_json_invalid`
+- `source_item_omitted`
+- `source_item_duplicated`
+- `wrong_day`
+- `wrong_meal`
+- `wrong_quantity`
+- `wrong_unit`
+- `wrong_food_phrase`
+- `adapter_validation_failed`
+- `checker_load_failed`
+
+Required P0 release gates:
+
+- The current hand-curated robustness corpus passes.
+- The preloaded hosted example passes locally and through the deployed path.
+- Deterministic source-inventory tests pass for the generated P0 success set.
+- Failure cases fail before model queueing or preserve unresolved quantities
+  with specific, user-facing guidance.
+
+Track but do not immediately release-block on:
+
+- large generated NYT local-model success rate
+- large generated TASTEset local-model success rate
+- latency percentiles over the generated corpus
+- per-tag model weaknesses
+
+This split prevents a large generated dataset from blocking small urgent fixes
+while still making normalization reliability measurable.
+
+## P1 Food And Unit Resolution
+
+P1 uses evaluation datasets to expand the local nutrient catalog from measured
+resolver gaps and reviewed source data rather than from intuition. There are
+two checked-in P1 layers:
 
 1. an FNDDS-grounded synthetic regression layer for targeted workflow behavior
 2. a WWEIA/NHANES dietary recall layer for real reported intake patterns
@@ -13,7 +297,7 @@ CI-safe demos, and a clear basis for deciding which long-tail foods should
 remain unresolved, resolve through the conservative FNDDS fallback, or move to
 a future API-backed lookup path.
 
-## Source Data
+## P1 Source Data
 
 FNDDS source:
 
@@ -55,7 +339,7 @@ Regeneration expects them at:
 /tmp/mealcheck-nhanes-2021-2023/DEMO_L.xpt
 ```
 
-## Artifacts
+## P1 Artifacts
 
 - `data/nutrients/fixture-catalog-v1.json`: 151-food reviewed local catalog
   generated from FNDDS source rows.
@@ -81,7 +365,7 @@ Regeneration expects them at:
 - `scripts/generate-wweia-nhanes-evaluation.py`: reproducible generator for the
   WWEIA/NHANES real-recall evaluation dataset.
 
-## Dataset Mix
+## P1 Dataset Mix
 
 The FNDDS-grounded dataset contains:
 
@@ -110,7 +394,7 @@ resolved real eating occasions with full-day recall cases that expose catalog
 gaps. It should not be described as a meal-plan dataset. It is a structured
 dietary recall dataset transformed into MealCheck evaluation cases.
 
-## Current Results
+## P1 Current Results
 
 The original 17-food catalog resolves 296 of 900 items, a 32.89% resolver rate,
 against the FNDDS-grounded dataset. This baseline intentionally shows the limit
@@ -145,7 +429,7 @@ components, simple source-coded beverages, raw fruit, nuts, and selected
 source-coded NFS rows while leaving ambiguous composed, restaurant/product-style,
 review-required, and unsupported-unit rows unresolved.
 
-## Catalog Expansion Policy
+## P1 Catalog Expansion Policy
 
 Expansion rules:
 
@@ -233,7 +517,7 @@ The SQLite fallback uses FNDDS total sugar as a conservative `added_sugar_g`
 proxy for all fallback rows because FNDDS At A Glance does not publish
 added-sugar grams.
 
-## FNDDS Reference Database
+## P1 FNDDS Reference Database
 
 MealCheck also keeps a full local FNDDS 2021-2023 reference layer. This is not
 the reviewed resolver catalog. Its job is to preserve all source rows and
@@ -301,20 +585,35 @@ python3 scripts/import-fndds-reference.py
 
 ## Running Evaluation
 
-Regenerate the catalog and dataset after downloading the FNDDS workbooks:
+Run the current hand-authored P0 robustness smoke harness:
+
+```bash
+scripts/test-meal-plan-input-robustness.sh
+```
+
+After the generated P0 normalization dataset exists, run the planned
+normalization evaluation command:
+
+```bash
+go run ./cmd/mealcheck eval-normalization \
+  -dataset data/evaluation/p0-normalization/cases-v1.jsonl \
+  -out /tmp/mealcheck-p0-normalization.json
+```
+
+Regenerate the P1 catalog and dataset after downloading the FNDDS workbooks:
 
 ```bash
 python3 scripts/generate-fndds-evaluation.py
 ```
 
-Regenerate the WWEIA/NHANES real-recall layer after downloading the NHANES XPT
-files and the FNDDS foods workbook:
+Regenerate the P1 WWEIA/NHANES real-recall layer after downloading the NHANES
+XPT files and the FNDDS foods workbook:
 
 ```bash
 python3 scripts/generate-wweia-nhanes-evaluation.py
 ```
 
-Run the expanded catalog evaluation:
+Run the expanded P1 catalog evaluation:
 
 ```bash
 go run ./cmd/mealcheck eval
@@ -359,7 +658,14 @@ outcomes are not supposed to pass yet.
 
 ## CI Role
 
-`go run ./cmd/mealcheck fixture-check` verifies that:
+CI currently covers parts of both evaluation tasks.
+
+P0 source-inventory coverage lives in hosted generation tests and the
+hand-authored input robustness manifest. The local-model P0 smoke harness is
+manual because it depends on llama.cpp availability.
+
+`go run ./cmd/mealcheck fixture-check` verifies P1 fixture, dataset, and
+reference-layer integrity:
 
 - the expanded catalog has at least 100 foods
 - catalog food IDs, names, and aliases do not collide

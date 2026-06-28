@@ -24,6 +24,9 @@ MealCheck to verify it. The user story depends on two contracts:
 This robustness work tests the second contract. It assumes the input has already
 crossed the "good meal plan" boundary.
 
+The plan to expand this small synthetic corpus with public ingredient-parsing
+datasets is defined in [MealCheck Evaluation](evaluation.md).
+
 ## Good Meal Plan Definition
 
 A good MealCheck meal-plan input is natural language or semi-structured text
