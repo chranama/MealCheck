@@ -395,6 +395,10 @@ func registerCatalogLabel(labels map[string]string, foodID, label string) error 
 }
 
 func validateEvaluationDataset(root string) error {
+	if err := validateP0NormalizationDataset(root); err != nil {
+		return err
+	}
+
 	if err := validateEvaluationDatasetFile(root, "data/evaluation/fndds-grounded-meal-plans-v1.json", "fndds-grounded-meal-plans-v1", []string{
 		"balanced_common", "vegetarian", "vegan", "high_sodium", "high_added_sugar",
 		"allergen_risk", "low_protein", "long_tail_unresolved", "vague_quantity",
@@ -408,6 +412,186 @@ func validateEvaluationDataset(root string) error {
 		return err
 	}
 	return nil
+}
+
+func validateP0NormalizationDataset(root string) error {
+	base := filepath.Join(root, "data/evaluation/p0-normalization")
+	sourceManifest, err := readObject(filepath.Join(base, "source-manifest.json"))
+	if err != nil {
+		return err
+	}
+	if got := mustString(sourceManifest, "schema_version"); got != "0.1" {
+		return fmt.Errorf("p0 source-manifest schema_version = %q, want 0.1", got)
+	}
+	if got := mustString(sourceManifest, "source_manifest_id"); got != "p0-normalization-sources-v1" {
+		return fmt.Errorf("p0 source_manifest_id = %q, want p0-normalization-sources-v1", got)
+	}
+	if len(objectSlice(sourceManifest, "sources")) == 0 {
+		return errors.New("p0 source-manifest must define sources")
+	}
+
+	manifest, err := readObject(filepath.Join(base, "manifest.json"))
+	if err != nil {
+		return err
+	}
+	if got := mustString(manifest, "schema_version"); got != "0.1" {
+		return fmt.Errorf("p0 manifest schema_version = %q, want 0.1", got)
+	}
+	if got := mustString(manifest, "dataset_id"); got != "p0-normalization-v1" {
+		return fmt.Errorf("p0 manifest dataset_id = %q, want p0-normalization-v1", got)
+	}
+	if _, ok := manifest["release_gate"].(bool); !ok {
+		return errors.New("p0 manifest release_gate must be boolean")
+	}
+	if len(stringSlice(manifest, "supported_units")) == 0 {
+		return errors.New("p0 manifest supported_units must not be empty")
+	}
+
+	caseFiles := stringSlice(manifest, "case_files")
+	if len(caseFiles) == 0 {
+		return errors.New("p0 manifest case_files must not be empty")
+	}
+	failureFiles := stringSlice(manifest, "failure_case_files")
+	if len(failureFiles) == 0 {
+		return errors.New("p0 manifest failure_case_files must not be empty")
+	}
+
+	successRows := []map[string]any{}
+	for _, file := range caseFiles {
+		rows, err := readJSONLObjects(filepath.Join(base, file))
+		if err != nil {
+			return err
+		}
+		successRows = append(successRows, rows...)
+	}
+	failureRows := []map[string]any{}
+	for _, file := range failureFiles {
+		rows, err := readJSONLObjects(filepath.Join(base, file))
+		if err != nil {
+			return err
+		}
+		failureRows = append(failureRows, rows...)
+	}
+	if len(successRows) == 0 {
+		return errors.New("p0 normalization success cases must not be empty")
+	}
+	if len(failureRows) == 0 {
+		return errors.New("p0 normalization failure cases must not be empty")
+	}
+
+	seenIDs := map[string]bool{}
+	totalExpectedItems := 0
+	for _, row := range successRows {
+		id := mustString(row, "id")
+		if seenIDs[id] {
+			return fmt.Errorf("p0 normalization has duplicate id %s", id)
+		}
+		seenIDs[id] = true
+		if got := mustString(row, "schema_version"); got != "0.1" {
+			return fmt.Errorf("p0 case %s schema_version = %q, want 0.1", id, got)
+		}
+		if _, err := stringField(row, "source_dataset"); err != nil {
+			return fmt.Errorf("p0 case %s: %w", id, err)
+		}
+		if _, err := stringField(row, "input_text"); err != nil {
+			return fmt.Errorf("p0 case %s: %w", id, err)
+		}
+		expected, ok := row["expected"].(map[string]any)
+		if !ok {
+			return fmt.Errorf("p0 case %s must define expected", id)
+		}
+		items := objectSlice(expected, "source_items")
+		if len(items) == 0 {
+			return fmt.Errorf("p0 case %s expected.source_items must not be empty", id)
+		}
+		totalExpectedItems += len(items)
+		for index, item := range items {
+			if sourceID, err := numericField(item, "source_item_id"); err != nil || int(sourceID) != index+1 {
+				return fmt.Errorf("p0 case %s source_items[%d] source_item_id must be %d", id, index, index+1)
+			}
+			if day, err := numericField(item, "day"); err != nil || day < 1 || day > 7 {
+				return fmt.Errorf("p0 case %s source_items[%d] day must be 1..7", id, index)
+			}
+			if !validP0MealCode(mustString(item, "meal_code")) {
+				return fmt.Errorf("p0 case %s source_items[%d] has invalid meal_code %q", id, index, mustString(item, "meal_code"))
+			}
+			if _, err := stringField(item, "source_text"); err != nil {
+				return fmt.Errorf("p0 case %s source_items[%d]: %w", id, index, err)
+			}
+			if _, err := stringField(item, "food"); err != nil {
+				return fmt.Errorf("p0 case %s source_items[%d]: %w", id, index, err)
+			}
+			if quantity, err := numericField(item, "quantity"); err != nil || quantity <= 0 {
+				return fmt.Errorf("p0 case %s source_items[%d] quantity must be positive", id, index)
+			}
+			if !validP0Unit(mustString(item, "unit")) {
+				return fmt.Errorf("p0 case %s source_items[%d] has invalid unit %q", id, index, mustString(item, "unit"))
+			}
+		}
+	}
+	for _, row := range failureRows {
+		id := mustString(row, "id")
+		if seenIDs[id] {
+			return fmt.Errorf("p0 normalization has duplicate id %s", id)
+		}
+		seenIDs[id] = true
+		if got := mustString(row, "schema_version"); got != "0.1" {
+			return fmt.Errorf("p0 failure case %s schema_version = %q, want 0.1", id, got)
+		}
+		if _, err := stringField(row, "input_text"); err != nil {
+			return fmt.Errorf("p0 failure case %s: %w", id, err)
+		}
+		expected, ok := row["expected_failure"].(map[string]any)
+		if !ok {
+			return fmt.Errorf("p0 failure case %s must define expected_failure", id)
+		}
+		stage := mustString(expected, "stage")
+		switch stage {
+		case "qualification":
+			if _, err := stringField(expected, "status"); err != nil {
+				return fmt.Errorf("p0 failure case %s expected_failure: %w", id, err)
+			}
+		case "source_inventory":
+			if _, err := stringField(expected, "reason"); err != nil {
+				return fmt.Errorf("p0 failure case %s expected_failure: %w", id, err)
+			}
+		default:
+			return fmt.Errorf("p0 failure case %s has invalid stage %q", id, stage)
+		}
+	}
+
+	summary, ok := manifest["summary"].(map[string]any)
+	if !ok {
+		return errors.New("p0 manifest must define summary")
+	}
+	if got, err := numericField(summary, "success_cases"); err != nil || int(got) != len(successRows) {
+		return fmt.Errorf("p0 manifest summary.success_cases must equal %d", len(successRows))
+	}
+	if got, err := numericField(summary, "failure_cases"); err != nil || int(got) != len(failureRows) {
+		return fmt.Errorf("p0 manifest summary.failure_cases must equal %d", len(failureRows))
+	}
+	if got, err := numericField(summary, "total_expected_source_items"); err != nil || int(got) != totalExpectedItems {
+		return fmt.Errorf("p0 manifest summary.total_expected_source_items must equal %d", totalExpectedItems)
+	}
+	return nil
+}
+
+func validP0MealCode(code string) bool {
+	switch code {
+	case "b", "m", "l", "a", "d", "s", "e":
+		return true
+	default:
+		return false
+	}
+}
+
+func validP0Unit(unit string) bool {
+	switch unit {
+	case "g", "oz", "cup", "tbsp", "tsp", "slice", "serving":
+		return true
+	default:
+		return false
+	}
 }
 
 func validateEvaluationDatasetFile(root, datasetPath, datasetID string, requiredCategories []string) error {

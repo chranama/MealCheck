@@ -13,6 +13,7 @@ import (
 	"github.com/chranama/MealCheck/internal/artifacts"
 	"github.com/chranama/MealCheck/internal/checker"
 	"github.com/chranama/MealCheck/internal/commands/eval"
+	"github.com/chranama/MealCheck/internal/commands/evalnormalization"
 	"github.com/chranama/MealCheck/internal/commands/fixturecheck"
 	"github.com/chranama/MealCheck/internal/commands/localsmoke"
 	"github.com/chranama/MealCheck/internal/hosted"
@@ -37,6 +38,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runDecisionCommand(args[1:], stdout, stderr)
 	case "eval":
 		return eval.Run(args[1:], stdout, stderr)
+	case "eval-normalization":
+		return evalnormalization.Run(args[1:], stdout, stderr)
 	case "fixture-check":
 		return fixturecheck.Run(args[1:], stdout, stderr)
 	case "invite":
@@ -411,6 +414,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  mealcheck compare --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]")
 	fmt.Fprintln(w, "  mealcheck decision [--strict] <decision.json>")
 	fmt.Fprintln(w, "  mealcheck eval [-dataset dataset.json] [-out results.json] [-fndds-fallback fndds.sqlite] [-skip-expected]")
+	fmt.Fprintln(w, "  mealcheck eval-normalization [-mode deterministic|local-llama] [-dataset cases.jsonl] [-failures failure-cases.jsonl] [-out results.json]")
 	fmt.Fprintln(w, "  mealcheck fixture-check [-root repo-root]")
 	fmt.Fprintln(w, "  mealcheck local-llama normalize --input compact.json [--out normalized-plan.json]")
 	fmt.Fprintln(w, "  mealcheck local-llama schema")

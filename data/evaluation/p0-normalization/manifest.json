@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1",
+  "dataset_id": "p0-normalization-v1",
+  "description": "P0 meal-plan normalization evaluation cases for deterministic source inventory, compact-row adapter checks, and qualification failures.",
+  "case_files": [
+    "cases-v1.jsonl"
+  ],
+  "failure_case_files": [
+    "failure-cases-v1.jsonl"
+  ],
+  "supported_units": [
+    "g",
+    "oz",
+    "cup",
+    "tbsp",
+    "tsp",
+    "slice",
+    "serving"
+  ],
+  "release_gate": false,
+  "source_refs": [
+    {
+      "source": "mealcheck_input_robustness",
+      "data_type": "checked-in MealCheck robustness examples",
+      "path": "examples/meal-plan-input-robustness",
+      "checked_in": true
+    },
+    {
+      "source": "nyt_ingredient_phrase_tagger",
+      "data_type": "public ingredient phrase CSV",
+      "url": "https://github.com/nytimes/ingredient-phrase-tagger",
+      "expected_env": "MEALCHECK_NYT_INGREDIENTS_CSV",
+      "checked_in": false
+    },
+    {
+      "source": "tasteset",
+      "data_type": "public recipe NER CSV",
+      "url": "https://github.com/taisti/TASTEset",
+      "expected_env": "MEALCHECK_TASTESET_CSV",
+      "checked_in": false
+    }
+  ],
+  "summary": {
+    "success_cases": 8,
+    "failure_cases": 3,
+    "total_expected_source_items": 120
+  }
+}

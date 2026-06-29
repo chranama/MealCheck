@@ -513,6 +513,12 @@ func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, err
 	}, nil
 }
 
+// LocalModelExtractionMessages returns the compact local-model extraction
+// prompt used by the hosted local-model path.
+func LocalModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, error) {
+	return localModelExtractionMessages(input)
+}
+
 func generationCountInstruction(constraints checker.VerificationConstraints) string {
 	switch {
 	case constraints.Days > 0 && constraints.MealsPerDay > 0:
@@ -557,6 +563,15 @@ type localLlamaSourceItem struct {
 	Text     string
 }
 
+// LocalLlamaSourceItem is the deterministic source-item inventory used before
+// compact local-model extraction.
+type LocalLlamaSourceItem struct {
+	ID       int
+	Day      int
+	MealCode string
+	Text     string
+}
+
 type localModelDaySection struct {
 	Day  int
 	Text string
@@ -574,6 +589,28 @@ var (
 
 func localLlamaExpectedResolvedItemCount(text string) int {
 	return len(localLlamaResolvedSourceItems(text))
+}
+
+// LocalLlamaExpectedResolvedItemCount returns the number of deterministic
+// source items MealCheck expects the local model to preserve.
+func LocalLlamaExpectedResolvedItemCount(text string) int {
+	return localLlamaExpectedResolvedItemCount(text)
+}
+
+// LocalLlamaResolvedSourceItems returns the deterministic source-item inventory
+// used in local-model prompts.
+func LocalLlamaResolvedSourceItems(text string) []LocalLlamaSourceItem {
+	internal := localLlamaResolvedSourceItems(text)
+	items := make([]LocalLlamaSourceItem, 0, len(internal))
+	for _, item := range internal {
+		items = append(items, LocalLlamaSourceItem{
+			ID:       item.ID,
+			Day:      item.Day,
+			MealCode: item.MealCode,
+			Text:     item.Text,
+		})
+	}
+	return items
 }
 
 func localModelDaySections(text string) ([]localModelDaySection, bool) {

@@ -142,6 +142,51 @@ func TestEvalCommandWritesResult(t *testing.T) {
 	}
 }
 
+func TestEvalNormalizationCommandWritesResult(t *testing.T) {
+	root := repoRoot(t)
+	out := filepath.Join(t.TempDir(), "p0-eval-result.json")
+
+	code := run([]string{
+		"eval-normalization",
+		"-root", root,
+		"-out", out,
+	}, &bytes.Buffer{}, &bytes.Buffer{})
+
+	if code != 0 {
+		t.Fatalf("eval-normalization exit code = %d, want 0", code)
+	}
+
+	var result struct {
+		SchemaVersion              string  `json:"schema_version"`
+		DatasetID                  string  `json:"dataset_id"`
+		Mode                       string  `json:"mode"`
+		TotalCases                 int     `json:"total_cases"`
+		SuccessCases               int     `json:"success_cases"`
+		FailureCases               int     `json:"failure_cases"`
+		CasesWithMismatches        int     `json:"cases_with_mismatches"`
+		SourceItemPreservationRate float64 `json:"source_item_preservation_rate"`
+	}
+	readJSON(t, out, &result)
+	if result.SchemaVersion != "0.1" {
+		t.Fatalf("schema_version = %q, want 0.1", result.SchemaVersion)
+	}
+	if result.DatasetID != "p0-normalization-v1" {
+		t.Fatalf("dataset_id = %q, want p0-normalization-v1", result.DatasetID)
+	}
+	if result.Mode != "deterministic" {
+		t.Fatalf("mode = %q, want deterministic", result.Mode)
+	}
+	if result.TotalCases != 11 || result.SuccessCases != 8 || result.FailureCases != 3 {
+		t.Fatalf("case counts = total %d success %d failure %d, want 11/8/3", result.TotalCases, result.SuccessCases, result.FailureCases)
+	}
+	if result.CasesWithMismatches != 0 {
+		t.Fatalf("cases_with_mismatches = %d, want 0", result.CasesWithMismatches)
+	}
+	if result.SourceItemPreservationRate != 1 {
+		t.Fatalf("source_item_preservation_rate = %f, want 1", result.SourceItemPreservationRate)
+	}
+}
+
 func TestFixtureCheckCommandReturnsOK(t *testing.T) {
 	code := run([]string{
 		"fixture-check",

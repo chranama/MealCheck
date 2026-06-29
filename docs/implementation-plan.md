@@ -3112,12 +3112,17 @@ Implemented:
 8. Updated `docs/evaluation.md` with artifact descriptions, generation command,
    current counts, and the role of quarantined rows.
 
-Current Results:
+Current Results After Later Resolver Expansion:
 
 - FNDDS food rows preserved: 5,432.
-- Eligible resolver candidates: 2,926.
-- Quarantined rows: 2,505.
+- Eligible resolver candidates: 3,056.
+- Quarantined rows: 2,375.
 - Review-required rows: 1.
+- Resolver match keys: 6,201.
+- Source-backed unit conversions: 25,928.
+- Approximation proxies: 95.
+- Decomposition templates: 6.
+- Decomposition rules: 31.
 - Known examples:
   - `Water, tap` is `eligible_generic`.
   - `Milk, NFS` is `quarantined_ambiguous`.
@@ -3192,7 +3197,7 @@ Implemented:
 8. Regenerated evaluation result artifacts with fallback metadata.
 9. Updated `docs/evaluation.md` and `docs/architecture.md`.
 
-Current Results:
+Current Results After Later Resolver Expansion:
 
 - FNDDS SQLite tables:
   - foods: 5,432
@@ -3202,7 +3207,10 @@ Current Results:
   - allergens: 3,916
   - food groups: 10,107
 - WWEIA/NHANES no-fallback coverage: 496 of 815 items resolved, 60.86%.
-- WWEIA/NHANES with FNDDS fallback: 644 of 815 items resolved, 79.02%.
+- WWEIA/NHANES with FNDDS fallback and later approximation/decomposition
+  expansion: 774 of 815 items resolved, 94.97%.
+- The fallback coverage run includes 690 exact resolutions, 45 estimated
+  approximation resolutions, and 39 decomposed resolutions.
 - The fallback coverage run skips expected-outcome comparison because the
   checked-in WWEIA expected unresolved counts describe no-fallback mode.
 
@@ -3228,6 +3236,8 @@ Verification:
 - `go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
 
 ## Milestone 42: FNDDS Resolver Well-Defined Food Gate
+
+Status: Implemented on 2026-06-25.
 
 Purpose:
 
@@ -3284,6 +3294,8 @@ Verification:
 
 ## Milestone 43: First-Class Unresolved And De Minimis Policy
 
+Status: Implemented on 2026-06-25.
+
 Purpose:
 
 Treat unresolved foods as explicit verification state while allowing a narrow,
@@ -3304,6 +3316,22 @@ Deliver:
 - tests for strict default behavior, enabled de minimis warnings, cap overflow,
   vague quantities, allergy contexts, and totals excluding unresolved items
 
+Implemented:
+
+1. Added `settings.verification_constraints.unresolved_policy` to case and
+   hosted request settings.
+2. Split resolver output into blocking unresolved items and excluded unresolved
+   items in `internal/checker/evaluate.go`.
+3. Added `ExcludedUnresolvedItem` to decision, report, metric, and artifact
+   output.
+4. Added `excluded-unresolved-foods.json` to artifact manifests and report
+   loading.
+5. Updated report UI to show unresolved recovery actions and a separate
+   "Excluded From Totals" section.
+6. Added backend and frontend tests for strict defaults, enabled de minimis
+   warnings, cap overflow, vague quantities, allergy contexts, and excluded
+   unresolved report display.
+
 Policy:
 
 - default behavior remains strict: unresolved items block verification.
@@ -3317,6 +3345,19 @@ Policy:
 - excluded unresolved items are never counted in nutrition totals and produce a
   warning, not a pass.
 
+Acceptance:
+
+- default unresolved behavior remains blocking.
+- de minimis exclusion is opt-in and cap-bound.
+- only deterministic mass quantities with `unknown_food` or
+  `missing_conversion:<unit>` reasons can be excluded.
+- allergy and excluded-food constraints disable exclusion.
+- excluded unresolved items are visible in decision, metrics, artifact, and UI
+  surfaces.
+- nutrition totals exclude unresolved nutrients.
+- `quantities_resolvable` warns, rather than passes, when all unresolved items
+  are excluded by policy.
+
 Verification:
 
 - `go test ./...` passes.
@@ -3324,4 +3365,204 @@ Verification:
 - `cd ui && npm run typecheck` passes.
 - `cd ui && npm run test` passes.
 - `cd ui && npm run build` passes.
+- `git diff --check` passes.
+
+## Milestone 44: FNDDS Match-Key, Approximation, And Decomposition Expansion
+
+Status: Implemented through 2026-06-28.
+
+Purpose:
+
+Improve common-food and common-unit resolution without relaxing the conservative
+resolver boundary. The fallback should resolve more ordinary source-backed
+foods, but ambiguous, branded, restaurant, vague, unsupported-unit, and
+unsafe allergy/exclusion cases must remain visible instead of being guessed.
+
+Deliver:
+
+- generated FNDDS resolver match keys with explicit `auto`, `blocked`,
+  `decompose`, and `review` statuses
+- source-backed food-specific unit conversions from FNDDS Portions and Weights
+- curated and generated approximation proxies for broad/source-code generic
+  foods that can be represented safely as estimated nutrition
+- curated decomposition templates and source-code-backed family decomposition
+  rules for selected composed foods
+- runtime resolver support for `estimated` and `decomposed` resolution methods
+- artifact, report, and eval visibility for estimated and decomposed foods
+- tests for approximation proxies, decomposition rules, unit conversions,
+  source-code mappings, and known gap fixes
+
+Implemented:
+
+1. Extended `scripts/import-fndds-reference.py` to generate
+   `resolver-match-keys.jsonl`, `unit-conversions.jsonl`,
+   `approximation-proxies.json`, and `decomposition-rules.json`.
+2. Updated the SQLite reference layer to expose match-key lookup, approximation
+   proxy lookup, decomposition-template lookup, decomposition-rule lookup, and
+   source-food-code lookup.
+3. Added source-backed unit conversions to fallback resolution while preserving
+   unsupported-unit failure for units without deterministic conversion.
+4. Added approximation resolution that marks resolved items with
+   `resolution_method: estimated`, confidence, proxy metadata, and estimate
+   reason.
+5. Added decomposition resolution that splits eligible composed foods across
+   component FNDDS foods and records component metadata.
+6. Added `estimated_or_decomposed_foods` as a warning check so approximate
+   resolver paths are visible in reports.
+7. Added generated approximation proxies for conservative categories such as
+   raw fruit, simple beverages, nuts, milk, simple proteins, legumes, and simple
+   toppings.
+8. Added decomposition rules and regression coverage for selected sandwiches,
+   tuna sandwich, burrito, fruit drink, peanut, and other common WWEIA/NHANES
+   gaps.
+
+Current Results:
+
+- FNDDS food rows preserved: 5,432.
+- Eligible resolver candidates: 3,056.
+- Quarantined rows: 2,375.
+- Resolver match keys: 6,201, including 3,839 automatic keys.
+- Source-backed unit conversions: 25,928.
+- Approximation proxies: 95 total, 16 curated and 79 generated.
+- Approximation source-code mappings: 95.
+- Decomposition templates: 6.
+- Decomposition rules: 31, with 33 source-code mappings and 97 components.
+- WWEIA/NHANES with FNDDS fallback resolves 774 of 815 items, 94.97%.
+- That coverage run includes 690 exact, 45 estimated, and 39 decomposed
+  resolutions with zero expected-outcome mismatches when expected comparison is
+  skipped for fallback coverage mode.
+
+Acceptance:
+
+- local reviewed-catalog matches still take precedence.
+- fallback lookup remains exact-match or preprocessed-auto-key based.
+- estimated foods carry explicit proxy metadata and produce a warning.
+- decomposed foods carry component metadata and produce a warning.
+- approximation and decomposition are disabled when allergy or excluded-food
+  constraints make the proxy unsafe.
+- source-backed unit conversions resolve only when the generated reference
+  layer has deterministic gram factors.
+- ambiguous, restaurant/product-style, unsupported-unit, and unresolved vague
+  quantities remain visible.
+
+Verification:
+
+- `go test ./...` passes.
+- `go run ./cmd/mealcheck fixture-check` passes.
+- `go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out /tmp/mealcheck-wweia-fallback-current.json` passes.
+- `git diff --check` passes.
+
+## Milestone 45: P0 Normalization Evaluation Framework
+
+Status: Deterministic seed tier and opt-in local-model runner implemented in the
+current worktree. Public source-dataset expansion and live local-model baseline
+analysis remain pending.
+
+Purpose:
+
+Create a measured evaluation loop for the highest-priority hosted failure mode:
+turning in-bound pasted meal-plan text into canonical MealCheck JSON before the
+deterministic checker runs. This milestone keeps normalization evaluation
+separate from resolver coverage so failures can be attributed to source-item
+inventory, compact row extraction, adapter expansion, qualification, or local
+model behavior.
+
+Deliver:
+
+- documented P0 task boundary and case format
+- generated-case plan for public ingredient-parsing datasets
+- P0 source manifest and seed dataset generated from reviewed MealCheck
+  robustness examples
+- deterministic `mealcheck eval-normalization` command
+- manifest, success-case JSONL, and failure-case JSONL loading
+- source-item inventory scoring without llama.cpp
+- compact-row adapter validation without llama.cpp
+- tag summaries, failure summaries, source-item preservation rate, and optional
+  JSON result output
+- opt-in local-model evaluation mode for hosted-path baseline runs
+- fixture-check validation for P0 dataset shape and counts
+- command-level regression coverage for deterministic P0 evaluation
+- command-level regression coverage for the local-model scoring path without a
+  live llama.cpp service
+
+Implemented So Far:
+
+1. Updated `docs/evaluation.md` to split P0 normalization from P1 food and unit
+   resolution.
+2. Documented the P0 case format, public source-dataset plan, metrics, proof
+   gates, and buildout slices.
+3. Added exported local llama source-item helpers in
+   `internal/hosted/generation.go` so evaluation code can reuse the same
+   deterministic source inventory as hosted prompting.
+4. Added the `mealcheck eval-normalization` command entry in
+   `cmd/mealcheck/main.go`.
+5. Added `internal/commands/evalnormalization` with deterministic manifest
+   loading, success/failure JSONL loading, source-inventory comparison, compact
+   adapter validation, tag summaries, failure summaries, `-out`, and
+   `-allow-mismatch`.
+6. Added `scripts/generate-p0-normalization-evaluation.py` to regenerate a
+   reviewed seed corpus from `examples/meal-plan-input-robustness` and
+   optionally append cases from local NYT Ingredient Phrase Tagger or TASTEset
+   source files.
+7. Added `data/evaluation/p0-normalization/source-manifest.json`,
+   `manifest.json`, `cases-v1.jsonl`, and `failure-cases-v1.jsonl`.
+8. Added fixture-check validation for the P0 source manifest, manifest summary,
+   success cases, failure cases, source-item IDs, supported units, and expected
+   source-item counts.
+9. Added `-mode local-llama` for explicit local-model baseline runs. The mode
+   uses the production compact extraction prompt and adapter, reports provider
+   failures, compact-output decode failures, row-match counts, and local-model
+   row-match rate, and keeps the default deterministic path CI-safe.
+10. Added a CLI regression test proving `mealcheck eval-normalization` writes a
+   deterministic result for the seed corpus.
+11. Added local-model scorer regression coverage with a static provider so the
+    scoring path is tested without requiring llama.cpp.
+
+Current Seed Results:
+
+- Total P0 cases: 11.
+- Success cases: 8.
+- Failure cases: 3.
+- Expected source items: 120.
+- Source items matched: 120.
+- Source item preservation rate: 100%.
+- Adapter-valid success cases: 8.
+- Qualification failure cases passed: 3.
+- Cases with mismatches: 0.
+
+Remaining:
+
+- decide whether the seed corpus is large enough for the first release gate or
+  should stay advisory while generated public-source coverage is added.
+- add the first small NYT Ingredient Phrase Tagger subset after source/license
+  review.
+- add TASTEset and NHANES/WWEIA-derived normalization layers only after the seed
+  deterministic runner remains stable.
+- run and summarize a live local-model baseline on the MacBook model server.
+- add result-directory artifacts for local-model raw compact output, canonical
+  JSON, normalization events, timings, and repeat-run instability.
+
+Acceptance:
+
+- deterministic tiers run without a local model.
+- success cases verify source item count, source item order, day, meal code,
+  source text, food, quantity, and unit.
+- adapter validation proves expected compact rows expand into canonical
+  MealCheck plan JSON.
+- failure cases can assert qualification or source-inventory refusal states.
+- result output reports case pass rate, source-item preservation rate, adapter
+  valid cases, tag summaries, and ranked failure categories.
+- local-model evaluation remains explicitly separate from deterministic CI-safe
+  tiers.
+- local-model mode reports provider, decode, and canonical row-mismatch failure
+  classes without changing default CI behavior.
+
+Verification:
+
+- `go test ./...` passes against the current worktree.
+- `go run ./cmd/mealcheck fixture-check` passes.
+- `go run ./cmd/mealcheck eval-normalization -out /tmp/mealcheck-p0-normalization.json` passes.
+- `go run ./cmd/mealcheck eval-normalization -mode local-llama ...` is
+  available for manual runs when `MEALCHECK_LOCAL_MODEL_NAME` and a
+  llama.cpp-compatible service are configured.
 - `git diff --check` passes.

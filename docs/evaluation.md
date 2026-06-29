@@ -43,10 +43,19 @@ The current checked-in P0 corpus is small and hand-authored:
   plans with expected day counts, meal-code coverage, item counts, and tags.
 - `examples/meal-plan-input-robustness/failure-manifest.json`: qualification
   failures that should be refused before model normalization.
+- `data/evaluation/p0-normalization/manifest.json`: generated P0 evaluation
+  manifest for the current reviewed seed corpus.
+- `data/evaluation/p0-normalization/cases-v1.jsonl`: success cases with
+  expected source items and compact-row fields.
+- `data/evaluation/p0-normalization/failure-cases-v1.jsonl`: qualification
+  failure cases with expected failure status.
 - `scripts/test-meal-plan-input-robustness.sh`: local-model smoke harness for
   compatible acceptable-input cases.
+- `mealcheck eval-normalization`: P0 runner for deterministic source inventory,
+  compact-row adapter, qualification-failure, tag-summary, failure-summary, and
+  opt-in local-model baseline metrics.
 
-The next P0 evaluation layer should use public ingredient-parsing datasets as
+The checked-in seed can be extended with public ingredient-parsing datasets as
 source material for generated MealCheck normalization cases:
 
 - NYT Ingredient Phrase Tagger:
@@ -128,7 +137,7 @@ the intended failure stage and reason:
   "source_dataset": "nyt_ingredient_phrase_tagger",
   "input_text": "Day 1 breakfast:\n- 1 handful almonds",
   "expected_failure": {
-    "stage": "qualification_or_source_inventory",
+    "stage": "source_inventory",
     "reason": "unsupported_unit"
   },
   "tags": ["failure", "unsupported_unit"]
@@ -137,22 +146,23 @@ the intended failure stage and reason:
 
 ### P0 Dataset Generation
 
-Add a generator script:
+The generator script is:
 
 ```text
 scripts/generate-p0-normalization-evaluation.py
 ```
 
-The generator should read external source files from environment variables:
+The generator reads optional external source files from environment variables:
 
 ```text
 MEALCHECK_NYT_INGREDIENTS_CSV=/tmp/mealcheck-p0/nyt-ingredients-snapshot-2015.csv
-MEALCHECK_TASTESET_DIR=/tmp/mealcheck-p0/tasteset
+MEALCHECK_TASTESET_CSV=/tmp/mealcheck-p0/TASTEset.csv
 ```
 
-The generator should write deterministic artifacts:
+The generator writes deterministic artifacts:
 
 ```text
+data/evaluation/p0-normalization/source-manifest.json
 data/evaluation/p0-normalization/manifest.json
 data/evaluation/p0-normalization/cases-v1.jsonl
 data/evaluation/p0-normalization/failure-cases-v1.jsonl
@@ -214,20 +224,28 @@ Tier 2: adapter contract tests.
 Tier 3: local-model normalization eval.
 
 - Run manually or in a scheduled environment with the MacBook model server.
-- Send `input_text` through the same hosted local-model normalization path used
-  by live runs.
-- Compare actual compact rows and canonical plan JSON against expected rows.
-- Record output, normalization events, debug artifacts, stage timings, and
-  failure class.
+- Send `input_text` through the same compact local-model extraction prompt and
+  adapter used by live runs.
+- Compare normalized canonical plan JSON against expected rows.
+- Record provider, decode, and row-match failure classes.
 - Support repeats per case because the model path can be nondeterministic.
 
-The first implementation can be a Go command or script, but it should expose a
-stable command shape:
+The deterministic implementation uses this command:
 
 ```bash
 go run ./cmd/mealcheck eval-normalization \
   -dataset data/evaluation/p0-normalization/cases-v1.jsonl \
   -out /tmp/mealcheck-p0-normalization.json
+```
+
+The opt-in local-model implementation uses this command:
+
+```bash
+MEALCHECK_LOCAL_MODEL_NAME="$MODEL_NAME" \
+go run ./cmd/mealcheck eval-normalization \
+  -mode local-llama \
+  -dataset data/evaluation/p0-normalization/cases-v1.jsonl \
+  -out /tmp/mealcheck-p0-local-model.json
 ```
 
 ### P0 Metrics And Gates
@@ -281,6 +299,142 @@ Track but do not immediately release-block on:
 
 This split prevents a large generated dataset from blocking small urgent fixes
 while still making normalization reliability measurable.
+
+Current P0 seed result:
+
+- 8 success cases pass deterministic source-inventory and adapter checks.
+- 3 qualification-failure cases pass expected-status checks.
+- 120 of 120 expected source items are preserved, for a
+  `source_item_preservation_rate` of 1.0.
+- The seed result has zero mismatches.
+
+### P0 Buildout Plan
+
+Build P0 evaluation in slices that each produce a runnable artifact. The first
+goal is not model fine-tuning; it is a measured loop that can say exactly which
+normalization subtask failed and whether the failure is deterministic, prompt
+related, or local-model related.
+
+Slice 1: define the checked-in P0 evaluation contract. Current status:
+implemented for the reviewed seed corpus.
+
+- Add `data/evaluation/p0-normalization/source-manifest.json` with source
+  dataset names, expected local source paths, source URLs, license notes, and
+  generation commands.
+- Add an initial `data/evaluation/p0-normalization/manifest.json` that records
+  schema version, dataset version, case counts, tag vocabulary, supported units,
+  and release-gate status.
+- Keep raw public datasets out of the repository unless size and license review
+  explicitly allow check-in.
+- Add `go run ./cmd/mealcheck fixture-check` coverage for manifest shape and
+  case-file consistency once generated artifacts exist.
+
+Slice 2: implement deterministic P0 case loading and scoring. Current status:
+implemented as `mealcheck eval-normalization`.
+
+- Add a normalization-eval loader for JSONL success and failure cases.
+- Score source item inventory without calling the local model.
+- Score expected compact rows through the adapter without calling the local
+  model.
+- Emit a result JSON with pass/fail counts, per-tag metrics, and ranked failure
+  reasons.
+- This slice should be CI-safe and should not depend on llama.cpp.
+
+Slice 3: generate a small reviewed NYT Ingredient Phrase Tagger subset. Current
+status: generator support is present; checked-in NYT-derived cases are deferred
+until source/license review.
+
+- Read the NYT CSV from `MEALCHECK_NYT_INGREDIENTS_CSV`.
+- Keep rows with parsed food name, numeric quantity, and supported MealCheck
+  unit.
+- Normalize units into MealCheck's supported vocabulary.
+- Generate one-day and two-day meal-plan wrappers around selected ingredient
+  rows.
+- Start with a small checked-in sample, such as 100 success cases and 25 failure
+  cases, so diffs remain reviewable.
+- Quarantine rows with ranges, alternatives, optional ingredients, vague
+  quantities, or comments that make the expected row debatable.
+
+Slice 4: add TASTEset for harder span-boundary coverage. Current status:
+generator support is present; checked-in TASTEset-derived cases are deferred
+until source/license review.
+
+- Read TASTEset from `MEALCHECK_TASTESET_CSV` or
+  `MEALCHECK_TASTESET_DIR`.
+- Reconstruct ingredient lines from span annotations.
+- Keep lines with quantity, unit, and food spans for success cases when the unit
+  is supported.
+- Preserve useful `PROCESS` and `PHYSICAL_QUALITY` spans in the food phrase
+  when they match MealCheck's public input boundary.
+- Use unsupported units, missing quantities, ranges, and recipe-like lines as
+  failure cases.
+- Keep TASTEset separate in tags and metrics so it does not mask simpler NYT
+  regressions.
+
+Slice 5: add structure-focused cases from NHANES/WWEIA. Current status:
+planned.
+
+- Reuse the existing NHANES/WWEIA source-download convention already used by P1.
+- Generate synthetic pasted text from real recall day, eating occasion, food
+  description, and gram-weight rows.
+- Use this layer to evaluate day/meal grouping and compact-row generation, not
+  food-resolution quality.
+- Preserve participant/day/eating-occasion source refs so failures can be
+  traced.
+- Keep a small reviewed checked-in sample first; larger generated coverage can
+  remain an optional local artifact.
+
+Slice 6: add failure-class datasets. Current status: qualification failures from
+the reviewed seed corpus are implemented; generated unsupported-unit and
+vague-quantity cases are planned.
+
+- Derive `unsupported_unit`, `vague_quantity`, `range_quantity`, and
+  `quantity_missing` cases from NYT and TASTEset source rows.
+- Derive `recipe_or_menu_needs_decomposition` cases from recipe-like public
+  corpora only after license review.
+- Optionally use a generic out-of-scope intent dataset such as CLINC150 for
+  `not_meal_plan` hard negatives, but keep those cases secondary because they
+  are not food-domain examples.
+- Every failure case should name the expected public failure category and the
+  stage where it should fail.
+
+Slice 7: add the local-model P0 runner. Current status: implemented as the
+opt-in `mealcheck eval-normalization -mode local-llama` path.
+
+- Add `go run ./cmd/mealcheck eval-normalization` as the stable command.
+- Run deterministic tiers by default.
+- Add an explicit `-mode local-llama` flag for local-model runs so accidental
+  CI execution does not call llama.cpp.
+- Score local-model provider failures, compact-output decode failures, and
+  canonical row mismatches separately from deterministic source-inventory
+  failures.
+- Future: record compact output, canonical plan JSON, normalization events,
+  failure details, and stage timings under a result directory.
+- Support repeat runs per case and report instability separately from ordinary
+  wrong-output failures.
+
+Slice 8: connect evaluation to the engineering loop. Current status: initial
+result summary is documented; running and summarizing a live local-model
+baseline plus generated external-source summaries remains planned.
+
+- Add a short result summary to `docs/evaluation.md` after the first baseline
+  run.
+- Promote stable high-signal generated cases into
+  `examples/meal-plan-input-robustness/` when they represent public input
+  formats that should always work.
+- Keep generated dataset failures grouped by subtask:
+  day/meal detection, item segmentation, quantity extraction, unit extraction,
+  food phrase extraction, compact-row generation, and failure classification.
+- Use the failure inventory to choose between deterministic parser changes,
+  prompt changes, retrieval examples, constrained decoding, or model-training
+  experiments.
+
+The first useful milestone is a deterministic P0 eval that can run without the
+model and prove that generated cases, source item inventory, and adapter
+contracts are coherent. The second useful milestone is a local-model baseline
+that reports where the current hosted path fails. Fine-tuning or other
+weight-changing ML work should wait until those baselines show stable,
+high-frequency model failures that cannot be handled more simply.
 
 ## P1 Food And Unit Resolution
 
@@ -591,13 +745,23 @@ Run the current hand-authored P0 robustness smoke harness:
 scripts/test-meal-plan-input-robustness.sh
 ```
 
-After the generated P0 normalization dataset exists, run the planned
-normalization evaluation command:
+Run the deterministic P0 normalization evaluation:
 
 ```bash
 go run ./cmd/mealcheck eval-normalization \
   -dataset data/evaluation/p0-normalization/cases-v1.jsonl \
   -out /tmp/mealcheck-p0-normalization.json
+```
+
+Run the opt-in local-model P0 baseline when the local llama.cpp-compatible
+service is available:
+
+```bash
+MEALCHECK_LOCAL_MODEL_NAME="$MODEL_NAME" \
+go run ./cmd/mealcheck eval-normalization \
+  -mode local-llama \
+  -dataset data/evaluation/p0-normalization/cases-v1.jsonl \
+  -out /tmp/mealcheck-p0-local-model.json
 ```
 
 Regenerate the P1 catalog and dataset after downloading the FNDDS workbooks:
@@ -660,8 +824,9 @@ outcomes are not supposed to pass yet.
 
 CI currently covers parts of both evaluation tasks.
 
-P0 source-inventory coverage lives in hosted generation tests and the
-hand-authored input robustness manifest. The local-model P0 smoke harness is
+P0 source-inventory coverage lives in hosted generation tests, the
+hand-authored input robustness manifest, and the deterministic
+`mealcheck eval-normalization` command. The `-mode local-llama` P0 baseline is
 manual because it depends on llama.cpp availability.
 
 `go run ./cmd/mealcheck fixture-check` verifies P1 fixture, dataset, and

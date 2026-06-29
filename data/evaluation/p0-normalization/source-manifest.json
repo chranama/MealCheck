@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1",
+  "source_manifest_id": "p0-normalization-sources-v1",
+  "generation_command": "python3 scripts/generate-p0-normalization-evaluation.py",
+  "sources": [
+    {
+      "source": "mealcheck_input_robustness",
+      "data_type": "checked-in MealCheck robustness examples",
+      "path": "examples/meal-plan-input-robustness",
+      "checked_in": true
+    },
+    {
+      "source": "nyt_ingredient_phrase_tagger",
+      "data_type": "public ingredient phrase CSV",
+      "url": "https://github.com/nytimes/ingredient-phrase-tagger",
+      "expected_env": "MEALCHECK_NYT_INGREDIENTS_CSV",
+      "checked_in": false
+    },
+    {
+      "source": "tasteset",
+      "data_type": "public recipe NER CSV",
+      "url": "https://github.com/taisti/TASTEset",
+      "expected_env": "MEALCHECK_TASTESET_CSV",
+      "checked_in": false
+    }
+  ]
+}

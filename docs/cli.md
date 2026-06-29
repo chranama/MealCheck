@@ -45,6 +45,7 @@ The deployed MacBook layout uses:
 | `mealcheck compare` | Exercise the baseline/candidate command surface and write a compare-mode bundle. |
 | `mealcheck decision` | Read an existing `decision.json` and apply MealCheck exit-code policy. |
 | `mealcheck eval` | Run deterministic evaluation datasets and write coverage results. |
+| `mealcheck eval-normalization` | Run P0 meal-plan normalization evaluation. |
 | `mealcheck fixture-check` | Validate checked-in schemas, fixtures, catalogs, and reference data. |
 | `mealcheck local-llama normalize` | Expand compact local llama JSON into canonical MealCheck plan JSON. |
 | `mealcheck local-llama schema` | Print the compact local llama response schema. |
@@ -61,6 +62,7 @@ usage:
   mealcheck compare --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]
   mealcheck decision [--strict] <decision.json>
   mealcheck eval [-dataset dataset.json] [-out results.json] [-fndds-fallback fndds.sqlite] [-skip-expected]
+  mealcheck eval-normalization [-mode deterministic|local-llama] [-dataset cases.jsonl] [-failures failure-cases.jsonl] [-out results.json]
   mealcheck fixture-check [-root repo-root]
   mealcheck local-llama normalize --input compact.json [--out normalized-plan.json]
   mealcheck local-llama schema
@@ -205,10 +207,49 @@ Options:
 | `-out` | stdout | Optional path to write JSON results. |
 | `-allow-mismatch` | `false` | Exit successfully even when expected outcomes mismatch. |
 
+## Run Normalization Evaluation
+
+`eval-normalization` runs the P0 meal-plan normalization evaluation. By default
+it does not call llama.cpp. The deterministic mode checks source-item inventory,
+compact-row adapter expansion, qualification-failure expectations, tag
+summaries, and source-item preservation.
+
+```bash
+go run ./cmd/mealcheck eval-normalization \
+  -out /tmp/mealcheck-p0-normalization-result.json
+```
+
+Run the opt-in local-model baseline against a running llama.cpp-compatible
+server:
+
+```bash
+MEALCHECK_LOCAL_MODEL_NAME="$MODEL_NAME" \
+go run ./cmd/mealcheck eval-normalization \
+  -mode local-llama \
+  -out /tmp/mealcheck-p0-local-model-result.json
+```
+
+Options:
+
+| Option | Default | Meaning |
+|---|---|---|
+| `-root` | `.` | Repository root used to resolve manifest and JSONL paths. |
+| `-manifest` | `data/evaluation/p0-normalization/manifest.json` | P0 normalization manifest path. |
+| `-dataset` | `data/evaluation/p0-normalization/cases-v1.jsonl` | P0 success-case JSONL path. |
+| `-failures` | `data/evaluation/p0-normalization/failure-cases-v1.jsonl` | P0 failure-case JSONL path. |
+| `-mode` | `deterministic` | `deterministic` for offline CI-safe checks, or `local-llama` for opt-in local-model scoring. |
+| `-local-model-base-url` | `MEALCHECK_LOCAL_MODEL_BASE_URL` or `http://127.0.0.1:11435/v1` | OpenAI-compatible local llama endpoint used only in `local-llama` mode. |
+| `-local-model-name` | `MEALCHECK_LOCAL_MODEL_NAME` | Required model name for `local-llama` mode. |
+| `-local-model-max-output-tokens` | `MEALCHECK_LOCAL_MODEL_MAX_OUTPUT_TOKENS` or `1536` | Output cap used only in `local-llama` mode. |
+| `-local-model-timeout` | `MEALCHECK_LOCAL_MODEL_TIMEOUT` or `240s` | Request timeout used only in `local-llama` mode. |
+| `-out` | stdout | Optional path to write JSON results. |
+| `-allow-mismatch` | `false` | Exit successfully even when expected outcomes mismatch. |
+
 ## Check Fixtures
 
 `fixture-check` validates checked-in schemas, example fixtures, guideline
-references, catalog quality, evaluation datasets, and FNDDS reference artifacts.
+references, catalog quality, P0/P1 evaluation datasets, and FNDDS reference
+artifacts.
 
 ```bash
 go run ./cmd/mealcheck fixture-check

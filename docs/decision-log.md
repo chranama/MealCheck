@@ -1838,3 +1838,44 @@ Consequences:
   allergen/excluded-food substitution, and vegetable coverage addition.
 - Nutrient rebalancing can be added later only if it can be expressed as a
   bounded deterministic rule and re-verified to `pass`.
+
+## 2026-06-29: P0 Normalization Evaluation Is Deterministic First
+
+Status: Accepted
+
+Decision:
+
+MealCheck's P0 evaluation framework should measure meal-plan normalization as a
+separate task from food and unit resolution. The first runnable evaluation tier
+should be deterministic and CI-safe: load a P0 manifest and JSONL cases, compare
+the backend's source-item inventory against expected source items, and validate
+expected compact rows through the existing local llama adapter without calling
+llama.cpp.
+
+Local-model evaluation should be a later explicit tier that is opt-in and
+records model outputs, normalization events, failure classes, and timing. Public
+ingredient-parsing datasets such as NYT Ingredient Phrase Tagger and TASTEset
+should be used as external source material for generated evaluation cases, not
+as checked-in raw data or as training data by default.
+
+Reason:
+
+Hosted user trust currently depends first on whether in-bound pasted meal-plan
+text becomes canonical MealCheck JSON. Mixing that task with nutrient resolver
+coverage hides the owner of failures. A deterministic first tier can catch
+source-item segmentation, day/meal assignment, and adapter regressions without
+requiring the MacBook model service, while a later local-model tier can measure
+the deployed path separately.
+
+Consequences:
+
+- P0 metrics are reported separately from P1 resolver metrics.
+- `mealcheck eval-normalization` starts with deterministic manifest, success
+  case, failure case, source-inventory, and adapter checks.
+- CI should run only deterministic P0 tiers unless a future workflow explicitly
+  provisions a model server.
+- Raw third-party datasets remain outside the repository until size and license
+  handling are reviewed.
+- Fine-tuning, constrained decoding, or other model-weight changes should wait
+  until deterministic and local-model baselines identify stable high-frequency
+  failures that simpler parser, prompt, or contract changes cannot address.
