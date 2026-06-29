@@ -1,6 +1,7 @@
 package evalnormalization
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -57,6 +58,83 @@ func TestRunLocalLlamaModeScoresProviderOutput(t *testing.T) {
 	}
 	if result.LocalModelFoodAccuracy != 1 || result.LocalModelQuantityAccuracy != 1 || result.LocalModelUnitAccuracy != 1 {
 		t.Fatalf("local model field accuracies = food %.3f quantity %.3f unit %.3f, want all 1", result.LocalModelFoodAccuracy, result.LocalModelQuantityAccuracy, result.LocalModelUnitAccuracy)
+	}
+}
+
+func TestRunLocalLlamaModeSupportsRepeats(t *testing.T) {
+	root := t.TempDir()
+	dataDir := filepath.Join(root, "data", "evaluation", "p0-normalization")
+	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+		t.Fatalf("mkdir data dir: %v", err)
+	}
+	manifestPath := filepath.Join(dataDir, "manifest.json")
+	datasetPath := filepath.Join(dataDir, "cases-v1.jsonl")
+	failurePath := filepath.Join(dataDir, "failure-cases-v1.jsonl")
+	if err := os.WriteFile(manifestPath, []byte(`{"schema_version":"0.1","dataset_id":"p0-local-repeat-test"}`), 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	successCase := `{"schema_version":"0.1","id":"repeat-item","source_dataset":"test","input_text":"Day 1 breakfast:\n- 1 cup oatmeal","expected":{"days":[1],"source_items":[{"source_item_id":1,"day":1,"meal_code":"b","source_text":"1 cup oatmeal","food":"oatmeal","quantity":1,"unit":"cup"}]},"tags":["unit_test"]}` + "\n"
+	if err := os.WriteFile(datasetPath, []byte(successCase), 0o644); err != nil {
+		t.Fatalf("write dataset: %v", err)
+	}
+	if err := os.WriteFile(failurePath, nil, 0o644); err != nil {
+		t.Fatalf("write failures: %v", err)
+	}
+
+	providerFactory := &sequenceProviderFactory{responses: []string{
+		`{"i":[[1,1,"b","oatmeal",1,"cup"]]}`,
+		`{"i":[]}`,
+		`{"i":[[1,1,"b","oatmeal",1,"cup"]]}`,
+	}}
+	result, err := run(runOptions{
+		Root:              root,
+		ManifestPath:      manifestPath,
+		DatasetPath:       datasetPath,
+		FailurePath:       failurePath,
+		Mode:              "local-llama",
+		LocalModelRepeats: 3,
+		ProviderConfig: hosted.ProviderConfig{
+			Type:  hosted.ProviderTypeLocalLlama,
+			Model: "test-model",
+		},
+		ProviderFactory: providerFactory.Factory,
+	})
+	if err != nil {
+		t.Fatalf("run local llama repeat eval: %v", err)
+	}
+	if providerFactory.calls != 3 {
+		t.Fatalf("provider calls = %d, want 3", providerFactory.calls)
+	}
+	if result.LocalModelRepeatsRequested != 3 {
+		t.Fatalf("local_model_repeats_requested = %d, want 3", result.LocalModelRepeatsRequested)
+	}
+	if result.SuccessCasesPassed != 0 || result.CasesPassed != 0 || result.CasesWithMismatches != 1 {
+		t.Fatalf("unexpected case pass counts: success_passed=%d passed=%d mismatches=%d", result.SuccessCasesPassed, result.CasesPassed, result.CasesWithMismatches)
+	}
+	if result.LocalModelSuccessCasesRun != 3 || result.LocalModelSuccessCasesPass != 2 {
+		t.Fatalf("local model repeat pass counts = %d/%d, want 2/3", result.LocalModelSuccessCasesPass, result.LocalModelSuccessCasesRun)
+	}
+	if result.LocalModelRowsMatched != 2 || result.LocalModelRowMatchRate != float64(2)/3 {
+		t.Fatalf("row match = %d rate %.3f, want 2 and 2/3", result.LocalModelRowsMatched, result.LocalModelRowMatchRate)
+	}
+	if result.LocalModelDecodeFailures != 1 || result.LocalModelUnstableCases != 1 {
+		t.Fatalf("decode failures = %d unstable cases = %d, want 1/1", result.LocalModelDecodeFailures, result.LocalModelUnstableCases)
+	}
+	if len(result.LocalModelRepeatSummary) != 3 {
+		t.Fatalf("repeat summary length = %d, want 3", len(result.LocalModelRepeatSummary))
+	}
+	if result.LocalModelRepeatSummary[1].SuccessCasesPass != 0 || result.LocalModelRepeatSummary[1].DecodeFailures != 1 {
+		t.Fatalf("repeat 2 summary = %+v, want failed decode", result.LocalModelRepeatSummary[1])
+	}
+	if len(result.LocalModelCaseRepeatSummary) != 1 {
+		t.Fatalf("case repeat summary length = %d, want 1", len(result.LocalModelCaseRepeatSummary))
+	}
+	caseSummary := result.LocalModelCaseRepeatSummary[0]
+	if caseSummary.Passes != 2 || caseSummary.Failures != 1 || caseSummary.MinRowMatchRate != 0 || caseSummary.MaxRowMatchRate != 1 {
+		t.Fatalf("case repeat summary = %+v, want 2 pass, 1 failure, rates 0..1", caseSummary)
+	}
+	if len(result.Mismatches) != 1 || len(result.Mismatches[0].Messages) == 0 || result.Mismatches[0].Messages[0] == "" {
+		t.Fatalf("mismatches = %+v, want repeat mismatch message", result.Mismatches)
 	}
 }
 
@@ -184,4 +262,26 @@ func TestRunManifestGateAndSourceDatasetFilters(t *testing.T) {
 	if len(externalResult.SourceDatasetSummary) != 1 || externalResult.SourceDatasetSummary[0].SourceDataset != "nyt_ingredient_phrase_tagger" {
 		t.Fatalf("source dataset summary = %+v, want only NYT", externalResult.SourceDatasetSummary)
 	}
+}
+
+type sequenceProviderFactory struct {
+	responses []string
+	calls     int
+}
+
+func (f *sequenceProviderFactory) Factory(hosted.ProviderConfig) (hosted.Provider, error) {
+	return sequenceProvider{factory: f}, nil
+}
+
+type sequenceProvider struct {
+	factory *sequenceProviderFactory
+}
+
+func (p sequenceProvider) Complete(context.Context, hosted.ProviderConfig, []hosted.ProviderMessage) (string, error) {
+	p.factory.calls++
+	index := p.factory.calls - 1
+	if index >= len(p.factory.responses) {
+		index = len(p.factory.responses) - 1
+	}
+	return p.factory.responses[index], nil
 }

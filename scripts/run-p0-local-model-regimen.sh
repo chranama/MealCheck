@@ -152,80 +152,79 @@ jq '{dataset_id, mode, total_cases, cases_passed, cases_with_mismatches, source_
 
 print_section "Live local-model P0 repeats"
 : >"$OUTPUT_DIR/live-summary.jsonl"
-for run_index in $(seq 1 "$REPEATS"); do
-  result_path="$OUTPUT_DIR/live-run-$run_index.json"
-  stdout_path="$OUTPUT_DIR/live-run-$run_index.stdout"
-  stderr_path="$OUTPUT_DIR/live-run-$run_index.stderr"
-  started="$(date +%s)"
+result_path="$OUTPUT_DIR/live-result.json"
+stdout_path="$OUTPUT_DIR/live.stdout"
+stderr_path="$OUTPUT_DIR/live.stderr"
+started="$(date +%s)"
 
-  set +e
-  (
-    cd "$ROOT"
-    GOCACHE="$GOCACHE_DIR" go run ./cmd/mealcheck eval-normalization \
-      -mode local-llama \
-      -local-model-base-url "$BASE_URL" \
-      -local-model-name "$MODEL" \
-      -local-model-max-output-tokens "$MAX_OUTPUT_TOKENS" \
-      -local-model-timeout "$TIMEOUT" \
-      -out "$result_path" \
-      -allow-mismatch
-  ) >"$stdout_path" 2>"$stderr_path"
-  exit_code=$?
-  set -e
+set +e
+(
+  cd "$ROOT"
+  GOCACHE="$GOCACHE_DIR" go run ./cmd/mealcheck eval-normalization \
+    -mode local-llama \
+    -local-model-base-url "$BASE_URL" \
+    -local-model-name "$MODEL" \
+    -local-model-max-output-tokens "$MAX_OUTPUT_TOKENS" \
+    -local-model-timeout "$TIMEOUT" \
+    -local-model-repeats "$REPEATS" \
+    -out "$result_path" \
+    -allow-mismatch
+) >"$stdout_path" 2>"$stderr_path"
+exit_code=$?
+set -e
 
-  ended="$(date +%s)"
-  duration_seconds=$((ended - started))
-  if [[ -s "$result_path" ]] && jq -e . "$result_path" >/dev/null 2>&1; then
-    jq -cn \
-      --argjson run_index "$run_index" \
-      --argjson exit_code "$exit_code" \
-      --argjson duration_seconds "$duration_seconds" \
-      --slurpfile result "$result_path" \
-      '{
-        run_index: $run_index,
-        exit_code: $exit_code,
-        duration_seconds: $duration_seconds,
-        result_loaded: true,
-        total_cases: $result[0].total_cases,
-        cases_passed: $result[0].cases_passed,
-        cases_with_mismatches: $result[0].cases_with_mismatches,
-        local_model_success_cases_run: $result[0].local_model_success_cases_run,
-        local_model_success_cases_pass: $result[0].local_model_success_cases_pass,
-        local_model_expected_items: $result[0].local_model_expected_items,
-        local_model_rows_matched: $result[0].local_model_rows_matched,
-        local_model_row_match_rate: $result[0].local_model_row_match_rate,
-        local_model_day_accuracy: ($result[0].local_model_day_accuracy // 0),
-        local_model_meal_accuracy: ($result[0].local_model_meal_accuracy // 0),
-        local_model_food_accuracy: ($result[0].local_model_food_accuracy // 0),
-        local_model_quantity_accuracy: ($result[0].local_model_quantity_accuracy // 0),
-        local_model_unit_accuracy: ($result[0].local_model_unit_accuracy // 0),
-        local_model_source_repairs: ($result[0].local_model_source_repairs // 0),
-        local_model_repair_cases: ($result[0].local_model_repair_cases // 0),
-        local_model_provider_failures: ($result[0].local_model_provider_failures // 0),
-        local_model_decode_failures: ($result[0].local_model_decode_failures // 0),
-        mismatch_case_ids: [($result[0].mismatches // [])[].case_id]
-      }' >>"$OUTPUT_DIR/live-summary.jsonl"
-  else
-    jq -cn \
-      --argjson run_index "$run_index" \
-      --argjson exit_code "$exit_code" \
-      --argjson duration_seconds "$duration_seconds" \
-      '{
-        run_index: $run_index,
-        exit_code: $exit_code,
-        duration_seconds: $duration_seconds,
-        result_loaded: false,
-        cases_with_mismatches: 1,
-        local_model_row_match_rate: 0,
-        local_model_provider_failures: 1,
-        local_model_decode_failures: 0,
-        mismatch_case_ids: ["command_failed"]
-      }' >>"$OUTPUT_DIR/live-summary.jsonl"
-  fi
+ended="$(date +%s)"
+duration_seconds=$((ended - started))
+if [[ -s "$result_path" ]] && jq -e . "$result_path" >/dev/null 2>&1; then
+  jq -cn \
+    --argjson exit_code "$exit_code" \
+    --argjson duration_seconds "$duration_seconds" \
+    --slurpfile result "$result_path" \
+    '
+    ($result[0].local_model_repeat_summary // [])[]
+    | {
+      run_index: .repeat,
+      exit_code: $exit_code,
+      duration_seconds: $duration_seconds,
+      result_loaded: true,
+      total_cases: $result[0].total_cases,
+      cases_passed: $result[0].cases_passed,
+      cases_with_mismatches: .cases_with_mismatches,
+      local_model_success_cases_run: .success_cases_run,
+      local_model_success_cases_pass: .success_cases_pass,
+      local_model_expected_items: .expected_items,
+      local_model_rows_matched: .rows_matched,
+      local_model_row_match_rate: .row_match_rate,
+      local_model_day_accuracy: (.day_accuracy // 0),
+      local_model_meal_accuracy: (.meal_accuracy // 0),
+      local_model_food_accuracy: (.food_accuracy // 0),
+      local_model_quantity_accuracy: (.quantity_accuracy // 0),
+      local_model_unit_accuracy: (.unit_accuracy // 0),
+      local_model_source_repairs: (.source_repairs // 0),
+      local_model_repair_cases: (.repair_cases // 0),
+      local_model_provider_failures: (.provider_failures // 0),
+      local_model_decode_failures: (.decode_failures // 0),
+      mismatch_case_ids: [($result[0].mismatches // [])[].case_id]
+    }' >>"$OUTPUT_DIR/live-summary.jsonl"
+else
+  jq -cn \
+    --argjson exit_code "$exit_code" \
+    --argjson duration_seconds "$duration_seconds" \
+    '{
+      run_index: 1,
+      exit_code: $exit_code,
+      duration_seconds: $duration_seconds,
+      result_loaded: false,
+      cases_with_mismatches: 1,
+      local_model_row_match_rate: 0,
+      local_model_provider_failures: 1,
+      local_model_decode_failures: 0,
+      mismatch_case_ids: ["command_failed"]
+    }' >>"$OUTPUT_DIR/live-summary.jsonl"
+fi
 
-  jq -r '"run \(.run_index): exit=\(.exit_code) mismatches=\(.cases_with_mismatches) row_match=\(.local_model_row_match_rate) repairs=\(.local_model_source_repairs // 0)"' \
-    "$OUTPUT_DIR/live-summary.jsonl" | tail -n 1
-done
+jq -r '"repeat \(.run_index): exit=\(.exit_code) mismatches=\(.cases_with_mismatches) row_match=\(.local_model_row_match_rate) repairs=\(.local_model_source_repairs // 0)"' \
+  "$OUTPUT_DIR/live-summary.jsonl"
 
 jq -s \
   --arg generated_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \

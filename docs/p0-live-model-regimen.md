@@ -107,7 +107,8 @@ Each run writes a timestamped directory under `/tmp` unless
 - `models-response.json`: raw `/v1/models` response
 - `git-status.txt`: short worktree status
 - `deterministic-result.json`: offline P0 result
-- `live-run-N.json`: local-model result for each repeat
+- `live-result.json`: repeat-aware local-model result from
+  `mealcheck eval-normalization -mode local-llama -local-model-repeats N`
 - `live-summary.jsonl`: one compact result row per repeat
 - `summary.json`: aggregate gate result
 - stdout/stderr files for deterministic and live runs
@@ -143,7 +144,7 @@ The highest-signal fields are:
 Then inspect mismatched run files:
 
 ```bash
-jq '.mismatches' /tmp/mealcheck-p0-local-model-*/live-run-*.json
+jq '.mismatches' /tmp/mealcheck-p0-local-model-*/live-result.json
 ```
 
 Interpret failures by class:

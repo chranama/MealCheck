@@ -414,7 +414,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  mealcheck compare --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]")
 	fmt.Fprintln(w, "  mealcheck decision [--strict] <decision.json>")
 	fmt.Fprintln(w, "  mealcheck eval [-dataset dataset.json] [-out results.json] [-fndds-fallback fndds.sqlite] [-skip-expected]")
-	fmt.Fprintln(w, "  mealcheck eval-normalization [-mode deterministic|local-llama] [-gate strict|exploratory|all] [-source-dataset ID] [-out results.json]")
+	fmt.Fprintln(w, "  mealcheck eval-normalization [-mode deterministic|local-llama] [-local-model-repeats N] [-gate strict|exploratory|all] [-source-dataset ID] [-out results.json]")
 	fmt.Fprintln(w, "  mealcheck fixture-check [-root repo-root]")
 	fmt.Fprintln(w, "  mealcheck local-llama normalize --input compact.json [--out normalized-plan.json]")
 	fmt.Fprintln(w, "  mealcheck local-llama schema")

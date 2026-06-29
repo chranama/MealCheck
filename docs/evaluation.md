@@ -312,6 +312,7 @@ MEALCHECK_LOCAL_MODEL_NAME="$MODEL_NAME" \
 go run ./cmd/mealcheck eval-normalization \
   -mode local-llama \
   -gate strict \
+  -local-model-repeats 3 \
   -out /tmp/mealcheck-p0-local-model.json
 ```
 
@@ -490,10 +491,11 @@ opt-in `mealcheck eval-normalization -mode local-llama` path.
 - Score local-model provider failures, compact-output decode failures, and
   canonical row mismatches separately from deterministic source-inventory
   failures.
+- Support repeat runs per success case with `-local-model-repeats`, aggregate
+  per-repeat metrics, and report unstable cases separately from consistently
+  wrong-output failures.
 - Future: record compact output, canonical plan JSON, normalization events,
   failure details, and stage timings under a result directory.
-- Support repeat runs per case and report instability separately from ordinary
-  wrong-output failures.
 
 Slice 8: connect evaluation to the engineering loop. Current status: initial
 result summary is documented; running and summarizing a live local-model

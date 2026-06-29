@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -113,47 +114,51 @@ type expectedFailure struct {
 }
 
 type result struct {
-	SchemaVersion              string            `json:"schema_version"`
-	DatasetID                  string            `json:"dataset_id"`
-	Mode                       string            `json:"mode"`
-	TotalCases                 int               `json:"total_cases"`
-	CasesPassed                int               `json:"cases_passed"`
-	CasesWithMismatches        int               `json:"cases_with_mismatches"`
-	SuccessCases               int               `json:"success_cases"`
-	SuccessCasesPassed         int               `json:"success_cases_passed"`
-	FailureCases               int               `json:"failure_cases"`
-	FailureCasesPassed         int               `json:"failure_cases_passed"`
-	TotalExpectedSourceItems   int               `json:"total_expected_source_items"`
-	SourceItemsMatched         int               `json:"source_items_matched"`
-	SourceItemPreservationRate float64           `json:"source_item_preservation_rate"`
-	AdapterValidCases          int               `json:"adapter_valid_cases"`
-	LocalModelSuccessCasesRun  int               `json:"local_model_success_cases_run,omitempty"`
-	LocalModelSuccessCasesPass int               `json:"local_model_success_cases_pass,omitempty"`
-	LocalModelExpectedItems    int               `json:"local_model_expected_items,omitempty"`
-	LocalModelRowsMatched      int               `json:"local_model_rows_matched,omitempty"`
-	LocalModelRowMatchRate     float64           `json:"local_model_row_match_rate,omitempty"`
-	LocalModelDayMatched       int               `json:"local_model_day_matched,omitempty"`
-	LocalModelDayAccuracy      float64           `json:"local_model_day_accuracy,omitempty"`
-	LocalModelMealMatched      int               `json:"local_model_meal_matched,omitempty"`
-	LocalModelMealAccuracy     float64           `json:"local_model_meal_accuracy,omitempty"`
-	LocalModelFoodMatched      int               `json:"local_model_food_matched,omitempty"`
-	LocalModelFoodAccuracy     float64           `json:"local_model_food_accuracy,omitempty"`
-	LocalModelQuantityMatched  int               `json:"local_model_quantity_matched,omitempty"`
-	LocalModelQuantityAccuracy float64           `json:"local_model_quantity_accuracy,omitempty"`
-	LocalModelUnitMatched      int               `json:"local_model_unit_matched,omitempty"`
-	LocalModelUnitAccuracy     float64           `json:"local_model_unit_accuracy,omitempty"`
-	LocalModelSourceRepairs    int               `json:"local_model_source_repairs,omitempty"`
-	LocalModelRepairCases      int               `json:"local_model_repair_cases,omitempty"`
-	LocalModelProviderFailures int               `json:"local_model_provider_failures,omitempty"`
-	LocalModelDecodeFailures   int               `json:"local_model_decode_failures,omitempty"`
-	QualificationFailuresRun   int               `json:"qualification_failures_run"`
-	QualificationFailuresPass  int               `json:"qualification_failures_pass"`
-	GateSummary                []gateSummary     `json:"gate_summary,omitempty"`
-	SourceDatasetSummary       []datasetSummary  `json:"source_dataset_summary,omitempty"`
-	QuarantineSummary          quarantineSummary `json:"quarantine_summary,omitempty"`
-	TagSummary                 []tagSummary      `json:"tag_summary,omitempty"`
-	FailureSummary             []rankedCount     `json:"failure_summary,omitempty"`
-	Mismatches                 []caseMismatch    `json:"mismatches,omitempty"`
+	SchemaVersion               string              `json:"schema_version"`
+	DatasetID                   string              `json:"dataset_id"`
+	Mode                        string              `json:"mode"`
+	TotalCases                  int                 `json:"total_cases"`
+	CasesPassed                 int                 `json:"cases_passed"`
+	CasesWithMismatches         int                 `json:"cases_with_mismatches"`
+	SuccessCases                int                 `json:"success_cases"`
+	SuccessCasesPassed          int                 `json:"success_cases_passed"`
+	FailureCases                int                 `json:"failure_cases"`
+	FailureCasesPassed          int                 `json:"failure_cases_passed"`
+	TotalExpectedSourceItems    int                 `json:"total_expected_source_items"`
+	SourceItemsMatched          int                 `json:"source_items_matched"`
+	SourceItemPreservationRate  float64             `json:"source_item_preservation_rate"`
+	AdapterValidCases           int                 `json:"adapter_valid_cases"`
+	LocalModelRepeatsRequested  int                 `json:"local_model_repeats_requested,omitempty"`
+	LocalModelSuccessCasesRun   int                 `json:"local_model_success_cases_run,omitempty"`
+	LocalModelSuccessCasesPass  int                 `json:"local_model_success_cases_pass,omitempty"`
+	LocalModelExpectedItems     int                 `json:"local_model_expected_items,omitempty"`
+	LocalModelRowsMatched       int                 `json:"local_model_rows_matched,omitempty"`
+	LocalModelRowMatchRate      float64             `json:"local_model_row_match_rate,omitempty"`
+	LocalModelDayMatched        int                 `json:"local_model_day_matched,omitempty"`
+	LocalModelDayAccuracy       float64             `json:"local_model_day_accuracy,omitempty"`
+	LocalModelMealMatched       int                 `json:"local_model_meal_matched,omitempty"`
+	LocalModelMealAccuracy      float64             `json:"local_model_meal_accuracy,omitempty"`
+	LocalModelFoodMatched       int                 `json:"local_model_food_matched,omitempty"`
+	LocalModelFoodAccuracy      float64             `json:"local_model_food_accuracy,omitempty"`
+	LocalModelQuantityMatched   int                 `json:"local_model_quantity_matched,omitempty"`
+	LocalModelQuantityAccuracy  float64             `json:"local_model_quantity_accuracy,omitempty"`
+	LocalModelUnitMatched       int                 `json:"local_model_unit_matched,omitempty"`
+	LocalModelUnitAccuracy      float64             `json:"local_model_unit_accuracy,omitempty"`
+	LocalModelSourceRepairs     int                 `json:"local_model_source_repairs,omitempty"`
+	LocalModelRepairCases       int                 `json:"local_model_repair_cases,omitempty"`
+	LocalModelProviderFailures  int                 `json:"local_model_provider_failures,omitempty"`
+	LocalModelDecodeFailures    int                 `json:"local_model_decode_failures,omitempty"`
+	LocalModelUnstableCases     int                 `json:"local_model_unstable_cases,omitempty"`
+	QualificationFailuresRun    int                 `json:"qualification_failures_run"`
+	QualificationFailuresPass   int                 `json:"qualification_failures_pass"`
+	LocalModelRepeatSummary     []repeatSummary     `json:"local_model_repeat_summary,omitempty"`
+	LocalModelCaseRepeatSummary []caseRepeatSummary `json:"local_model_case_repeat_summary,omitempty"`
+	GateSummary                 []gateSummary       `json:"gate_summary,omitempty"`
+	SourceDatasetSummary        []datasetSummary    `json:"source_dataset_summary,omitempty"`
+	QuarantineSummary           quarantineSummary   `json:"quarantine_summary,omitempty"`
+	TagSummary                  []tagSummary        `json:"tag_summary,omitempty"`
+	FailureSummary              []rankedCount       `json:"failure_summary,omitempty"`
+	Mismatches                  []caseMismatch      `json:"mismatches,omitempty"`
 }
 
 type tagSummary struct {
@@ -161,6 +166,35 @@ type tagSummary struct {
 	Cases  int     `json:"cases"`
 	Passed int     `json:"passed"`
 	Rate   float64 `json:"rate"`
+}
+
+type repeatSummary struct {
+	Repeat              int     `json:"repeat"`
+	SuccessCasesRun     int     `json:"success_cases_run"`
+	SuccessCasesPass    int     `json:"success_cases_pass"`
+	CasesWithMismatches int     `json:"cases_with_mismatches"`
+	ExpectedItems       int     `json:"expected_items"`
+	RowsMatched         int     `json:"rows_matched"`
+	RowMatchRate        float64 `json:"row_match_rate"`
+	DayAccuracy         float64 `json:"day_accuracy"`
+	MealAccuracy        float64 `json:"meal_accuracy"`
+	FoodAccuracy        float64 `json:"food_accuracy"`
+	QuantityAccuracy    float64 `json:"quantity_accuracy"`
+	UnitAccuracy        float64 `json:"unit_accuracy"`
+	SourceRepairs       int     `json:"source_repairs,omitempty"`
+	RepairCases         int     `json:"repair_cases,omitempty"`
+	ProviderFailures    int     `json:"provider_failures,omitempty"`
+	DecodeFailures      int     `json:"decode_failures,omitempty"`
+}
+
+type caseRepeatSummary struct {
+	CaseID           string  `json:"case_id"`
+	Repeats          int     `json:"repeats"`
+	Passes           int     `json:"passes"`
+	Failures         int     `json:"failures"`
+	MinRowMatchRate  float64 `json:"min_row_match_rate"`
+	MeanRowMatchRate float64 `json:"mean_row_match_rate"`
+	MaxRowMatchRate  float64 `json:"max_row_match_rate"`
 }
 
 type gateSummary struct {
@@ -210,15 +244,16 @@ type loadedFailureCase struct {
 }
 
 type runOptions struct {
-	Root            string
-	ManifestPath    string
-	DatasetPath     string
-	FailurePath     string
-	Gate            string
-	SourceDataset   string
-	Mode            string
-	ProviderConfig  hosted.ProviderConfig
-	ProviderFactory hosted.ProviderFactory
+	Root              string
+	ManifestPath      string
+	DatasetPath       string
+	FailurePath       string
+	Gate              string
+	SourceDataset     string
+	Mode              string
+	LocalModelRepeats int
+	ProviderConfig    hosted.ProviderConfig
+	ProviderFactory   hosted.ProviderFactory
 }
 
 // Run executes the P0 meal-plan normalization evaluation.
@@ -237,6 +272,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	localModelName := flags.String("local-model-name", "", "local llama model name; defaults to MEALCHECK_LOCAL_MODEL_NAME")
 	localModelMaxOutputTokens := flags.Int("local-model-max-output-tokens", 0, "local llama max output tokens; defaults to MEALCHECK_LOCAL_MODEL_MAX_OUTPUT_TOKENS")
 	localModelTimeout := flags.Duration("local-model-timeout", 0, "local llama request timeout; defaults to MEALCHECK_LOCAL_MODEL_TIMEOUT")
+	localModelRepeats := flags.Int("local-model-repeats", envPositiveInt("MEALCHECK_P0_REPEATS", 1), "local llama repeats per success case; defaults to MEALCHECK_P0_REPEATS or 1")
 	allowMismatch := flags.Bool("allow-mismatch", false, "exit successfully even when expected outcomes mismatch")
 	if err := flags.Parse(args); err != nil {
 		return 2
@@ -255,15 +291,16 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		Timeout:   firstPositiveDuration(*localModelTimeout, envConfig.LocalModelTimeout),
 	}
 	result, err := run(runOptions{
-		Root:            *root,
-		ManifestPath:    *manifestPath,
-		DatasetPath:     *datasetPath,
-		FailurePath:     *failurePath,
-		Gate:            *gate,
-		SourceDataset:   *sourceDataset,
-		Mode:            *mode,
-		ProviderConfig:  providerConfig,
-		ProviderFactory: hosted.DefaultProviderFactory,
+		Root:              *root,
+		ManifestPath:      *manifestPath,
+		DatasetPath:       *datasetPath,
+		FailurePath:       *failurePath,
+		Gate:              *gate,
+		SourceDataset:     *sourceDataset,
+		Mode:              *mode,
+		LocalModelRepeats: *localModelRepeats,
+		ProviderConfig:    providerConfig,
+		ProviderFactory:   hosted.DefaultProviderFactory,
 	})
 	if err != nil {
 		fmt.Fprintf(stderr, "mealcheck eval-normalization failed: %v\n", err)
@@ -305,6 +342,10 @@ func run(opts runOptions) (result, error) {
 			return result{}, fmt.Errorf("local-llama mode requires -local-model-name or MEALCHECK_LOCAL_MODEL_NAME")
 		}
 	}
+	localModelRepeats, err := normalizeLocalModelRepeats(mode, opts.LocalModelRepeats)
+	if err != nil {
+		return result{}, err
+	}
 	if opts.ProviderFactory == nil {
 		opts.ProviderFactory = hosted.DefaultProviderFactory
 	}
@@ -336,6 +377,13 @@ func run(opts runOptions) (result, error) {
 		TotalCases:        len(successCases) + len(failureCases),
 		QuarantineSummary: quarantine,
 	}
+	if mode == modeLocalLlama {
+		r.LocalModelRepeatsRequested = localModelRepeats
+		r.LocalModelRepeatSummary = make([]repeatSummary, localModelRepeats)
+		for i := range r.LocalModelRepeatSummary {
+			r.LocalModelRepeatSummary[i].Repeat = i + 1
+		}
+	}
 	tagCounts := map[string]*tagAccumulator{}
 	gateCounts := map[string]*tagAccumulator{}
 	datasetCounts := map[string]*tagAccumulator{}
@@ -350,29 +398,28 @@ func run(opts runOptions) (result, error) {
 			r.AdapterValidCases++
 		}
 		if mode == modeLocalLlama {
-			localMessages, localMetrics, localRepairs, localFailure := evaluateLocalModelSuccessCase(c, opts.ProviderFactory, opts.ProviderConfig)
-			r.LocalModelSuccessCasesRun++
-			r.LocalModelExpectedItems += len(c.Expected.SourceItems)
-			r.LocalModelRowsMatched += localMetrics.MatchedRows
-			r.LocalModelDayMatched += localMetrics.DayMatched
-			r.LocalModelMealMatched += localMetrics.MealMatched
-			r.LocalModelFoodMatched += localMetrics.FoodMatched
-			r.LocalModelQuantityMatched += localMetrics.QuantityMatched
-			r.LocalModelUnitMatched += localMetrics.UnitMatched
-			r.LocalModelSourceRepairs += localRepairs
-			if localRepairs > 0 {
-				r.LocalModelRepairCases++
+			caseSummary := caseRepeatSummary{
+				CaseID:  c.ID,
+				Repeats: localModelRepeats,
 			}
-			if len(localMessages) == 0 {
-				r.LocalModelSuccessCasesPass++
-			} else {
-				mismatch.Messages = append(mismatch.Messages, localMessages...)
-				switch localFailure {
-				case "provider":
-					r.LocalModelProviderFailures++
-				case "decode":
-					r.LocalModelDecodeFailures++
+			for repeatIndex := 1; repeatIndex <= localModelRepeats; repeatIndex++ {
+				localMessages, localMetrics, localRepairs, localFailure := evaluateLocalModelSuccessCase(c, opts.ProviderFactory, opts.ProviderConfig)
+				repeat := &r.LocalModelRepeatSummary[repeatIndex-1]
+				recordLocalModelAttempt(&r, repeat, c, localMetrics, localRepairs, localMessages, localFailure)
+				rowRate := ratio(localMetrics.MatchedRows, len(c.Expected.SourceItems))
+				recordCaseRepeatAttempt(&caseSummary, rowRate, len(localMessages) == 0)
+				if len(localMessages) != 0 {
+					for _, message := range localMessages {
+						mismatch.Messages = append(mismatch.Messages, fmt.Sprintf("repeat_%d_%s", repeatIndex, message))
+					}
 				}
+			}
+			finalizeCaseRepeatSummary(&caseSummary)
+			if shouldReportCaseRepeat(caseSummary) {
+				r.LocalModelCaseRepeatSummary = append(r.LocalModelCaseRepeatSummary, caseSummary)
+			}
+			if isUnstableCaseRepeat(caseSummary) {
+				r.LocalModelUnstableCases++
 			}
 		}
 		passed := len(mismatch.Messages) == 0
@@ -421,6 +468,7 @@ func run(opts runOptions) (result, error) {
 	r.LocalModelFoodAccuracy = ratio(r.LocalModelFoodMatched, r.LocalModelExpectedItems)
 	r.LocalModelQuantityAccuracy = ratio(r.LocalModelQuantityMatched, r.LocalModelExpectedItems)
 	r.LocalModelUnitAccuracy = ratio(r.LocalModelUnitMatched, r.LocalModelExpectedItems)
+	finalizeRepeatSummaries(r.LocalModelRepeatSummary)
 	r.GateSummary = gateSummaries(gateCounts)
 	r.SourceDatasetSummary = datasetSummaries(datasetCounts)
 	r.TagSummary = tagSummaries(tagCounts)
@@ -642,6 +690,103 @@ func evaluateLocalModelSuccessCase(c successCase, providerFactory hosted.Provide
 		compareMessages[i] = "local_model_" + compareMessages[i]
 	}
 	return compareMessages, metrics, len(repairs), ""
+}
+
+func recordLocalModelAttempt(r *result, repeat *repeatSummary, c successCase, metrics rowComparisonMetrics, repairs int, messages []string, failure string) {
+	expectedItems := len(c.Expected.SourceItems)
+	r.LocalModelSuccessCasesRun++
+	r.LocalModelExpectedItems += expectedItems
+	r.LocalModelRowsMatched += metrics.MatchedRows
+	r.LocalModelDayMatched += metrics.DayMatched
+	r.LocalModelMealMatched += metrics.MealMatched
+	r.LocalModelFoodMatched += metrics.FoodMatched
+	r.LocalModelQuantityMatched += metrics.QuantityMatched
+	r.LocalModelUnitMatched += metrics.UnitMatched
+	r.LocalModelSourceRepairs += repairs
+
+	repeat.SuccessCasesRun++
+	repeat.ExpectedItems += expectedItems
+	repeat.RowsMatched += metrics.MatchedRows
+	repeat.DayAccuracy += float64(metrics.DayMatched)
+	repeat.MealAccuracy += float64(metrics.MealMatched)
+	repeat.FoodAccuracy += float64(metrics.FoodMatched)
+	repeat.QuantityAccuracy += float64(metrics.QuantityMatched)
+	repeat.UnitAccuracy += float64(metrics.UnitMatched)
+	repeat.SourceRepairs += repairs
+
+	if repairs > 0 {
+		r.LocalModelRepairCases++
+		repeat.RepairCases++
+	}
+	if len(messages) == 0 {
+		r.LocalModelSuccessCasesPass++
+		repeat.SuccessCasesPass++
+		return
+	}
+	repeat.CasesWithMismatches++
+	switch failure {
+	case "provider":
+		r.LocalModelProviderFailures++
+		repeat.ProviderFailures++
+	case "decode":
+		r.LocalModelDecodeFailures++
+		repeat.DecodeFailures++
+	}
+}
+
+func recordCaseRepeatAttempt(summary *caseRepeatSummary, rowMatchRate float64, passed bool) {
+	if passed {
+		summary.Passes++
+	} else {
+		summary.Failures++
+	}
+	if summary.Passes+summary.Failures == 1 {
+		summary.MinRowMatchRate = rowMatchRate
+		summary.MaxRowMatchRate = rowMatchRate
+	} else {
+		if rowMatchRate < summary.MinRowMatchRate {
+			summary.MinRowMatchRate = rowMatchRate
+		}
+		if rowMatchRate > summary.MaxRowMatchRate {
+			summary.MaxRowMatchRate = rowMatchRate
+		}
+	}
+	summary.MeanRowMatchRate += rowMatchRate
+}
+
+func shouldReportCaseRepeat(summary caseRepeatSummary) bool {
+	if summary.Repeats <= 1 {
+		return false
+	}
+	return summary.Failures > 0 || summary.MinRowMatchRate != summary.MaxRowMatchRate
+}
+
+func isUnstableCaseRepeat(summary caseRepeatSummary) bool {
+	if summary.Repeats <= 1 {
+		return false
+	}
+	return (summary.Passes > 0 && summary.Failures > 0) || summary.MinRowMatchRate != summary.MaxRowMatchRate
+}
+
+func finalizeCaseRepeatSummary(summary *caseRepeatSummary) {
+	attempts := summary.Passes + summary.Failures
+	if attempts == 0 {
+		return
+	}
+	summary.MeanRowMatchRate = summary.MeanRowMatchRate / float64(attempts)
+}
+
+func finalizeRepeatSummaries(summaries []repeatSummary) {
+	for i := range summaries {
+		summary := &summaries[i]
+		expectedItems := summary.ExpectedItems
+		summary.RowMatchRate = ratio(summary.RowsMatched, expectedItems)
+		summary.DayAccuracy = ratioFloat(summary.DayAccuracy, expectedItems)
+		summary.MealAccuracy = ratioFloat(summary.MealAccuracy, expectedItems)
+		summary.FoodAccuracy = ratioFloat(summary.FoodAccuracy, expectedItems)
+		summary.QuantityAccuracy = ratioFloat(summary.QuantityAccuracy, expectedItems)
+		summary.UnitAccuracy = ratioFloat(summary.UnitAccuracy, expectedItems)
+	}
 }
 
 func compareSourceItem(actual hosted.LocalLlamaSourceItem, expected expectedSourceItem) []string {
@@ -1012,6 +1157,13 @@ func ratio(numerator, denominator int) float64 {
 	return float64(numerator) / float64(denominator)
 }
 
+func ratioFloat(numerator float64, denominator int) float64 {
+	if denominator == 0 {
+		return 0
+	}
+	return numerator / float64(denominator)
+}
+
 func normalizeMode(mode string) (string, error) {
 	switch strings.TrimSpace(strings.ToLower(mode)) {
 	case "", modeDeterministic:
@@ -1021,6 +1173,31 @@ func normalizeMode(mode string) (string, error) {
 	default:
 		return "", fmt.Errorf("unsupported normalization eval mode %q", mode)
 	}
+}
+
+func normalizeLocalModelRepeats(mode string, repeats int) (int, error) {
+	if mode != modeLocalLlama {
+		return 0, nil
+	}
+	if repeats == 0 {
+		return 1, nil
+	}
+	if repeats < 0 {
+		return 0, fmt.Errorf("local-model repeats must be a positive integer")
+	}
+	return repeats, nil
+}
+
+func envPositiveInt(name string, fallback int) int {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed < 1 {
+		return fallback
+	}
+	return parsed
 }
 
 func firstNonEmpty(values ...string) string {

@@ -226,6 +226,7 @@ server:
 MEALCHECK_LOCAL_MODEL_NAME="$MODEL_NAME" \
 go run ./cmd/mealcheck eval-normalization \
   -mode local-llama \
+  -local-model-repeats 3 \
   -out /tmp/mealcheck-p0-local-model-result.json
 ```
 
@@ -244,6 +245,7 @@ Options:
 | `-local-model-name` | `MEALCHECK_LOCAL_MODEL_NAME` | Required model name for `local-llama` mode. |
 | `-local-model-max-output-tokens` | `MEALCHECK_LOCAL_MODEL_MAX_OUTPUT_TOKENS` or `1536` | Output cap used only in `local-llama` mode. |
 | `-local-model-timeout` | `MEALCHECK_LOCAL_MODEL_TIMEOUT` or `240s` | Request timeout used only in `local-llama` mode. |
+| `-local-model-repeats` | `MEALCHECK_P0_REPEATS` or `1` | Number of local-model attempts per success case. Deterministic mode ignores this. |
 | `-out` | stdout | Optional path to write JSON results. |
 | `-allow-mismatch` | `false` | Exit successfully even when expected outcomes mismatch. |
 
