@@ -9,10 +9,10 @@ import (
 
 // SourceItem is a deterministic inventory row extracted from meal-plan text.
 type SourceItem struct {
-	ID       int
-	Day      int
-	MealCode string
-	Text     string
+	ID       int    `json:"id"`
+	Day      int    `json:"day"`
+	MealCode string `json:"meal_code,omitempty"`
+	Text     string `json:"text"`
 }
 
 type DaySection struct {

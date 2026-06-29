@@ -86,8 +86,9 @@ The current checked-in P0 corpus is small and hand-authored:
 - `scripts/test-meal-plan-input-robustness.sh`: local-model smoke harness for
   compatible acceptable-input cases.
 - `mealcheck eval-normalization`: P0 runner for deterministic source inventory,
-  compact-row adapter, qualification-failure, tag-summary, failure-summary, and
-  opt-in local-model baseline metrics.
+  deterministic canonical-plan path metrics, compact-row adapter,
+  qualification-failure, tag-summary, failure-summary, and opt-in local-model
+  baseline metrics.
 
 The checked-in seed can be extended with public ingredient-parsing datasets as
 source material for generated MealCheck normalization cases:

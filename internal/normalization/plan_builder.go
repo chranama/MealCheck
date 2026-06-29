@@ -9,8 +9,8 @@ import (
 )
 
 type ParsedSourceItem struct {
-	SourceItem  SourceItem
-	Measurement ParsedSourceMeasurement
+	SourceItem  SourceItem              `json:"source_item"`
+	Measurement ParsedSourceMeasurement `json:"measurement"`
 }
 
 func BuildDeterministicPlan(text string, planID string) (checker.Plan, []ParsedSourceItem, error) {

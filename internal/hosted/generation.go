@@ -25,6 +25,7 @@ type PreparedRun struct {
 	CasePath            string
 	LLMOutput           string
 	NormalizationEvents []NormalizationEvent
+	NormalizationResult *normalization.Result
 	RedactedProvider    RedactedProviderConfig
 	UsedProvider        bool
 }
@@ -51,6 +52,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 	var repairErr error
 	var repairAttempted bool
 	var events []NormalizationEvent
+	var normalizationResult *normalization.Result
 	var providerRedacted RedactedProviderConfig
 	var provider Provider
 	var err error
@@ -130,13 +132,20 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 			events = append(events, normalizationEvent("json_decoded", "provider output decoded as normalized meal-plan JSON"))
 		}
 	case InputModeLocalModel:
-		deterministicPlan, parsedItems, err := normalization.BuildDeterministicPlan(input.CandidateText, "local-model-"+run.ID)
+		engine := normalization.Engine{}
+		engineResult, engineErr := engine.Normalize(ctx, normalization.Request{
+			Text:   input.CandidateText,
+			PlanID: "local-model-" + run.ID,
+		})
+		normalizationResult = &engineResult
+		err = engineErr
 		if err == nil {
-			plan = deterministicPlan
-			events = append(events, normalizationEvent("deterministic_normalized", fmt.Sprintf("deterministic normalizer produced %d source item row(s)", len(parsedItems))))
+			plan = engineResult.Plan
+			events = append(events, normalizationEvent("deterministic_normalized", fmt.Sprintf("deterministic normalizer produced %d source item row(s)", len(engineResult.ParsedItems))))
 			events = append(events, normalizationEvent("json_decoded", "deterministic source inventory decoded into normalized MealCheck JSON"))
 			break
 		}
+		events = append(events, normalizationEvent("deterministic_normalization_skipped", "deterministic normalizer could not safely cover the candidate text; falling back to local model"))
 		provider, err = providerFactory(input.Provider)
 		if err != nil {
 			return PreparedRun{}, err
@@ -147,6 +156,11 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		if err != nil {
 			return PreparedRun{}, err
 		}
+		fallbackResult := engineResult
+		fallbackResult.Method = normalization.MethodLocalModelFallback
+		fallbackResult.PlanID = plan.PlanID
+		fallbackResult.ProviderUsed = true
+		normalizationResult = &fallbackResult
 	default:
 		return PreparedRun{}, fmt.Errorf("unsupported input_mode %q", input.Mode)
 	}
@@ -169,6 +183,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		CasePath:            casePath,
 		LLMOutput:           sanitizeDebugArtifactText(llmOutput, input.Provider.APIKey),
 		NormalizationEvents: events,
+		NormalizationResult: normalizationResult,
 		RedactedProvider:    providerRedacted,
 		UsedProvider:        usedProvider,
 	}, nil
@@ -878,12 +893,17 @@ func writeOptionalArtifacts(outDir string, prepared PreparedRun) error {
 			return err
 		}
 	}
+	if prepared.NormalizationResult != nil {
+		if err := writeJSONFile(filepath.Join(outDir, "optional", "normalization-result.json"), prepared.NormalizationResult); err != nil {
+			return err
+		}
+	}
 	if prepared.UsedProvider {
 		if err := writeJSONFile(filepath.Join(outDir, "configs", "redacted-provider.json"), prepared.RedactedProvider); err != nil {
 			return err
 		}
 	}
-	if prepared.UsedProvider || len(prepared.NormalizationEvents) > 0 {
+	if prepared.UsedProvider || len(prepared.NormalizationEvents) > 0 || prepared.NormalizationResult != nil {
 		return updateManifestOptionals(outDir, prepared)
 	}
 	return nil
@@ -1026,6 +1046,9 @@ func updateManifestOptionals(outDir string, prepared PreparedRun) error {
 	}
 	if len(prepared.NormalizationEvents) > 0 {
 		manifest.Artifacts = appendIfMissing(manifest.Artifacts, "optional/normalization-events.json")
+	}
+	if prepared.NormalizationResult != nil {
+		manifest.Artifacts = appendIfMissing(manifest.Artifacts, "optional/normalization-result.json")
 	}
 	return writeJSONFile(manifestPath, manifest)
 }

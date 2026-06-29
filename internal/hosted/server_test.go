@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/chranama/MealCheck/internal/checker"
+	"github.com/chranama/MealCheck/internal/normalization"
 )
 
 func TestHostedRunLifecycle(t *testing.T) {
@@ -220,6 +221,14 @@ func TestLocalModelRunUsesDeterministicNormalizationWhenExplicit(t *testing.T) {
 	if !hasNormalizationEvent(events, "deterministic_normalized") || !hasNormalizationEvent(events, "json_decoded") {
 		t.Fatalf("normalization events missing deterministic lifecycle: %+v", events)
 	}
+	var normalizationResult normalization.Result
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "normalization-result.json")), &normalizationResult)
+	if normalizationResult.Method != normalization.MethodDeterministic || normalizationResult.ProviderUsed {
+		t.Fatalf("normalization result = %+v, want deterministic without provider", normalizationResult)
+	}
+	if len(normalizationResult.SourceItems) != 9 || len(normalizationResult.ParsedItems) != 9 {
+		t.Fatalf("normalization source/parsed counts = %d/%d, want 9/9", len(normalizationResult.SourceItems), len(normalizationResult.ParsedItems))
+	}
 	var plan checker.Plan
 	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "normalized-plan.json")), &plan)
 	if got := countMealPlanItems(plan); got != 9 {
@@ -306,6 +315,14 @@ func TestLocalModelRunFallsBackToServerOwnedProvider(t *testing.T) {
 	}
 	if redacted.APIKey != "not_applicable" {
 		t.Fatalf("redacted local api key = %q, want not_applicable", redacted.APIKey)
+	}
+	var normalizationResult normalization.Result
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "normalization-result.json")), &normalizationResult)
+	if normalizationResult.Method != normalization.MethodLocalModelFallback || !normalizationResult.ProviderUsed {
+		t.Fatalf("normalization result = %+v, want local model fallback with provider", normalizationResult)
+	}
+	if normalizationResult.DeterministicError == "" {
+		t.Fatalf("normalization deterministic error is empty: %+v", normalizationResult)
 	}
 }
 
@@ -451,6 +468,11 @@ func TestLocalModelRunDeterministicallyNormalizesClearMultiDayInput(t *testing.T
 	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "normalization-events.json")), &events)
 	if !hasNormalizationEvent(events, "deterministic_normalized") || !hasNormalizationEvent(events, "json_decoded") {
 		t.Fatalf("normalization events missing deterministic lifecycle: %+v", events)
+	}
+	var normalizationResult normalization.Result
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "normalization-result.json")), &normalizationResult)
+	if normalizationResult.Method != normalization.MethodDeterministic || normalizationResult.ProviderUsed {
+		t.Fatalf("normalization result = %+v, want deterministic without provider", normalizationResult)
 	}
 	var plan checker.Plan
 	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "normalized-plan.json")), &plan)

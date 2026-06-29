@@ -543,12 +543,21 @@ Acceptance:
 
 Current implementation status:
 
-- items 1-3 are implemented for hosted `local_model` runs
-- fully parsed explicit meal-plan text now builds canonical MealCheck JSON
-  without a provider call
+- items 1-4 are implemented for hosted `local_model` runs
+- `internal/normalization.Engine` is the normalization boundary for
+  deterministic text normalization
+- fully parsed explicit meal-plan text builds canonical MealCheck JSON without
+  a provider call
+- `optional/normalization-result.json` records method metadata, source
+  inventory, parsed rows, unresolved pre-model rows, assist policy state, and
+  provider fallback usage
+- P0 eval reports deterministic canonical-plan path metrics separately from
+  opt-in local-model repeat metrics, covering the deterministic portion of
+  item 5
+- conservative assist policy and chunking scaffolding exist, but LLM assist is
+  not enabled as production behavior
 - existing local-model compact decode remains as the fallback path when the
   deterministic builder cannot safely cover the input
-- structured method metadata beyond normalization events remains item 4
 
 ## Non-Goals
 

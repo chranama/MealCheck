@@ -17,6 +17,7 @@ import (
 
 	"github.com/chranama/MealCheck/internal/checker"
 	"github.com/chranama/MealCheck/internal/hosted"
+	"github.com/chranama/MealCheck/internal/normalization"
 )
 
 const (
@@ -128,6 +129,12 @@ type result struct {
 	SourceItemsMatched          int                 `json:"source_items_matched"`
 	SourceItemPreservationRate  float64             `json:"source_item_preservation_rate"`
 	AdapterValidCases           int                 `json:"adapter_valid_cases"`
+	DeterministicPathCasesRun   int                 `json:"deterministic_path_cases_run"`
+	DeterministicPathCasesPass  int                 `json:"deterministic_path_cases_pass"`
+	DeterministicPathFailures   int                 `json:"deterministic_path_failures,omitempty"`
+	DeterministicExpectedItems  int                 `json:"deterministic_expected_items,omitempty"`
+	DeterministicRowsMatched    int                 `json:"deterministic_rows_matched,omitempty"`
+	DeterministicRowMatchRate   float64             `json:"deterministic_row_match_rate,omitempty"`
 	LocalModelRepeatsRequested  int                 `json:"local_model_repeats_requested,omitempty"`
 	LocalModelSuccessCasesRun   int                 `json:"local_model_success_cases_run,omitempty"`
 	LocalModelSuccessCasesPass  int                 `json:"local_model_success_cases_pass,omitempty"`
@@ -397,6 +404,11 @@ func run(opts runOptions) (result, error) {
 		if adapterOK {
 			r.AdapterValidCases++
 		}
+		deterministicMessages, deterministicMetrics, deterministicFailure := evaluateDeterministicPathSuccessCase(c)
+		recordDeterministicPathAttempt(&r, len(c.Expected.SourceItems), deterministicMetrics, deterministicMessages, deterministicFailure)
+		if len(deterministicMessages) != 0 {
+			mismatch.Messages = append(mismatch.Messages, deterministicMessages...)
+		}
 		if mode == modeLocalLlama {
 			caseSummary := caseRepeatSummary{
 				CaseID:  c.ID,
@@ -462,6 +474,7 @@ func run(opts runOptions) (result, error) {
 	r.CasesPassed = r.SuccessCasesPassed + r.FailureCasesPassed
 	r.CasesWithMismatches = len(r.Mismatches)
 	r.SourceItemPreservationRate = ratio(r.SourceItemsMatched, r.TotalExpectedSourceItems)
+	r.DeterministicRowMatchRate = ratio(r.DeterministicRowsMatched, r.DeterministicExpectedItems)
 	r.LocalModelRowMatchRate = ratio(r.LocalModelRowsMatched, r.LocalModelExpectedItems)
 	r.LocalModelDayAccuracy = ratio(r.LocalModelDayMatched, r.LocalModelExpectedItems)
 	r.LocalModelMealAccuracy = ratio(r.LocalModelMealMatched, r.LocalModelExpectedItems)
@@ -690,6 +703,34 @@ func evaluateLocalModelSuccessCase(c successCase, providerFactory hosted.Provide
 		compareMessages[i] = "local_model_" + compareMessages[i]
 	}
 	return compareMessages, metrics, len(repairs), ""
+}
+
+func evaluateDeterministicPathSuccessCase(c successCase) ([]string, rowComparisonMetrics, string) {
+	result, err := (normalization.Engine{}).Normalize(context.Background(), normalization.Request{
+		Text:   c.InputText,
+		PlanID: "p0-normalization-deterministic-eval",
+	})
+	if err != nil {
+		return []string{fmt.Sprintf("deterministic_path_failed: %v", err)}, rowComparisonMetrics{}, "pre_model"
+	}
+	compareMessages, metrics := comparePlanRowsDetailed(result.Plan, c.Expected.SourceItems)
+	for i := range compareMessages {
+		compareMessages[i] = "deterministic_" + compareMessages[i]
+	}
+	return compareMessages, metrics, ""
+}
+
+func recordDeterministicPathAttempt(r *result, expectedItems int, metrics rowComparisonMetrics, messages []string, failure string) {
+	r.DeterministicPathCasesRun++
+	r.DeterministicExpectedItems += expectedItems
+	r.DeterministicRowsMatched += metrics.MatchedRows
+	if len(messages) == 0 {
+		r.DeterministicPathCasesPass++
+		return
+	}
+	if failure != "" {
+		r.DeterministicPathFailures++
+	}
 }
 
 func recordLocalModelAttempt(r *result, repeat *repeatSummary, c successCase, metrics rowComparisonMetrics, repairs int, messages []string, failure string) {

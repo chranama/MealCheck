@@ -59,6 +59,9 @@ func TestRunLocalLlamaModeScoresProviderOutput(t *testing.T) {
 	if result.LocalModelFoodAccuracy != 1 || result.LocalModelQuantityAccuracy != 1 || result.LocalModelUnitAccuracy != 1 {
 		t.Fatalf("local model field accuracies = food %.3f quantity %.3f unit %.3f, want all 1", result.LocalModelFoodAccuracy, result.LocalModelQuantityAccuracy, result.LocalModelUnitAccuracy)
 	}
+	if result.DeterministicPathCasesRun != 1 || result.DeterministicPathCasesPass != 1 || result.DeterministicRowMatchRate != 1 {
+		t.Fatalf("deterministic path metrics = run %d pass %d rate %.3f, want 1/1/1", result.DeterministicPathCasesRun, result.DeterministicPathCasesPass, result.DeterministicRowMatchRate)
+	}
 }
 
 func TestRunLocalLlamaModeSupportsRepeats(t *testing.T) {

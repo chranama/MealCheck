@@ -344,6 +344,7 @@ artifacts/<run-id>/
   optional/
     llm-output.json
     normalization-events.json
+    normalization-result.json
 ```
 
 Responsibilities:
@@ -377,6 +378,10 @@ Responsibilities:
   for manual-only runs.
 - `optional/normalization-events.json`: validation, repair, unresolved-field,
   and normalization events.
+- `optional/normalization-result.json`: normalization method metadata for
+  hosted text normalization, including deterministic source inventory rows,
+  parsed measurements, unresolved pre-model rows, assist policy state, and
+  whether a provider fallback was used.
 - `guideline-pack/`: exact source-pack snapshot used for the run.
 - `schemas/`: validation schemas for artifact consumers.
 
@@ -602,8 +607,9 @@ Rules:
   invocation.
 - `configs/redacted-provider.json` records provider type, base URL, and model
   with `api_key` set to `redacted`.
-- `optional/llm-output.json` and `optional/normalization-events.json` are
-  emitted only when a run used provider generation or normalization metadata.
+- `optional/llm-output.json`, `optional/normalization-events.json`, and
+  `optional/normalization-result.json` are emitted only when a run used
+  provider generation or normalization metadata.
 - `optional/llm-output.json` must redact exact provider-key matches before
   persistence.
 - `openai_compatible` sends the supplied API key to `base_url`; users must

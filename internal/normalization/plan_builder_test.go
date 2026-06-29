@@ -1,6 +1,7 @@
 package normalization
 
 import (
+	"context"
 	"strings"
 	"testing"
 )
@@ -36,5 +37,60 @@ func TestBuildDeterministicPlanRejectsMissingMealCode(t *testing.T) {
 	_, _, err := BuildDeterministicPlan("- 1 cup cooked oatmeal", "test-plan")
 	if err == nil {
 		t.Fatal("BuildDeterministicPlan error = nil, want missing meal code error")
+	}
+}
+
+func TestEngineNormalizeReturnsDeterministicResult(t *testing.T) {
+	result, err := (Engine{}).Normalize(context.Background(), Request{
+		Text:   "Day 1 breakfast: 1 cup cooked oatmeal.",
+		PlanID: "engine-test",
+	})
+	if err != nil {
+		t.Fatalf("Normalize error: %v", err)
+	}
+	if result.Method != MethodDeterministic {
+		t.Fatalf("method = %q, want %q", result.Method, MethodDeterministic)
+	}
+	if len(result.SourceItems) != 1 || len(result.ParsedItems) != 1 {
+		t.Fatalf("source/parsed counts = %d/%d, want 1/1", len(result.SourceItems), len(result.ParsedItems))
+	}
+	if result.Plan.PlanID != "engine-test" || len(result.Plan.Days) != 1 {
+		t.Fatalf("plan = %+v, want deterministic plan", result.Plan)
+	}
+}
+
+func TestEngineNormalizeReportsPreModelFailure(t *testing.T) {
+	result, err := (Engine{}).Normalize(context.Background(), Request{
+		Text:   "- 1 cup cooked oatmeal",
+		PlanID: "engine-test",
+	})
+	if err == nil {
+		t.Fatal("Normalize error = nil, want deterministic failure")
+	}
+	if result.Method != MethodFailedPreModel {
+		t.Fatalf("method = %q, want %q", result.Method, MethodFailedPreModel)
+	}
+	if len(result.UnresolvedItems) != 1 || result.UnresolvedItems[0].Reason != "missing_or_unsupported_meal_code" {
+		t.Fatalf("unresolved = %+v, want missing meal code", result.UnresolvedItems)
+	}
+}
+
+func TestEngineAnalyzeBuildsAssistChunksWhenEnabled(t *testing.T) {
+	result := Analyze(strings.Join([]string{
+		"- 1 cup cooked oatmeal",
+		"- 1 cup blueberries",
+		"- 1 cup yogurt",
+	}, "\n"), "assist-test", Policy{
+		AssistEnabled:          true,
+		MaxSourceItemsPerChunk: 2,
+	})
+	if result.Method != MethodDeterministicWithLLMAssist {
+		t.Fatalf("method = %q, want %q", result.Method, MethodDeterministicWithLLMAssist)
+	}
+	if len(result.AssistChunks) != 2 {
+		t.Fatalf("assist chunks = %+v, want 2 chunks", result.AssistChunks)
+	}
+	if got := result.AssistChunks[0].SourceItemIDs; len(got) != 2 || got[0] != 1 || got[1] != 2 {
+		t.Fatalf("first chunk ids = %+v, want [1 2]", got)
 	}
 }
