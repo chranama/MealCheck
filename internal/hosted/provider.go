@@ -158,7 +158,20 @@ func completeOpenAIChat(ctx context.Context, client *http.Client, config Provide
 	responseFormat := map[string]any{
 		"type": "json_object",
 	}
-	if config.Type == ProviderTypeOpenAI {
+	if config.ResponseSchema != nil {
+		schemaName := strings.TrimSpace(config.ResponseSchemaName)
+		if schemaName == "" {
+			schemaName = "mealcheck_response"
+		}
+		responseFormat = map[string]any{
+			"type": "json_schema",
+			"json_schema": map[string]any{
+				"name":   schemaName,
+				"strict": true,
+				"schema": config.ResponseSchema,
+			},
+		}
+	} else if config.Type == ProviderTypeOpenAI {
 		responseFormat = map[string]any{
 			"type": "json_schema",
 			"json_schema": map[string]any{
@@ -168,7 +181,7 @@ func completeOpenAIChat(ctx context.Context, client *http.Client, config Provide
 			},
 		}
 	}
-	if config.Type == ProviderTypeLocalLlama {
+	if config.ResponseSchema == nil && config.Type == ProviderTypeLocalLlama {
 		responseFormat = map[string]any{
 			"type": "json_schema",
 			"json_schema": map[string]any{

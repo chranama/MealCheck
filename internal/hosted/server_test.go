@@ -1559,6 +1559,41 @@ func TestLocalLlamaProviderUsesCompactSchemaWithoutAuthorization(t *testing.T) {
 	}
 }
 
+func TestLocalLlamaProviderUsesCustomResponseSchema(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]any
+		decodeJSON(t, readAll(t, r), &payload)
+		format, ok := payload["response_format"].(map[string]any)
+		if !ok || format["type"] != "json_schema" {
+			t.Fatalf("response_format = %#v", payload["response_format"])
+		}
+		jsonSchema, ok := format["json_schema"].(map[string]any)
+		if !ok || jsonSchema["name"] != "mealcheck_test_assist" || jsonSchema["strict"] != true {
+			t.Fatalf("json_schema = %#v", format["json_schema"])
+		}
+		schema, ok := jsonSchema["schema"].(map[string]any)
+		if !ok || schema["type"] != "object" {
+			t.Fatalf("schema = %#v", jsonSchema["schema"])
+		}
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"{\"items\":[]}"}}]}`))
+	}))
+	defer server.Close()
+
+	provider := LocalLlamaProvider{Client: server.Client(), BaseURL: server.URL + "/v1"}
+	got, err := provider.Complete(context.Background(), ProviderConfig{
+		Type:               ProviderTypeLocalLlama,
+		Model:              "local-model",
+		ResponseSchemaName: "mealcheck_test_assist",
+		ResponseSchema:     map[string]any{"type": "object", "properties": map[string]any{}, "additionalProperties": false},
+	}, []ProviderMessage{{Role: "user", Content: "Repair."}})
+	if err != nil {
+		t.Fatalf("Complete error: %v", err)
+	}
+	if got != `{"items":[]}` {
+		t.Fatalf("content = %q", got)
+	}
+}
+
 func TestAnthropicProviderRequestAndResponse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/messages" {

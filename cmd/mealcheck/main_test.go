@@ -107,18 +107,18 @@ func TestDecisionCommandReturnsDecisionExit(t *testing.T) {
 	}
 }
 
-func TestEvalCommandWritesResult(t *testing.T) {
+func TestEvalCheckerCommandWritesResult(t *testing.T) {
 	root := repoRoot(t)
 	out := filepath.Join(t.TempDir(), "eval-result.json")
 
 	code := run([]string{
-		"eval",
+		"eval-checker",
 		"-root", root,
 		"-out", out,
 	}, &bytes.Buffer{}, &bytes.Buffer{})
 
 	if code != 0 {
-		t.Fatalf("eval exit code = %d, want 0", code)
+		t.Fatalf("eval-checker exit code = %d, want 0", code)
 	}
 
 	var result struct {

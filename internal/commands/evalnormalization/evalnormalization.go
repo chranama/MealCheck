@@ -21,8 +21,9 @@ import (
 )
 
 const (
-	modeDeterministic = "deterministic"
-	modeLocalLlama    = "local_llama"
+	modeDeterministic    = "deterministic"
+	modeLocalLlama       = "local_llama"
+	modeAssistLocalLlama = "assist_local_llama"
 )
 
 type manifest struct {
@@ -156,10 +157,40 @@ type result struct {
 	LocalModelProviderFailures  int                 `json:"local_model_provider_failures,omitempty"`
 	LocalModelDecodeFailures    int                 `json:"local_model_decode_failures,omitempty"`
 	LocalModelUnstableCases     int                 `json:"local_model_unstable_cases,omitempty"`
+	AssistRepeatsRequested      int                 `json:"assist_repeats_requested,omitempty"`
+	AssistEligibleCases         int                 `json:"assist_eligible_cases,omitempty"`
+	AssistAttemptedCases        int                 `json:"assist_attempted_cases,omitempty"`
+	AssistSuccessCasesRun       int                 `json:"assist_success_cases_run,omitempty"`
+	AssistSuccessCasesPass      int                 `json:"assist_success_cases_pass,omitempty"`
+	AssistExpectedItems         int                 `json:"assist_expected_items,omitempty"`
+	AssistRowsMatched           int                 `json:"assist_rows_matched,omitempty"`
+	AssistRowMatchRate          float64             `json:"assist_row_match_rate,omitempty"`
+	AssistDayMatched            int                 `json:"assist_day_matched,omitempty"`
+	AssistDayAccuracy           float64             `json:"assist_day_accuracy,omitempty"`
+	AssistMealMatched           int                 `json:"assist_meal_matched,omitempty"`
+	AssistMealAccuracy          float64             `json:"assist_meal_accuracy,omitempty"`
+	AssistFoodMatched           int                 `json:"assist_food_matched,omitempty"`
+	AssistFoodAccuracy          float64             `json:"assist_food_accuracy,omitempty"`
+	AssistQuantityMatched       int                 `json:"assist_quantity_matched,omitempty"`
+	AssistQuantityAccuracy      float64             `json:"assist_quantity_accuracy,omitempty"`
+	AssistUnitMatched           int                 `json:"assist_unit_matched,omitempty"`
+	AssistUnitAccuracy          float64             `json:"assist_unit_accuracy,omitempty"`
+	AssistRowsAttempted         int                 `json:"assist_rows_attempted,omitempty"`
+	AssistRowsAccepted          int                 `json:"assist_rows_accepted,omitempty"`
+	AssistRowsRejected          int                 `json:"assist_rows_rejected,omitempty"`
+	AssistAbstentions           int                 `json:"assist_abstentions,omitempty"`
+	AssistClarifications        int                 `json:"assist_clarifications,omitempty"`
+	AssistSchemaFailures        int                 `json:"assist_schema_failures,omitempty"`
+	AssistFalseAccepts          int                 `json:"assist_false_accepts,omitempty"`
+	AssistProviderFailures      int                 `json:"assist_provider_failures,omitempty"`
+	AssistDecodeFailures        int                 `json:"assist_decode_failures,omitempty"`
+	AssistUnstableCases         int                 `json:"assist_unstable_cases,omitempty"`
 	QualificationFailuresRun    int                 `json:"qualification_failures_run"`
 	QualificationFailuresPass   int                 `json:"qualification_failures_pass"`
 	LocalModelRepeatSummary     []repeatSummary     `json:"local_model_repeat_summary,omitempty"`
 	LocalModelCaseRepeatSummary []caseRepeatSummary `json:"local_model_case_repeat_summary,omitempty"`
+	AssistRepeatSummary         []repeatSummary     `json:"assist_repeat_summary,omitempty"`
+	AssistCaseRepeatSummary     []caseRepeatSummary `json:"assist_case_repeat_summary,omitempty"`
 	GateSummary                 []gateSummary       `json:"gate_summary,omitempty"`
 	SourceDatasetSummary        []datasetSummary    `json:"source_dataset_summary,omitempty"`
 	QuarantineSummary           quarantineSummary   `json:"quarantine_summary,omitempty"`
@@ -274,7 +305,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	gate := flags.String("gate", "strict", "manifest gate to run: strict, exploratory, or all")
 	sourceDataset := flags.String("source-dataset", "", "optional source_dataset filter for manifest-driven runs")
 	outPath := flags.String("out", "", "optional path to write JSON results")
-	mode := flags.String("mode", modeDeterministic, "evaluation mode: deterministic or local-llama")
+	mode := flags.String("mode", modeDeterministic, "evaluation mode: deterministic, local-llama, or assist-local-llama")
 	localModelBaseURL := flags.String("local-model-base-url", "", "local llama OpenAI-compatible base URL; defaults to MEALCHECK_LOCAL_MODEL_BASE_URL")
 	localModelName := flags.String("local-model-name", "", "local llama model name; defaults to MEALCHECK_LOCAL_MODEL_NAME")
 	localModelMaxOutputTokens := flags.Int("local-model-max-output-tokens", 0, "local llama max output tokens; defaults to MEALCHECK_LOCAL_MODEL_MAX_OUTPUT_TOKENS")
@@ -338,15 +369,15 @@ func run(opts runOptions) (result, error) {
 	if err != nil {
 		return result{}, err
 	}
-	if mode == modeLocalLlama {
+	if modeUsesLocalLlamaProvider(mode) {
 		if opts.ProviderConfig.Type == "" {
 			opts.ProviderConfig.Type = hosted.ProviderTypeLocalLlama
 		}
 		if opts.ProviderConfig.Type != hosted.ProviderTypeLocalLlama {
-			return result{}, fmt.Errorf("local-llama mode requires provider type %q", hosted.ProviderTypeLocalLlama)
+			return result{}, fmt.Errorf("%s mode requires provider type %q", mode, hosted.ProviderTypeLocalLlama)
 		}
 		if strings.TrimSpace(opts.ProviderConfig.Model) == "" {
-			return result{}, fmt.Errorf("local-llama mode requires -local-model-name or MEALCHECK_LOCAL_MODEL_NAME")
+			return result{}, fmt.Errorf("%s mode requires -local-model-name or MEALCHECK_LOCAL_MODEL_NAME", mode)
 		}
 	}
 	localModelRepeats, err := normalizeLocalModelRepeats(mode, opts.LocalModelRepeats)
@@ -391,6 +422,13 @@ func run(opts runOptions) (result, error) {
 			r.LocalModelRepeatSummary[i].Repeat = i + 1
 		}
 	}
+	if mode == modeAssistLocalLlama {
+		r.AssistRepeatsRequested = localModelRepeats
+		r.AssistRepeatSummary = make([]repeatSummary, localModelRepeats)
+		for i := range r.AssistRepeatSummary {
+			r.AssistRepeatSummary[i].Repeat = i + 1
+		}
+	}
 	tagCounts := map[string]*tagAccumulator{}
 	gateCounts := map[string]*tagAccumulator{}
 	datasetCounts := map[string]*tagAccumulator{}
@@ -399,6 +437,10 @@ func run(opts runOptions) (result, error) {
 	for _, loaded := range successCases {
 		c := loaded.Case
 		mismatch, matchedItems, adapterOK := evaluateSuccessCase(c)
+		if mode == modeAssistLocalLlama {
+			mismatch.Messages = filterAssistRepairableSourceMessages(mismatch.Messages)
+			matchedItems = countAssistPreservedSourceItems(c)
+		}
 		r.TotalExpectedSourceItems += len(c.Expected.SourceItems)
 		r.SourceItemsMatched += matchedItems
 		if adapterOK {
@@ -406,7 +448,7 @@ func run(opts runOptions) (result, error) {
 		}
 		deterministicMessages, deterministicMetrics, deterministicFailure := evaluateDeterministicPathSuccessCase(c)
 		recordDeterministicPathAttempt(&r, len(c.Expected.SourceItems), deterministicMetrics, deterministicMessages, deterministicFailure)
-		if len(deterministicMessages) != 0 {
+		if mode != modeAssistLocalLlama && len(deterministicMessages) != 0 {
 			mismatch.Messages = append(mismatch.Messages, deterministicMessages...)
 		}
 		if mode == modeLocalLlama {
@@ -432,6 +474,31 @@ func run(opts runOptions) (result, error) {
 			}
 			if isUnstableCaseRepeat(caseSummary) {
 				r.LocalModelUnstableCases++
+			}
+		}
+		if mode == modeAssistLocalLlama {
+			caseSummary := caseRepeatSummary{
+				CaseID:  c.ID,
+				Repeats: localModelRepeats,
+			}
+			for repeatIndex := 1; repeatIndex <= localModelRepeats; repeatIndex++ {
+				assistMessages, assistMetrics, assistStats, assistFailure := evaluateAssistSuccessCase(c, opts.ProviderFactory, opts.ProviderConfig)
+				repeat := &r.AssistRepeatSummary[repeatIndex-1]
+				recordAssistAttempt(&r, repeat, c, assistMetrics, assistStats, assistMessages, assistFailure)
+				rowRate := ratio(assistMetrics.MatchedRows, len(c.Expected.SourceItems))
+				recordCaseRepeatAttempt(&caseSummary, rowRate, len(assistMessages) == 0)
+				if len(assistMessages) != 0 {
+					for _, message := range assistMessages {
+						mismatch.Messages = append(mismatch.Messages, fmt.Sprintf("repeat_%d_%s", repeatIndex, message))
+					}
+				}
+			}
+			finalizeCaseRepeatSummary(&caseSummary)
+			if shouldReportCaseRepeat(caseSummary) {
+				r.AssistCaseRepeatSummary = append(r.AssistCaseRepeatSummary, caseSummary)
+			}
+			if isUnstableCaseRepeat(caseSummary) {
+				r.AssistUnstableCases++
 			}
 		}
 		passed := len(mismatch.Messages) == 0
@@ -481,7 +548,14 @@ func run(opts runOptions) (result, error) {
 	r.LocalModelFoodAccuracy = ratio(r.LocalModelFoodMatched, r.LocalModelExpectedItems)
 	r.LocalModelQuantityAccuracy = ratio(r.LocalModelQuantityMatched, r.LocalModelExpectedItems)
 	r.LocalModelUnitAccuracy = ratio(r.LocalModelUnitMatched, r.LocalModelExpectedItems)
+	r.AssistRowMatchRate = ratio(r.AssistRowsMatched, r.AssistExpectedItems)
+	r.AssistDayAccuracy = ratio(r.AssistDayMatched, r.AssistExpectedItems)
+	r.AssistMealAccuracy = ratio(r.AssistMealMatched, r.AssistExpectedItems)
+	r.AssistFoodAccuracy = ratio(r.AssistFoodMatched, r.AssistExpectedItems)
+	r.AssistQuantityAccuracy = ratio(r.AssistQuantityMatched, r.AssistExpectedItems)
+	r.AssistUnitAccuracy = ratio(r.AssistUnitMatched, r.AssistExpectedItems)
 	finalizeRepeatSummaries(r.LocalModelRepeatSummary)
+	finalizeRepeatSummaries(r.AssistRepeatSummary)
 	r.GateSummary = gateSummaries(gateCounts)
 	r.SourceDatasetSummary = datasetSummaries(datasetCounts)
 	r.TagSummary = tagSummaries(tagCounts)
@@ -671,6 +745,33 @@ func evaluateSuccessCase(c successCase) (caseMismatch, int, bool) {
 	return mismatch, matchedItems, adapterOK
 }
 
+func filterAssistRepairableSourceMessages(messages []string) []string {
+	filtered := messages[:0]
+	for _, message := range messages {
+		if strings.HasPrefix(message, "source_item_") &&
+			(strings.Contains(message, "_day_failed:") || strings.Contains(message, "_meal_failed:")) {
+			continue
+		}
+		filtered = append(filtered, message)
+	}
+	return filtered
+}
+
+func countAssistPreservedSourceItems(c successCase) int {
+	actualItems := hosted.LocalLlamaResolvedSourceItems(c.InputText)
+	matched := 0
+	for index, expected := range c.Expected.SourceItems {
+		if index >= len(actualItems) {
+			continue
+		}
+		actual := actualItems[index]
+		if actual.ID == expected.SourceItemID && actual.Text == expected.SourceText {
+			matched++
+		}
+	}
+	return matched
+}
+
 func evaluateLocalModelSuccessCase(c successCase, providerFactory hosted.ProviderFactory, providerConfig hosted.ProviderConfig) ([]string, rowComparisonMetrics, int, string) {
 	messages, err := hosted.LocalModelExtractionMessages(hosted.PendingRunInput{
 		Mode:          hosted.InputModeLocalModel,
@@ -720,6 +821,101 @@ func evaluateDeterministicPathSuccessCase(c successCase) ([]string, rowCompariso
 	return compareMessages, metrics, ""
 }
 
+type assistAttemptStats struct {
+	Eligible       bool
+	Attempted      bool
+	RowsAttempted  int
+	RowsAccepted   int
+	RowsRejected   int
+	Abstentions    int
+	Clarifications int
+	SchemaFailure  bool
+	FalseAccepts   int
+}
+
+func evaluateAssistSuccessCase(c successCase, providerFactory hosted.ProviderFactory, providerConfig hosted.ProviderConfig) ([]string, rowComparisonMetrics, assistAttemptStats, string) {
+	provider, err := providerFactory(providerConfig)
+	if err != nil {
+		return []string{fmt.Sprintf("assist_provider_failed: %v", err)}, rowComparisonMetrics{}, assistAttemptStats{}, "provider"
+	}
+	ctx := context.Background()
+	var cancel context.CancelFunc
+	if providerConfig.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, providerConfig.Timeout)
+		defer cancel()
+	}
+	engine := normalization.Engine{
+		Policy: normalization.Policy{AssistEnabled: true},
+		Assist: hosted.AssistProviderAdapter{
+			Provider: provider,
+			Config:   providerConfig,
+		},
+	}
+	result, err := engine.Normalize(ctx, normalization.Request{
+		Text:   c.InputText,
+		PlanID: "p0-normalization-assist-eval",
+	})
+	stats := assistStatsFromResult(result, c.Expected.SourceItems)
+	if err != nil {
+		failure := "assist"
+		prefix := "assist_failed"
+		switch {
+		case hasReviewFlag(result, normalization.ReviewFlagLLMAssistProviderFailed):
+			failure = "provider"
+			prefix = "assist_provider_failed"
+		case hasReviewFlag(result, normalization.ReviewFlagLLMAssistSchemaInvalid):
+			failure = "decode"
+			prefix = "assist_decode_failed"
+			stats.SchemaFailure = true
+		}
+		return []string{fmt.Sprintf("%s: %v", prefix, err)}, rowComparisonMetrics{}, stats, failure
+	}
+	compareMessages, metrics := comparePlanRowsDetailed(result.Plan, c.Expected.SourceItems)
+	for i := range compareMessages {
+		compareMessages[i] = "assist_" + compareMessages[i]
+	}
+	return compareMessages, metrics, stats, ""
+}
+
+func assistStatsFromResult(result normalization.Result, expected []expectedSourceItem) assistAttemptStats {
+	stats := assistAttemptStats{
+		Eligible:     result.DeterministicError != "" && len(result.AssistChunks) > 0,
+		Attempted:    result.AssistUsed,
+		RowsAccepted: len(result.AcceptedAssistRows),
+		RowsRejected: len(result.RejectedAssistRows),
+	}
+	for _, request := range result.AssistRequests {
+		stats.RowsAttempted += len(request.SourceItems)
+	}
+	expectedIDs := map[int]bool{}
+	for _, item := range expected {
+		expectedIDs[item.SourceItemID] = true
+	}
+	for _, rejected := range result.RejectedAssistRows {
+		switch rejected.Reason {
+		case "abstain":
+			stats.Abstentions++
+		case "needs_clarification":
+			stats.Clarifications++
+		}
+	}
+	for _, accepted := range result.AcceptedAssistRows {
+		if !expectedIDs[accepted.SourceItem.ID] {
+			stats.FalseAccepts++
+		}
+	}
+	return stats
+}
+
+func hasReviewFlag(result normalization.Result, flag string) bool {
+	for _, existing := range result.ReviewFlags {
+		if existing == flag {
+			return true
+		}
+	}
+	return false
+}
+
 func recordDeterministicPathAttempt(r *result, expectedItems int, metrics rowComparisonMetrics, messages []string, failure string) {
 	r.DeterministicPathCasesRun++
 	r.DeterministicExpectedItems += expectedItems
@@ -730,6 +926,61 @@ func recordDeterministicPathAttempt(r *result, expectedItems int, metrics rowCom
 	}
 	if failure != "" {
 		r.DeterministicPathFailures++
+	}
+}
+
+func recordAssistAttempt(r *result, repeat *repeatSummary, c successCase, metrics rowComparisonMetrics, stats assistAttemptStats, messages []string, failure string) {
+	expectedItems := len(c.Expected.SourceItems)
+	r.AssistSuccessCasesRun++
+	r.AssistExpectedItems += expectedItems
+	r.AssistRowsMatched += metrics.MatchedRows
+	r.AssistDayMatched += metrics.DayMatched
+	r.AssistMealMatched += metrics.MealMatched
+	r.AssistFoodMatched += metrics.FoodMatched
+	r.AssistQuantityMatched += metrics.QuantityMatched
+	r.AssistUnitMatched += metrics.UnitMatched
+	r.AssistRowsAttempted += stats.RowsAttempted
+	r.AssistRowsAccepted += stats.RowsAccepted
+	r.AssistRowsRejected += stats.RowsRejected
+	r.AssistAbstentions += stats.Abstentions
+	r.AssistClarifications += stats.Clarifications
+	r.AssistFalseAccepts += stats.FalseAccepts
+	if stats.Eligible {
+		r.AssistEligibleCases++
+	}
+	if stats.Attempted {
+		r.AssistAttemptedCases++
+	}
+	if stats.SchemaFailure {
+		r.AssistSchemaFailures++
+	}
+
+	repeat.SuccessCasesRun++
+	repeat.ExpectedItems += expectedItems
+	repeat.RowsMatched += metrics.MatchedRows
+	repeat.DayAccuracy += float64(metrics.DayMatched)
+	repeat.MealAccuracy += float64(metrics.MealMatched)
+	repeat.FoodAccuracy += float64(metrics.FoodMatched)
+	repeat.QuantityAccuracy += float64(metrics.QuantityMatched)
+	repeat.UnitAccuracy += float64(metrics.UnitMatched)
+	repeat.SourceRepairs += stats.RowsAccepted
+	if stats.RowsAccepted > 0 {
+		repeat.RepairCases++
+	}
+
+	if len(messages) == 0 {
+		r.AssistSuccessCasesPass++
+		repeat.SuccessCasesPass++
+		return
+	}
+	repeat.CasesWithMismatches++
+	switch failure {
+	case "provider":
+		r.AssistProviderFailures++
+		repeat.ProviderFailures++
+	case "decode":
+		r.AssistDecodeFailures++
+		repeat.DecodeFailures++
 	}
 }
 
@@ -1211,13 +1462,15 @@ func normalizeMode(mode string) (string, error) {
 		return modeDeterministic, nil
 	case "local-llama", modeLocalLlama:
 		return modeLocalLlama, nil
+	case "assist-local-llama", modeAssistLocalLlama:
+		return modeAssistLocalLlama, nil
 	default:
 		return "", fmt.Errorf("unsupported normalization eval mode %q", mode)
 	}
 }
 
 func normalizeLocalModelRepeats(mode string, repeats int) (int, error) {
-	if mode != modeLocalLlama {
+	if !modeUsesLocalLlamaProvider(mode) {
 		return 0, nil
 	}
 	if repeats == 0 {
@@ -1227,6 +1480,10 @@ func normalizeLocalModelRepeats(mode string, repeats int) (int, error) {
 		return 0, fmt.Errorf("local-model repeats must be a positive integer")
 	}
 	return repeats, nil
+}
+
+func modeUsesLocalLlamaProvider(mode string) bool {
+	return mode == modeLocalLlama || mode == modeAssistLocalLlama
 }
 
 func envPositiveInt(name string, fallback int) int {

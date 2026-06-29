@@ -187,12 +187,14 @@ type APIError struct {
 }
 
 type ProviderConfig struct {
-	Type      string        `json:"type,omitempty"`
-	BaseURL   string        `json:"base_url,omitempty"`
-	Model     string        `json:"model,omitempty"`
-	APIKey    string        `json:"api_key,omitempty"`
-	MaxTokens int           `json:"max_tokens,omitempty"`
-	Timeout   time.Duration `json:"-"`
+	Type               string         `json:"type,omitempty"`
+	BaseURL            string         `json:"base_url,omitempty"`
+	Model              string         `json:"model,omitempty"`
+	APIKey             string         `json:"api_key,omitempty"`
+	MaxTokens          int            `json:"max_tokens,omitempty"`
+	Timeout            time.Duration  `json:"-"`
+	ResponseSchemaName string         `json:"-"`
+	ResponseSchema     map[string]any `json:"-"`
 }
 
 type RedactedProviderConfig struct {

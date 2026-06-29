@@ -4,6 +4,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/chranama/MealCheck/internal/assist"
 )
 
 func TestBuildDeterministicPlanFromNaturalMealText(t *testing.T) {
@@ -93,4 +95,55 @@ func TestEngineAnalyzeBuildsAssistChunksWhenEnabled(t *testing.T) {
 	if got := result.AssistChunks[0].SourceItemIDs; len(got) != 2 || got[0] != 1 || got[1] != 2 {
 		t.Fatalf("first chunk ids = %+v, want [1 2]", got)
 	}
+}
+
+func TestEngineNormalizeUsesAssistForMissingMealCode(t *testing.T) {
+	result, err := (Engine{
+		Policy: Policy{AssistEnabled: true},
+		Assist: staticAssistClient{response: `{"items":[{"source_item_id":1,"action":"propose_row","day":1,"meal_code":"b","food":"cooked oatmeal","quantity":1,"unit":"cup","confidence":"high","message":""}]}`},
+	}).Normalize(context.Background(), Request{
+		Text:   "- 1 cup cooked oatmeal",
+		PlanID: "assist-test",
+	})
+	if err != nil {
+		t.Fatalf("Normalize error: %v", err)
+	}
+	if result.Method != MethodDeterministicWithLLMAssist {
+		t.Fatalf("method = %q, want %q", result.Method, MethodDeterministicWithLLMAssist)
+	}
+	if !result.AssistUsed || !result.ProviderUsed {
+		t.Fatalf("assist/provider used = %v/%v, want true/true", result.AssistUsed, result.ProviderUsed)
+	}
+	if len(result.AcceptedAssistRows) != 1 || len(result.RejectedAssistRows) != 0 {
+		t.Fatalf("accepted/rejected rows = %d/%d, want 1/0", len(result.AcceptedAssistRows), len(result.RejectedAssistRows))
+	}
+	if got := result.Plan.Days[0].Meals[0].Items[0].Food; got != "cooked oatmeal" {
+		t.Fatalf("assisted food = %q, want cooked oatmeal", got)
+	}
+}
+
+func TestDecodeAndValidateP0AssistResponseRejectsInventedSourceID(t *testing.T) {
+	payload := AssistRequestPayload{
+		Task:        P0AssistTask,
+		ChunkID:     "chunk_1",
+		SourceItems: []SourceItem{{ID: 1, Day: 1, Text: "1 cup oatmeal"}},
+	}
+	validation, err := DecodeAndValidateP0AssistResponse(`{"items":[{"source_item_id":99,"action":"propose_row","day":1,"meal_code":"b","food":"oatmeal","quantity":1,"unit":"cup","confidence":"high","message":""}]}`, payload)
+	if err != nil {
+		t.Fatalf("DecodeAndValidateP0AssistResponse error: %v", err)
+	}
+	if len(validation.Accepted) != 0 || len(validation.Rejected) != 1 {
+		t.Fatalf("accepted/rejected = %d/%d, want 0/1", len(validation.Accepted), len(validation.Rejected))
+	}
+	if validation.Rejected[0].Reason != "invented_source_item_id" {
+		t.Fatalf("reject reason = %q, want invented_source_item_id", validation.Rejected[0].Reason)
+	}
+}
+
+type staticAssistClient struct {
+	response string
+}
+
+func (c staticAssistClient) Complete(_ context.Context, _ assist.Request) (assist.Response, error) {
+	return assist.Response{RawText: c.response}, nil
 }

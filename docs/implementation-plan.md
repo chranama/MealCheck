@@ -2958,7 +2958,7 @@ Implemented:
    catalog schema.
 4. Added `data/evaluation/fndds-grounded-meal-plans-v1.json` with 100
    structured one-day meal-plan cases and expected outcomes.
-5. Added `mealcheck eval` as a deterministic resolver/evaluation runner.
+5. Added `mealcheck eval-checker` as a deterministic resolver/evaluation runner.
 6. Updated fixture validation to require at least 100 foods, source-compatible
    catalog quality, and the 100-case evaluation dataset.
 7. Recorded baseline and expanded resolver results:
@@ -2986,7 +2986,7 @@ Verification:
 - `python3 scripts/generate-fndds-evaluation.py` passes.
 - `python3 -m py_compile scripts/generate-fndds-evaluation.py` passes.
 - `go run ./cmd/mealcheck fixture-check` passes.
-- `go run ./cmd/mealcheck eval` passes.
+- `go run ./cmd/mealcheck eval-checker` passes.
 
 ## Milestone 39: WWEIA/NHANES Real-Recall Evaluation Layer
 
@@ -3027,7 +3027,7 @@ Implemented:
    FNDDS food codes to user-facing food descriptions.
 4. Marked nonlocal FNDDS foods as intentional `unknown_food` unresolved items
    so the dataset drives catalog expansion instead of guessing.
-5. Extended `mealcheck eval` to accept per-case source refs, source metrics,
+5. Extended `mealcheck eval-checker` to accept per-case source refs, source metrics,
    and top-level dataset summaries.
 6. Added `data/evaluation/results/wweia-nhanes-real-recalls-v1.json`.
 7. Updated fixture validation so both evaluation datasets must contain exactly
@@ -3061,7 +3061,7 @@ Verification:
 - `python3 scripts/generate-wweia-nhanes-evaluation.py` passes.
 - `python3 -m py_compile scripts/generate-wweia-nhanes-evaluation.py` passes.
 - `go run ./cmd/mealcheck fixture-check` passes.
-- `go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -out data/evaluation/results/wweia-nhanes-real-recalls-v1.json` passes.
+- `go run ./cmd/mealcheck eval-checker -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -out data/evaluation/results/wweia-nhanes-real-recalls-v1.json` passes.
 
 ## Milestone 40: FNDDS Reference Database And Candidate Preprocessing
 
@@ -3188,9 +3188,9 @@ Implemented:
 4. Allowed explicit `unknown_food` items with quantities to retry the fallback,
    while preserving unresolved behavior for vague quantities, unsupported
    units, and other unresolved reasons.
-5. Added `-fndds-fallback` to `mealcheck eval`, `mealcheck validate`, and
+5. Added `-fndds-fallback` to `mealcheck eval-checker`, `mealcheck validate`, and
    `mealcheck compare`.
-6. Added `-skip-expected` to `mealcheck eval` for coverage runs where the
+6. Added `-skip-expected` to `mealcheck eval-checker` for coverage runs where the
    expected unresolved counts describe no-fallback mode.
 7. Wired hosted workers to pass `MEALCHECK_FNDDS_FALLBACK_PATH` into artifact
    generation when explicitly configured.
@@ -3233,7 +3233,7 @@ Verification:
 - `python3 -m py_compile scripts/import-fndds-reference.py` passes.
 - `go test ./internal/checker` passes.
 - `go run ./cmd/mealcheck fixture-check` passes.
-- `go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
+- `go run ./cmd/mealcheck eval-checker -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
 
 ## Milestone 42: FNDDS Resolver Well-Defined Food Gate
 
@@ -3286,7 +3286,7 @@ Verification:
 - `go test ./internal/checker` passes.
 - `go test ./...` passes.
 - `go run ./cmd/mealcheck fixture-check` passes.
-- `go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
+- `go run ./cmd/mealcheck eval-checker -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
 - `cd ui && npm run typecheck` passes.
 - `cd ui && npm run test` passes.
 - `cd ui && npm run build` passes.
@@ -3449,7 +3449,7 @@ Verification:
 
 - `go test ./...` passes.
 - `go run ./cmd/mealcheck fixture-check` passes.
-- `go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out /tmp/mealcheck-wweia-fallback-current.json` passes.
+- `go run ./cmd/mealcheck eval-checker -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out /tmp/mealcheck-wweia-fallback-current.json` passes.
 - `git diff --check` passes.
 
 ## Milestone 45: P0 Normalization Evaluation Framework

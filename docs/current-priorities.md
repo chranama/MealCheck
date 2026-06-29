@@ -241,7 +241,7 @@ P0 proof should include:
 P1 proof should include:
 
 - `go run ./cmd/mealcheck fixture-check`
-- `go run ./cmd/mealcheck eval`
+- `go run ./cmd/mealcheck eval-checker`
 - WWEIA/NHANES evaluation when changing catalog or fallback behavior
 - resolver tests for new unresolved reasons or conversions
 

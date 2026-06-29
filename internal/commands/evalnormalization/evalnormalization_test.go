@@ -64,6 +64,61 @@ func TestRunLocalLlamaModeScoresProviderOutput(t *testing.T) {
 	}
 }
 
+func TestRunAssistLocalLlamaModeRepairsMissingMealCode(t *testing.T) {
+	root := t.TempDir()
+	dataDir := filepath.Join(root, "data", "evaluation", "p0-normalization")
+	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+		t.Fatalf("mkdir data dir: %v", err)
+	}
+	manifestPath := filepath.Join(dataDir, "manifest.json")
+	datasetPath := filepath.Join(dataDir, "cases-v1.jsonl")
+	failurePath := filepath.Join(dataDir, "failure-cases-v1.jsonl")
+	if err := os.WriteFile(manifestPath, []byte(`{"schema_version":"0.1","dataset_id":"p0-assist-test"}`), 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	successCase := `{"schema_version":"0.1","id":"assist-missing-meal","source_dataset":"test","input_text":"- 1 cup oatmeal","expected":{"days":[1],"source_items":[{"source_item_id":1,"day":1,"meal_code":"b","source_text":"1 cup oatmeal","food":"oatmeal","quantity":1,"unit":"cup"}]},"tags":["unit_test","assist"]}` + "\n"
+	if err := os.WriteFile(datasetPath, []byte(successCase), 0o644); err != nil {
+		t.Fatalf("write dataset: %v", err)
+	}
+	if err := os.WriteFile(failurePath, nil, 0o644); err != nil {
+		t.Fatalf("write failures: %v", err)
+	}
+
+	result, err := run(runOptions{
+		Root:         root,
+		ManifestPath: manifestPath,
+		DatasetPath:  datasetPath,
+		FailurePath:  failurePath,
+		Mode:         "assist-local-llama",
+		ProviderConfig: hosted.ProviderConfig{
+			Type:  hosted.ProviderTypeLocalLlama,
+			Model: "test-model",
+		},
+		ProviderFactory: hosted.StaticResponseProviderFactory(`{"items":[{"source_item_id":1,"action":"propose_row","day":1,"meal_code":"b","food":"oatmeal","quantity":1,"unit":"cup","confidence":"high","message":""}]}`),
+	})
+	if err != nil {
+		t.Fatalf("run assist eval: %v", err)
+	}
+	if result.Mode != modeAssistLocalLlama {
+		t.Fatalf("mode = %q, want %q", result.Mode, modeAssistLocalLlama)
+	}
+	if result.TotalCases != 1 || result.CasesPassed != 1 || result.CasesWithMismatches != 0 {
+		t.Fatalf("unexpected result counts: total=%d passed=%d mismatches=%d messages=%+v", result.TotalCases, result.CasesPassed, result.CasesWithMismatches, result.Mismatches)
+	}
+	if result.DeterministicPathCasesRun != 1 || result.DeterministicPathCasesPass != 0 || result.DeterministicPathFailures != 1 {
+		t.Fatalf("deterministic path metrics = run %d pass %d failures %d, want 1/0/1", result.DeterministicPathCasesRun, result.DeterministicPathCasesPass, result.DeterministicPathFailures)
+	}
+	if result.AssistSuccessCasesRun != 1 || result.AssistSuccessCasesPass != 1 || result.AssistRowsAccepted != 1 {
+		t.Fatalf("assist metrics = run %d pass %d accepted %d, want 1/1/1", result.AssistSuccessCasesRun, result.AssistSuccessCasesPass, result.AssistRowsAccepted)
+	}
+	if result.AssistRowsMatched != 1 || result.AssistRowMatchRate != 1 {
+		t.Fatalf("assist row match = %d rate %.3f, want 1 and 1", result.AssistRowsMatched, result.AssistRowMatchRate)
+	}
+	if result.SourceItemsMatched != 1 || result.SourceItemPreservationRate != 1 {
+		t.Fatalf("source preservation = %d rate %.3f, want 1 and 1", result.SourceItemsMatched, result.SourceItemPreservationRate)
+	}
+}
+
 func TestRunLocalLlamaModeSupportsRepeats(t *testing.T) {
 	root := t.TempDir()
 	dataDir := filepath.Join(root, "data", "evaluation", "p0-normalization")

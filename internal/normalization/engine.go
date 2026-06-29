@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/chranama/MealCheck/internal/assist"
 	"github.com/chranama/MealCheck/internal/checker"
 )
 
@@ -14,7 +15,11 @@ const (
 	MethodFailedPreModel              = "failed_pre_model"
 	MethodFailedPostAssistValidation  = "failed_post_assist_validation"
 	MethodLocalModelFallback          = "local_model_fallback"
-	ReviewFlagLLMAssistNotImplemented = "llm_assist_not_implemented"
+	ReviewFlagLLMAssistUnavailable    = "llm_assist_unavailable"
+	ReviewFlagLLMAssistProviderFailed = "llm_assist_provider_failed"
+	ReviewFlagLLMAssistSchemaInvalid  = "llm_assist_schema_invalid"
+	ReviewFlagLLMAssistIncomplete     = "llm_assist_incomplete"
+	ReviewFlagLLMAssistInvalidMerge   = "llm_assist_invalid_merge"
 )
 
 type Request struct {
@@ -30,22 +35,27 @@ type Policy struct {
 
 type Engine struct {
 	Policy Policy
+	Assist assist.Client
 }
 
 type Result struct {
-	SchemaVersion      string             `json:"schema_version"`
-	Method             string             `json:"method"`
-	PlanID             string             `json:"plan_id,omitempty"`
-	Plan               checker.Plan       `json:"-"`
-	SourceItems        []SourceItem       `json:"source_items,omitempty"`
-	ParsedItems        []ParsedSourceItem `json:"parsed_items,omitempty"`
-	UnresolvedItems    []UnresolvedItem   `json:"unresolved_items,omitempty"`
-	AssistPolicy       Policy             `json:"assist_policy"`
-	AssistChunks       []AssistChunk      `json:"assist_chunks,omitempty"`
-	AssistUsed         bool               `json:"assist_used"`
-	ProviderUsed       bool               `json:"provider_used"`
-	ReviewFlags        []string           `json:"review_flags,omitempty"`
-	DeterministicError string             `json:"deterministic_error,omitempty"`
+	SchemaVersion      string                   `json:"schema_version"`
+	Method             string                   `json:"method"`
+	PlanID             string                   `json:"plan_id,omitempty"`
+	Plan               checker.Plan             `json:"-"`
+	SourceItems        []SourceItem             `json:"source_items,omitempty"`
+	ParsedItems        []ParsedSourceItem       `json:"parsed_items,omitempty"`
+	UnresolvedItems    []UnresolvedItem         `json:"unresolved_items,omitempty"`
+	AssistPolicy       Policy                   `json:"assist_policy"`
+	AssistChunks       []AssistChunk            `json:"assist_chunks,omitempty"`
+	AssistRequests     []AssistRequestPayload   `json:"assist_requests,omitempty"`
+	AssistResponses    []AssistResponseArtifact `json:"assist_responses,omitempty"`
+	AcceptedAssistRows []AssistAcceptedRow      `json:"accepted_assist_rows,omitempty"`
+	RejectedAssistRows []AssistRejectedRow      `json:"rejected_assist_rows,omitempty"`
+	AssistUsed         bool                     `json:"assist_used"`
+	ProviderUsed       bool                     `json:"provider_used"`
+	ReviewFlags        []string                 `json:"review_flags,omitempty"`
+	DeterministicError string                   `json:"deterministic_error,omitempty"`
 }
 
 type UnresolvedItem struct {
@@ -66,11 +76,59 @@ func (e Engine) Normalize(ctx context.Context, request Request) (Result, error) 
 		return result, nil
 	}
 	if policy.AssistEnabled {
-		result.Method = MethodFailedPostAssistValidation
-		result.ReviewFlags = appendIfMissingString(result.ReviewFlags, ReviewFlagLLMAssistNotImplemented)
-		return result, fmt.Errorf("normalization LLM assist is enabled but not implemented")
+		return e.assistNormalize(ctx, result)
 	}
 	return result, fmt.Errorf("%s", result.DeterministicError)
+}
+
+func (e Engine) assistNormalize(ctx context.Context, result Result) (Result, error) {
+	if len(result.AssistChunks) == 0 {
+		result.Method = MethodFailedPostAssistValidation
+		result.ReviewFlags = appendIfMissingString(result.ReviewFlags, ReviewFlagLLMAssistIncomplete)
+		return result, fmt.Errorf("normalization LLM assist has no eligible source items")
+	}
+	if e.Assist == nil {
+		result.Method = MethodFailedPostAssistValidation
+		result.ReviewFlags = appendIfMissingString(result.ReviewFlags, ReviewFlagLLMAssistUnavailable)
+		return result, fmt.Errorf("normalization LLM assist client is not configured")
+	}
+	for _, chunk := range result.AssistChunks {
+		if err := ctx.Err(); err != nil {
+			return result, err
+		}
+		payload := BuildP0AssistRequestPayload(result, chunk)
+		result.AssistRequests = append(result.AssistRequests, payload)
+		response, err := e.Assist.Complete(ctx, assist.Request{
+			Task:           P0AssistTask,
+			SchemaName:     P0AssistSchemaName,
+			ResponseSchema: P0AssistResponseSchema(),
+			Messages:       P0AssistMessages(payload),
+		})
+		result.ProviderUsed = true
+		result.AssistUsed = true
+		artifact := AssistResponseArtifact{ChunkID: chunk.ID}
+		if err != nil {
+			artifact.Error = err.Error()
+			result.AssistResponses = append(result.AssistResponses, artifact)
+			result.Method = MethodFailedPostAssistValidation
+			result.ReviewFlags = appendIfMissingString(result.ReviewFlags, ReviewFlagLLMAssistProviderFailed)
+			return result, fmt.Errorf("normalization LLM assist provider failed: %w", err)
+		}
+		artifact.RawText = response.RawText
+		validation, err := DecodeAndValidateP0AssistResponse(response.RawText, payload)
+		if err != nil {
+			artifact.Error = err.Error()
+			result.AssistResponses = append(result.AssistResponses, artifact)
+			result.Method = MethodFailedPostAssistValidation
+			result.ReviewFlags = appendIfMissingString(result.ReviewFlags, ReviewFlagLLMAssistSchemaInvalid)
+			return result, err
+		}
+		artifact.Items = validation.Response.Items
+		result.AssistResponses = append(result.AssistResponses, artifact)
+		result.AcceptedAssistRows = append(result.AcceptedAssistRows, validation.Accepted...)
+		result.RejectedAssistRows = append(result.RejectedAssistRows, validation.Rejected...)
+	}
+	return BuildAssistedPlan(result)
 }
 
 func Analyze(text string, planID string, policy Policy) Result {

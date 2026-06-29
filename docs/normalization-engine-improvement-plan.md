@@ -50,6 +50,11 @@ Implemented:
   `tbsp`/`tsp`, and preparation-word preservation
 - P0 eval metrics for local-model day, meal, food, quantity, and unit accuracy
 - P0 eval and regimen artifact fields for source repair counts
+- deterministic-first normalization engine with P0 LLM assist hooks
+- exploratory `eval-normalization -mode assist-local-llama` for bounded
+  unresolved source-item repair
+- `normalization-result.json` assist artifacts for requests, responses,
+  accepted rows, rejected rows, and review flags
 
 Current live seed result:
 
@@ -66,6 +71,7 @@ Remaining planned work:
 
 - first-class unsupported-unit qualification diagnostics
 - larger reviewed NYT and TASTEset-derived P0 datasets
+- repeat P0 assist eval on seed and natural-rewrite corpora
 - broader model/runtime comparison after the reviewed seed remains stable
 
 ## Product Goal
@@ -558,6 +564,9 @@ Current implementation status:
   not enabled as production behavior
 - existing local-model compact decode remains as the fallback path when the
   deterministic builder cannot safely cover the input
+
+The detailed implementation plan for P0 normalization assist and P1 candidate
+assist lives in `docs/llm-assist-implementation-plan.md`.
 
 ## Non-Goals
 

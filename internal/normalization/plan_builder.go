@@ -13,6 +13,18 @@ type ParsedSourceItem struct {
 	Measurement ParsedSourceMeasurement `json:"measurement"`
 }
 
+type NormalizedRow struct {
+	SourceItemID int     `json:"source_item_id,omitempty"`
+	SourceText   string  `json:"source_text,omitempty"`
+	Day          int     `json:"day"`
+	MealCode     string  `json:"meal_code"`
+	Food         string  `json:"food"`
+	Quantity     float64 `json:"quantity"`
+	Unit         string  `json:"unit"`
+	Source       string  `json:"source,omitempty"`
+	Confidence   string  `json:"confidence,omitempty"`
+}
+
 func BuildDeterministicPlan(text string, planID string) (checker.Plan, []ParsedSourceItem, error) {
 	sourceItems := ResolvedSourceItems(text)
 	if len(sourceItems) == 0 {
@@ -22,7 +34,7 @@ func BuildDeterministicPlan(text string, planID string) (checker.Plan, []ParsedS
 		planID = "deterministic-normalized"
 	}
 
-	dayMeals := map[int]map[string][]checker.FoodItem{}
+	rows := make([]NormalizedRow, 0, len(sourceItems))
 	parsedItems := make([]ParsedSourceItem, 0, len(sourceItems))
 	for _, sourceItem := range sourceItems {
 		if sourceItem.Day < 1 || sourceItem.Day > 7 {
@@ -39,14 +51,95 @@ func BuildDeterministicPlan(text string, planID string) (checker.Plan, []ParsedS
 		if measurement.Status != "parsed" {
 			return checker.Plan{}, parsedItems, fmt.Errorf("source item %d could not be parsed: %s", sourceItem.ID, measurement.Reason)
 		}
-		quantity := measurement.Quantity
-		if dayMeals[sourceItem.Day] == nil {
-			dayMeals[sourceItem.Day] = map[string][]checker.FoodItem{}
+		rows = append(rows, NormalizedRow{
+			SourceItemID: sourceItem.ID,
+			SourceText:   sourceItem.Text,
+			Day:          sourceItem.Day,
+			MealCode:     sourceItem.MealCode,
+			Food:         measurement.Food,
+			Quantity:     measurement.Quantity,
+			Unit:         measurement.Unit,
+			Source:       "deterministic",
+		})
+	}
+	plan, err := BuildPlanFromRows(rows, planID)
+	return plan, parsedItems, err
+}
+
+func DeterministicRows(parsedItems []ParsedSourceItem) []NormalizedRow {
+	rows := make([]NormalizedRow, 0, len(parsedItems))
+	for _, parsed := range parsedItems {
+		if parsed.Measurement.Status != "parsed" {
+			continue
 		}
-		dayMeals[sourceItem.Day][sourceItem.MealCode] = append(dayMeals[sourceItem.Day][sourceItem.MealCode], checker.FoodItem{
-			Food:     measurement.Food,
+		if _, ok := MealName(parsed.SourceItem.MealCode); !ok {
+			continue
+		}
+		if parsed.SourceItem.Day < 1 || parsed.SourceItem.Day > 7 {
+			continue
+		}
+		rows = append(rows, NormalizedRow{
+			SourceItemID: parsed.SourceItem.ID,
+			SourceText:   parsed.SourceItem.Text,
+			Day:          parsed.SourceItem.Day,
+			MealCode:     parsed.SourceItem.MealCode,
+			Food:         parsed.Measurement.Food,
+			Quantity:     parsed.Measurement.Quantity,
+			Unit:         parsed.Measurement.Unit,
+			Source:       "deterministic",
+		})
+	}
+	return rows
+}
+
+func BuildPlanFromRows(rows []NormalizedRow, planID string) (checker.Plan, error) {
+	if len(rows) == 0 {
+		return checker.Plan{}, fmt.Errorf("no normalized rows")
+	}
+	if strings.TrimSpace(planID) == "" {
+		planID = "deterministic-normalized"
+	}
+	rows = append([]NormalizedRow(nil), rows...)
+	sort.SliceStable(rows, func(i, j int) bool {
+		if rows[i].SourceItemID == rows[j].SourceItemID {
+			return i < j
+		}
+		if rows[i].SourceItemID == 0 {
+			return false
+		}
+		if rows[j].SourceItemID == 0 {
+			return true
+		}
+		return rows[i].SourceItemID < rows[j].SourceItemID
+	})
+
+	dayMeals := map[int]map[string][]checker.FoodItem{}
+	for _, row := range rows {
+		if row.Day < 1 || row.Day > 7 {
+			return checker.Plan{}, fmt.Errorf("source item %d day %d is outside supported range 1..7", row.SourceItemID, row.Day)
+		}
+		if _, ok := MealName(row.MealCode); !ok {
+			return checker.Plan{}, fmt.Errorf("source item %d has missing or unsupported meal code %q", row.SourceItemID, row.MealCode)
+		}
+		unit := NormalizeSourceUnit(row.Unit)
+		if !AllowedUnit(unit) {
+			return checker.Plan{}, fmt.Errorf("source item %d has unsupported unit %q", row.SourceItemID, row.Unit)
+		}
+		food := strings.TrimSpace(row.Food)
+		if food == "" {
+			return checker.Plan{}, fmt.Errorf("source item %d has empty food", row.SourceItemID)
+		}
+		if row.Quantity <= 0 {
+			return checker.Plan{}, fmt.Errorf("source item %d has non-positive quantity", row.SourceItemID)
+		}
+		quantity := row.Quantity
+		if dayMeals[row.Day] == nil {
+			dayMeals[row.Day] = map[string][]checker.FoodItem{}
+		}
+		dayMeals[row.Day][row.MealCode] = append(dayMeals[row.Day][row.MealCode], checker.FoodItem{
+			Food:     food,
 			Quantity: &quantity,
-			Unit:     measurement.Unit,
+			Unit:     unit,
 		})
 	}
 
@@ -81,7 +174,7 @@ func BuildDeterministicPlan(text string, planID string) (checker.Plan, []ParsedS
 		SchemaVersion: "0.1",
 		PlanID:        planID,
 		Days:          days,
-	}, parsedItems, nil
+	}, nil
 }
 
 func MealName(code string) (string, bool) {

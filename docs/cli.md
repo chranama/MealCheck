@@ -44,7 +44,7 @@ The deployed MacBook layout uses:
 | `mealcheck validate` | Evaluate a case file and write the full artifact bundle. |
 | `mealcheck compare` | Exercise the baseline/candidate command surface and write a compare-mode bundle. |
 | `mealcheck decision` | Read an existing `decision.json` and apply MealCheck exit-code policy. |
-| `mealcheck eval` | Run deterministic evaluation datasets and write coverage results. |
+| `mealcheck eval-checker` | Run deterministic evaluation datasets and write coverage results. |
 | `mealcheck eval-normalization` | Run P0 meal-plan normalization evaluation. |
 | `mealcheck fixture-check` | Validate checked-in schemas, fixtures, catalogs, and reference data. |
 | `mealcheck local-llama normalize` | Expand compact local llama JSON into canonical MealCheck plan JSON. |
@@ -61,7 +61,7 @@ usage:
   mealcheck validate --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]
   mealcheck compare --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]
   mealcheck decision [--strict] <decision.json>
-  mealcheck eval [-dataset dataset.json] [-out results.json] [-fndds-fallback fndds.sqlite] [-skip-expected]
+  mealcheck eval-checker [-dataset dataset.json] [-out results.json] [-fndds-fallback fndds.sqlite] [-skip-expected]
   mealcheck eval-normalization [-mode deterministic|local-llama] [-dataset cases.jsonl] [-failures failure-cases.jsonl] [-out results.json]
   mealcheck fixture-check [-root repo-root]
   mealcheck local-llama normalize --input compact.json [--out normalized-plan.json]
@@ -187,12 +187,12 @@ Unknown fields in that file are rejected.
 
 ## Run Evaluation
 
-`eval` runs a checked-in evaluation dataset through the deterministic resolver
-and reports coverage, unresolved food frequency, category summaries, and
-expected-outcome mismatches.
+`eval-checker` runs a checked-in evaluation dataset through the deterministic
+resolver and reports coverage, unresolved food frequency, category summaries,
+and expected-outcome mismatches.
 
 ```bash
-go run ./cmd/mealcheck eval
+go run ./cmd/mealcheck eval-checker
 ```
 
 Options:
