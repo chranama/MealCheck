@@ -165,7 +165,69 @@ func TestProfileGenerationUsesBYOKProviderAndRedactsSecret(t *testing.T) {
 	}
 }
 
-func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
+func TestLocalModelRunUsesDeterministicNormalizationWhenExplicit(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.HostedMode = HostedModeLocalModel
+	config.LocalModelEnabled = true
+	config.LocalModelBaseURL = "http://127.0.0.1:11435/v1"
+	config.LocalModelName = "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf"
+	config.LocalModelMaxInputChars = 1_000
+	config.LocalModelMaxOutputTokens = 160
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	seeded := seededCase(t, root)
+	settings := localModelTestSettings(seeded.Settings)
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:     InputModeLocalModel,
+		Settings:      settings,
+		CandidateText: "Breakfast: 1 cup cooked oatmeal, 1 cup blueberries, 1 cup plain Greek yogurt.\nLunch: 4 oz chicken breast, 1 cup brown rice, 1 cup broccoli.\nDinner: 4 oz salmon, 1 cup sweet potato, 1 cup spinach.",
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+
+	providerFactoryCalled := false
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		providerFactoryCalled = true
+		return nil, fmt.Errorf("provider factory should not be called for deterministic local-model input: %+v", config)
+	}).ProcessOne(context.Background())
+	if err != nil {
+		t.Fatalf("process run: %v", err)
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+	if providerFactoryCalled {
+		t.Fatal("provider factory was called for deterministic local-model input")
+	}
+
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	if run.Status != StatusCompleted {
+		t.Fatalf("run status = %q, want completed; error=%s", run.Status, run.Error)
+	}
+
+	var events []NormalizationEvent
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "normalization-events.json")), &events)
+	if !hasNormalizationEvent(events, "deterministic_normalized") || !hasNormalizationEvent(events, "json_decoded") {
+		t.Fatalf("normalization events missing deterministic lifecycle: %+v", events)
+	}
+	var plan checker.Plan
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "normalized-plan.json")), &plan)
+	if got := countMealPlanItems(plan); got != 9 {
+		t.Fatalf("plan item count = %d, want 9", got)
+	}
+}
+
+func TestLocalModelRunFallsBackToServerOwnedProvider(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
 	config.HostedMode = HostedModeLocalModel
@@ -178,13 +240,16 @@ func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
 	pending := NewPendingInputs()
 	server := NewServer(config, store, pending)
 	provider := &fakeProvider{responses: []string{compactLocalMealPlanJSON()}}
-	seeded := seededCase(t, root)
-	settings := localModelTestSettings(seeded.Settings)
+	settings := localModelTestSettings(seededCase(t, root).Settings)
 
 	body := marshalJSON(t, CreateRunRequest{
-		InputMode:     InputModeLocalModel,
-		Settings:      settings,
-		CandidateText: "Breakfast: 1 cup cooked oatmeal, 1 cup blueberries, 1 cup plain Greek yogurt.\nLunch: 4 oz chicken breast, 1 cup brown rice, 1 cup broccoli.\nDinner: 4 oz salmon, 1 cup sweet potato, 1 cup spinach.",
+		InputMode: InputModeLocalModel,
+		Settings:  settings,
+		CandidateText: strings.Join([]string{
+			"Breakfast includes 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.",
+			"Lunch includes 4 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.",
+			"Dinner includes 4 oz salmon, 1 cup sweet potato, and 1 cup spinach.",
+		}, "\n"),
 	})
 	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
 	if createResp.Code != http.StatusAccepted {
@@ -228,7 +293,6 @@ func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
 	if run.Status != StatusCompleted {
 		t.Fatalf("run status = %q, want completed; error=%s", run.Status, run.Error)
 	}
-
 	var redacted RedactedProviderConfig
 	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "configs", "redacted-provider.json")), &redacted)
 	if redacted.Type != ProviderTypeLocalLlama {
@@ -242,12 +306,6 @@ func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
 	}
 	if redacted.APIKey != "not_applicable" {
 		t.Fatalf("redacted local api key = %q, want not_applicable", redacted.APIKey)
-	}
-
-	var events []NormalizationEvent
-	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "normalization-events.json")), &events)
-	if !hasNormalizationEvent(events, "json_decoded") {
-		t.Fatalf("normalization events missing json_decoded: %+v", events)
 	}
 }
 
@@ -331,7 +389,7 @@ func TestLocalModelRunFastFailsNonVerifiableTextBeforeQueue(t *testing.T) {
 	}
 }
 
-func TestLocalModelRunDecomposesClearMultiDayInput(t *testing.T) {
+func TestLocalModelRunDeterministicallyNormalizesClearMultiDayInput(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
 	config.HostedMode = HostedModeLocalModel
@@ -343,7 +401,6 @@ func TestLocalModelRunDecomposesClearMultiDayInput(t *testing.T) {
 	store := NewMemoryStore()
 	pending := NewPendingInputs()
 	server := NewServer(config, store, pending)
-	provider := &fakeProvider{responses: []string{compactLocalMealPlanJSON(), compactLocalMealPlanJSON()}}
 	seeded := seededCase(t, root)
 	settings := localModelTestSettings(seeded.Settings)
 	settings.VerificationConstraints.Days = 0
@@ -368,8 +425,10 @@ func TestLocalModelRunDecomposesClearMultiDayInput(t *testing.T) {
 	var created CreateRunResponse
 	decodeJSON(t, createResp.Body.Bytes(), &created)
 
+	providerFactoryCalled := false
 	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
-		return provider, nil
+		providerFactoryCalled = true
+		return nil, fmt.Errorf("provider factory should not be called for deterministic multi-day input: %+v", config)
 	}).ProcessOne(context.Background())
 	if err != nil {
 		t.Fatalf("process run: %v", err)
@@ -377,17 +436,8 @@ func TestLocalModelRunDecomposesClearMultiDayInput(t *testing.T) {
 	if !processed {
 		t.Fatal("expected worker to process one run")
 	}
-	if provider.calls != 2 {
-		t.Fatalf("provider calls = %d, want one per day", provider.calls)
-	}
-	if strings.Contains(provider.messages[1][1].Content, "Day 2") {
-		t.Fatalf("second provider prompt was not rewritten for one-day extraction:\n%s", provider.messages[1][1].Content)
-	}
-	if !strings.Contains(provider.messages[1][1].Content, "Use day numbers 1..1.") {
-		t.Fatalf("second provider prompt missing one-day constraint:\n%s", provider.messages[1][1].Content)
-	}
-	if strings.Contains(provider.messages[1][1].Content, "Each day must contain exactly") {
-		t.Fatalf("second provider prompt unexpectedly carried an exact meal count:\n%s", provider.messages[1][1].Content)
+	if providerFactoryCalled {
+		t.Fatal("provider factory was called for deterministic multi-day input")
 	}
 
 	run, err := store.GetRun(context.Background(), created.RunID)
@@ -399,8 +449,8 @@ func TestLocalModelRunDecomposesClearMultiDayInput(t *testing.T) {
 	}
 	var events []NormalizationEvent
 	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "normalization-events.json")), &events)
-	if !hasNormalizationEvent(events, "local_model_decomposed") || !hasNormalizationEvent(events, "json_decoded") {
-		t.Fatalf("normalization events missing decomposition lifecycle: %+v", events)
+	if !hasNormalizationEvent(events, "deterministic_normalized") || !hasNormalizationEvent(events, "json_decoded") {
+		t.Fatalf("normalization events missing deterministic lifecycle: %+v", events)
 	}
 	var plan checker.Plan
 	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "normalized-plan.json")), &plan)
@@ -431,7 +481,7 @@ func TestLocalModelRunReportsFriendlyPostModelNormalizationFailure(t *testing.T)
 	body := marshalJSON(t, CreateRunRequest{
 		InputMode:     InputModeLocalModel,
 		Settings:      settings,
-		CandidateText: "Breakfast: 1 cup cooked oatmeal, 1 cup blueberries, 1 cup plain Greek yogurt.\nLunch: 4 oz chicken breast, 1 cup brown rice, 1 cup broccoli.\nDinner: 4 oz salmon, 1 cup sweet potato, 1 cup spinach.",
+		CandidateText: "Breakfast includes 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.\nLunch includes 4 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.\nDinner includes 4 oz salmon, 1 cup sweet potato, and 1 cup spinach.",
 	})
 	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
 	if createResp.Code != http.StatusAccepted {

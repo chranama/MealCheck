@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/chranama/MealCheck/internal/checker"
+	"github.com/chranama/MealCheck/internal/normalization"
 )
 
 const defaultLocalLlamaPlanID = "local-llama-normalized"
@@ -445,9 +446,9 @@ func expandLocalLlamaCompactItems(mealName string, compactItems []localLlamaComp
 			return nil, fmt.Errorf("local llama compact item %s quantity must be positive", food)
 		}
 		quantity := compact.Quantity
-		unit := localLlamaNormalizeSourceUnit(compact.Unit)
+		unit := normalization.NormalizeSourceUnit(compact.Unit)
 		food, unit = localLlamaStripDuplicateQuantityPrefix(food, quantity, unit)
-		if !allowedUnit(unit) {
+		if !normalization.AllowedUnit(unit) {
 			return nil, fmt.Errorf("local llama compact item %s has unsupported unit %q", food, compact.Unit)
 		}
 		items = append(items, checker.FoodItem{
@@ -460,101 +461,21 @@ func expandLocalLlamaCompactItems(mealName string, compactItems []localLlamaComp
 }
 
 func localLlamaStripDuplicateQuantityPrefix(food string, quantity float64, unit string) (string, string) {
-	measurement := localLlamaParseSourceMeasurement(food)
+	measurement := normalization.ParseSourceMeasurement(food)
 	if measurement.Status != "parsed" || math.Abs(measurement.Quantity-quantity) > 0.0001 {
 		return food, unit
 	}
 	return measurement.Food, measurement.Unit
 }
 
-func localLlamaParseQuantityPrefixFields(fields []string) (float64, int, bool) {
-	if len(fields) == 0 {
-		return 0, 0, false
-	}
-	first, ok := localLlamaParseQuantityToken(fields[0])
-	if !ok {
-		return 0, 0, false
-	}
-	if len(fields) > 1 && strings.Contains(fields[1], "/") {
-		fraction, ok := localLlamaParseQuantityToken(fields[1])
-		if ok {
-			return first + fraction, 2, true
-		}
-	}
-	if len(fields) > 2 && fields[1] == "/" {
-		denominator, ok := localLlamaParseQuantityToken(fields[2])
-		if ok && denominator != 0 {
-			return first / denominator, 3, true
-		}
-	}
-	if len(fields) > 3 && strings.Contains(fields[2], "/") {
-		fraction, ok := localLlamaParseQuantityToken(fields[2])
-		if ok {
-			return first + fraction, 3, true
-		}
-	}
-	return first, 1, true
-}
-
-func localLlamaParseQuantityToken(token string) (float64, bool) {
-	token = strings.Trim(strings.TrimSpace(token), "(),")
-	if token == "" {
-		return 0, false
-	}
-	if strings.Contains(token, "/") {
-		parts := strings.Split(token, "/")
-		if len(parts) != 2 {
-			return 0, false
-		}
-		numerator, err := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
-		if err != nil {
-			return 0, false
-		}
-		denominator, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
-		if err != nil || denominator == 0 {
-			return 0, false
-		}
-		return numerator / denominator, true
-	}
-	value, err := strconv.ParseFloat(token, 64)
-	if err != nil {
-		return 0, false
-	}
-	return value, true
-}
-
 func LocalLlamaParseSourceMeasurement(sourceText string) LocalLlamaParsedSourceMeasurement {
-	return localLlamaParseSourceMeasurement(sourceText)
-}
-
-func localLlamaParseSourceMeasurement(sourceText string) LocalLlamaParsedSourceMeasurement {
-	text := strings.TrimSpace(strings.Trim(sourceText, " \t\r\n.;,"))
-	if text == "" {
-		return LocalLlamaParsedSourceMeasurement{Status: "failed", Reason: "empty_source_text"}
-	}
-	fields := strings.Fields(text)
-	quantity, consumed, ok := localLlamaParseQuantityPrefixFields(fields)
-	if !ok || quantity <= 0 {
-		return LocalLlamaParsedSourceMeasurement{Status: "failed", Reason: "missing_numeric_quantity"}
-	}
-	if consumed >= len(fields) {
-		return LocalLlamaParsedSourceMeasurement{Status: "failed", Reason: "missing_unit"}
-	}
-	unit := localLlamaNormalizeSourceUnit(strings.Trim(fields[consumed], " ,.;:()"))
-	if !allowedUnit(unit) {
-		return LocalLlamaParsedSourceMeasurement{Status: "failed", Reason: "unsupported_unit"}
-	}
-	food := strings.TrimSpace(strings.Join(fields[consumed+1:], " "))
-	food = strings.TrimSpace(strings.Trim(food, " \t\r\n.;,"))
-	food = strings.TrimSpace(localLlamaLeadingOf.ReplaceAllString(food, ""))
-	if food == "" {
-		return LocalLlamaParsedSourceMeasurement{Status: "failed", Reason: "missing_food"}
-	}
+	measurement := normalization.ParseSourceMeasurement(sourceText)
 	return LocalLlamaParsedSourceMeasurement{
-		Food:     food,
-		Quantity: quantity,
-		Unit:     unit,
-		Status:   "parsed",
+		Food:     measurement.Food,
+		Quantity: measurement.Quantity,
+		Unit:     measurement.Unit,
+		Status:   measurement.Status,
+		Reason:   measurement.Reason,
 	}
 }
 
@@ -567,8 +488,8 @@ func reconcileLocalLlamaRowsWithSource(rows []localLlamaRowItem, sourceText stri
 			return rows, nil
 		}
 	}
-	sourceByID := map[int]localLlamaSourceItem{}
-	for _, item := range localLlamaResolvedSourceItems(sourceText) {
+	sourceByID := map[int]normalization.SourceItem{}
+	for _, item := range normalization.ResolvedSourceItems(sourceText) {
 		sourceByID[item.ID] = item
 	}
 	if len(sourceByID) == 0 {
@@ -591,7 +512,7 @@ func reconcileLocalLlamaRowsWithSource(rows []localLlamaRowItem, sourceText stri
 			repairs = append(repairs, localLlamaRepair(row.SourceItemID, "meal_code", row.MealCode, sourceItem.MealCode, "source_inventory"))
 			row.MealCode = sourceItem.MealCode
 		}
-		measurement := localLlamaParseSourceMeasurement(sourceItem.Text)
+		measurement := normalization.ParseSourceMeasurement(sourceItem.Text)
 		if measurement.Status != "parsed" {
 			continue
 		}
@@ -599,7 +520,7 @@ func reconcileLocalLlamaRowsWithSource(rows []localLlamaRowItem, sourceText stri
 			repairs = append(repairs, localLlamaRepair(row.SourceItemID, "quantity", formatLocalLlamaQuantity(row.Quantity), formatLocalLlamaQuantity(measurement.Quantity), "source_measurement"))
 			row.Quantity = measurement.Quantity
 		}
-		normalizedUnit := localLlamaNormalizeSourceUnit(row.Unit)
+		normalizedUnit := normalization.NormalizeSourceUnit(row.Unit)
 		if normalizedUnit != measurement.Unit {
 			repairs = append(repairs, localLlamaRepair(row.SourceItemID, "unit", row.Unit, measurement.Unit, "source_measurement"))
 			row.Unit = measurement.Unit

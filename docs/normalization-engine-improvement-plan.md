@@ -277,18 +277,278 @@ Acceptance:
 - no model is considered a production replacement until it passes the same
   regimen on the serving MacBook with acceptable latency
 
-## Suggested Execution Order
+## Refactor Plan: Deterministic-First LLM Assist
 
-1. Implement the deterministic measurement parser.
-2. Add source-grounded row reconciliation and repair events.
-3. Update P0 eval metrics to show repair counts and per-field accuracy.
-4. Tighten the local-model prompt against the remaining mismatch classes.
-5. Re-run the three-repeat P0 live regimen on the prototyping laptop.
-6. If the seed gate still fails, inspect only the remaining mismatches before
-   changing the model.
-7. After the seed gate passes, expand NYT/TASTEset reviewed cases.
-8. Run the same gate on the serving MacBook before treating the change as
-   production-ready.
+The next architecture step is to stop treating the local model as the default
+normalization bridge from pasted text to canonical MealCheck JSON. The
+deterministic source inventory and measurement parser are now strong enough to
+become the primary path for supported inputs. The model should move to bounded
+assist roles: fallback normalization for unresolved fragments, candidate
+selection, decomposition suggestions, and user-facing explanations.
+
+The target flow is:
+
+```text
+pasted text
+  -> qualification preflight
+  -> deterministic source inventory
+  -> deterministic measurement parser
+  -> deterministic canonical plan builder, if all source items are resolved
+  -> optional LLM assist for unresolved or ambiguous chunks
+  -> deterministic validation/reconciliation of assist output
+  -> canonical MealCheck JSON
+  -> resolver/checker/report
+```
+
+### Target Package Shape
+
+Introduce a dedicated normalization package so hosted generation is no longer
+the owner of source inventory and local-model row semantics:
+
+```text
+internal/normalization/
+  types.go
+  source_inventory.go
+  measurement_parser.go
+  deterministic_plan.go
+  assist.go
+  chunking.go
+  validation.go
+```
+
+The package should expose a small orchestration API:
+
+```go
+type Engine struct {
+    Assist Provider
+    Policy Policy
+}
+
+func (e Engine) Normalize(ctx context.Context, input Request) (Result, error)
+```
+
+The result should distinguish how the plan was produced:
+
+- `method: deterministic`
+- `method: deterministic_with_llm_assist`
+- `method: failed_pre_model`
+- `method: failed_post_assist_validation`
+
+It should also expose:
+
+- source inventory rows
+- parsed measurement rows
+- unresolved or ambiguous rows
+- assist requests and responses, when used
+- normalization events
+- confidence or review flags
+
+### Slice A: Extract Current Deterministic Normalization Primitives
+
+Move the current source inventory, measurement parsing, source item count, unit
+normalization, and source-grounded reconciliation code from `internal/hosted`
+into `internal/normalization`.
+
+This should be a behavior-preserving extraction:
+
+- keep existing function wrappers in `internal/hosted` temporarily
+- keep `mealcheck eval-normalization` passing
+- keep hosted local-model behavior unchanged
+- add direct unit tests around the new package API
+
+Acceptance:
+
+- `go test ./...` passes
+- P0 deterministic eval remains `11 / 11`
+- local-model repeat eval output is unchanged for the current seed corpus
+
+### Slice B: Add Deterministic Canonical Plan Builder
+
+Add a deterministic builder that converts fully parsed source items directly
+into canonical MealCheck plan JSON without calling the model.
+
+The builder should require:
+
+- every expected source item has a positive quantity
+- every unit is in the supported unit vocabulary
+- every food phrase is non-empty
+- day and meal assignment are known or can be deterministically inferred under
+  the accepted input boundary
+- no source item id is missing or duplicated
+
+Hosted `local_model` runs should try this path before any provider call.
+
+Acceptance:
+
+- preloaded hosted example normalizes without a provider call
+- robustness seed cases that are fully parseable normalize deterministically
+- normalization events show `deterministic_normalized` for deterministic runs
+- inputs outside the deterministic boundary fail before queueing or move to the
+  explicit assist policy, never silently guess
+
+### Slice C: Introduce Assist Policy And Explicit Fallback Boundary
+
+Add a policy layer that decides whether unresolved deterministic rows should:
+
+- fail with user-facing clarification
+- continue as unresolved rows, if the product path supports that
+- be sent to bounded LLM assist
+
+The first production-safe default should be conservative:
+
+```text
+supported explicit rows -> deterministic success
+vague or unsupported quantities -> fail with guidance
+natural-language rows -> optional LLM assist only behind a config flag
+```
+
+Acceptance:
+
+- failure output names the exact source item and reason
+- frontend can display deterministic failure guidance without model internals
+- `post_queue_normalization_failure_count` does not rise
+
+### Slice D: Implement Chunked LLM Assist
+
+When assist is enabled, send compact source-item chunks rather than the full
+meal-plan text.
+
+Chunk boundaries should be source-item aware:
+
+- first preference: one meal per chunk
+- second preference: one day per chunk
+- fallback: fixed-size source item groups while preserving item boundaries
+- only unresolved or ambiguous rows should be sent when possible
+
+The assist prompt should not ask the model to normalize the whole plan. It
+should ask for one of a small set of actions per source item:
+
+```json
+{
+  "source_item_id": 7,
+  "action": "propose_row | needs_clarification | abstain",
+  "food": "chicken rice soup",
+  "quantity": 1,
+  "unit": "serving",
+  "confidence": "low",
+  "message": "Please provide a measurable amount."
+}
+```
+
+Validation must reject:
+
+- missing source ids
+- duplicate source ids
+- unsupported units
+- invented source ids
+- rows for source items that deterministic policy did not allow the model to
+  modify
+- outputs that do not fit the strict assist schema
+
+Acceptance:
+
+- LLM input and output token counts are materially lower than full-plan
+  normalization
+- repeated assist eval can isolate unstable source items
+- deterministic rows are never sent to the model unnecessarily
+- merged output records which rows used assist
+
+### Slice E: Split P0 Evaluation By Normalization Path
+
+Update P0 eval so it no longer treats all normalization as one task.
+
+Report separate metrics for:
+
+- deterministic supported-input normalization
+- pre-model clarification failures
+- LLM assist fallback rows
+- assist abstention accuracy
+- assist false-accept rate
+- repeat instability by source item
+- latency by deterministic path versus assist path
+
+The current local-model repeat support should become the basis for assist
+repeat scoring rather than full-plan repeat scoring.
+
+Acceptance:
+
+- deterministic strict gate remains release-blocking
+- LLM assist eval is tracked separately and can be exploratory at first
+- generated NYT/TASTEset cases are tagged by the path they exercise
+
+### Slice F: Add P1 LLM Candidate Assist After P0 Stabilizes
+
+Do not add broad LLM food matching until deterministic normalization is the
+primary path. Once P0 is stable, add an optional candidate-assist stage inside
+the resolver.
+
+The model should receive:
+
+- user food phrase
+- source item context
+- top deterministic/FNDDS candidates
+- category and nutrient summary fields
+
+The model may only:
+
+- select a provided candidate id
+- return `ambiguous`
+- return `no_safe_match`
+
+It must not invent food ids or nutrient values.
+
+Acceptance:
+
+- P1 eval reports candidate-assist accuracy and abstention accuracy
+- all selected candidate ids are validated before nutrition math
+- approximate or assisted resolutions are visible in report artifacts
+
+### Slice G: Report Explanation Layer
+
+After deterministic math is complete, optionally use the LLM to produce
+human-facing explanations:
+
+- why normalization failed
+- which rows used approximation or assist
+- which foods drive a warning or block
+- what user edit would improve confidence
+
+This should be downstream of calculation. It should never compute nutrient
+totals or alter decisions.
+
+Acceptance:
+
+- deterministic decision JSON remains the source of truth
+- explanation artifacts cite the deterministic evidence they summarize
+- missing or failed explanation generation does not fail the run
+
+## Updated Execution Order
+
+1. Extract source inventory and measurement parsing into
+   `internal/normalization` without behavior changes.
+2. Add the deterministic canonical plan builder.
+3. Wire hosted `local_model` input to try deterministic normalization before
+   provider calls.
+4. Add method/confidence/review metadata to normalization artifacts.
+5. Split P0 eval metrics by deterministic path, clarification failure, and LLM
+   assist path.
+6. Add conservative assist policy with assist disabled by default or limited to
+   exploratory local runs.
+7. Implement chunked source-item assist for unresolved fragments.
+8. Promote stable assist cases into P0 only after repeat eval shows acceptable
+   stability.
+9. Add P1 candidate-assist experiments after deterministic P0 remains stable.
+10. Add report explanation generation last, because it should not influence
+    correctness.
+
+Current implementation status:
+
+- items 1-3 are implemented for hosted `local_model` runs
+- fully parsed explicit meal-plan text now builds canonical MealCheck JSON
+  without a provider call
+- existing local-model compact decode remains as the fallback path when the
+  deterministic builder cannot safely cover the input
+- structured method metadata beyond normalization events remains item 4
 
 ## Non-Goals
 
@@ -299,3 +559,7 @@ Acceptance:
 - Do not add broad natural-language support outside the current acceptable
   input boundary without updating `docs/meal-plan-input-robustness.md` and P0
   eval cases.
+- Do not let LLM assist silently change deterministic rows that already parsed
+  cleanly.
+- Do not let the model invent food ids, nutrient values, source item ids, or
+  quantities that are later treated as exact.

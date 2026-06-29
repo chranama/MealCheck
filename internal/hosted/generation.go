@@ -7,12 +7,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/chranama/MealCheck/internal/checker"
+	"github.com/chranama/MealCheck/internal/normalization"
 )
 
 const (
@@ -54,6 +53,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 	var events []NormalizationEvent
 	var providerRedacted RedactedProviderConfig
 	var provider Provider
+	var err error
 	usedProvider := false
 
 	switch input.Mode {
@@ -64,7 +64,6 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		plan = *input.CandidatePlan
 		events = append(events, normalizationEvent("manual_plan_received", "manual structured meal plan received"))
 	case InputModeProfileGeneration, InputModePromptGeneration:
-		var err error
 		provider, err = providerFactory(input.Provider)
 		if err != nil {
 			return PreparedRun{}, err
@@ -131,7 +130,13 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 			events = append(events, normalizationEvent("json_decoded", "provider output decoded as normalized meal-plan JSON"))
 		}
 	case InputModeLocalModel:
-		var err error
+		deterministicPlan, parsedItems, err := normalization.BuildDeterministicPlan(input.CandidateText, "local-model-"+run.ID)
+		if err == nil {
+			plan = deterministicPlan
+			events = append(events, normalizationEvent("deterministic_normalized", fmt.Sprintf("deterministic normalizer produced %d source item row(s)", len(parsedItems))))
+			events = append(events, normalizationEvent("json_decoded", "deterministic source inventory decoded into normalized MealCheck JSON"))
+			break
+		}
 		provider, err = providerFactory(input.Provider)
 		if err != nil {
 			return PreparedRun{}, err
@@ -559,7 +564,7 @@ func localLlamaMealCodeInstruction(mealsPerDay int) string {
 }
 
 func localLlamaItemCountInstruction(text string) string {
-	expected := len(localLlamaResolvedSourceItems(text))
+	expected := normalization.ExpectedResolvedItemCount(text)
 	if expected == 0 {
 		return "Preserve every resolved food item that has a numeric quantity plus supported unit."
 	}
@@ -587,18 +592,8 @@ type localModelDaySection struct {
 	Text string
 }
 
-var (
-	localLlamaResolvedItemLinePattern = regexp.MustCompile(`(?i)^\s*(?:[-*]|\d+[.)])\s+(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s*(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\b`)
-	localLlamaInlineItemPattern       = regexp.MustCompile(`(?i)^\s*((?:\d+(?:\.\d+)?)|(?:\d+\s*/\s*\d+)|(?:\d+\s+\d+\s*/\s*\d+))\s+((?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\s+)?(.+?)\s*$`)
-	localLlamaInlineAndItemBoundary   = regexp.MustCompile(`(?i)\s+\b(?:and|with|plus)\s+((?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s+)`)
-	localLlamaInlineLeadingAnd        = regexp.MustCompile(`(?i)^\s*and\s+`)
-	localLlamaLeadingOf               = regexp.MustCompile(`(?i)^of\s+`)
-	localLlamaSourceItemMarkerPattern = regexp.MustCompile(`^\s*(?:[-*]|\d+[.)])\s+`)
-	localLlamaDayHeadingPattern       = regexp.MustCompile(`(?i)\bday\s*([1-7])\b`)
-)
-
 func localLlamaExpectedResolvedItemCount(text string) int {
-	return len(localLlamaResolvedSourceItems(text))
+	return normalization.ExpectedResolvedItemCount(text)
 }
 
 // LocalLlamaExpectedResolvedItemCount returns the number of deterministic
@@ -610,9 +605,9 @@ func LocalLlamaExpectedResolvedItemCount(text string) int {
 // LocalLlamaResolvedSourceItems returns the deterministic source-item inventory
 // used in local-model prompts.
 func LocalLlamaResolvedSourceItems(text string) []LocalLlamaSourceItem {
-	internal := localLlamaResolvedSourceItems(text)
-	items := make([]LocalLlamaSourceItem, 0, len(internal))
-	for _, item := range internal {
+	sourceItems := normalization.ResolvedSourceItems(text)
+	items := make([]LocalLlamaSourceItem, 0, len(sourceItems))
+	for _, item := range sourceItems {
 		items = append(items, LocalLlamaSourceItem{
 			ID:       item.ID,
 			Day:      item.Day,
@@ -624,268 +619,40 @@ func LocalLlamaResolvedSourceItems(text string) []LocalLlamaSourceItem {
 }
 
 func localModelDaySections(text string) ([]localModelDaySection, bool) {
-	lines := strings.Split(strings.TrimSpace(text), "\n")
-	if len(lines) == 0 {
+	normalizationSections, ok := normalization.DaySections(text)
+	if !ok {
 		return nil, false
 	}
-
-	var sections []localModelDaySection
-	var current strings.Builder
-	currentDay := 0
-	seen := map[int]bool{}
-	sawDayMarker := false
-
-	flush := func() bool {
-		if currentDay == 0 {
-			return true
-		}
-		sectionText := strings.TrimSpace(current.String())
-		if sectionText == "" || localLlamaExpectedResolvedItemCount(sectionText) == 0 {
-			return false
-		}
-		sections = append(sections, localModelDaySection{Day: currentDay, Text: sectionText})
-		seen[currentDay] = true
-		current.Reset()
-		return true
-	}
-
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" {
-			if currentDay != 0 {
-				current.WriteString("\n")
-			}
-			continue
-		}
-		day := localLlamaDayFromHeading(trimmed)
-		if day > 0 {
-			sawDayMarker = true
-			if currentDay == 0 {
-				currentDay = day
-			} else if day != currentDay {
-				if seen[day] || !flush() {
-					return nil, false
-				}
-				currentDay = day
-			}
-			line = localLlamaRewriteDayHeading(line, 1)
-		} else if currentDay == 0 {
-			if localLlamaExpectedResolvedItemCount(trimmed) == 0 {
-				continue
-			}
-			return nil, false
-		}
-		current.WriteString(line)
-		current.WriteString("\n")
-	}
-	if !sawDayMarker || !flush() {
-		return nil, false
+	sections := make([]localModelDaySection, 0, len(normalizationSections))
+	for _, section := range normalizationSections {
+		sections = append(sections, localModelDaySection{
+			Day:  section.Day,
+			Text: section.Text,
+		})
 	}
 	return sections, len(sections) > 1
 }
 
-func localLlamaRewriteDayHeading(line string, day int) string {
-	return localLlamaDayHeadingPattern.ReplaceAllString(line, fmt.Sprintf("Day %d", day))
-}
-
 func localLlamaSourceItemsPromptBlock(text string) string {
-	sourceItems := localLlamaResolvedSourceItems(text)
-	if len(sourceItems) == 0 {
-		return "Source meal plan text:\n" + text
-	}
-	var b strings.Builder
-	b.WriteString("Numbered resolved source items:\n")
-	for _, item := range sourceItems {
-		mealCode := item.MealCode
-		if mealCode == "" {
-			mealCode = "infer"
-		}
-		fmt.Fprintf(&b, "%d | day=%d | meal_code=%s | source_text=%s\n", item.ID, item.Day, mealCode, item.Text)
-	}
-	return strings.TrimRight(b.String(), "\n")
+	return normalization.SourceItemsPromptBlock(text)
 }
 
 func localLlamaResolvedSourceItems(text string) []localLlamaSourceItem {
-	var items []localLlamaSourceItem
-	currentDay := 1
-	currentMealCode := ""
-	for _, line := range strings.Split(text, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" {
-			continue
-		}
-		isItemLine := localLlamaResolvedItemLinePattern.MatchString(line)
-		if !isItemLine {
-			if day := localLlamaDayFromHeading(trimmed); day > 0 {
-				currentDay = day
-			}
-			if mealCode := localLlamaMealCodeFromHeading(trimmed); mealCode != "" {
-				currentMealCode = mealCode
-			}
-			inlineItems := localLlamaInlineSourceItems(trimmed, currentDay, currentMealCode, len(items)+1)
-			if len(inlineItems) > 0 {
-				items = append(items, inlineItems...)
-			}
-			continue
-		}
+	sourceItems := normalization.ResolvedSourceItems(text)
+	items := make([]localLlamaSourceItem, 0, len(sourceItems))
+	for _, item := range sourceItems {
 		items = append(items, localLlamaSourceItem{
-			ID:       len(items) + 1,
-			Day:      currentDay,
-			MealCode: currentMealCode,
-			Text:     localLlamaCleanSourceItemLine(line),
+			ID:       item.ID,
+			Day:      item.Day,
+			MealCode: item.MealCode,
+			Text:     item.Text,
 		})
 	}
 	return items
-}
-
-func localLlamaInlineSourceItems(line string, day int, mealCode string, startID int) []localLlamaSourceItem {
-	if !strings.Contains(line, ":") {
-		return nil
-	}
-	_, remainder, found := strings.Cut(line, ":")
-	if !found {
-		return nil
-	}
-	remainder = strings.TrimSpace(remainder)
-	if remainder == "" {
-		return nil
-	}
-	var items []localLlamaSourceItem
-	for _, phrase := range localLlamaSplitInlineItemPhrases(remainder) {
-		sourceText, ok := localLlamaNormalizeInlineItemPhrase(phrase)
-		if !ok {
-			continue
-		}
-		items = append(items, localLlamaSourceItem{
-			ID:       startID + len(items),
-			Day:      day,
-			MealCode: mealCode,
-			Text:     sourceText,
-		})
-	}
-	return items
-}
-
-func localLlamaSplitInlineItemPhrases(text string) []string {
-	normalized := strings.ReplaceAll(text, ";", ",")
-	parts := strings.Split(normalized, ",")
-	phrases := make([]string, 0, len(parts))
-	for _, part := range parts {
-		for _, subpart := range localLlamaSplitInlineAndQuantified(part) {
-			phrase := strings.TrimSpace(strings.Trim(subpart, "."))
-			phrase = localLlamaInlineLeadingAnd.ReplaceAllString(phrase, "")
-			if phrase != "" {
-				phrases = append(phrases, phrase)
-			}
-		}
-	}
-	return phrases
-}
-
-func localLlamaSplitInlineAndQuantified(part string) []string {
-	remaining := strings.TrimSpace(part)
-	if remaining == "" {
-		return nil
-	}
-	var phrases []string
-	for {
-		matches := localLlamaInlineAndItemBoundary.FindStringSubmatchIndex(remaining)
-		if len(matches) == 0 {
-			return append(phrases, remaining)
-		}
-		if left := strings.TrimSpace(remaining[:matches[0]]); left != "" {
-			phrases = append(phrases, left)
-		}
-		remaining = strings.TrimSpace(remaining[matches[2]:])
-		if remaining == "" {
-			return phrases
-		}
-	}
-}
-
-func localLlamaNormalizeInlineItemPhrase(phrase string) (string, bool) {
-	matches := localLlamaInlineItemPattern.FindStringSubmatch(strings.TrimSpace(phrase))
-	if len(matches) != 4 {
-		return "", false
-	}
-	quantity := strings.Join(strings.Fields(matches[1]), " ")
-	unit := strings.TrimSpace(matches[2])
-	food := strings.TrimSpace(matches[3])
-	if quantity == "" || food == "" {
-		return "", false
-	}
-	if unit != "" {
-		food = strings.TrimSpace(localLlamaLeadingOf.ReplaceAllString(food, ""))
-	}
-	if unit == "" {
-		unit = "serving"
-	}
-	unit = localLlamaNormalizeSourceUnit(unit)
-	return strings.TrimSpace(quantity + " " + unit + " " + food), true
-}
-
-func localLlamaNormalizeSourceUnit(unit string) string {
-	normalized := strings.ToLower(strings.TrimSpace(unit))
-	switch normalized {
-	case "gram", "grams":
-		return "g"
-	case "ounce", "ounces":
-		return "oz"
-	case "cups":
-		return "cup"
-	case "tablespoon", "tablespoons":
-		return "tbsp"
-	case "teaspoon", "teaspoons":
-		return "tsp"
-	case "slices":
-		return "slice"
-	case "servings":
-		return "serving"
-	default:
-		return normalized
-	}
-}
-
-func localLlamaDayFromHeading(line string) int {
-	matches := localLlamaDayHeadingPattern.FindStringSubmatch(line)
-	if len(matches) != 2 {
-		return 0
-	}
-	day, err := strconv.Atoi(matches[1])
-	if err != nil {
-		return 0
-	}
-	return day
-}
-
-func localLlamaMealCodeFromHeading(line string) string {
-	heading := strings.ToLower(strings.TrimSpace(strings.TrimSuffix(line, ":")))
-	switch {
-	case strings.Contains(heading, "breakfast"):
-		return "b"
-	case strings.Contains(heading, "morning snack"):
-		return "m"
-	case strings.Contains(heading, "lunch"):
-		return "l"
-	case strings.Contains(heading, "afternoon snack"):
-		return "a"
-	case strings.Contains(heading, "dinner"):
-		return "d"
-	case strings.Contains(heading, "evening snack"):
-		return "e"
-	case strings.Contains(heading, "snack"):
-		return "s"
-	default:
-		return ""
-	}
-}
-
-func localLlamaCleanSourceItemLine(line string) string {
-	return strings.TrimSpace(localLlamaSourceItemMarkerPattern.ReplaceAllString(line, ""))
 }
 
 func validateLocalModelExtractionCompleteness(plan checker.Plan, sourceText string) error {
-	expected := localLlamaExpectedResolvedItemCount(sourceText)
+	expected := normalization.ExpectedResolvedItemCount(sourceText)
 	if expected == 0 {
 		return nil
 	}
@@ -1054,12 +821,7 @@ func validateGeneratedPlanAgainstConstraints(plan checker.Plan, constraints chec
 }
 
 func allowedUnit(unit string) bool {
-	switch unit {
-	case "g", "oz", "cup", "tbsp", "tsp", "slice", "serving":
-		return true
-	default:
-		return false
-	}
+	return normalization.AllowedUnit(unit)
 }
 
 func writeRuntimeCase(config Config, run Run, input PendingRunInput, plan checker.Plan) (string, error) {
