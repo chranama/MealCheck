@@ -186,7 +186,7 @@ func prepareLocalModelExtraction(ctx context.Context, config Config, provider Pr
 	if sections, ok := localModelDaySections(input.CandidateText); ok && len(sections) > 1 {
 		return prepareDecomposedLocalModelExtraction(ctx, config, provider, run, input, sections, events)
 	}
-	output, plan, stage, err := requestLocalModelExtraction(ctx, provider, input.Provider, input, "local-model-"+run.ID)
+	output, plan, repairs, stage, err := requestLocalModelExtraction(ctx, provider, input.Provider, input, "local-model-"+run.ID)
 	if err != nil {
 		events = append(events, localModelFailureEvent(stage))
 		return checker.Plan{}, output, events, writeLocalModelNormalizationFailureAndReturn(config, run, input, events, normalizationFailureDebug{
@@ -196,6 +196,9 @@ func prepareLocalModelExtraction(ctx context.Context, config Config, provider Pr
 		})
 	}
 	events = append(events, normalizationEvent("llm_output_received", "local model returned compact meal-plan JSON"))
+	if len(repairs) > 0 {
+		events = append(events, normalizationEvent("source_measurements_reconciled", fmt.Sprintf("local model compact rows were repaired from %d deterministic source field(s)", len(repairs))))
+	}
 	events = append(events, normalizationEvent("json_decoded", "local model compact output decoded into normalized MealCheck JSON"))
 	return plan, output, events, nil
 }
@@ -209,7 +212,7 @@ func prepareDecomposedLocalModelExtraction(ctx context.Context, config Config, p
 		sectionInput.CandidateText = section.Text
 		sectionInput.Settings.VerificationConstraints.Days = 1
 		sectionInput.Settings.VerificationConstraints.MealsPerDay = 0
-		output, plan, stage, err := requestLocalModelExtraction(ctx, provider, input.Provider, sectionInput, fmt.Sprintf("local-model-%s-day-%d", run.ID, section.Day))
+		output, plan, repairs, stage, err := requestLocalModelExtraction(ctx, provider, input.Provider, sectionInput, fmt.Sprintf("local-model-%s-day-%d", run.ID, section.Day))
 		outputs = append(outputs, localModelSegmentOutput{Day: section.Day, Output: output})
 		combinedOutput := formatLocalModelSegmentOutputs(outputs, true)
 		if err != nil {
@@ -234,6 +237,9 @@ func prepareDecomposedLocalModelExtraction(ctx context.Context, config Config, p
 		day.Day = section.Day
 		days = append(days, day)
 		events = append(events, normalizationEvent("llm_output_received", fmt.Sprintf("local model returned compact meal-plan JSON for day %d", section.Day)))
+		if len(repairs) > 0 {
+			events = append(events, normalizationEvent("source_measurements_reconciled", fmt.Sprintf("day %d local model compact rows were repaired from %d deterministic source field(s)", section.Day, len(repairs))))
+		}
 	}
 	plan := checker.Plan{
 		SchemaVersion: "0.1",
@@ -253,23 +259,23 @@ func prepareDecomposedLocalModelExtraction(ctx context.Context, config Config, p
 	return plan, combinedOutput, events, nil
 }
 
-func requestLocalModelExtraction(ctx context.Context, provider Provider, providerConfig ProviderConfig, input PendingRunInput, planID string) (string, checker.Plan, localModelExtractionFailureStage, error) {
+func requestLocalModelExtraction(ctx context.Context, provider Provider, providerConfig ProviderConfig, input PendingRunInput, planID string) (string, checker.Plan, []LocalLlamaNormalizationRepair, localModelExtractionFailureStage, error) {
 	messages, err := localModelExtractionMessages(input)
 	if err != nil {
-		return "", checker.Plan{}, localModelFailureDecode, err
+		return "", checker.Plan{}, nil, localModelFailureDecode, err
 	}
 	output, err := provider.Complete(ctx, providerConfig, messages)
 	if err != nil {
-		return output, checker.Plan{}, localModelFailureProvider, err
+		return output, checker.Plan{}, nil, localModelFailureProvider, err
 	}
-	plan, err := DecodeLocalLlamaCompactPlan(output, planID)
+	plan, repairs, err := DecodeLocalLlamaCompactPlanWithSource(output, planID, input.CandidateText)
 	if err != nil {
-		return output, checker.Plan{}, localModelFailureDecode, err
+		return output, checker.Plan{}, repairs, localModelFailureDecode, err
 	}
 	if err := validateLocalModelExtractionCompleteness(plan, input.CandidateText); err != nil {
-		return output, checker.Plan{}, localModelFailureCompleteness, err
+		return output, checker.Plan{}, repairs, localModelFailureCompleteness, err
 	}
-	return output, plan, "", nil
+	return output, plan, repairs, "", nil
 }
 
 func localModelFailureEvent(stage localModelExtractionFailureStage) NormalizationEvent {
@@ -488,11 +494,15 @@ func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, err
 		localLlamaItemCountInstruction(text),
 		"Convert every numbered source item into exactly one [source_item_id, day, meal_code, food, quantity, unit] tuple.",
 		"Copy each source_item_id exactly once in ascending order; do not skip or duplicate source_item_id values.",
+		"The numbered source item list is authoritative for source_item_id, day, meal_code, quantity, unit, and food wording.",
 		"Use the provided day value for each numbered source item.",
 		"When meal_code is one of b, m, l, a, d, s, or e, use that provided meal_code. When meal_code is infer, infer the closest supported meal code from the source context.",
 		"Do not omit, merge, summarize, or invent items.",
 		"Parse only food, numeric quantity, and unit from each source_text.",
+		"Copy quantity and unit from the leading measurement in source_text; preserve fractions such as 1/2 as 0.5.",
+		"Do not change tbsp to tsp or tsp to tbsp.",
 		"The food value must be the food name only; do not include the leading quantity or unit in the food value.",
+		"Preserve source food wording, including preparation words such as cooked, plain, grilled, steamed, baked, roasted, sliced, or mixed.",
 		"Do not include other keys or text.",
 		"",
 		localLlamaSourceItemsPromptBlock(text),

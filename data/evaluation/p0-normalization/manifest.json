@@ -1,12 +1,20 @@
 {
   "schema_version": "0.1",
   "dataset_id": "p0-normalization-v1",
-  "description": "P0 meal-plan normalization evaluation cases for deterministic source inventory, compact-row adapter checks, and qualification failures.",
+  "description": "P0 meal-plan normalization evaluation cases for deterministic source inventory, compact-row adapter checks, qualification failures, and optional external exploratory cases.",
   "case_files": [
-    "cases-v1.jsonl"
+    {
+      "path": "cases-v1.jsonl",
+      "source_dataset": "mealcheck_input_robustness",
+      "gate": "strict"
+    }
   ],
   "failure_case_files": [
-    "failure-cases-v1.jsonl"
+    {
+      "path": "failure-cases-v1.jsonl",
+      "source_dataset": "mealcheck_input_robustness",
+      "gate": "strict"
+    }
   ],
   "supported_units": [
     "g",
@@ -30,19 +38,22 @@
       "data_type": "public ingredient phrase CSV",
       "url": "https://github.com/nytimes/ingredient-phrase-tagger",
       "expected_env": "MEALCHECK_NYT_INGREDIENTS_CSV",
-      "checked_in": false
+      "checked_in": false,
+      "license_note": "Review upstream license and generated sample size before committing generated cases."
     },
     {
       "source": "tasteset",
       "data_type": "public recipe NER CSV",
       "url": "https://github.com/taisti/TASTEset",
       "expected_env": "MEALCHECK_TASTESET_CSV",
-      "checked_in": false
+      "checked_in": false,
+      "license_note": "Review upstream license and generated sample size before committing generated cases."
     }
   ],
   "summary": {
     "success_cases": 8,
     "failure_cases": 3,
+    "quarantine_cases": 0,
     "total_expected_source_items": 120
   }
 }

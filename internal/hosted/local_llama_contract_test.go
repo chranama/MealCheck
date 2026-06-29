@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -114,6 +115,120 @@ func TestDecodeLocalLlamaCompactPlanCleansDuplicateQuantityFromFood(t *testing.T
 	if dinner[0].Food != "olive oil" || dinner[0].Unit != "tbsp" {
 		t.Fatalf("fourth item = %+v, want cleaned olive oil tbsp", dinner[0])
 	}
+}
+
+func TestLocalLlamaParseSourceMeasurement(t *testing.T) {
+	tests := []struct {
+		name     string
+		text     string
+		food     string
+		quantity float64
+		unit     string
+	}{
+		{
+			name:     "integer",
+			text:     "4 oz chicken breast",
+			food:     "chicken breast",
+			quantity: 4,
+			unit:     "oz",
+		},
+		{
+			name:     "decimal",
+			text:     "0.5 cup blueberries",
+			food:     "blueberries",
+			quantity: 0.5,
+			unit:     "cup",
+		},
+		{
+			name:     "fraction",
+			text:     "1/2 cup blueberries",
+			food:     "blueberries",
+			quantity: 0.5,
+			unit:     "cup",
+		},
+		{
+			name:     "spaced fraction",
+			text:     "1 / 2 cup blueberries",
+			food:     "blueberries",
+			quantity: 0.5,
+			unit:     "cup",
+		},
+		{
+			name:     "mixed number",
+			text:     "1 1/2 cups brown rice",
+			food:     "brown rice",
+			quantity: 1.5,
+			unit:     "cup",
+		},
+		{
+			name:     "of cleanup",
+			text:     "1 cup of cooked oatmeal.",
+			food:     "cooked oatmeal",
+			quantity: 1,
+			unit:     "cup",
+		},
+		{
+			name:     "unit alias",
+			text:     "2 tablespoons olive oil",
+			food:     "olive oil",
+			quantity: 2,
+			unit:     "tbsp",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := LocalLlamaParseSourceMeasurement(tt.text)
+			if got.Status != "parsed" {
+				t.Fatalf("status = %q reason=%q, want parsed", got.Status, got.Reason)
+			}
+			if got.Food != tt.food || got.Quantity != tt.quantity || got.Unit != tt.unit {
+				t.Fatalf("measurement = %+v, want food=%q quantity=%v unit=%q", got, tt.food, tt.quantity, tt.unit)
+			}
+		})
+	}
+}
+
+func TestDecodeLocalLlamaCompactPlanWithSourceRepairsMeasurementDrift(t *testing.T) {
+	source := strings.Join([]string{
+		"Day 1 breakfast:",
+		"- 1/2 cup blueberries",
+		"- 1 tbsp olive oil",
+		"- 5 oz turkey meatballs",
+		"- 1 cup plain Greek yogurt",
+	}, "\n")
+	plan, repairs, err := DecodeLocalLlamaCompactPlanWithSource(`{
+		"i":[
+			[4,1,"b","Greek yogurt",1,"cup"],
+			[2,1,"b","1 tbsp olive oil",1,"tsp"],
+			[3,1,"b","5 oz turkey meatballs",1,"serving"],
+			[1,1,"b","1/2 cup blueberries",1,"cup"]
+		]
+	}`, "source-repair-test", source)
+	if err != nil {
+		t.Fatalf("DecodeLocalLlamaCompactPlanWithSource error: %v", err)
+	}
+	if len(repairs) == 0 {
+		t.Fatal("repairs length = 0, want source-grounded repairs")
+	}
+	items := plan.Days[0].Meals[0].Items
+	if len(items) != 4 {
+		t.Fatalf("items length = %d, want 4", len(items))
+	}
+	assertItem := func(index int, food string, quantity float64, unit string) {
+		t.Helper()
+		item := items[index]
+		if item.Quantity == nil {
+			t.Fatalf("item %d quantity = nil", index)
+		}
+		if item.Food != food || *item.Quantity != quantity || item.Unit != unit {
+			t.Fatalf("item %d = %+v, want food=%q quantity=%v unit=%q", index, item, food, quantity, unit)
+		}
+	}
+	assertItem(0, "blueberries", 0.5, "cup")
+	assertItem(1, "olive oil", 1, "tbsp")
+	assertItem(2, "turkey meatballs", 5, "oz")
+	assertItem(3, "plain Greek yogurt", 1, "cup")
 }
 
 func TestDecodeLocalLlamaCompactPlanAcceptsLegacyObjectItems(t *testing.T) {

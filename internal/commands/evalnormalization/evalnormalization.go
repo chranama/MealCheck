@@ -27,10 +27,41 @@ type manifest struct {
 	SchemaVersion    string         `json:"schema_version"`
 	DatasetID        string         `json:"dataset_id"`
 	Description      string         `json:"description,omitempty"`
-	CaseFiles        []string       `json:"case_files,omitempty"`
-	FailureCaseFiles []string       `json:"failure_case_files,omitempty"`
+	CaseFiles        []manifestFile `json:"case_files,omitempty"`
+	FailureCaseFiles []manifestFile `json:"failure_case_files,omitempty"`
+	QuarantineFiles  []manifestFile `json:"quarantine_files,omitempty"`
 	SourceRefs       []sourceRef    `json:"source_refs,omitempty"`
 	Summary          map[string]any `json:"summary,omitempty"`
+}
+
+type manifestFile struct {
+	Path          string `json:"path"`
+	SourceDataset string `json:"source_dataset,omitempty"`
+	Gate          string `json:"gate,omitempty"`
+}
+
+func (f *manifestFile) UnmarshalJSON(data []byte) error {
+	var path string
+	if err := json.Unmarshal(data, &path); err == nil {
+		f.Path = path
+		f.Gate = "strict"
+		return nil
+	}
+	var object struct {
+		Path          string `json:"path"`
+		SourceDataset string `json:"source_dataset,omitempty"`
+		Gate          string `json:"gate,omitempty"`
+	}
+	if err := json.Unmarshal(data, &object); err != nil {
+		return err
+	}
+	f.Path = object.Path
+	f.SourceDataset = object.SourceDataset
+	f.Gate = object.Gate
+	if f.Gate == "" {
+		f.Gate = "strict"
+	}
+	return nil
 }
 
 type sourceRef struct {
@@ -82,32 +113,47 @@ type expectedFailure struct {
 }
 
 type result struct {
-	SchemaVersion              string         `json:"schema_version"`
-	DatasetID                  string         `json:"dataset_id"`
-	Mode                       string         `json:"mode"`
-	TotalCases                 int            `json:"total_cases"`
-	CasesPassed                int            `json:"cases_passed"`
-	CasesWithMismatches        int            `json:"cases_with_mismatches"`
-	SuccessCases               int            `json:"success_cases"`
-	SuccessCasesPassed         int            `json:"success_cases_passed"`
-	FailureCases               int            `json:"failure_cases"`
-	FailureCasesPassed         int            `json:"failure_cases_passed"`
-	TotalExpectedSourceItems   int            `json:"total_expected_source_items"`
-	SourceItemsMatched         int            `json:"source_items_matched"`
-	SourceItemPreservationRate float64        `json:"source_item_preservation_rate"`
-	AdapterValidCases          int            `json:"adapter_valid_cases"`
-	LocalModelSuccessCasesRun  int            `json:"local_model_success_cases_run,omitempty"`
-	LocalModelSuccessCasesPass int            `json:"local_model_success_cases_pass,omitempty"`
-	LocalModelExpectedItems    int            `json:"local_model_expected_items,omitempty"`
-	LocalModelRowsMatched      int            `json:"local_model_rows_matched,omitempty"`
-	LocalModelRowMatchRate     float64        `json:"local_model_row_match_rate,omitempty"`
-	LocalModelProviderFailures int            `json:"local_model_provider_failures,omitempty"`
-	LocalModelDecodeFailures   int            `json:"local_model_decode_failures,omitempty"`
-	QualificationFailuresRun   int            `json:"qualification_failures_run"`
-	QualificationFailuresPass  int            `json:"qualification_failures_pass"`
-	TagSummary                 []tagSummary   `json:"tag_summary,omitempty"`
-	FailureSummary             []rankedCount  `json:"failure_summary,omitempty"`
-	Mismatches                 []caseMismatch `json:"mismatches,omitempty"`
+	SchemaVersion              string            `json:"schema_version"`
+	DatasetID                  string            `json:"dataset_id"`
+	Mode                       string            `json:"mode"`
+	TotalCases                 int               `json:"total_cases"`
+	CasesPassed                int               `json:"cases_passed"`
+	CasesWithMismatches        int               `json:"cases_with_mismatches"`
+	SuccessCases               int               `json:"success_cases"`
+	SuccessCasesPassed         int               `json:"success_cases_passed"`
+	FailureCases               int               `json:"failure_cases"`
+	FailureCasesPassed         int               `json:"failure_cases_passed"`
+	TotalExpectedSourceItems   int               `json:"total_expected_source_items"`
+	SourceItemsMatched         int               `json:"source_items_matched"`
+	SourceItemPreservationRate float64           `json:"source_item_preservation_rate"`
+	AdapterValidCases          int               `json:"adapter_valid_cases"`
+	LocalModelSuccessCasesRun  int               `json:"local_model_success_cases_run,omitempty"`
+	LocalModelSuccessCasesPass int               `json:"local_model_success_cases_pass,omitempty"`
+	LocalModelExpectedItems    int               `json:"local_model_expected_items,omitempty"`
+	LocalModelRowsMatched      int               `json:"local_model_rows_matched,omitempty"`
+	LocalModelRowMatchRate     float64           `json:"local_model_row_match_rate,omitempty"`
+	LocalModelDayMatched       int               `json:"local_model_day_matched,omitempty"`
+	LocalModelDayAccuracy      float64           `json:"local_model_day_accuracy,omitempty"`
+	LocalModelMealMatched      int               `json:"local_model_meal_matched,omitempty"`
+	LocalModelMealAccuracy     float64           `json:"local_model_meal_accuracy,omitempty"`
+	LocalModelFoodMatched      int               `json:"local_model_food_matched,omitempty"`
+	LocalModelFoodAccuracy     float64           `json:"local_model_food_accuracy,omitempty"`
+	LocalModelQuantityMatched  int               `json:"local_model_quantity_matched,omitempty"`
+	LocalModelQuantityAccuracy float64           `json:"local_model_quantity_accuracy,omitempty"`
+	LocalModelUnitMatched      int               `json:"local_model_unit_matched,omitempty"`
+	LocalModelUnitAccuracy     float64           `json:"local_model_unit_accuracy,omitempty"`
+	LocalModelSourceRepairs    int               `json:"local_model_source_repairs,omitempty"`
+	LocalModelRepairCases      int               `json:"local_model_repair_cases,omitempty"`
+	LocalModelProviderFailures int               `json:"local_model_provider_failures,omitempty"`
+	LocalModelDecodeFailures   int               `json:"local_model_decode_failures,omitempty"`
+	QualificationFailuresRun   int               `json:"qualification_failures_run"`
+	QualificationFailuresPass  int               `json:"qualification_failures_pass"`
+	GateSummary                []gateSummary     `json:"gate_summary,omitempty"`
+	SourceDatasetSummary       []datasetSummary  `json:"source_dataset_summary,omitempty"`
+	QuarantineSummary          quarantineSummary `json:"quarantine_summary,omitempty"`
+	TagSummary                 []tagSummary      `json:"tag_summary,omitempty"`
+	FailureSummary             []rankedCount     `json:"failure_summary,omitempty"`
+	Mismatches                 []caseMismatch    `json:"mismatches,omitempty"`
 }
 
 type tagSummary struct {
@@ -115,6 +161,25 @@ type tagSummary struct {
 	Cases  int     `json:"cases"`
 	Passed int     `json:"passed"`
 	Rate   float64 `json:"rate"`
+}
+
+type gateSummary struct {
+	Gate   string  `json:"gate"`
+	Cases  int     `json:"cases"`
+	Passed int     `json:"passed"`
+	Rate   float64 `json:"rate"`
+}
+
+type datasetSummary struct {
+	SourceDataset string  `json:"source_dataset"`
+	Cases         int     `json:"cases"`
+	Passed        int     `json:"passed"`
+	Rate          float64 `json:"rate"`
+}
+
+type quarantineSummary struct {
+	Files int `json:"files,omitempty"`
+	Rows  int `json:"rows,omitempty"`
 }
 
 type rankedCount struct {
@@ -134,11 +199,23 @@ type tagAccumulator struct {
 	passed int
 }
 
+type loadedSuccessCase struct {
+	Case successCase
+	Gate string
+}
+
+type loadedFailureCase struct {
+	Case failureCase
+	Gate string
+}
+
 type runOptions struct {
 	Root            string
 	ManifestPath    string
 	DatasetPath     string
 	FailurePath     string
+	Gate            string
+	SourceDataset   string
 	Mode            string
 	ProviderConfig  hosted.ProviderConfig
 	ProviderFactory hosted.ProviderFactory
@@ -150,8 +227,10 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	flags.SetOutput(stderr)
 	root := flags.String("root", ".", "repository root")
 	manifestPath := flags.String("manifest", "data/evaluation/p0-normalization/manifest.json", "P0 normalization manifest path")
-	datasetPath := flags.String("dataset", "data/evaluation/p0-normalization/cases-v1.jsonl", "P0 success-case JSONL path")
-	failurePath := flags.String("failures", "data/evaluation/p0-normalization/failure-cases-v1.jsonl", "P0 failure-case JSONL path")
+	datasetPath := flags.String("dataset", "", "optional P0 success-case JSONL path override")
+	failurePath := flags.String("failures", "", "optional P0 failure-case JSONL path override")
+	gate := flags.String("gate", "strict", "manifest gate to run: strict, exploratory, or all")
+	sourceDataset := flags.String("source-dataset", "", "optional source_dataset filter for manifest-driven runs")
 	outPath := flags.String("out", "", "optional path to write JSON results")
 	mode := flags.String("mode", modeDeterministic, "evaluation mode: deterministic or local-llama")
 	localModelBaseURL := flags.String("local-model-base-url", "", "local llama OpenAI-compatible base URL; defaults to MEALCHECK_LOCAL_MODEL_BASE_URL")
@@ -180,6 +259,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		ManifestPath:    *manifestPath,
 		DatasetPath:     *datasetPath,
 		FailurePath:     *failurePath,
+		Gate:            *gate,
+		SourceDataset:   *sourceDataset,
 		Mode:            *mode,
 		ProviderConfig:  providerConfig,
 		ProviderFactory: hosted.DefaultProviderFactory,
@@ -238,11 +319,7 @@ func run(opts runOptions) (result, error) {
 	if strings.TrimSpace(m.DatasetID) == "" {
 		return result{}, fmt.Errorf("manifest dataset_id is required")
 	}
-	successCases, err := readSuccessCases(resolvePath(opts.Root, opts.DatasetPath))
-	if err != nil {
-		return result{}, err
-	}
-	failureCases, err := readFailureCases(resolvePath(opts.Root, opts.FailurePath))
+	successCases, failureCases, quarantine, err := loadEvaluationCases(opts, m)
 	if err != nil {
 		return result{}, err
 	}
@@ -251,17 +328,21 @@ func run(opts runOptions) (result, error) {
 	}
 
 	r := result{
-		SchemaVersion: "0.1",
-		DatasetID:     m.DatasetID,
-		Mode:          mode,
-		SuccessCases:  len(successCases),
-		FailureCases:  len(failureCases),
-		TotalCases:    len(successCases) + len(failureCases),
+		SchemaVersion:     "0.1",
+		DatasetID:         m.DatasetID,
+		Mode:              mode,
+		SuccessCases:      len(successCases),
+		FailureCases:      len(failureCases),
+		TotalCases:        len(successCases) + len(failureCases),
+		QuarantineSummary: quarantine,
 	}
 	tagCounts := map[string]*tagAccumulator{}
+	gateCounts := map[string]*tagAccumulator{}
+	datasetCounts := map[string]*tagAccumulator{}
 	failureCounts := map[string]int{}
 
-	for _, c := range successCases {
+	for _, loaded := range successCases {
+		c := loaded.Case
 		mismatch, matchedItems, adapterOK := evaluateSuccessCase(c)
 		r.TotalExpectedSourceItems += len(c.Expected.SourceItems)
 		r.SourceItemsMatched += matchedItems
@@ -269,10 +350,19 @@ func run(opts runOptions) (result, error) {
 			r.AdapterValidCases++
 		}
 		if mode == modeLocalLlama {
-			localMessages, localRowsMatched, localFailure := evaluateLocalModelSuccessCase(c, opts.ProviderFactory, opts.ProviderConfig)
+			localMessages, localMetrics, localRepairs, localFailure := evaluateLocalModelSuccessCase(c, opts.ProviderFactory, opts.ProviderConfig)
 			r.LocalModelSuccessCasesRun++
 			r.LocalModelExpectedItems += len(c.Expected.SourceItems)
-			r.LocalModelRowsMatched += localRowsMatched
+			r.LocalModelRowsMatched += localMetrics.MatchedRows
+			r.LocalModelDayMatched += localMetrics.DayMatched
+			r.LocalModelMealMatched += localMetrics.MealMatched
+			r.LocalModelFoodMatched += localMetrics.FoodMatched
+			r.LocalModelQuantityMatched += localMetrics.QuantityMatched
+			r.LocalModelUnitMatched += localMetrics.UnitMatched
+			r.LocalModelSourceRepairs += localRepairs
+			if localRepairs > 0 {
+				r.LocalModelRepairCases++
+			}
 			if len(localMessages) == 0 {
 				r.LocalModelSuccessCasesPass++
 			} else {
@@ -295,9 +385,12 @@ func run(opts runOptions) (result, error) {
 			}
 		}
 		recordTags(tagCounts, c.Tags, passed)
+		recordAccumulator(gateCounts, loaded.Gate, passed)
+		recordAccumulator(datasetCounts, c.SourceDataset, passed)
 	}
 
-	for _, c := range failureCases {
+	for _, loaded := range failureCases {
+		c := loaded.Case
 		mismatch := evaluateFailureCase(c)
 		passed := len(mismatch.Messages) == 0
 		if c.ExpectedFailure.Stage == "qualification" {
@@ -315,15 +408,157 @@ func run(opts runOptions) (result, error) {
 			}
 		}
 		recordTags(tagCounts, c.Tags, passed)
+		recordAccumulator(gateCounts, loaded.Gate, passed)
+		recordAccumulator(datasetCounts, c.SourceDataset, passed)
 	}
 
 	r.CasesPassed = r.SuccessCasesPassed + r.FailureCasesPassed
 	r.CasesWithMismatches = len(r.Mismatches)
 	r.SourceItemPreservationRate = ratio(r.SourceItemsMatched, r.TotalExpectedSourceItems)
 	r.LocalModelRowMatchRate = ratio(r.LocalModelRowsMatched, r.LocalModelExpectedItems)
+	r.LocalModelDayAccuracy = ratio(r.LocalModelDayMatched, r.LocalModelExpectedItems)
+	r.LocalModelMealAccuracy = ratio(r.LocalModelMealMatched, r.LocalModelExpectedItems)
+	r.LocalModelFoodAccuracy = ratio(r.LocalModelFoodMatched, r.LocalModelExpectedItems)
+	r.LocalModelQuantityAccuracy = ratio(r.LocalModelQuantityMatched, r.LocalModelExpectedItems)
+	r.LocalModelUnitAccuracy = ratio(r.LocalModelUnitMatched, r.LocalModelExpectedItems)
+	r.GateSummary = gateSummaries(gateCounts)
+	r.SourceDatasetSummary = datasetSummaries(datasetCounts)
 	r.TagSummary = tagSummaries(tagCounts)
 	r.FailureSummary = rankedCounts(failureCounts)
 	return r, nil
+}
+
+func loadEvaluationCases(opts runOptions, m manifest) ([]loadedSuccessCase, []loadedFailureCase, quarantineSummary, error) {
+	if opts.DatasetPath != "" || opts.FailurePath != "" {
+		datasetPath := opts.DatasetPath
+		if datasetPath == "" {
+			datasetPath = "data/evaluation/p0-normalization/cases-v1.jsonl"
+		}
+		failurePath := opts.FailurePath
+		if failurePath == "" {
+			failurePath = "data/evaluation/p0-normalization/failure-cases-v1.jsonl"
+		}
+		successCases, err := readSuccessCases(resolvePath(opts.Root, datasetPath))
+		if err != nil {
+			return nil, nil, quarantineSummary{}, err
+		}
+		failureCases, err := readFailureCases(resolvePath(opts.Root, failurePath))
+		if err != nil {
+			return nil, nil, quarantineSummary{}, err
+		}
+		loadedSuccess := make([]loadedSuccessCase, 0, len(successCases))
+		for _, c := range successCases {
+			loadedSuccess = append(loadedSuccess, loadedSuccessCase{Case: c, Gate: "direct"})
+		}
+		loadedFailure := make([]loadedFailureCase, 0, len(failureCases))
+		for _, c := range failureCases {
+			loadedFailure = append(loadedFailure, loadedFailureCase{Case: c, Gate: "direct"})
+		}
+		return loadedSuccess, loadedFailure, quarantineSummary{}, nil
+	}
+
+	gate, err := normalizeGate(opts.Gate)
+	if err != nil {
+		return nil, nil, quarantineSummary{}, err
+	}
+	manifestPath := resolvePath(opts.Root, opts.ManifestPath)
+	manifestDir := filepath.Dir(manifestPath)
+
+	successFiles := selectedManifestFiles(m.CaseFiles, gate, opts.SourceDataset)
+	failureFiles := selectedManifestFiles(m.FailureCaseFiles, gate, opts.SourceDataset)
+	if len(successFiles)+len(failureFiles) == 0 {
+		return nil, nil, quarantineSummary{}, fmt.Errorf("manifest has no P0 files for gate %q source_dataset %q", gate, opts.SourceDataset)
+	}
+
+	var successCases []loadedSuccessCase
+	for _, file := range successFiles {
+		rows, err := readSuccessCases(resolveManifestPath(manifestDir, file.Path))
+		if err != nil {
+			return nil, nil, quarantineSummary{}, err
+		}
+		for _, row := range rows {
+			successCases = append(successCases, loadedSuccessCase{Case: row, Gate: file.Gate})
+		}
+	}
+	var failureCases []loadedFailureCase
+	for _, file := range failureFiles {
+		rows, err := readFailureCases(resolveManifestPath(manifestDir, file.Path))
+		if err != nil {
+			return nil, nil, quarantineSummary{}, err
+		}
+		for _, row := range rows {
+			failureCases = append(failureCases, loadedFailureCase{Case: row, Gate: file.Gate})
+		}
+	}
+
+	var quarantine quarantineSummary
+	for _, file := range selectedManifestFiles(m.QuarantineFiles, gate, opts.SourceDataset) {
+		count, err := countQuarantineRows(resolveManifestPath(manifestDir, file.Path))
+		if err != nil {
+			return nil, nil, quarantineSummary{}, err
+		}
+		quarantine.Files++
+		quarantine.Rows += count
+	}
+	return successCases, failureCases, quarantine, nil
+}
+
+func normalizeGate(gate string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(gate)) {
+	case "", "strict":
+		return "strict", nil
+	case "exploratory":
+		return "exploratory", nil
+	case "all":
+		return "all", nil
+	default:
+		return "", fmt.Errorf("unsupported gate %q", gate)
+	}
+}
+
+func selectedManifestFiles(files []manifestFile, gate string, sourceDataset string) []manifestFile {
+	var selected []manifestFile
+	for _, file := range files {
+		if strings.TrimSpace(file.Path) == "" {
+			continue
+		}
+		fileGate := strings.TrimSpace(file.Gate)
+		if fileGate == "" {
+			fileGate = "strict"
+		}
+		if gate != "all" && fileGate != gate {
+			continue
+		}
+		if sourceDataset != "" && file.SourceDataset != sourceDataset {
+			continue
+		}
+		file.Gate = fileGate
+		selected = append(selected, file)
+	}
+	return selected
+}
+
+func resolveManifestPath(manifestDir string, path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(manifestDir, path)
+}
+
+func countQuarantineRows(path string) (int, error) {
+	count := 0
+	err := readJSONL(path, func(line []byte) error {
+		var row map[string]any
+		if err := json.Unmarshal(line, &row); err != nil {
+			return err
+		}
+		count++
+		return nil
+	})
+	if err != nil {
+		return 0, fmt.Errorf("read quarantine rows: %w", err)
+	}
+	return count, nil
 }
 
 func evaluateSuccessCase(c successCase) (caseMismatch, int, bool) {
@@ -375,18 +610,18 @@ func evaluateSuccessCase(c successCase) (caseMismatch, int, bool) {
 	return mismatch, matchedItems, adapterOK
 }
 
-func evaluateLocalModelSuccessCase(c successCase, providerFactory hosted.ProviderFactory, providerConfig hosted.ProviderConfig) ([]string, int, string) {
+func evaluateLocalModelSuccessCase(c successCase, providerFactory hosted.ProviderFactory, providerConfig hosted.ProviderConfig) ([]string, rowComparisonMetrics, int, string) {
 	messages, err := hosted.LocalModelExtractionMessages(hosted.PendingRunInput{
 		Mode:          hosted.InputModeLocalModel,
 		CandidateText: c.InputText,
 		Provider:      providerConfig,
 	})
 	if err != nil {
-		return []string{fmt.Sprintf("local_model_prompt_failed: %v", err)}, 0, "prompt"
+		return []string{fmt.Sprintf("local_model_prompt_failed: %v", err)}, rowComparisonMetrics{}, 0, "prompt"
 	}
 	provider, err := providerFactory(providerConfig)
 	if err != nil {
-		return []string{fmt.Sprintf("local_model_provider_failed: %v", err)}, 0, "provider"
+		return []string{fmt.Sprintf("local_model_provider_failed: %v", err)}, rowComparisonMetrics{}, 0, "provider"
 	}
 	ctx := context.Background()
 	var cancel context.CancelFunc
@@ -396,17 +631,17 @@ func evaluateLocalModelSuccessCase(c successCase, providerFactory hosted.Provide
 	}
 	output, err := provider.Complete(ctx, providerConfig, messages)
 	if err != nil {
-		return []string{fmt.Sprintf("local_model_provider_failed: %v", err)}, 0, "provider"
+		return []string{fmt.Sprintf("local_model_provider_failed: %v", err)}, rowComparisonMetrics{}, 0, "provider"
 	}
-	plan, err := hosted.DecodeLocalLlamaCompactPlan(output, "p0-normalization-local-model-eval")
+	plan, repairs, err := hosted.DecodeLocalLlamaCompactPlanWithSource(output, "p0-normalization-local-model-eval", c.InputText)
 	if err != nil {
-		return []string{fmt.Sprintf("local_model_decode_failed: %v", err)}, 0, "decode"
+		return []string{fmt.Sprintf("local_model_decode_failed: %v", err)}, rowComparisonMetrics{}, len(repairs), "decode"
 	}
-	compareMessages, matchedRows := comparePlanRowsDetailed(plan, c.Expected.SourceItems)
+	compareMessages, metrics := comparePlanRowsDetailed(plan, c.Expected.SourceItems)
 	for i := range compareMessages {
 		compareMessages[i] = "local_model_" + compareMessages[i]
 	}
-	return compareMessages, matchedRows, ""
+	return compareMessages, metrics, len(repairs), ""
 }
 
 func compareSourceItem(actual hosted.LocalLlamaSourceItem, expected expectedSourceItem) []string {
@@ -478,15 +713,25 @@ type compactComparableRow struct {
 	Unit     string
 }
 
+type rowComparisonMetrics struct {
+	ComparedRows    int
+	MatchedRows     int
+	DayMatched      int
+	MealMatched     int
+	FoodMatched     int
+	QuantityMatched int
+	UnitMatched     int
+}
+
 func comparePlanRows(plan checker.Plan, expected []expectedSourceItem) []string {
 	messages, _ := comparePlanRowsDetailed(plan, expected)
 	return messages
 }
 
-func comparePlanRowsDetailed(plan checker.Plan, expected []expectedSourceItem) ([]string, int) {
+func comparePlanRowsDetailed(plan checker.Plan, expected []expectedSourceItem) ([]string, rowComparisonMetrics) {
 	actual := flattenPlanRows(plan)
 	var messages []string
-	var matchedRows int
+	var metrics rowComparisonMetrics
 	if len(actual) != len(expected) {
 		messages = append(messages, fmt.Sprintf("adapter_item_count_failed: got %d row(s), want %d", len(actual), len(expected)))
 	}
@@ -494,32 +739,43 @@ func comparePlanRowsDetailed(plan checker.Plan, expected []expectedSourceItem) (
 	if len(actual) < limit {
 		limit = len(actual)
 	}
+	metrics.ComparedRows = limit
 	for i := 0; i < limit; i++ {
 		got := actual[i]
 		want := expected[i]
 		rowMessages := []string{}
 		if got.Day != want.Day {
 			rowMessages = append(rowMessages, fmt.Sprintf("adapter_row_%d_day_failed: got %d, want %d", i+1, got.Day, want.Day))
+		} else {
+			metrics.DayMatched++
 		}
 		if got.MealCode != want.MealCode {
 			rowMessages = append(rowMessages, fmt.Sprintf("adapter_row_%d_meal_failed: got %q, want %q", i+1, got.MealCode, want.MealCode))
+		} else {
+			metrics.MealMatched++
 		}
 		if got.Food != want.Food {
 			rowMessages = append(rowMessages, fmt.Sprintf("adapter_row_%d_food_failed: got %q, want %q", i+1, got.Food, want.Food))
+		} else {
+			metrics.FoodMatched++
 		}
 		if math.Abs(got.Quantity-want.Quantity) > 0.0001 {
 			rowMessages = append(rowMessages, fmt.Sprintf("adapter_row_%d_quantity_failed: got %.4f, want %.4f", i+1, got.Quantity, want.Quantity))
+		} else {
+			metrics.QuantityMatched++
 		}
 		if got.Unit != want.Unit {
 			rowMessages = append(rowMessages, fmt.Sprintf("adapter_row_%d_unit_failed: got %q, want %q", i+1, got.Unit, want.Unit))
+		} else {
+			metrics.UnitMatched++
 		}
 		if len(rowMessages) == 0 {
-			matchedRows++
+			metrics.MatchedRows++
 		} else {
 			messages = append(messages, rowMessages...)
 		}
 	}
-	return messages, matchedRows
+	return messages, metrics
 }
 
 func flattenPlanRows(plan checker.Plan) []compactComparableRow {
@@ -644,15 +900,23 @@ func recordTags(counts map[string]*tagAccumulator, tags []string, passed bool) {
 		tags = []string{"untagged"}
 	}
 	for _, tag := range tags {
-		acc := counts[tag]
-		if acc == nil {
-			acc = &tagAccumulator{}
-			counts[tag] = acc
-		}
-		acc.cases++
-		if passed {
-			acc.passed++
-		}
+		recordAccumulator(counts, tag, passed)
+	}
+}
+
+func recordAccumulator(counts map[string]*tagAccumulator, key string, passed bool) {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		key = "unknown"
+	}
+	acc := counts[key]
+	if acc == nil {
+		acc = &tagAccumulator{}
+		counts[key] = acc
+	}
+	acc.cases++
+	if passed {
+		acc.passed++
 	}
 }
 
@@ -670,6 +934,44 @@ func tagSummaries(counts map[string]*tagAccumulator) []tagSummary {
 			Cases:  acc.cases,
 			Passed: acc.passed,
 			Rate:   ratio(acc.passed, acc.cases),
+		})
+	}
+	return result
+}
+
+func gateSummaries(counts map[string]*tagAccumulator) []gateSummary {
+	gates := make([]string, 0, len(counts))
+	for gate := range counts {
+		gates = append(gates, gate)
+	}
+	sort.Strings(gates)
+	result := make([]gateSummary, 0, len(gates))
+	for _, gate := range gates {
+		acc := counts[gate]
+		result = append(result, gateSummary{
+			Gate:   gate,
+			Cases:  acc.cases,
+			Passed: acc.passed,
+			Rate:   ratio(acc.passed, acc.cases),
+		})
+	}
+	return result
+}
+
+func datasetSummaries(counts map[string]*tagAccumulator) []datasetSummary {
+	datasets := make([]string, 0, len(counts))
+	for dataset := range counts {
+		datasets = append(datasets, dataset)
+	}
+	sort.Strings(datasets)
+	result := make([]datasetSummary, 0, len(datasets))
+	for _, dataset := range datasets {
+		acc := counts[dataset]
+		result = append(result, datasetSummary{
+			SourceDataset: dataset,
+			Cases:         acc.cases,
+			Passed:        acc.passed,
+			Rate:          ratio(acc.passed, acc.cases),
 		})
 	}
 	return result

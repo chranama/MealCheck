@@ -212,7 +212,7 @@ Options:
 `eval-normalization` runs the P0 meal-plan normalization evaluation. By default
 it does not call llama.cpp. The deterministic mode checks source-item inventory,
 compact-row adapter expansion, qualification-failure expectations, tag
-summaries, and source-item preservation.
+summaries, source-item preservation, and the strict manifest gate.
 
 ```bash
 go run ./cmd/mealcheck eval-normalization \
@@ -235,8 +235,10 @@ Options:
 |---|---|---|
 | `-root` | `.` | Repository root used to resolve manifest and JSONL paths. |
 | `-manifest` | `data/evaluation/p0-normalization/manifest.json` | P0 normalization manifest path. |
-| `-dataset` | `data/evaluation/p0-normalization/cases-v1.jsonl` | P0 success-case JSONL path. |
-| `-failures` | `data/evaluation/p0-normalization/failure-cases-v1.jsonl` | P0 failure-case JSONL path. |
+| `-gate` | `strict` | Manifest gate to run: `strict`, `exploratory`, or `all`. |
+| `-source-dataset` | empty | Optional source-dataset filter for manifest-driven runs. |
+| `-dataset` | empty | Optional success-case JSONL override; bypasses manifest file selection. |
+| `-failures` | empty | Optional failure-case JSONL override; bypasses manifest file selection. |
 | `-mode` | `deterministic` | `deterministic` for offline CI-safe checks, or `local-llama` for opt-in local-model scoring. |
 | `-local-model-base-url` | `MEALCHECK_LOCAL_MODEL_BASE_URL` or `http://127.0.0.1:11435/v1` | OpenAI-compatible local llama endpoint used only in `local-llama` mode. |
 | `-local-model-name` | `MEALCHECK_LOCAL_MODEL_NAME` | Required model name for `local-llama` mode. |

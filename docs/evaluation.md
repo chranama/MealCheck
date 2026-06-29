@@ -117,6 +117,9 @@ instructions as valid P0 success cases, make fuzzy food matching part of the P0
 score, or check in raw third-party source datasets until license and size
 handling are reviewed.
 
+The concrete integration plan for these two external sources lives in
+[P0 External Dataset Integration Plan](p0-external-dataset-integration-plan.md).
+
 ### P0 Case Format
 
 Generated P0 cases should live under:
@@ -202,6 +205,27 @@ data/evaluation/p0-normalization/cases-v1.jsonl
 data/evaluation/p0-normalization/failure-cases-v1.jsonl
 ```
 
+When local NYT or TASTEset source CSVs are provided, the generator also writes
+separate exploratory files:
+
+```text
+data/evaluation/p0-normalization/nyt-cases-v1.jsonl
+data/evaluation/p0-normalization/nyt-failure-cases-v1.jsonl
+data/evaluation/p0-normalization/nyt-quarantine-v1.jsonl
+data/evaluation/p0-normalization/tasteset-cases-v1.jsonl
+data/evaluation/p0-normalization/tasteset-failure-cases-v1.jsonl
+data/evaluation/p0-normalization/tasteset-quarantine-v1.jsonl
+```
+
+Probe local source files before generation:
+
+```bash
+python3 scripts/generate-p0-normalization-evaluation.py \
+  --probe-sources \
+  --nyt-csv "$MEALCHECK_NYT_INGREDIENTS_CSV" \
+  --tasteset-csv "$MEALCHECK_TASTESET_CSV"
+```
+
 Generation rules:
 
 1. Keep only rows with a parseable numeric quantity, unit, and food/product
@@ -268,8 +292,17 @@ The deterministic implementation uses this command:
 
 ```bash
 go run ./cmd/mealcheck eval-normalization \
-  -dataset data/evaluation/p0-normalization/cases-v1.jsonl \
+  -gate strict \
   -out /tmp/mealcheck-p0-normalization.json
+```
+
+Run optional external generated cases separately:
+
+```bash
+go run ./cmd/mealcheck eval-normalization \
+  -gate exploratory \
+  -source-dataset nyt_ingredient_phrase_tagger \
+  -out /tmp/mealcheck-p0-nyt-normalization.json
 ```
 
 The opt-in local-model implementation uses this command:
@@ -278,7 +311,7 @@ The opt-in local-model implementation uses this command:
 MEALCHECK_LOCAL_MODEL_NAME="$MODEL_NAME" \
 go run ./cmd/mealcheck eval-normalization \
   -mode local-llama \
-  -dataset data/evaluation/p0-normalization/cases-v1.jsonl \
+  -gate strict \
   -out /tmp/mealcheck-p0-local-model.json
 ```
 
@@ -341,6 +374,21 @@ Current P0 seed result:
 - 120 of 120 expected source items are preserved, for a
   `source_item_preservation_rate` of 1.0.
 - The seed result has zero mismatches.
+
+Current P0 live local-model seed result:
+
+- 3 of 3 repeats completed against the production `Qwen3-0.6B-Q4_K_M` model
+  on the prototyping laptop.
+- The strict live gate passed with `MEALCHECK_P0_MIN_ROW_MATCH_RATE=1`.
+- Minimum local-model row match rate was 1.0.
+- Minimum local-model food, quantity, and unit accuracy were each 1.0.
+- Provider failures and compact-output decode failures were both zero.
+- Source-grounded reconciliation made 306 field repairs across the three
+  repeats, so the seed now passes through deterministic repair rather than
+  because the model emits perfect rows unaided.
+
+The live local-model improvement loop is tracked in
+[Normalization Engine Improvement Plan](normalization-engine-improvement-plan.md).
 
 ### P0 Buildout Plan
 

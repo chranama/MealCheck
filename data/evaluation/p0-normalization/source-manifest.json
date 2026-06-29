@@ -14,14 +14,16 @@
       "data_type": "public ingredient phrase CSV",
       "url": "https://github.com/nytimes/ingredient-phrase-tagger",
       "expected_env": "MEALCHECK_NYT_INGREDIENTS_CSV",
-      "checked_in": false
+      "checked_in": false,
+      "license_note": "Review upstream license and generated sample size before committing generated cases."
     },
     {
       "source": "tasteset",
       "data_type": "public recipe NER CSV",
       "url": "https://github.com/taisti/TASTEset",
       "expected_env": "MEALCHECK_TASTESET_CSV",
-      "checked_in": false
+      "checked_in": false,
+      "license_note": "Review upstream license and generated sample size before committing generated cases."
     }
   ]
 }

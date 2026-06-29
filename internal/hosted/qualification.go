@@ -89,7 +89,7 @@ func QualifyMealPlanText(ctx context.Context, providerFactory ProviderFactory, r
 		if err != nil {
 			return MealPlanQualificationResult{}, err
 		}
-		plan, decodeErr := DecodeLocalLlamaCompactPlan(output, defaultLocalLlamaPlanID)
+		plan, _, decodeErr := DecodeLocalLlamaCompactPlanWithSource(output, defaultLocalLlamaPlanID, text)
 		if decodeErr != nil {
 			return MealPlanQualificationResult{
 				SchemaVersion: "0.1",

@@ -51,6 +51,22 @@ type localLlamaRowItem struct {
 	Unit         string
 }
 
+type LocalLlamaParsedSourceMeasurement struct {
+	Food     string  `json:"food,omitempty"`
+	Quantity float64 `json:"quantity,omitempty"`
+	Unit     string  `json:"unit,omitempty"`
+	Status   string  `json:"status"`
+	Reason   string  `json:"reason,omitempty"`
+}
+
+type LocalLlamaNormalizationRepair struct {
+	SourceItemID int    `json:"source_item_id"`
+	Field        string `json:"field"`
+	From         string `json:"from,omitempty"`
+	To           string `json:"to,omitempty"`
+	Reason       string `json:"reason"`
+}
+
 func (item *localLlamaTupleItem) UnmarshalJSON(data []byte) error {
 	var values []json.RawMessage
 	if err := json.Unmarshal(data, &values); err != nil {
@@ -107,17 +123,27 @@ func (item *localLlamaRowItem) UnmarshalJSON(data []byte) error {
 // DecodeLocalLlamaCompactPlan expands the local llama compact extraction
 // contract into canonical MealCheck plan JSON.
 func DecodeLocalLlamaCompactPlan(text string, planID string) (checker.Plan, error) {
+	plan, _, err := DecodeLocalLlamaCompactPlanWithSource(text, planID, "")
+	return plan, err
+}
+
+// DecodeLocalLlamaCompactPlanWithSource expands compact local-model output and
+// reconciles source-id rows against the deterministic source inventory when
+// source text is available.
+func DecodeLocalLlamaCompactPlanWithSource(text string, planID string, sourceText string) (checker.Plan, []LocalLlamaNormalizationRepair, error) {
 	jsonText, err := extractJSONObject(text)
 	if err != nil {
-		return checker.Plan{}, err
+		return checker.Plan{}, nil, err
 	}
 	if localLlamaJSONUsesRowKeys(jsonText) {
-		return decodeLocalLlamaRowPlanJSON(jsonText, planID)
+		return decodeLocalLlamaRowPlanJSONWithSource(jsonText, planID, sourceText)
 	}
 	if localLlamaJSONUsesTupleKeys(jsonText) {
-		return decodeLocalLlamaTuplePlanJSON(jsonText, planID)
+		plan, err := decodeLocalLlamaTuplePlanJSON(jsonText, planID)
+		return plan, nil, err
 	}
-	return decodeLocalLlamaLegacyCompactPlanJSON(jsonText, planID)
+	plan, err := decodeLocalLlamaLegacyCompactPlanJSON(jsonText, planID)
+	return plan, nil, err
 }
 
 func localLlamaJSONUsesRowKeys(jsonText string) bool {
@@ -160,17 +186,31 @@ func decodeLocalLlamaLegacyCompactPlanJSON(jsonText string, planID string) (chec
 }
 
 func decodeLocalLlamaRowPlanJSON(jsonText string, planID string) (checker.Plan, error) {
+	plan, _, err := decodeLocalLlamaRowPlanJSONWithSource(jsonText, planID, "")
+	return plan, err
+}
+
+func decodeLocalLlamaRowPlanJSONWithSource(jsonText string, planID string, sourceText string) (checker.Plan, []LocalLlamaNormalizationRepair, error) {
 	decoder := json.NewDecoder(strings.NewReader(jsonText))
 	decoder.DisallowUnknownFields()
 	var rowPlan localLlamaRowPlan
 	if err := decoder.Decode(&rowPlan); err != nil {
-		return checker.Plan{}, err
+		return checker.Plan{}, nil, err
 	}
 	var extra any
 	if err := decoder.Decode(&extra); err != io.EOF {
-		return checker.Plan{}, fmt.Errorf("local llama row JSON contains multiple values")
+		return checker.Plan{}, nil, fmt.Errorf("local llama row JSON contains multiple values")
 	}
-	return expandLocalLlamaRows(rowPlan.Items, planID)
+	rows := rowPlan.Items
+	var repairs []LocalLlamaNormalizationRepair
+	if strings.TrimSpace(sourceText) != "" {
+		rows, repairs = reconcileLocalLlamaRowsWithSource(rowPlan.Items, sourceText)
+	}
+	plan, err := expandLocalLlamaRows(rows, planID)
+	if err != nil {
+		return checker.Plan{}, repairs, err
+	}
+	return plan, repairs, nil
 }
 
 func decodeLocalLlamaTuplePlanJSON(jsonText string, planID string) (checker.Plan, error) {
@@ -202,6 +242,7 @@ func expandLocalLlamaRows(rows []localLlamaRowItem, planID string) (checker.Plan
 	if err := validateLocalLlamaSourceItemIDs(rows); err != nil {
 		return checker.Plan{}, err
 	}
+	rows = localLlamaCanonicalRowOrder(rows)
 
 	dayMeals := map[int]map[string][]localLlamaCompactItem{}
 	for _, row := range rows {
@@ -255,6 +296,19 @@ func expandLocalLlamaRows(rows []localLlamaRowItem, planID string) (checker.Plan
 		PlanID:        planID,
 		Days:          days,
 	}, nil
+}
+
+func localLlamaCanonicalRowOrder(rows []localLlamaRowItem) []localLlamaRowItem {
+	ordered := append([]localLlamaRowItem(nil), rows...)
+	for _, row := range ordered {
+		if row.SourceItemID == 0 {
+			return ordered
+		}
+	}
+	sort.SliceStable(ordered, func(i, j int) bool {
+		return ordered[i].SourceItemID < ordered[j].SourceItemID
+	})
+	return ordered
 }
 
 func validateLocalLlamaSourceItemIDs(rows []localLlamaRowItem) error {
@@ -406,26 +460,11 @@ func expandLocalLlamaCompactItems(mealName string, compactItems []localLlamaComp
 }
 
 func localLlamaStripDuplicateQuantityPrefix(food string, quantity float64, unit string) (string, string) {
-	fields := strings.Fields(food)
-	if len(fields) < 3 {
+	measurement := localLlamaParseSourceMeasurement(food)
+	if measurement.Status != "parsed" || math.Abs(measurement.Quantity-quantity) > 0.0001 {
 		return food, unit
 	}
-	prefixQuantity, consumed, ok := localLlamaParseQuantityPrefixFields(fields)
-	if !ok || math.Abs(prefixQuantity-quantity) > 0.0001 {
-		return food, unit
-	}
-	if len(fields) < consumed+2 {
-		return food, unit
-	}
-	prefixUnit := localLlamaNormalizeSourceUnit(fields[consumed])
-	if !allowedUnit(prefixUnit) {
-		return food, unit
-	}
-	rest := strings.TrimSpace(strings.Join(fields[consumed+1:], " "))
-	if rest == "" {
-		return food, unit
-	}
-	return rest, prefixUnit
+	return measurement.Food, measurement.Unit
 }
 
 func localLlamaParseQuantityPrefixFields(fields []string) (float64, int, bool) {
@@ -440,6 +479,18 @@ func localLlamaParseQuantityPrefixFields(fields []string) (float64, int, bool) {
 		fraction, ok := localLlamaParseQuantityToken(fields[1])
 		if ok {
 			return first + fraction, 2, true
+		}
+	}
+	if len(fields) > 2 && fields[1] == "/" {
+		denominator, ok := localLlamaParseQuantityToken(fields[2])
+		if ok && denominator != 0 {
+			return first / denominator, 3, true
+		}
+	}
+	if len(fields) > 3 && strings.Contains(fields[2], "/") {
+		fraction, ok := localLlamaParseQuantityToken(fields[2])
+		if ok {
+			return first + fraction, 3, true
 		}
 	}
 	return first, 1, true
@@ -470,6 +521,112 @@ func localLlamaParseQuantityToken(token string) (float64, bool) {
 		return 0, false
 	}
 	return value, true
+}
+
+func LocalLlamaParseSourceMeasurement(sourceText string) LocalLlamaParsedSourceMeasurement {
+	return localLlamaParseSourceMeasurement(sourceText)
+}
+
+func localLlamaParseSourceMeasurement(sourceText string) LocalLlamaParsedSourceMeasurement {
+	text := strings.TrimSpace(strings.Trim(sourceText, " \t\r\n.;,"))
+	if text == "" {
+		return LocalLlamaParsedSourceMeasurement{Status: "failed", Reason: "empty_source_text"}
+	}
+	fields := strings.Fields(text)
+	quantity, consumed, ok := localLlamaParseQuantityPrefixFields(fields)
+	if !ok || quantity <= 0 {
+		return LocalLlamaParsedSourceMeasurement{Status: "failed", Reason: "missing_numeric_quantity"}
+	}
+	if consumed >= len(fields) {
+		return LocalLlamaParsedSourceMeasurement{Status: "failed", Reason: "missing_unit"}
+	}
+	unit := localLlamaNormalizeSourceUnit(strings.Trim(fields[consumed], " ,.;:()"))
+	if !allowedUnit(unit) {
+		return LocalLlamaParsedSourceMeasurement{Status: "failed", Reason: "unsupported_unit"}
+	}
+	food := strings.TrimSpace(strings.Join(fields[consumed+1:], " "))
+	food = strings.TrimSpace(strings.Trim(food, " \t\r\n.;,"))
+	food = strings.TrimSpace(localLlamaLeadingOf.ReplaceAllString(food, ""))
+	if food == "" {
+		return LocalLlamaParsedSourceMeasurement{Status: "failed", Reason: "missing_food"}
+	}
+	return LocalLlamaParsedSourceMeasurement{
+		Food:     food,
+		Quantity: quantity,
+		Unit:     unit,
+		Status:   "parsed",
+	}
+}
+
+func reconcileLocalLlamaRowsWithSource(rows []localLlamaRowItem, sourceText string) ([]localLlamaRowItem, []LocalLlamaNormalizationRepair) {
+	if len(rows) == 0 {
+		return rows, nil
+	}
+	for _, row := range rows {
+		if row.SourceItemID == 0 {
+			return rows, nil
+		}
+	}
+	sourceByID := map[int]localLlamaSourceItem{}
+	for _, item := range localLlamaResolvedSourceItems(sourceText) {
+		sourceByID[item.ID] = item
+	}
+	if len(sourceByID) == 0 {
+		return rows, nil
+	}
+
+	reconciled := append([]localLlamaRowItem(nil), rows...)
+	var repairs []LocalLlamaNormalizationRepair
+	for index := range reconciled {
+		row := &reconciled[index]
+		sourceItem, ok := sourceByID[row.SourceItemID]
+		if !ok {
+			continue
+		}
+		if sourceItem.Day > 0 && row.Day != sourceItem.Day {
+			repairs = append(repairs, localLlamaRepair(row.SourceItemID, "day", strconv.Itoa(row.Day), strconv.Itoa(sourceItem.Day), "source_inventory"))
+			row.Day = sourceItem.Day
+		}
+		if sourceItem.MealCode != "" && row.MealCode != sourceItem.MealCode {
+			repairs = append(repairs, localLlamaRepair(row.SourceItemID, "meal_code", row.MealCode, sourceItem.MealCode, "source_inventory"))
+			row.MealCode = sourceItem.MealCode
+		}
+		measurement := localLlamaParseSourceMeasurement(sourceItem.Text)
+		if measurement.Status != "parsed" {
+			continue
+		}
+		if math.Abs(row.Quantity-measurement.Quantity) > 0.0001 {
+			repairs = append(repairs, localLlamaRepair(row.SourceItemID, "quantity", formatLocalLlamaQuantity(row.Quantity), formatLocalLlamaQuantity(measurement.Quantity), "source_measurement"))
+			row.Quantity = measurement.Quantity
+		}
+		normalizedUnit := localLlamaNormalizeSourceUnit(row.Unit)
+		if normalizedUnit != measurement.Unit {
+			repairs = append(repairs, localLlamaRepair(row.SourceItemID, "unit", row.Unit, measurement.Unit, "source_measurement"))
+			row.Unit = measurement.Unit
+		} else if row.Unit != normalizedUnit {
+			repairs = append(repairs, localLlamaRepair(row.SourceItemID, "unit", row.Unit, normalizedUnit, "unit_alias"))
+			row.Unit = normalizedUnit
+		}
+		if strings.TrimSpace(row.Food) != measurement.Food {
+			repairs = append(repairs, localLlamaRepair(row.SourceItemID, "food", row.Food, measurement.Food, "source_measurement"))
+			row.Food = measurement.Food
+		}
+	}
+	return reconciled, repairs
+}
+
+func localLlamaRepair(sourceItemID int, field string, from string, to string, reason string) LocalLlamaNormalizationRepair {
+	return LocalLlamaNormalizationRepair{
+		SourceItemID: sourceItemID,
+		Field:        field,
+		From:         from,
+		To:           to,
+		Reason:       reason,
+	}
+}
+
+func formatLocalLlamaQuantity(quantity float64) string {
+	return strconv.FormatFloat(quantity, 'f', -1, 64)
 }
 
 func LocalLlamaCompactResponseSchema() map[string]any {

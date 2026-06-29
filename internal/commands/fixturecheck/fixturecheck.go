@@ -447,18 +447,28 @@ func validateP0NormalizationDataset(root string) error {
 		return errors.New("p0 manifest supported_units must not be empty")
 	}
 
-	caseFiles := stringSlice(manifest, "case_files")
+	caseFiles, err := p0ManifestFiles(manifest, "case_files")
+	if err != nil {
+		return err
+	}
 	if len(caseFiles) == 0 {
 		return errors.New("p0 manifest case_files must not be empty")
 	}
-	failureFiles := stringSlice(manifest, "failure_case_files")
+	failureFiles, err := p0ManifestFiles(manifest, "failure_case_files")
+	if err != nil {
+		return err
+	}
 	if len(failureFiles) == 0 {
 		return errors.New("p0 manifest failure_case_files must not be empty")
+	}
+	quarantineFiles, err := p0ManifestFiles(manifest, "quarantine_files")
+	if err != nil {
+		return err
 	}
 
 	successRows := []map[string]any{}
 	for _, file := range caseFiles {
-		rows, err := readJSONLObjects(filepath.Join(base, file))
+		rows, err := readJSONLObjects(filepath.Join(base, file.Path))
 		if err != nil {
 			return err
 		}
@@ -466,11 +476,19 @@ func validateP0NormalizationDataset(root string) error {
 	}
 	failureRows := []map[string]any{}
 	for _, file := range failureFiles {
-		rows, err := readJSONLObjects(filepath.Join(base, file))
+		rows, err := readJSONLObjects(filepath.Join(base, file.Path))
 		if err != nil {
 			return err
 		}
 		failureRows = append(failureRows, rows...)
+	}
+	quarantineRows := []map[string]any{}
+	for _, file := range quarantineFiles {
+		rows, err := readJSONLObjects(filepath.Join(base, file.Path))
+		if err != nil {
+			return err
+		}
+		quarantineRows = append(quarantineRows, rows...)
 	}
 	if len(successRows) == 0 {
 		return errors.New("p0 normalization success cases must not be empty")
@@ -559,6 +577,25 @@ func validateP0NormalizationDataset(root string) error {
 			return fmt.Errorf("p0 failure case %s has invalid stage %q", id, stage)
 		}
 	}
+	for _, row := range quarantineRows {
+		id := mustString(row, "id")
+		if seenIDs[id] {
+			return fmt.Errorf("p0 normalization has duplicate id %s", id)
+		}
+		seenIDs[id] = true
+		if got := mustString(row, "schema_version"); got != "0.1" {
+			return fmt.Errorf("p0 quarantine case %s schema_version = %q, want 0.1", id, got)
+		}
+		if _, err := stringField(row, "source_dataset"); err != nil {
+			return fmt.Errorf("p0 quarantine case %s: %w", id, err)
+		}
+		if _, err := stringField(row, "raw_text"); err != nil {
+			return fmt.Errorf("p0 quarantine case %s: %w", id, err)
+		}
+		if _, err := stringField(row, "quarantine_reason"); err != nil {
+			return fmt.Errorf("p0 quarantine case %s: %w", id, err)
+		}
+	}
 
 	summary, ok := manifest["summary"].(map[string]any)
 	if !ok {
@@ -573,7 +610,59 @@ func validateP0NormalizationDataset(root string) error {
 	if got, err := numericField(summary, "total_expected_source_items"); err != nil || int(got) != totalExpectedItems {
 		return fmt.Errorf("p0 manifest summary.total_expected_source_items must equal %d", totalExpectedItems)
 	}
+	if len(quarantineRows) > 0 {
+		if got, err := numericField(summary, "quarantine_cases"); err != nil || int(got) != len(quarantineRows) {
+			return fmt.Errorf("p0 manifest summary.quarantine_cases must equal %d", len(quarantineRows))
+		}
+	}
 	return nil
+}
+
+type p0ManifestFile struct {
+	Path          string
+	SourceDataset string
+	Gate          string
+}
+
+func p0ManifestFiles(manifest map[string]any, key string) ([]p0ManifestFile, error) {
+	raw, ok := manifest[key]
+	if !ok {
+		return nil, nil
+	}
+	values, ok := raw.([]any)
+	if !ok {
+		return nil, fmt.Errorf("p0 manifest %s must be an array", key)
+	}
+	files := make([]p0ManifestFile, 0, len(values))
+	for index, value := range values {
+		switch typed := value.(type) {
+		case string:
+			if strings.TrimSpace(typed) == "" {
+				return nil, fmt.Errorf("p0 manifest %s[%d] path must not be empty", key, index)
+			}
+			files = append(files, p0ManifestFile{Path: typed, Gate: "strict"})
+		case map[string]any:
+			path := mustString(typed, "path")
+			if strings.TrimSpace(path) == "" {
+				return nil, fmt.Errorf("p0 manifest %s[%d] path must not be empty", key, index)
+			}
+			gate := mustString(typed, "gate")
+			if gate == "" {
+				gate = "strict"
+			}
+			if gate != "strict" && gate != "exploratory" {
+				return nil, fmt.Errorf("p0 manifest %s[%d] has invalid gate %q", key, index, gate)
+			}
+			sourceDataset := mustString(typed, "source_dataset")
+			if sourceDataset == "" && gate == "exploratory" {
+				return nil, fmt.Errorf("p0 manifest %s[%d] exploratory file must define source_dataset", key, index)
+			}
+			files = append(files, p0ManifestFile{Path: path, SourceDataset: sourceDataset, Gate: gate})
+		default:
+			return nil, fmt.Errorf("p0 manifest %s[%d] must be a string or object", key, index)
+		}
+	}
+	return files, nil
 }
 
 func validP0MealCode(code string) bool {

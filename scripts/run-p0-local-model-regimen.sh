@@ -194,6 +194,13 @@ for run_index in $(seq 1 "$REPEATS"); do
         local_model_expected_items: $result[0].local_model_expected_items,
         local_model_rows_matched: $result[0].local_model_rows_matched,
         local_model_row_match_rate: $result[0].local_model_row_match_rate,
+        local_model_day_accuracy: ($result[0].local_model_day_accuracy // 0),
+        local_model_meal_accuracy: ($result[0].local_model_meal_accuracy // 0),
+        local_model_food_accuracy: ($result[0].local_model_food_accuracy // 0),
+        local_model_quantity_accuracy: ($result[0].local_model_quantity_accuracy // 0),
+        local_model_unit_accuracy: ($result[0].local_model_unit_accuracy // 0),
+        local_model_source_repairs: ($result[0].local_model_source_repairs // 0),
+        local_model_repair_cases: ($result[0].local_model_repair_cases // 0),
         local_model_provider_failures: ($result[0].local_model_provider_failures // 0),
         local_model_decode_failures: ($result[0].local_model_decode_failures // 0),
         mismatch_case_ids: [($result[0].mismatches // [])[].case_id]
@@ -216,7 +223,7 @@ for run_index in $(seq 1 "$REPEATS"); do
       }' >>"$OUTPUT_DIR/live-summary.jsonl"
   fi
 
-  jq -r '"run \(.run_index): exit=\(.exit_code) mismatches=\(.cases_with_mismatches) row_match=\(.local_model_row_match_rate)"' \
+  jq -r '"run \(.run_index): exit=\(.exit_code) mismatches=\(.cases_with_mismatches) row_match=\(.local_model_row_match_rate) repairs=\(.local_model_source_repairs // 0)"' \
     "$OUTPUT_DIR/live-summary.jsonl" | tail -n 1
 done
 
@@ -238,7 +245,12 @@ jq -s \
     command_failures: ([.[] | select(.exit_code != 0)] | length),
     repeats_with_mismatches: ([.[] | select((.cases_with_mismatches // 1) > 0)] | length),
     min_local_model_row_match_rate: min_or_zero([.[] | (.local_model_row_match_rate // 0)]),
+    min_local_model_food_accuracy: min_or_zero([.[] | (.local_model_food_accuracy // 0)]),
+    min_local_model_quantity_accuracy: min_or_zero([.[] | (.local_model_quantity_accuracy // 0)]),
+    min_local_model_unit_accuracy: min_or_zero([.[] | (.local_model_unit_accuracy // 0)]),
     max_duration_seconds: max_or_zero([.[] | (.duration_seconds // 0)]),
+    total_source_repairs: ([.[] | (.local_model_source_repairs // 0)] | add // 0),
+    total_repair_cases: ([.[] | (.local_model_repair_cases // 0)] | add // 0),
     total_provider_failures: ([.[] | (.local_model_provider_failures // 0)] | add // 0),
     total_decode_failures: ([.[] | (.local_model_decode_failures // 0)] | add // 0),
     mismatch_case_ids: ([.[] | (.mismatch_case_ids // [])[]] | unique)
