@@ -20,8 +20,8 @@ unbatched whole-plan fallback.
 - `manifest.json`: case metadata, expected item counts, day counts, and coverage
   tags.
 - `cases/*.txt`: synthetic user-submitted meal-plan text.
-- `failure-manifest.json`: qualification-failure metadata for inputs that should
-  be refused before model normalization.
+- `failure-manifest.json`: failure metadata for inputs that should be refused
+  during qualification or deterministic normalization.
 - `failure-cases/*.txt`: synthetic invalid, vague, or recipe-like user inputs.
 
 ## Use
@@ -45,6 +45,7 @@ model-free: it verifies the item count, day coverage, meal-code coverage, and
 prompt item-count instruction before a local model is involved.
 
 The acceptable-input manifest does not include intentionally invalid inputs.
-Invalid and vague inputs belong in qualification tests, not in the successful
+Invalid and vague inputs belong in the failure set, not in the successful
 normalization set. The separate `failure-manifest.json` tracks representative
-fast-fail cases and their expected qualification statuses.
+fast-fail cases and whether they should fail at qualification or deterministic
+normalization.

@@ -42,6 +42,44 @@ func TestBuildDeterministicPlanRejectsMissingMealCode(t *testing.T) {
 	}
 }
 
+func TestAnalyzeReportsUnsupportedUnitWithoutDroppingLaterItems(t *testing.T) {
+	result := Analyze("Day 1 breakfast: 1 bowl cooked oatmeal, 1 cup blueberries, and 1 apple.", "test-plan", Policy{})
+	if result.Method != MethodFailedPreModel {
+		t.Fatalf("method = %q, want %q", result.Method, MethodFailedPreModel)
+	}
+	if len(result.SourceItems) != 3 || len(result.ParsedItems) != 3 {
+		t.Fatalf("source/parsed counts = %d/%d, want 3/3", len(result.SourceItems), len(result.ParsedItems))
+	}
+	if len(result.UnresolvedItems) != 1 {
+		t.Fatalf("unresolved = %+v, want one unsupported unit", result.UnresolvedItems)
+	}
+	unresolved := result.UnresolvedItems[0]
+	if unresolved.Reason != "unsupported_unit" || unresolved.SourceItem.Text != "1 bowl cooked oatmeal" {
+		t.Fatalf("unresolved = %+v, want unsupported bowl item", unresolved)
+	}
+	last := result.ParsedItems[2]
+	if last.Measurement.Status != "parsed" || last.Measurement.Unit != "serving" || last.Measurement.Food != "apple" {
+		t.Fatalf("implicit serving item = %+v, want parsed 1 serving apple", last)
+	}
+}
+
+func TestAnalyzeReportsVagueInlineFoodPhrase(t *testing.T) {
+	result := Analyze("Day 1 breakfast: oatmeal with 1 cup blueberries and 1 cup plain Greek yogurt.", "test-plan", Policy{})
+	if result.Method != MethodFailedPreModel {
+		t.Fatalf("method = %q, want %q", result.Method, MethodFailedPreModel)
+	}
+	if len(result.SourceItems) != 3 || len(result.ParsedItems) != 3 {
+		t.Fatalf("source/parsed counts = %d/%d, want 3/3", len(result.SourceItems), len(result.ParsedItems))
+	}
+	if len(result.UnresolvedItems) != 1 {
+		t.Fatalf("unresolved = %+v, want one missing quantity", result.UnresolvedItems)
+	}
+	unresolved := result.UnresolvedItems[0]
+	if unresolved.Reason != "missing_numeric_quantity" || unresolved.SourceItem.Text != "oatmeal" {
+		t.Fatalf("unresolved = %+v, want missing quantity for oatmeal", unresolved)
+	}
+}
+
 func TestEngineNormalizeReturnsDeterministicResult(t *testing.T) {
 	result, err := (Engine{}).Normalize(context.Background(), Request{
 		Text:   "Day 1 breakfast: 1 cup cooked oatmeal.",

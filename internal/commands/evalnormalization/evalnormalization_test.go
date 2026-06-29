@@ -322,6 +322,41 @@ func TestRunManifestGateAndSourceDatasetFilters(t *testing.T) {
 	}
 }
 
+func TestRunDeterministicFailureCaseChecksNormalizationReason(t *testing.T) {
+	root := t.TempDir()
+	dataDir := filepath.Join(root, "data", "evaluation", "p0-normalization")
+	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+		t.Fatalf("mkdir data dir: %v", err)
+	}
+	manifestPath := filepath.Join(dataDir, "manifest.json")
+	datasetPath := filepath.Join(dataDir, "cases-v1.jsonl")
+	failurePath := filepath.Join(dataDir, "failure-cases-v1.jsonl")
+	if err := os.WriteFile(manifestPath, []byte(`{"schema_version":"0.1","dataset_id":"p0-deterministic-failure-test"}`), 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	if err := os.WriteFile(datasetPath, nil, 0o644); err != nil {
+		t.Fatalf("write dataset: %v", err)
+	}
+	failureCase := `{"schema_version":"0.1","id":"unsupported-bowl","source_dataset":"test","input_text":"Day 1 breakfast: 1 bowl oatmeal, 1 cup blueberries.","expected_failure":{"stage":"deterministic_normalization","status":"failed_pre_model","reason":"unsupported_unit"},"tags":["unit_test","unsupported_unit"]}` + "\n"
+	if err := os.WriteFile(failurePath, []byte(failureCase), 0o644); err != nil {
+		t.Fatalf("write failures: %v", err)
+	}
+
+	result, err := run(runOptions{
+		Root:         root,
+		ManifestPath: manifestPath,
+		DatasetPath:  datasetPath,
+		FailurePath:  failurePath,
+		Mode:         "deterministic",
+	})
+	if err != nil {
+		t.Fatalf("run deterministic failure eval: %v", err)
+	}
+	if result.TotalCases != 1 || result.FailureCasesPassed != 1 || result.CasesWithMismatches != 0 {
+		t.Fatalf("unexpected result counts: total=%d failure_passed=%d mismatches=%d messages=%+v", result.TotalCases, result.FailureCasesPassed, result.CasesWithMismatches, result.Mismatches)
+	}
+}
+
 type sequenceProviderFactory struct {
 	responses []string
 	calls     int

@@ -569,6 +569,13 @@ func validateP0NormalizationDataset(root string) error {
 			if _, err := stringField(expected, "status"); err != nil {
 				return fmt.Errorf("p0 failure case %s expected_failure: %w", id, err)
 			}
+		case "deterministic_normalization":
+			if _, err := stringField(expected, "status"); err != nil {
+				return fmt.Errorf("p0 failure case %s expected_failure: %w", id, err)
+			}
+			if _, err := stringField(expected, "reason"); err != nil {
+				return fmt.Errorf("p0 failure case %s expected_failure: %w", id, err)
+			}
 		case "source_inventory":
 			if _, err := stringField(expected, "reason"); err != nil {
 				return fmt.Errorf("p0 failure case %s expected_failure: %w", id, err)

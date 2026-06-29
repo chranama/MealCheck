@@ -14,8 +14,6 @@ spreading across separate ADR, RFC, and planning documents.
 - [Meal Plan Input Robustness](meal-plan-input-robustness.md): acceptable pasted-input boundary and synthetic normalization dataset.
 - [Evaluation](evaluation.md): P0 normalization and P1 food/unit resolution evaluation datasets, metrics, and commands.
 - [P0 Live Model Regimen](p0-live-model-regimen.md): repeatable live local-model P0 evaluation on a prototyping laptop or server.
-- [Normalization Engine Improvement Plan](normalization-engine-improvement-plan.md): P0 normalization repair, prompt, eval, and model-experiment slices.
-- [P0 External Dataset Integration Plan](p0-external-dataset-integration-plan.md): NYT Ingredient Phrase Tagger and TASTEset integration plan for P0 evaluation.
 - [Plan Recommendation](plan_recommendation.md): deterministic recommendation principles and artifact boundary.
 - [Nutritional Guidelines](nutritional-guidelines.md): source selection, guideline-pack preprocessing, and meal-plan JSON normalization.
 - [Privacy And Safety](privacy-and-safety.md): data minimization, retention, disclosure, safety boundaries, and live-run controls.
@@ -25,7 +23,7 @@ spreading across separate ADR, RFC, and planning documents.
 - [Architecture](architecture.md): checker engine, guideline sources, hosted wrapper, local model serving, BYOK extension points, and server shape.
 - [Web Design](web-design.md): static frontend design posture, layout, component rules, and hardening criteria.
 - [Backend Server](backend_server.md): MacBook server requirements, required programs, and setup checklist.
-- [Implementation Plan](implementation-plan.md): milestones, first proof path, and acceptance criteria.
+- [Implementation Plan](implementation-plan.md): milestones, consolidated implementation tracks, first proof path, and acceptance criteria.
 - [Runbook](runbook.md): development and MacBook-hosted deployment operations.
 - [Decision Log](decision-log.md): accepted decisions and tradeoffs.
 - [Seeded HTML Report](seeded-report.html): standalone static report for the checked-in proof case.

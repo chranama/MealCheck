@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1",
-  "dataset_id": "meal-plan-input-qualification-failures-v1",
-  "purpose": "Synthetic user inputs that should fail meal-plan qualification before model normalization.",
+  "dataset_id": "meal-plan-input-failures-v1",
+  "purpose": "Synthetic user inputs that should fail either meal-plan qualification or deterministic normalization before verification.",
   "cases": [
     {
       "id": "non_meal_meeting_agenda",
@@ -22,6 +22,25 @@
       "file": "failure-cases/recipe-needs-decomposition.txt",
       "title": "Recipe-like text without meal-plan structure",
       "expected_status": "recipe_or_menu_needs_decomposition",
+      "expected_provider_used": false
+    },
+    {
+      "id": "unsupported_unit_bowl",
+      "file": "failure-cases/unsupported-unit-bowl.txt",
+      "title": "Meal line with an unsupported vessel unit",
+      "expected_stage": "deterministic_normalization",
+      "expected_status": "failed_pre_model",
+      "expected_reason": "unsupported_unit",
+      "expected_provider_used": false
+    },
+    {
+      "id": "vague_inline_food_phrase",
+      "file": "failure-cases/vague-inline-food-phrase.txt",
+      "title": "Mixed meal line with one unquantified food phrase",
+      "expected_stage": "deterministic_normalization",
+      "expected_status": "failed_pre_model",
+      "expected_reason": "missing_numeric_quantity",
+      "coverage_tags": ["vague_quantity"],
       "expected_provider_used": false
     }
   ]

@@ -36,12 +36,19 @@ func BuildDeterministicPlan(text string, planID string) (checker.Plan, []ParsedS
 
 	rows := make([]NormalizedRow, 0, len(sourceItems))
 	parsedItems := make([]ParsedSourceItem, 0, len(sourceItems))
+	var firstErr error
 	for _, sourceItem := range sourceItems {
 		if sourceItem.Day < 1 || sourceItem.Day > 7 {
-			return checker.Plan{}, parsedItems, fmt.Errorf("source item %d day %d is outside supported range 1..7", sourceItem.ID, sourceItem.Day)
+			if firstErr == nil {
+				firstErr = fmt.Errorf("source item %d day %d is outside supported range 1..7", sourceItem.ID, sourceItem.Day)
+			}
+			continue
 		}
 		if _, ok := MealName(sourceItem.MealCode); !ok {
-			return checker.Plan{}, parsedItems, fmt.Errorf("source item %d has missing or unsupported meal code %q", sourceItem.ID, sourceItem.MealCode)
+			if firstErr == nil {
+				firstErr = fmt.Errorf("source item %d has missing or unsupported meal code %q", sourceItem.ID, sourceItem.MealCode)
+			}
+			continue
 		}
 		measurement := ParseSourceMeasurement(sourceItem.Text)
 		parsedItems = append(parsedItems, ParsedSourceItem{
@@ -49,7 +56,10 @@ func BuildDeterministicPlan(text string, planID string) (checker.Plan, []ParsedS
 			Measurement: measurement,
 		})
 		if measurement.Status != "parsed" {
-			return checker.Plan{}, parsedItems, fmt.Errorf("source item %d could not be parsed: %s", sourceItem.ID, measurement.Reason)
+			if firstErr == nil {
+				firstErr = fmt.Errorf("source item %d could not be parsed: %s", sourceItem.ID, measurement.Reason)
+			}
+			continue
 		}
 		rows = append(rows, NormalizedRow{
 			SourceItemID: sourceItem.ID,
@@ -61,6 +71,9 @@ func BuildDeterministicPlan(text string, planID string) (checker.Plan, []ParsedS
 			Unit:         measurement.Unit,
 			Source:       "deterministic",
 		})
+	}
+	if firstErr != nil {
+		return checker.Plan{}, parsedItems, firstErr
 	}
 	plan, err := BuildPlanFromRows(rows, planID)
 	return plan, parsedItems, err

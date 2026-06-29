@@ -20,10 +20,15 @@ type DaySection struct {
 	Text string
 }
 
+const (
+	sourceQuantityPattern = `(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)`
+	sourceUnitPattern     = `(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?|bowls?|plates?|handfuls?|scoops?|pieces?|packets?|containers?|cans?|bottles?|bars?|loaves?|loaf)`
+)
+
 var (
-	resolvedItemLinePattern = regexp.MustCompile(`(?i)^\s*(?:[-*]|\d+[.)])\s+(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s*(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\b`)
-	inlineItemPattern       = regexp.MustCompile(`(?i)^\s*((?:\d+(?:\.\d+)?)|(?:\d+\s*/\s*\d+)|(?:\d+\s+\d+\s*/\s*\d+))\s+((?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\s+)?(.+?)\s*$`)
-	inlineAndItemBoundary   = regexp.MustCompile(`(?i)\s+\b(?:and|with|plus)\s+((?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s+)`)
+	resolvedItemLinePattern = regexp.MustCompile(`(?i)^\s*(?:[-*]|\d+[.)])\s+` + sourceQuantityPattern + `\s*` + sourceUnitPattern + `\b`)
+	inlineItemPattern       = regexp.MustCompile(`(?i)^\s*(` + sourceQuantityPattern + `)\s+(` + sourceUnitPattern + `\s+)?(.+?)\s*$`)
+	inlineAndItemBoundary   = regexp.MustCompile(`(?i)\s+\b(?:and|with|plus)\s+(` + sourceQuantityPattern + `\s+)`)
 	inlineLeadingAnd        = regexp.MustCompile(`(?i)^\s*and\s+`)
 	leadingOf               = regexp.MustCompile(`(?i)^of\s+`)
 	sourceItemMarkerPattern = regexp.MustCompile(`^\s*(?:[-*]|\d+[.)])\s+`)
@@ -165,6 +170,9 @@ func inlineSourceItems(line string, day int, mealCode string, startID int) []Sou
 	for _, phrase := range splitInlineItemPhrases(remainder) {
 		sourceText, ok := normalizeInlineItemPhrase(phrase)
 		if !ok {
+			sourceText, ok = normalizeVagueInlineItemPhrase(phrase)
+		}
+		if !ok {
 			continue
 		}
 		items = append(items, SourceItem{
@@ -233,6 +241,32 @@ func normalizeInlineItemPhrase(phrase string) (string, bool) {
 	}
 	unit = NormalizeSourceUnit(unit)
 	return strings.TrimSpace(quantity + " " + unit + " " + food), true
+}
+
+func normalizeVagueInlineItemPhrase(phrase string) (string, bool) {
+	trimmed := strings.TrimSpace(strings.Trim(phrase, " \t\r\n.;,"))
+	if !looksLikeVagueSourceItem(trimmed) {
+		return "", false
+	}
+	return trimmed, true
+}
+
+func looksLikeVagueSourceItem(text string) bool {
+	if text == "" || DayFromHeading(text) > 0 || MealCodeFromHeading(text) != "" {
+		return false
+	}
+	lower := strings.ToLower(text)
+	for _, token := range []string{"meal plan", "avoid", "allergy", "allergies", "excluded", "constraint"} {
+		if strings.Contains(lower, token) {
+			return false
+		}
+	}
+	for _, r := range lower {
+		if r >= 'a' && r <= 'z' {
+			return true
+		}
+	}
+	return false
 }
 
 func NormalizeSourceUnit(unit string) string {

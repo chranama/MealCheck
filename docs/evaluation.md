@@ -119,7 +119,7 @@ score, or check in raw third-party source datasets until license and size
 handling are reviewed.
 
 The concrete integration plan for these two external sources lives in
-[P0 External Dataset Integration Plan](p0-external-dataset-integration-plan.md).
+[Implementation Plan: P0 External Dataset Integration Plan](implementation-plan.md#p0-external-dataset-integration-plan).
 
 ### P0 Case Format
 
@@ -390,7 +390,7 @@ Current P0 live local-model seed result:
   because the model emits perfect rows unaided.
 
 The live local-model improvement loop is tracked in
-[Normalization Engine Improvement Plan](normalization-engine-improvement-plan.md).
+[Implementation Plan: Normalization Engine Improvement Plan](implementation-plan.md#normalization-engine-improvement-plan).
 
 ### P0 Buildout Plan
 

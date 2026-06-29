@@ -62,12 +62,13 @@ EXTERNAL_WRAPPER_STYLES = [
 
 QUANTITY_PATTERN = r"(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)"
 UNIT_PATTERN = r"(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)"
+SOURCE_UNIT_PATTERN = rf"(?:{UNIT_PATTERN}|bowls?|plates?|handfuls?|scoops?|pieces?|packets?|containers?|cans?|bottles?|bars?|loaves?|loaf)"
 RESOLVED_ITEM_LINE_PATTERN = re.compile(
-    rf"^\s*(?:[-*]|\d+[.)])\s+{QUANTITY_PATTERN}\s*{UNIT_PATTERN}\b",
+    rf"^\s*(?:[-*]|\d+[.)])\s+{QUANTITY_PATTERN}\s*{SOURCE_UNIT_PATTERN}\b",
     re.IGNORECASE,
 )
 INLINE_ITEM_PATTERN = re.compile(
-    rf"^\s*({QUANTITY_PATTERN})\s+(({UNIT_PATTERN})\s+)?(.+?)\s*$",
+    rf"^\s*({QUANTITY_PATTERN})\s+(({SOURCE_UNIT_PATTERN})\s+)?(.+?)\s*$",
     re.IGNORECASE,
 )
 INLINE_BOUNDARY_PATTERN = re.compile(
@@ -180,6 +181,20 @@ def load_robustness_cases(root: Path) -> tuple[list[dict[str, Any]], list[dict[s
     failure_cases: list[dict[str, Any]] = []
     for case in failure_manifest["cases"]:
         text = (root / case["file"]).read_text(encoding="utf-8").strip()
+        stage = case.get("expected_stage", "qualification")
+        expected_failure = {"stage": stage}
+        if case.get("expected_status"):
+            expected_failure["status"] = case["expected_status"]
+        if case.get("expected_reason"):
+            expected_failure["reason"] = case["expected_reason"]
+        tags = ["failure", "reviewed_seed"]
+        if stage == "qualification" and case.get("expected_status"):
+            tags.append(case["expected_status"])
+        else:
+            tags.append(stage)
+            tags.extend(case.get("coverage_tags", []))
+            if case.get("expected_reason"):
+                tags.append(case["expected_reason"])
         failure_cases.append(
             {
                 "schema_version": "0.1",
@@ -190,11 +205,8 @@ def load_robustness_cases(root: Path) -> tuple[list[dict[str, Any]], list[dict[s
                     "case_id": case["id"],
                 },
                 "input_text": text,
-                "expected_failure": {
-                    "stage": "qualification",
-                    "status": case["expected_status"],
-                },
-                "tags": ["failure", "reviewed_seed", case["expected_status"]],
+                "expected_failure": expected_failure,
+                "tags": tags,
             }
         )
     return success_cases, failure_cases
@@ -835,7 +847,7 @@ def write_artifacts(
     manifest = {
         "schema_version": "0.1",
         "dataset_id": DATASET_ID,
-        "description": "P0 meal-plan normalization evaluation cases for deterministic source inventory, compact-row adapter checks, qualification failures, and optional external exploratory cases.",
+        "description": "P0 meal-plan normalization evaluation cases for deterministic source inventory, compact-row adapter checks, qualification failures, deterministic normalization boundary failures, and optional external exploratory cases.",
         "case_files": case_files,
         "failure_case_files": failure_case_files,
         "supported_units": ["g", "oz", "cup", "tbsp", "tsp", "slice", "serving"],

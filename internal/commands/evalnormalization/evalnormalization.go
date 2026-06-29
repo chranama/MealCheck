@@ -1126,10 +1126,47 @@ func evaluateFailureCase(c failureCase) caseMismatch {
 		if len(items) != 0 {
 			mismatch.Messages = append(mismatch.Messages, fmt.Sprintf("source_inventory_failed: got %d source item(s), want 0", len(items)))
 		}
+	case "deterministic_normalization":
+		result := normalization.Analyze(c.InputText, "p0-normalization-failure-eval", normalization.Policy{})
+		if result.Method == normalization.MethodDeterministic {
+			mismatch.Messages = append(mismatch.Messages, "deterministic_normalization_failed: got deterministic success, want failure")
+			return mismatch
+		}
+		if c.ExpectedFailure.Status != "" && result.Method != c.ExpectedFailure.Status {
+			mismatch.Messages = append(mismatch.Messages, fmt.Sprintf("deterministic_normalization_status_failed: got %q, want %q", result.Method, c.ExpectedFailure.Status))
+		}
+		if c.ExpectedFailure.Reason != "" && !normalizationFailureHasReason(result, c.ExpectedFailure.Reason) {
+			mismatch.Messages = append(mismatch.Messages, fmt.Sprintf("deterministic_normalization_reason_failed: got %s, want %q", normalizationFailureReasonSummary(result), c.ExpectedFailure.Reason))
+		}
 	default:
 		mismatch.Messages = append(mismatch.Messages, fmt.Sprintf("unsupported_failure_stage: %q", c.ExpectedFailure.Stage))
 	}
 	return mismatch
+}
+
+func normalizationFailureHasReason(result normalization.Result, reason string) bool {
+	for _, item := range result.UnresolvedItems {
+		if item.Reason == reason {
+			return true
+		}
+	}
+	return strings.Contains(result.DeterministicError, reason)
+}
+
+func normalizationFailureReasonSummary(result normalization.Result) string {
+	reasons := make([]string, 0, len(result.UnresolvedItems)+1)
+	for _, item := range result.UnresolvedItems {
+		if item.Reason != "" {
+			reasons = append(reasons, item.Reason)
+		}
+	}
+	if result.DeterministicError != "" {
+		reasons = append(reasons, result.DeterministicError)
+	}
+	if len(reasons) == 0 {
+		return "<none>"
+	}
+	return strings.Join(reasons, ", ")
 }
 
 func compactRowsJSON(items []expectedSourceItem) string {

@@ -56,6 +56,9 @@ Good enough:
 
 Near-term engineering slices:
 
+Execution order for the current hardening pass lives in
+`docs/implementation-plan.md#p0-hardening-execution-plan`.
+
 1. Expand the robustness corpus with observed live failures and natural rewrites
    of the public example.
 2. Add a repeatable local command or test target that runs the corpus through

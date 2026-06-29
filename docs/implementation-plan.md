@@ -3526,14 +3526,15 @@ Implemented So Far:
 
 Current Seed Results:
 
-- Total P0 cases: 11.
+- Total P0 cases: 13.
 - Success cases: 8.
-- Failure cases: 3.
+- Failure cases: 5.
 - Expected source items: 120.
 - Source items matched: 120.
 - Source item preservation rate: 100%.
 - Adapter-valid success cases: 8.
 - Qualification failure cases passed: 3.
+- Deterministic normalization failure cases passed: 2.
 - Cases with mismatches: 0.
 
 Remaining:
@@ -3557,7 +3558,8 @@ Acceptance:
   source text, food, quantity, and unit.
 - adapter validation proves expected compact rows expand into canonical
   MealCheck plan JSON.
-- failure cases can assert qualification or source-inventory refusal states.
+- failure cases can assert qualification, source-inventory, or deterministic
+  normalization refusal states.
 - result output reports case pass rate, source-item preservation rate, adapter
   valid cases, tag summaries, and ranked failure categories.
 - local-model evaluation remains explicitly separate from deterministic CI-safe
@@ -3577,3 +3579,2012 @@ Verification:
   llama.cpp-compatible service are configured.
 - `bash -n scripts/run-p0-local-model-regimen.sh` passes.
 - `git diff --check` passes.
+
+## Consolidated Specific Plans
+
+The sections below consolidate formerly separate implementation and execution plan documents. Keep future implementation planning here so the docs tree has one planning surface.
+
+### Normalization Engine Improvement Plan
+
+This plan targets P0 meal-plan normalization: converting acceptable pasted
+meal-plan text into canonical MealCheck rows. It does not cover P1 nutrition
+resolution, FNDDS matching, approximation, or decomposition after rows already
+exist.
+
+#### Current State
+
+The local-model path already has a useful shape:
+
+- `QualifyMealPlanText` rejects obvious non-meal-plan or too-vague text before
+  model work.
+- `localLlamaResolvedSourceItems` builds a deterministic source-item inventory
+  with source item id, day, meal code, and source text.
+- `localModelExtractionMessages` prompts the local model to return compact row
+  JSON shaped as `{"i":[[source_item_id,day,meal_code,food,quantity,unit]]}`.
+- `DecodeLocalLlamaCompactPlan` expands compact rows into canonical MealCheck
+  plan JSON.
+- `mealcheck eval-normalization` and
+  `scripts/run-p0-local-model-regimen.sh` score deterministic and live local
+  model behavior.
+
+The latest live local-model run showed that the model can preserve row count,
+day assignment, and meal assignment, but still changes row content. The main
+failure classes were:
+
+- quantity and unit embedded in `food` while `quantity`/`unit` are wrong
+- fraction quantities parsed incorrectly
+- `tbsp`/`tsp` substitutions
+- preparation adjectives dropped from food phrases
+- row-order or row-content swaps in compact multi-day examples
+
+These are P0 failures because the verifier should receive the user's intended
+food, quantity, unit, day, and meal without nutrition-critical drift.
+
+#### Implementation Status
+
+Implemented:
+
+- deterministic source-item measurement parser for integer, decimal, fraction,
+  mixed-number, unit-alias, and `of` cleanup cases
+- source-aware compact row decode that reconciles model output against
+  deterministic source items by `source_item_id`
+- canonical source-id row ordering for compact local-model rows
+- hosted local-model run and qualification paths wired through source-aware
+  decode
+- normalization events for source-grounded repairs
+- local-model prompt tightening for authoritative source items, fractions,
+  `tbsp`/`tsp`, and preparation-word preservation
+- P0 eval metrics for local-model day, meal, food, quantity, and unit accuracy
+- P0 eval and regimen artifact fields for source repair counts
+- deterministic-first normalization engine with P0 LLM assist hooks
+- exploratory `eval-normalization -mode assist-local-llama` for bounded
+  unresolved source-item repair
+- `normalization-result.json` assist artifacts for requests, responses,
+  accepted rows, rejected rows, and review flags
+
+Current live seed result:
+
+- 3 of 3 local-model P0 repeats completed
+- 0 provider failures
+- 0 compact-output decode failures
+- 0 mismatched cases
+- minimum row match rate: 1.0
+- minimum food, quantity, and unit accuracy: 1.0
+- total source-grounded field repairs across repeats: 306
+- gate passed with `MEALCHECK_P0_MIN_ROW_MATCH_RATE=1`
+
+Remaining planned work:
+
+- first-class unsupported-unit qualification diagnostics
+- larger reviewed NYT and TASTEset-derived P0 datasets
+- repeat P0 assist eval on seed and natural-rewrite corpora
+- broader model/runtime comparison after the reviewed seed remains stable
+
+#### Product Goal
+
+An acceptable input under `docs/meal-plan-input-robustness.md` should normalize
+successfully with:
+
+- no hidden day-count or meal-count assumption
+- every resolved source item represented exactly once
+- stable day and meal assignment
+- numeric quantity and supported unit preserved
+- food phrase preserved well enough for downstream resolution
+- unsupported or vague input rejected or preserved as unresolved before it
+  becomes misleading nutrition math
+
+#### Target Architecture
+
+Normalization should be a hybrid deterministic/model pipeline:
+
+1. Qualification preflight decides whether text is in bounds.
+2. Source inventory deterministically enumerates candidate food rows from the
+   input text.
+3. Deterministic measurement parser extracts quantity, unit, and candidate food
+   phrase from each source item whenever possible.
+4. The local model fills only the fields that still require language judgment,
+   primarily food phrase cleanup and meal-code inference when context is weak.
+5. Post-model reconciliation compares model rows back to the deterministic
+   source inventory and repairs safe, source-grounded mismatches.
+6. Strict validation either emits canonical MealCheck JSON or fails with a
+   user-facing reason and operator-visible diagnostics.
+
+The model should not be the only component responsible for exact numeric
+measurement parsing. Small local models are useful for flexible language
+boundaries, but deterministic code is better for exact quantities and units.
+
+#### Slice 1: Measurement Parser
+
+Add a deterministic parser for a single source item string.
+
+Inputs:
+
+- source item id
+- source text
+- source day
+- source meal code, or `infer`
+
+Outputs:
+
+- quantity as a positive number
+- normalized unit: `g`, `oz`, `cup`, `tbsp`, `tsp`, `slice`, or `serving`
+- food phrase with the leading quantity and unit removed
+- parse status and failure reason
+
+Required coverage:
+
+- integers: `4 oz chicken breast`
+- decimals: `0.5 cup blueberries`
+- fractions: `1/2 cup blueberries`
+- mixed numbers: `1 1/2 cups rice`
+- unit aliases: grams, ounces, cups, tablespoons, teaspoons, slices, servings
+- `of` cleanup: `1 cup of rice` -> `rice`
+- punctuation cleanup around inline sentences
+
+This parser should live near the current local-model source inventory code
+unless it grows large enough to justify a dedicated package.
+
+Acceptance:
+
+- unit tests for the supported formats
+- deterministic P0 eval still passes
+- parser results can be emitted in debug artifacts or eval output
+
+#### Slice 2: Source-Grounded Row Reconciliation
+
+After `DecodeLocalLlamaCompactPlan`, compare each compact row to the source
+inventory by `source_item_id`.
+
+Repair rules should be conservative:
+
+- If the model returned the right source item id but embedded the source
+  quantity/unit in the food field, replace `quantity`, `unit`, and `food` from
+  the deterministic measurement parser.
+- If the model changed `tbsp` to `tsp`, or another supported unit, but the
+  source parser found an unambiguous unit, prefer the source parser.
+- If the model changed a fraction quantity and the source parser found an
+  unambiguous quantity, prefer the source parser.
+- If the model dropped only leading measurement text from the food phrase,
+  accept the cleaned deterministic food phrase.
+- Do not repair day or meal assignment unless the source inventory supplied
+  those fields unambiguously.
+- Do not repair if the source item cannot be parsed deterministically.
+
+Every repair should record a normalization event and an eval-visible reason,
+for example:
+
+- `measurement_repaired_from_source`
+- `unit_repaired_from_source`
+- `food_prefix_stripped_from_source`
+
+Acceptance:
+
+- live-model P0 mismatches for quantity/unit prefix errors are reduced without
+  relaxing the gate
+- no repair happens when the source parser is uncertain
+- repaired output remains canonical MealCheck JSON
+
+#### Slice 3: Prompt Tightening
+
+Revise `localModelExtractionMessages` after the deterministic repair layer is
+in place. The prompt should align with the hybrid contract:
+
+- source item ids are authoritative
+- source day and meal code are authoritative when provided
+- quantity and unit must come from the leading measurement in `source_text`
+- food must preserve preparation adjectives present in `source_text`
+- examples should cover fractions, `tbsp` versus `tsp`, `oz`, compact inline
+  text, and multi-day rows
+
+Keep examples short. The production model is small, so the prompt must stay
+compact enough to avoid hurting latency or crowding the input.
+
+Acceptance:
+
+- one-repeat exploratory P0 live run improves or holds row-match rate
+- three-repeat P0 regimen improves or holds repeat stability
+- no increase in decode failures
+
+#### Slice 4: Row Alignment And Order Robustness
+
+The current compact row schema includes `source_item_id`, which should make row
+order less important. The adapter and eval should lean into that.
+
+Work:
+
+- make reconciliation source-id keyed before falling back to row order
+- make eval report source-id mismatches separately from content mismatches
+- detect duplicate or missing source ids as hard failures
+- consider scoring content against source id rather than row index when all
+  source ids are present and valid
+
+Acceptance:
+
+- row swaps are diagnosed as alignment issues, not many unrelated food,
+  quantity, and unit mismatches
+- duplicate/missing source ids remain hard failures
+- deterministic adapter tests cover out-of-order rows
+
+#### Slice 5: Qualification Boundary And Unsupported Units
+
+Keep the acceptable-input boundary clear. P0 success cases should use supported
+units. Inputs with vague or unsupported units should not become false hard
+failures after queueing.
+
+Work:
+
+- make qualification identify unsupported units in otherwise structured text
+  before model extraction when possible
+- preserve unsupported quantities as unresolved only when the product path is
+  designed to continue with unresolved items
+- keep unsupported-unit failure cases in the P0 eval dataset
+- report unsupported-unit false failures separately from real unsupported-unit
+  rejections
+
+Acceptance:
+
+- preloaded example and supported-unit seed cases do not fail for unit parsing
+- unsupported-unit failure cases return the expected public category
+- debug artifacts show whether the failure was qualification, source inventory,
+  model decode, reconciliation, or final validation
+
+#### Slice 6: Evaluation Expansion
+
+The current P0 seed corpus is useful but small. Expand only after the repair
+loop has enough diagnostics to classify failures.
+
+Work:
+
+- add first-class metrics for quantity accuracy, unit accuracy, food phrase
+  accuracy, source-id accuracy, and repair counts
+- add reviewed NYT Ingredient Phrase Tagger derived cases once source handling
+  is settled
+- add reviewed TASTEset derived cases for harder food phrase boundaries
+- keep large generated datasets optional and non-release-blocking at first
+
+Acceptance:
+
+- `mealcheck eval-normalization` reports the new metrics directly instead of
+  only row-level mismatch strings
+- `scripts/run-p0-local-model-regimen.sh` preserves those metrics in per-repeat
+  and aggregate artifacts
+- release gate remains strict on the reviewed seed corpus
+
+#### Slice 7: Model And Runtime Experiments
+
+Use model/runtime changes as measured experiments, not as the first fix.
+
+Experiments:
+
+- compare the production `Qwen3-0.6B-Q4_K_M` model against one larger local
+  candidate on the prototyping laptop
+- test constrained JSON/schema settings supported by llama.cpp
+- verify temperature and sampling are deterministic
+- compare latency and memory pressure against the serving MacBook budget
+
+Acceptance:
+
+- every model experiment writes the P0 regimen artifact directory
+- model SHA, llama.cpp build, settings, and endpoint are recorded
+- no model is considered a production replacement until it passes the same
+  regimen on the serving MacBook with acceptable latency
+
+#### Refactor Plan: Deterministic-First LLM Assist
+
+The next architecture step is to stop treating the local model as the default
+normalization bridge from pasted text to canonical MealCheck JSON. The
+deterministic source inventory and measurement parser are now strong enough to
+become the primary path for supported inputs. The model should move to bounded
+assist roles: fallback normalization for unresolved fragments, candidate
+selection, decomposition suggestions, and user-facing explanations.
+
+The target flow is:
+
+```text
+pasted text
+  -> qualification preflight
+  -> deterministic source inventory
+  -> deterministic measurement parser
+  -> deterministic canonical plan builder, if all source items are resolved
+  -> optional LLM assist for unresolved or ambiguous chunks
+  -> deterministic validation/reconciliation of assist output
+  -> canonical MealCheck JSON
+  -> resolver/checker/report
+```
+
+##### Target Package Shape
+
+Introduce a dedicated normalization package so hosted generation is no longer
+the owner of source inventory and local-model row semantics:
+
+```text
+internal/normalization/
+  types.go
+  source_inventory.go
+  measurement_parser.go
+  deterministic_plan.go
+  assist.go
+  chunking.go
+  validation.go
+```
+
+The package should expose a small orchestration API:
+
+```go
+type Engine struct {
+    Assist Provider
+    Policy Policy
+}
+
+func (e Engine) Normalize(ctx context.Context, input Request) (Result, error)
+```
+
+The result should distinguish how the plan was produced:
+
+- `method: deterministic`
+- `method: deterministic_with_llm_assist`
+- `method: failed_pre_model`
+- `method: failed_post_assist_validation`
+
+It should also expose:
+
+- source inventory rows
+- parsed measurement rows
+- unresolved or ambiguous rows
+- assist requests and responses, when used
+- normalization events
+- confidence or review flags
+
+##### Slice A: Extract Current Deterministic Normalization Primitives
+
+Move the current source inventory, measurement parsing, source item count, unit
+normalization, and source-grounded reconciliation code from `internal/hosted`
+into `internal/normalization`.
+
+This should be a behavior-preserving extraction:
+
+- keep existing function wrappers in `internal/hosted` temporarily
+- keep `mealcheck eval-normalization` passing
+- keep hosted local-model behavior unchanged
+- add direct unit tests around the new package API
+
+Acceptance:
+
+- `go test ./...` passes
+- P0 deterministic eval remains `13 / 13`
+- local-model repeat eval output is unchanged for the current seed corpus
+
+##### Slice B: Add Deterministic Canonical Plan Builder
+
+Add a deterministic builder that converts fully parsed source items directly
+into canonical MealCheck plan JSON without calling the model.
+
+The builder should require:
+
+- every expected source item has a positive quantity
+- every unit is in the supported unit vocabulary
+- every food phrase is non-empty
+- day and meal assignment are known or can be deterministically inferred under
+  the accepted input boundary
+- no source item id is missing or duplicated
+
+Hosted `local_model` runs should try this path before any provider call.
+
+Acceptance:
+
+- preloaded hosted example normalizes without a provider call
+- robustness seed cases that are fully parseable normalize deterministically
+- normalization events show `deterministic_normalized` for deterministic runs
+- inputs outside the deterministic boundary fail before queueing or move to the
+  explicit assist policy, never silently guess
+
+##### Slice C: Introduce Assist Policy And Explicit Fallback Boundary
+
+Add a policy layer that decides whether unresolved deterministic rows should:
+
+- fail with user-facing clarification
+- continue as unresolved rows, if the product path supports that
+- be sent to bounded LLM assist
+
+The first production-safe default should be conservative:
+
+```text
+supported explicit rows -> deterministic success
+vague or unsupported quantities -> fail with guidance
+natural-language rows -> optional LLM assist only behind a config flag
+```
+
+Acceptance:
+
+- failure output names the exact source item and reason
+- frontend can display deterministic failure guidance without model internals
+- `post_queue_normalization_failure_count` does not rise
+
+##### Slice D: Implement Chunked LLM Assist
+
+When assist is enabled, send compact source-item chunks rather than the full
+meal-plan text.
+
+Chunk boundaries should be source-item aware:
+
+- first preference: one meal per chunk
+- second preference: one day per chunk
+- fallback: fixed-size source item groups while preserving item boundaries
+- only unresolved or ambiguous rows should be sent when possible
+
+The assist prompt should not ask the model to normalize the whole plan. It
+should ask for one of a small set of actions per source item:
+
+```json
+{
+  "source_item_id": 7,
+  "action": "propose_row | needs_clarification | abstain",
+  "food": "chicken rice soup",
+  "quantity": 1,
+  "unit": "serving",
+  "confidence": "low",
+  "message": "Please provide a measurable amount."
+}
+```
+
+Validation must reject:
+
+- missing source ids
+- duplicate source ids
+- unsupported units
+- invented source ids
+- rows for source items that deterministic policy did not allow the model to
+  modify
+- outputs that do not fit the strict assist schema
+
+Acceptance:
+
+- LLM input and output token counts are materially lower than full-plan
+  normalization
+- repeated assist eval can isolate unstable source items
+- deterministic rows are never sent to the model unnecessarily
+- merged output records which rows used assist
+
+##### Slice E: Split P0 Evaluation By Normalization Path
+
+Update P0 eval so it no longer treats all normalization as one task.
+
+Report separate metrics for:
+
+- deterministic supported-input normalization
+- pre-model clarification failures
+- LLM assist fallback rows
+- assist abstention accuracy
+- assist false-accept rate
+- repeat instability by source item
+- latency by deterministic path versus assist path
+
+The current local-model repeat support should become the basis for assist
+repeat scoring rather than full-plan repeat scoring.
+
+Acceptance:
+
+- deterministic strict gate remains release-blocking
+- LLM assist eval is tracked separately and can be exploratory at first
+- generated NYT/TASTEset cases are tagged by the path they exercise
+
+##### Slice F: Add P1 LLM Candidate Assist After P0 Stabilizes
+
+Do not add broad LLM food matching until deterministic normalization is the
+primary path. Once P0 is stable, add an optional candidate-assist stage inside
+the resolver.
+
+The model should receive:
+
+- user food phrase
+- source item context
+- top deterministic/FNDDS candidates
+- category and nutrient summary fields
+
+The model may only:
+
+- select a provided candidate id
+- return `ambiguous`
+- return `no_safe_match`
+
+It must not invent food ids or nutrient values.
+
+Acceptance:
+
+- P1 eval reports candidate-assist accuracy and abstention accuracy
+- all selected candidate ids are validated before nutrition math
+- approximate or assisted resolutions are visible in report artifacts
+
+##### Slice G: Report Explanation Layer
+
+After deterministic math is complete, optionally use the LLM to produce
+human-facing explanations:
+
+- why normalization failed
+- which rows used approximation or assist
+- which foods drive a warning or block
+- what user edit would improve confidence
+
+This should be downstream of calculation. It should never compute nutrient
+totals or alter decisions.
+
+Acceptance:
+
+- deterministic decision JSON remains the source of truth
+- explanation artifacts cite the deterministic evidence they summarize
+- missing or failed explanation generation does not fail the run
+
+#### Updated Execution Order
+
+1. Extract source inventory and measurement parsing into
+   `internal/normalization` without behavior changes.
+2. Add the deterministic canonical plan builder.
+3. Wire hosted `local_model` input to try deterministic normalization before
+   provider calls.
+4. Add method/confidence/review metadata to normalization artifacts.
+5. Split P0 eval metrics by deterministic path, clarification failure, and LLM
+   assist path.
+6. Add conservative assist policy with assist disabled by default or limited to
+   exploratory local runs.
+7. Implement chunked source-item assist for unresolved fragments.
+8. Promote stable assist cases into P0 only after repeat eval shows acceptable
+   stability.
+9. Add P1 candidate-assist experiments after deterministic P0 remains stable.
+10. Add report explanation generation last, because it should not influence
+    correctness.
+
+Current implementation status:
+
+- items 1-4 are implemented for hosted `local_model` runs
+- `internal/normalization.Engine` is the normalization boundary for
+  deterministic text normalization
+- fully parsed explicit meal-plan text builds canonical MealCheck JSON without
+  a provider call
+- `optional/normalization-result.json` records method metadata, source
+  inventory, parsed rows, unresolved pre-model rows, assist policy state, and
+  provider fallback usage
+- P0 eval reports deterministic canonical-plan path metrics separately from
+  opt-in local-model repeat metrics, covering the deterministic portion of
+  item 5
+- conservative assist policy and chunking scaffolding exist, but LLM assist is
+  not enabled as production behavior
+- existing local-model compact decode remains as the fallback path when the
+  deterministic builder cannot safely cover the input
+
+The detailed implementation plan for P0 normalization assist and P1 candidate
+assist lives in the consolidated
+[LLM Assist Implementation Plan](#llm-assist-implementation-plan) section.
+
+#### Non-Goals
+
+- Do not relax the P0 gate to hide quantity or unit drift.
+- Do not use fuzzy FNDDS food resolution to compensate for bad P0 extraction.
+- Do not fine-tune the model before deterministic parsing and reconciliation
+  are exhausted.
+- Do not add broad natural-language support outside the current acceptable
+  input boundary without updating `docs/meal-plan-input-robustness.md` and P0
+  eval cases.
+- Do not let LLM assist silently change deterministic rows that already parsed
+  cleanly.
+- Do not let the model invent food ids, nutrient values, source item ids, or
+  quantities that are later treated as exact.
+
+### P0 External Dataset Integration Plan
+
+This plan integrates NYT Ingredient Phrase Tagger and TASTEset into MealCheck's
+P0 meal-plan normalization evaluation framework. The target is evaluation
+coverage, not model training and not P1 nutrition resolution.
+
+#### Context
+
+Current P0 evaluation uses the checked-in `p0-normalization-v1` seed corpus:
+
+- 8 acceptable-input success cases
+- 3 qualification-failure cases
+- 120 expected source items
+- reviewed MealCheck robustness examples only
+
+The generator already has early optional readers for:
+
+- `MEALCHECK_NYT_INGREDIENTS_CSV`
+- `MEALCHECK_TASTESET_CSV`
+
+Current implementation status:
+
+- `scripts/generate-p0-normalization-evaluation.py --probe-sources` validates
+  local NYT/TASTEset paths, required columns, row counts, and source SHA256.
+- The generator writes strict reviewed seed files separately from optional
+  exploratory external files.
+- NYT and TASTEset adapters emit success, failure, and quarantine artifacts
+  when local source CSVs are provided.
+- `manifest.json` supports rich file entries with `path`, `source_dataset`,
+  and `gate`.
+- `mealcheck eval-normalization` supports `-gate` and `-source-dataset`.
+- Eval results include `gate_summary`, `source_dataset_summary`, and
+  `quarantine_summary`.
+- `fixture-check` validates the expanded P0 manifest and quarantine rows.
+
+Remaining work before promoting external data into a release gate:
+
+- run against full local NYT and TASTEset source files
+- manually review a small generated sample before committing it
+- decide whether any external subset should move from exploratory to strict
+- tune TASTEset label handling after observing real source rows
+
+#### Source Roles
+
+NYT Ingredient Phrase Tagger should be the first external source. It provides a
+large ingredient-phrase CSV with structured fields such as quantity, unit,
+name, comment, and original input. It is best for high-volume tests of quantity,
+unit, and food-name extraction.
+
+TASTEset should be the second source. It is a recipe NER benchmark with entity
+types such as food products, quantities, units, cooking processes, and physical
+qualities. It is best for harder span-boundary tests around preparation words,
+quality words, and recipe-like language that must be filtered before becoming a
+MealCheck success case.
+
+Neither dataset contains full MealCheck meal plans. MealCheck should wrap
+selected ingredient phrases in deterministic synthetic day/meal contexts and
+evaluate whether normalization preserves the item-level gold plus generated day
+and meal structure.
+
+#### Integration Principles
+
+- Keep raw third-party datasets out of the repository unless license, size, and
+  redistribution have been explicitly approved.
+- Check in a small reviewed generated sample only after source metadata and
+  generation are reproducible.
+- Keep the existing reviewed seed corpus as the strict release gate.
+- Treat large generated NYT/TASTEset evals as opt-in exploratory baselines
+  until their sampling, expected rows, and failure classes have been reviewed.
+- Preserve source refs and source hashes so failures can be traced back to the
+  external row without committing raw external data.
+- Make unsupported, vague, ranged, optional, and recipe-like rows explicit
+  failure or quarantine cases instead of silently dropping them.
+
+#### Target Artifact Shape
+
+Keep the reviewed seed files stable:
+
+```text
+data/evaluation/p0-normalization/cases-v1.jsonl
+data/evaluation/p0-normalization/failure-cases-v1.jsonl
+```
+
+Add generated external files:
+
+```text
+data/evaluation/p0-normalization/nyt-cases-v1.jsonl
+data/evaluation/p0-normalization/nyt-failure-cases-v1.jsonl
+data/evaluation/p0-normalization/tasteset-cases-v1.jsonl
+data/evaluation/p0-normalization/tasteset-failure-cases-v1.jsonl
+data/evaluation/p0-normalization/quarantine-v1.jsonl
+```
+
+Update the manifest to record every case file, whether it participates in the
+strict gate, and source metadata:
+
+```json
+{
+  "case_files": [
+    {"path": "cases-v1.jsonl", "source_dataset": "mealcheck_input_robustness", "gate": "strict"},
+    {"path": "nyt-cases-v1.jsonl", "source_dataset": "nyt_ingredient_phrase_tagger", "gate": "exploratory"},
+    {"path": "tasteset-cases-v1.jsonl", "source_dataset": "tasteset", "gate": "exploratory"}
+  ],
+  "failure_case_files": [
+    {"path": "failure-cases-v1.jsonl", "source_dataset": "mealcheck_input_robustness", "gate": "strict"},
+    {"path": "nyt-failure-cases-v1.jsonl", "source_dataset": "nyt_ingredient_phrase_tagger", "gate": "exploratory"},
+    {"path": "tasteset-failure-cases-v1.jsonl", "source_dataset": "tasteset", "gate": "exploratory"}
+  ]
+}
+```
+
+If keeping the existing manifest schema is cheaper for the first pass, write
+aggregate generated files instead:
+
+```text
+generated-external-cases-v1.jsonl
+generated-external-failure-cases-v1.jsonl
+```
+
+The cleaner target is multiple case files plus runner support for manifest
+arrays.
+
+#### Slice 1: Source Acquisition And Probe
+
+Add source-probe commands to verify local source files before generation.
+
+NYT probe should validate:
+
+- file exists and is readable
+- expected columns are present: at minimum `qty`, `unit`, `name`, and preferably
+  `input` and `comment`
+- row count
+- license/source URL recorded
+- SHA256 recorded in `source-manifest.json`
+- counts by parse status: success candidate, unsupported unit, missing
+  quantity, vague quantity, range quantity, missing food, comment-heavy,
+  quarantined
+
+TASTEset probe should validate:
+
+- file or directory exists and is readable
+- actual source schema is detected instead of assumed
+- recipe/ingredient text and entity annotations can be joined
+- supported labels are mapped: `QUANTITY`, `UNIT`, `FOOD`, plus useful
+  preparation/quality labels when present
+- row or recipe count
+- license/source URL recorded
+- SHA256 recorded in `source-manifest.json`
+- counts by parse status and quarantine reason
+
+Deliverables:
+
+- `scripts/generate-p0-normalization-evaluation.py --probe-sources`:
+  implemented.
+- source-schema validation through probe mode and a generated temporary fixture
+  smoke run: implemented.
+- updated source manifest with local path, source URL, license note, and SHA
+  fields when external source files are provided: implemented.
+
+#### Slice 2: Generator Refactor
+
+Refactor the generator into explicit source adapters:
+
+- `MealCheckRobustnessAdapter`
+- `NYTIngredientPhraseAdapter`
+- `TASTEsetAdapter`
+
+Each adapter should emit a common intermediate record:
+
+```json
+{
+  "source_dataset": "nyt_ingredient_phrase_tagger",
+  "source_ref": {"row_number": 123, "source_hash": "..."},
+  "raw_text": "1/2 cup fresh thyme leaves, finely chopped",
+  "quantity_text": "1/2",
+  "quantity": 0.5,
+  "unit_text": "cup",
+  "unit": "cup",
+  "food": "fresh thyme leaves",
+  "prep_or_quality": "finely chopped",
+  "status": "success_candidate",
+  "reason": ""
+}
+```
+
+Classification statuses:
+
+- `success_candidate`
+- `unsupported_unit`
+- `missing_quantity`
+- `vague_quantity`
+- `range_quantity`
+- `optional_or_alternative`
+- `recipe_instruction`
+- `missing_food`
+- `ambiguous_food`
+- `schema_error`
+
+Deliverables:
+
+- source adapters for NYT and TASTEset: implemented.
+- deterministic status counts in `source-manifest.json`: implemented.
+- stable intermediate-record JSONL: deferred; success, failure, and quarantine
+  outputs currently provide the reviewable artifacts.
+
+#### Slice 3: Success Case Generation
+
+Generate MealCheck success cases only from `success_candidate` rows.
+
+Sampling rules:
+
+- fixed seed
+- stable sorted source refs
+- stratify by source dataset
+- stratify by unit: `g`, `oz`, `cup`, `tbsp`, `tsp`, `slice`, `serving`
+- stratify by quantity style: integer, decimal, fraction, mixed number
+- stratify by food phrase shape: one-token, multi-token, prep adjective,
+  quality adjective, comment-derived modifier
+- cap repeated foods and repeated units so one common pattern does not dominate
+
+Wrapper styles:
+
+- one-day canonical bullets
+- one-day inline sentences
+- numbered list items
+- two-day clear `Day N` sections
+- one-day snack-inclusive plans
+- compact multi-day text
+- natural rewrites with `with`, `plus`, commas, and `of`
+
+Start with a reviewed checked-in sample:
+
+- NYT: 100 success cases
+- TASTEset: 100 success cases
+- each success case should contain 3, 6, 9, 12, or 18 source items depending on
+  wrapper style
+
+Large local-only runs can use higher limits, but should not be committed until
+we understand quality and runtime.
+
+Deliverables:
+
+- generated external success JSONL files: implemented.
+- per-case tags for source dataset, wrapper, unit, and quantity style:
+  implemented.
+- deterministic source refs for every expected source item: implemented.
+
+#### Slice 4: Failure And Quarantine Generation
+
+Generate explicit failure cases instead of dropping all non-success rows.
+
+Failure cases:
+
+- `unsupported_unit`: quantified food with unsupported unit
+- `vague_quantity`: handful, pinch, dash, small, medium, large, to taste, as
+  needed
+- `range_quantity`: `1 to 2`, `1-2`, `1 or 2`
+- `quantity_missing`: food phrase without numeric quantity
+- `recipe_or_menu_needs_decomposition`: recipe instruction or composed dish
+  text that is not ingredient-level
+
+Quarantine cases:
+
+- rows where the expected food phrase is debatable
+- rows with alternatives, optional ingredients, or substitutions
+- rows where source annotations conflict
+- rows whose source license or provenance is unclear
+
+Deliverables:
+
+- external failure JSONL files: implemented.
+- per-source quarantine JSONL with `source_dataset`, `source_ref`, `raw_text`,
+  and `quarantine_reason`: implemented.
+- eval runner does not treat quarantine rows as pass/fail cases: implemented.
+
+#### Slice 5: Eval Runner Support
+
+Extend `mealcheck eval-normalization` so it can run:
+
+- strict seed only
+- one external source only
+- all checked-in P0 cases
+- large local generated files
+
+Suggested CLI:
+
+```bash
+go run ./cmd/mealcheck eval-normalization \
+  -manifest data/evaluation/p0-normalization/manifest.json \
+  -gate strict
+
+go run ./cmd/mealcheck eval-normalization \
+  -manifest data/evaluation/p0-normalization/manifest.json \
+  -gate exploratory \
+  -source-dataset nyt_ingredient_phrase_tagger
+
+go run ./cmd/mealcheck eval-normalization \
+  -manifest data/evaluation/p0-normalization/manifest.json \
+  -gate all
+```
+
+Runner changes:
+
+- read manifest `case_files` and `failure_case_files`
+- keep existing `-dataset` and `-failures` flags as override shortcuts
+- add per-dataset summaries
+- add per-tag summaries that remain source-specific
+- preserve strict gate result separately from exploratory result
+- emit counts for generated, reviewed, failure, and quarantine artifacts
+
+Deliverables:
+
+- runner tests with a multi-file manifest fixture: implemented.
+- fixture-check coverage for the expanded manifest shape: implemented.
+- result JSON includes `gate_summary`, `source_dataset_summary`, and
+  `quarantine_summary`: implemented.
+
+#### Slice 6: Validation And Review Workflow
+
+Add a repeatable validation workflow:
+
+```bash
+python3 scripts/generate-p0-normalization-evaluation.py \
+  --nyt-csv "$MEALCHECK_NYT_INGREDIENTS_CSV" \
+  --tasteset-csv "$MEALCHECK_TASTESET_CSV" \
+  --nyt-limit 100 \
+  --tasteset-limit 100
+
+go run ./cmd/mealcheck fixture-check
+
+go run ./cmd/mealcheck eval-normalization \
+  -manifest data/evaluation/p0-normalization/manifest.json \
+  -gate strict
+
+go run ./cmd/mealcheck eval-normalization \
+  -manifest data/evaluation/p0-normalization/manifest.json \
+  -gate exploratory
+```
+
+For live local-model runs, keep the strict seed as the release gate first.
+External generated cases should initially be reported as exploratory:
+
+```bash
+MEALCHECK_P0_REPEATS=1 \
+MEALCHECK_P0_ALLOW_MISMATCH=1 \
+scripts/run-p0-local-model-regimen.sh
+```
+
+Only promote an external subset to release-gate status after manual review of:
+
+- expected source item correctness
+- failure-category correctness
+- model mismatch classes
+- deterministic repair counts
+- latency and artifact size
+
+#### Slice 7: Gate Promotion
+
+Promotion order:
+
+1. Keep `mealcheck_input_robustness` as the strict P0 release gate.
+2. Add NYT reviewed sample as a non-blocking dashboard metric.
+3. Promote a small NYT subset to strict after two clean implementation cycles.
+4. Add TASTEset reviewed sample as non-blocking.
+5. Promote only the least ambiguous TASTEset subset to strict; keep harder
+   recipe-like span-boundary cases exploratory.
+
+Do not require the full external generated corpus to pass before release.
+Large external datasets are for finding weaknesses and prioritizing work, not
+for blocking every small fix.
+
+#### Implementation Order
+
+1. Add source probe and source hash metadata.
+2. Refactor generator into adapters with tiny source fixtures.
+3. Add NYT success, failure, and quarantine generation.
+4. Add TASTEset success, failure, and quarantine generation.
+5. Extend manifest and eval runner for multiple files, gates, and per-source
+   summaries.
+6. Generate a small reviewed external sample and inspect diffs manually.
+7. Run deterministic eval for strict and exploratory gates.
+8. Run one-repeat live local-model exploratory eval and rank failure classes.
+9. Decide which external subset, if any, should become strict.
+
+#### Initial Acceptance Criteria
+
+- Raw external datasets are not committed.
+- Source manifest records URL, license, local path/env var, row count, and
+  SHA256 for each source file.
+- Generation is deterministic across runs for the same source files and limits.
+- `go run ./cmd/mealcheck fixture-check` validates generated artifacts.
+- Strict seed P0 gate remains unchanged and passing.
+- External eval can be run separately by source dataset.
+- Result JSON reports per-source success rate, per-field accuracy, repair
+  counts, and failure categories.
+- Quarantine rows are visible but do not affect pass/fail counts.
+
+#### Open Decisions
+
+- Whether to commit a reviewed generated external sample, and if so how large.
+- Whether the manifest should use object entries for case files immediately or
+  preserve string entries and add a parallel metadata block.
+- Whether unsupported-unit external failures should stop at source inventory,
+  qualification, or unresolved-quantity preservation.
+- Whether source comments from NYT should become part of the expected food
+  phrase, become `preparation`, or be excluded from success cases.
+- Which TASTEset quality/process labels are safe to preserve in P0 food phrases
+  without turning recipe decomposition into a P0 success requirement.
+
+### LLM Assist Implementation Plan
+
+MealCheck now has a deterministic-first normalization engine. The next LLM
+work should be assistive, bounded, and evaluated separately from deterministic
+verification. This plan covers two assist modes:
+
+- P0 normalization assist: help convert unresolved source-item chunks into
+  canonical MealCheck rows.
+- P1 candidate assist: help select among already generated resolver candidates.
+
+The shared rule is that the LLM may propose, classify, select, or abstain.
+Deterministic code validates, merges, calculates, and decides.
+
+#### Current State
+
+Implemented:
+
+- `internal/normalization.Engine`
+- deterministic source inventory
+- deterministic measurement parser
+- deterministic canonical plan builder
+- source-item chunking
+- model-backed P0 assist request/response contract
+- P0 assist prompt construction, strict decoding, validation, and merge
+- hosted provider adapter for schema-bound assist calls
+- provider-level custom response schema support
+- `optional/normalization-result.json`
+- P0 deterministic path metrics in `mealcheck eval-normalization`
+- exploratory P0 assist eval mode in `mealcheck eval-normalization`
+- P1 candidate-assist request/response contract and validation scaffold
+
+Not yet implemented:
+
+- production enablement flags
+- hosted production wiring for P0 assist
+- P1 deterministic candidate export from unresolved resolver items
+- P1 resolver merge/report integration
+- P1 candidate-assist eval mode
+
+#### Shared Design Constraints
+
+Both assist modes must follow these constraints:
+
+- Assist is opt-in until eval evidence supports promotion.
+- Deterministic success paths must never call the model.
+- The model cannot invent source ids, food ids, nutrient values, quantities, or
+  verification decisions.
+- Every model output is schema validated before it can influence artifacts.
+- Invalid model output becomes `abstain`, `needs_clarification`, or a controlled
+  assist failure, not an opaque run failure.
+- Assisted rows must remain visible in artifacts and reports.
+- Repeat eval is required before production enablement.
+
+#### Shared Package Shape
+
+Add a small assist abstraction that does not make `internal/normalization`
+depend on `internal/hosted`:
+
+```go
+// internal/assist
+type Client interface {
+    Complete(ctx context.Context, request Request) (Response, error)
+}
+
+type Request struct {
+    Task           string
+    SchemaName     string
+    ResponseSchema map[string]any
+    Messages       []Message
+}
+
+type Response struct {
+    RawText string
+}
+```
+
+Hosted code can adapt the existing `hosted.Provider` to this interface. The
+normalization and resolver packages should depend only on the assist interface,
+not on hosted provider details.
+
+Suggested files:
+
+```text
+internal/assist/client.go
+internal/hosted/assist_adapter.go
+internal/normalization/assist_contract.go
+internal/normalization/assist_prompt.go
+internal/normalization/assist_validation.go
+internal/normalization/assist_merge.go
+internal/checker/candidate_assist_contract.go
+```
+
+#### P0 Normalization Assist
+
+##### Product Goal
+
+P0 assist should reduce arbitrary normalization failures for in-bound meal-plan
+text while preserving exact source-item accounting. It is not a general recipe
+parser and should not expand the public acceptable-input boundary silently.
+
+##### Eligible Inputs
+
+P0 assist may run only when:
+
+- deterministic normalization failed
+- deterministic source inventory found at least one source item
+- unresolved items are limited to day, meal, food phrase, quantity, or supported
+  unit normalization issues
+- deterministic rows that parsed cleanly can be held fixed
+
+P0 assist must not run when:
+
+- source inventory found zero rows
+- qualification says the text is not a meal plan
+- the text is recipe-like and needs decomposition beyond source-item row repair
+- the input asks for nutrition calculation or medical claims instead of a meal
+  plan check
+
+##### P0 Assist Request
+
+Each request should be one source-aware chunk:
+
+```json
+{
+  "task": "p0_normalization_assist",
+  "chunk_id": "chunk_1",
+  "source_items": [
+    {
+      "id": 7,
+      "day": 1,
+      "meal_code": "l",
+      "text": "one cup brown rice"
+    }
+  ],
+  "allowed_units": ["g", "oz", "cup", "tbsp", "tsp", "slice", "serving"],
+  "allowed_meal_codes": ["b", "m", "l", "a", "d", "s", "e"],
+  "fixed_source_item_ids": [1, 2, 3, 4, 5, 6]
+}
+```
+
+Only unresolved source items should be sent when possible. If meal/day context
+is needed, include neighboring deterministic rows as read-only context, never
+as editable rows.
+
+##### P0 Assist Response
+
+The model must return one object with rows:
+
+```json
+{
+  "items": [
+    {
+      "source_item_id": 7,
+      "action": "propose_row",
+      "day": 1,
+      "meal_code": "l",
+      "food": "brown rice",
+      "quantity": 1,
+      "unit": "cup",
+      "confidence": "high",
+      "message": ""
+    }
+  ]
+}
+```
+
+Allowed actions:
+
+- `propose_row`
+- `needs_clarification`
+- `abstain`
+
+Allowed confidence values:
+
+- `high`
+- `medium`
+- `low`
+
+##### P0 Validation
+
+Reject or abstain on:
+
+- invalid JSON
+- unknown fields when strict schema is enabled
+- missing source item id
+- invented source item id
+- duplicate source item id
+- row for fixed deterministic source item id
+- unsupported meal code
+- unsupported unit
+- non-positive quantity
+- empty food phrase
+- action/result mismatch, such as `abstain` with populated row fields
+
+For `needs_clarification`, preserve a user-facing message but do not use it for
+nutrition math.
+
+##### P0 Merge
+
+Merge rules:
+
+1. Start from deterministic parsed rows.
+2. Add only validated `propose_row` items.
+3. Preserve unresolved rows for `needs_clarification` and `abstain`.
+4. Rebuild canonical `checker.Plan` deterministically from merged rows.
+5. Run the same plan validation used by deterministic normalization.
+6. Record method `deterministic_with_llm_assist` only if at least one accepted
+   assist row is merged.
+
+Artifacts:
+
+- `optional/normalization-result.json`
+  - `assist_used`
+  - `assist_chunks`
+  - `assist_requests`
+  - `assist_responses`
+  - `accepted_assist_rows`
+  - `rejected_assist_rows`
+  - `review_flags`
+- `optional/llm-output.json` remains provider raw output when assist is used.
+
+##### P0 Eval
+
+Extend `mealcheck eval-normalization` with an exploratory assist path:
+
+```text
+mealcheck eval-normalization -mode assist-local-llama -local-model-repeats 3
+```
+
+Metrics:
+
+- `assist_eligible_cases`
+- `assist_attempted_cases`
+- `assist_success_cases_run`
+- `assist_success_cases_pass`
+- `assist_rows_attempted`
+- `assist_rows_accepted`
+- `assist_rows_rejected`
+- `assist_abstentions`
+- `assist_clarifications`
+- `assist_schema_failures`
+- `assist_false_accepts`
+- `assist_unstable_cases`
+- `assist_repeat_summary`
+- `assist_case_repeat_summary`
+
+Latency metrics remain planned; they are not emitted yet.
+
+Promotion gate:
+
+- deterministic strict gate remains release-blocking
+- assist starts exploratory only
+- zero false accepts on reviewed strict cases
+- no deterministic row changed by assist
+- exact source item preservation after merge
+- acceptable repeat stability over at least three repeats
+
+##### P0 Implementation Slices
+
+Completed:
+
+1. Define P0 assist request/response structs and JSON schema.
+2. Add strict decoder and validation tests.
+3. Add merge logic from deterministic rows plus accepted assist rows.
+4. Add `AssistProviderAdapter` around the hosted provider interface.
+5. Add eval-only P0 assist mode; hosted production assist remains disabled.
+6. Add raw request/response capture to `normalization-result.json`.
+
+Remaining:
+
+1. Run repeat eval on seed corpus and natural rewrites.
+2. Add latency metrics to assist eval output.
+3. Add a config flag for hosted exploratory use only after eval is stable.
+
+#### P1 Candidate Assist
+
+##### Product Goal
+
+P1 assist should help resolve ordinary foods when deterministic matching
+already produced plausible candidates but cannot safely choose one. It should
+increase useful coverage without turning MealCheck into fuzzy food search.
+
+##### Eligible Inputs
+
+P1 assist may run only when:
+
+- P0 produced canonical MealCheck JSON
+- the resolver has an unresolved item with food identity ambiguity
+- deterministic candidate generation produced a bounded candidate list
+- each candidate has a stable id and validated nutrient data
+
+P1 assist must not run when:
+
+- no candidates exist
+- the unresolved reason is missing quantity, unsupported unit, or missing
+  conversion
+- the item is branded, medical, supplement-like, non-food, or outside resolver
+  policy
+- deterministic gates marked the candidate set as unsafe
+
+##### Candidate Generation
+
+Before calling the model, deterministic code should build the candidate list:
+
+- exact local catalog candidates
+- alias candidates
+- FNDDS fallback candidates whose `resolver_status` is `auto`
+- safe approximate proxies, if already policy-approved
+- decomposition candidates, if already policy-approved
+
+Candidate list cap:
+
+- default max 5 candidates
+- stable deterministic ordering
+- include only candidates that can support the input unit or conversion
+
+##### P1 Assist Request
+
+```json
+{
+  "task": "p1_candidate_assist",
+  "source_item_id": 7,
+  "food": "turkey meatballs",
+  "quantity": 5,
+  "unit": "oz",
+  "day": 2,
+  "meal": "dinner",
+  "source_text": "5 oz turkey meatballs",
+  "candidates": [
+    {
+      "candidate_id": "fndds:123456",
+      "name": "Meatballs, turkey",
+      "aliases": ["turkey meatballs"],
+      "category": "meat mixed dish",
+      "supported_units": ["g", "oz"],
+      "resolution_method_if_selected": "exact",
+      "nutrient_summary": {
+        "kcal_per_100g": 180,
+        "protein_g_per_100g": 20,
+        "sodium_mg_per_100g": 450
+      }
+    }
+  ]
+}
+```
+
+##### P1 Assist Response
+
+```json
+{
+  "action": "select_candidate",
+  "candidate_id": "fndds:123456",
+  "confidence": "medium",
+  "reason": "The candidate name and alias match the source phrase."
+}
+```
+
+Allowed actions:
+
+- `select_candidate`
+- `ambiguous`
+- `no_safe_match`
+
+##### P1 Validation
+
+Reject or abstain on:
+
+- invalid JSON
+- missing action
+- selected candidate id not in the provided candidate list
+- selected candidate fails deterministic resolver gate
+- selected candidate lacks unit support or conversion
+- selected candidate violates ambiguity, brand, or quarantine policy
+- unsupported confidence value
+
+The model must not return nutrient values. Nutrients always come from the
+selected candidate record.
+
+##### P1 Merge
+
+If a candidate is accepted:
+
+- resolve the item through the existing deterministic resolver path
+- set `resolution_method` to the candidate's deterministic method plus an
+  assist marker, for example `llm_selected_exact`
+- store `assist_candidate_id`, `assist_confidence`, and `assist_reason`
+- include a report-visible review flag
+
+If the model returns `ambiguous` or `no_safe_match`, keep the item unresolved
+with a specific reason.
+
+##### P1 Eval
+
+Do not use P1 assist in the strict resolver gate until exploratory eval is
+stable.
+
+Add an exploratory candidate-assist eval mode to `mealcheck eval-checker`:
+
+```text
+mealcheck eval-checker -candidate-assist local-llama -candidate-assist-repeats 3
+```
+
+Metrics:
+
+- `candidate_assist_eligible_items`
+- `candidate_assist_attempted_items`
+- `candidate_assist_selected_items`
+- `candidate_assist_correct_selections`
+- `candidate_assist_false_selections`
+- `candidate_assist_abstentions`
+- `candidate_assist_ambiguous`
+- `candidate_assist_no_safe_match`
+- `candidate_assist_schema_failures`
+- `candidate_assist_repeat_unstable_items`
+
+Promotion gate:
+
+- zero expected-outcome mismatches in strict P1 gate
+- zero false selections on reviewed cases
+- high abstention is acceptable
+- accepted selections must improve coverage on common unresolved foods
+- every selected id must be replayable from artifacts
+
+##### P1 Implementation Slices
+
+Completed:
+
+1. Add P1 assist request/response structs and JSON schema.
+2. Add strict validation and abstention handling for known candidates,
+   invented candidate ids, ambiguity, and no-safe-match responses.
+
+Remaining:
+
+1. Add deterministic candidate list export for unresolved resolver items.
+2. Add exploratory `mealcheck eval-checker` candidate-assist mode.
+3. Record candidate-assist artifacts in resolver output.
+4. Add report labels for assisted resolution.
+5. Run repeat eval on FNDDS-grounded and WWEIA/NHANES coverage corpora.
+6. Consider production opt-in only after false selections remain zero.
+
+#### Rollout Order
+
+1. Build P0 assist contract, validation, merge, and eval mode.
+2. Run P0 assist repeat eval on the seed corpus and natural rewrites.
+3. Enable P0 assist only for exploratory hosted runs.
+4. Promote narrow P0 assist classes if false accepts are zero.
+5. Build deterministic P1 candidate export.
+6. Build P1 candidate-assist eval mode.
+7. Run P1 repeat eval on reviewed resolver datasets.
+8. Add report visibility for assisted rows and selections.
+9. Consider production opt-in after both P0 and P1 exploratory metrics are
+   stable.
+
+#### Non-Goals
+
+- Do not use the LLM to compute nutrients.
+- Do not use the LLM to choose foods outside a provided candidate list.
+- Do not use P1 assist to compensate for P0 normalization failures.
+- Do not silently expand the public acceptable-input boundary.
+- Do not enable production assist without repeat eval and artifact review.
+
+### P0 Hardening Execution Plan
+
+This pass hardens MealCheck's P0 path: turning acceptable pasted meal-plan text
+into canonical MealCheck rows before food resolution and guideline checking. It
+does not enable production LLM assist and does not expand P1 resolver coverage
+except where needed to keep downstream smoke checks interpretable.
+
+#### Goal
+
+Make the hosted input boundary boringly reliable for concise ingredient-level
+meal plans:
+
+- the preloaded example succeeds locally and on the deployed path
+- common natural rewrites either normalize or fail before queueing with clear
+  guidance
+- every resolved source item is represented exactly once
+- day, meal, quantity, unit, and food phrase survive normalization
+- unsupported or vague inputs fail at the correct boundary
+
+#### Current Baseline
+
+Implemented:
+
+- deterministic source-item inventory
+- deterministic measurement parser
+- deterministic canonical-plan builder
+- local-model fallback with source-grounded repair
+- `mealcheck eval-normalization`
+- `scripts/run-p0-local-model-regimen.sh`
+- exploratory `eval-normalization -mode assist-local-llama`
+
+Not part of the production path yet:
+
+- P0 LLM assist
+- P1 candidate assist
+- any generated NYT or TASTEset corpus large enough to act as a real gate
+
+#### Execution Order
+
+##### Slice 1: Freeze The Baseline
+
+Purpose: establish the exact behavior before adding cases.
+
+Run:
+
+```bash
+go test ./...
+go run ./cmd/mealcheck eval-normalization -out /tmp/mealcheck-p0-deterministic.json
+go run ./cmd/mealcheck eval-checker -out /tmp/mealcheck-p1-checker.json
+```
+
+If a local llama.cpp-compatible model is running, also run:
+
+```bash
+MEALCHECK_P0_REPEATS=3 scripts/run-p0-local-model-regimen.sh
+```
+
+Record:
+
+- commit SHA
+- model id, if live model was used
+- deterministic P0 pass rate
+- local-model row match rate
+- provider/decode failure counts
+- top mismatch categories, if any
+
+Exit criteria:
+
+- deterministic P0 eval passes
+- `go test ./...` passes
+- current live-model seed result is either passing or its failures are captured
+  as explicit regression cases before moving on
+
+##### Slice 2: Expand The Reviewed P0 Corpus
+
+Purpose: turn observed fragility into repeatable proof.
+
+Add cases in this order:
+
+1. hosted preloaded example and natural rewrites
+2. recent live-run failures
+3. one-day and two-day examples with natural prose
+4. snack-inclusive examples
+5. supported fraction and mixed-number quantities
+6. known unsupported or vague quantities as failure cases
+
+Use NYT Ingredient Phrase Tagger and TASTEset only as source material for
+generated, reviewed MealCheck-shaped snippets. Do not check in raw third-party
+datasets in this pass.
+
+Each success case must include:
+
+- source item id
+- day
+- meal code
+- source text
+- food
+- quantity
+- unit
+- tags explaining the language feature being tested
+
+Each failure case must include:
+
+- qualification or source-inventory stage
+- expected status or reason
+- tags explaining why the input is outside the accepted boundary
+
+Exit criteria:
+
+- corpus includes all observed hosted failures from the current cycle
+- every added case has an explicit tag
+- deterministic P0 metrics stay stable or failures are intentional and
+  documented
+
+##### Slice 3: Tighten Boundary Diagnostics
+
+Purpose: make failures actionable without exposing internal compact-row details.
+
+Work items:
+
+- add first-class unsupported-unit qualification diagnostics
+- distinguish unsupported units from vague quantities
+- preserve exact source line, unit, and item id in operator artifacts
+- keep user-facing messages guidance-oriented
+- verify that post-queue failures are not used for errors that can be caught
+  before queueing
+
+Expected artifact fields:
+
+- normalization stage
+- source item id, when available
+- source text
+- parsed quantity/unit status
+- failure reason
+- review flag, when applicable
+
+Exit criteria:
+
+- unsupported in-bound-looking units fail with a specific reason
+- vague quantities fail with a different specific reason
+- artifacts contain enough detail to write a regression case without inspecting
+  server logs
+
+##### Slice 4: Evaluate P0 Assist Without Enabling It
+
+Purpose: decide whether bounded LLM assist is worth productionizing.
+
+Run exploratory assist mode against the reviewed corpus:
+
+```bash
+go run ./cmd/mealcheck eval-normalization \
+  -mode assist-local-llama \
+  -local-model-repeats 3 \
+  -gate all \
+  -allow-mismatch \
+  -out /tmp/mealcheck-p0-assist.json
+```
+
+Measure:
+
+- `assist_eligible_cases`
+- `assist_attempted_cases`
+- `assist_success_cases_pass`
+- `assist_rows_accepted`
+- `assist_rows_rejected`
+- `assist_abstentions`
+- `assist_clarifications`
+- `assist_false_accepts`
+- `assist_unstable_cases`
+
+Promotion criteria for later production work:
+
+- zero false accepts on reviewed strict cases
+- no deterministic row changed by assist
+- exact source item preservation after merge
+- repeat stability is acceptable over at least three repeats
+- accepted assist rows improve real in-bound failures, not just synthetic cases
+
+Exit criteria for this hardening pass:
+
+- assist findings are documented as one of:
+  - promising but not production-ready
+  - not useful enough to prioritize
+  - ready for a separate productionization plan
+
+##### Slice 5: Deployed Smoke
+
+Purpose: prove the local hardening survives the actual deployment shape.
+
+Run against the hosted stack after local proof passes:
+
+- preloaded example
+- at least three natural rewrites
+- one unsupported-unit failure
+- one too-vague failure
+- one multi-day labeled input
+
+Record:
+
+- run ids
+- final decision states
+- failure messages
+- normalization-result artifacts
+- latency by stage where available
+
+Exit criteria:
+
+- preloaded example succeeds
+- in-bound rewrites succeed or fail with expected known reasons
+- out-of-bound examples fail before misleading nutrition math
+
+#### Stop Conditions
+
+Stop and fix before expanding scope if any of these occur:
+
+- deterministic P0 regresses on existing strict cases
+- source item preservation drops below 100% on reviewed success cases
+- local-model decode failures reappear on the seed corpus
+- user-facing errors expose compact-row/schema/model internals
+- assist accepts invented source ids, unsupported units, or changed
+  deterministic rows
+
+#### Non-Goals
+
+- enabling production P0 assist
+- wiring P1 candidate assist
+- broad recipe decomposition
+- fuzzy food matching
+- expanding resolver coverage unless a P0 smoke case needs a stable downstream
+  checker result
+- changing frontend product shape beyond clearer failure display if needed
+
+#### Final Deliverables
+
+- expanded reviewed P0 corpus
+- updated P0 eval result artifact
+- live-model regimen result, if model service is available
+- deployed smoke notes with run ids
+- issue list or follow-up plan for any remaining hardening gaps
+- updated `docs/current-priorities.md` only if the priority order changes
+
+### Follow-On Buildout Execution Plan
+
+This plan covers the three buildout tracks that should follow, or run beside,
+the P0 hardening pass:
+
+1. LLM assist productionization
+2. P1 candidate assist
+3. deterministic resolver coverage expansion
+
+These tracks should not be bundled into one release. They have different risk
+profiles and different proof gates.
+
+#### Sequencing Rule
+
+Default order:
+
+1. Finish the P0 hardening pass.
+2. Expand deterministic resolver coverage in reviewed batches.
+3. Decide whether P0 assist deserves productionization based on repeat eval.
+4. Build P1 candidate assist only after deterministic candidate export and a
+   candidate-selection eval are in place.
+
+Resolver coverage can proceed in parallel with P0 hardening when it is
+source-backed and does not change the normalization boundary. P0 assist and P1
+candidate assist should remain gated until evaluation evidence supports them.
+
+#### Track 1: LLM Assist Productionization
+
+##### Goal
+
+Allow bounded P0 LLM assist to repair unresolved normalization chunks in hosted
+runs without weakening the deterministic trust boundary.
+
+##### Preconditions
+
+- P0 hardening pass has a reviewed corpus.
+- `eval-normalization -mode assist-local-llama` has run with at least three
+  repeats.
+- Reviewed strict cases show zero false accepts.
+- Assisted rows never change deterministic rows.
+- `normalization-result.json` captures enough request/response detail for
+  audit.
+
+##### Execution Slices
+
+1. Define promotion thresholds.
+   - Set minimum assist row-match rate.
+   - Set maximum unstable-case count.
+   - Require zero false accepts on strict reviewed cases.
+   - Require exact source item preservation.
+
+2. Add hosted configuration flags.
+   - Keep default disabled.
+   - Use a clearly named opt-in flag for exploratory assist.
+   - Add config visibility in status or debug artifacts.
+   - Do not enable assist for deterministic-success paths.
+
+3. Wire hosted P0 assist behind the flag.
+   - Use deterministic normalization first.
+   - Call assist only for eligible unresolved source-item chunks.
+   - Merge only validated `propose_row` outputs.
+   - Keep `needs_clarification` and `abstain` as controlled failures.
+   - Preserve local-model full-plan fallback unless explicitly disabled.
+
+4. Add operator and report visibility.
+   - Mark assisted rows in normalization artifacts.
+   - Include review flags for assist use and assist failures.
+   - Keep user-facing copy simple: explain that MealCheck could not confidently
+     normalize a specific item when assist abstains or fails.
+
+5. Run staged rollout.
+   - local fake-provider tests
+   - local live-model assist eval
+   - deployed smoke with assist disabled
+   - deployed smoke with assist enabled for a controlled set
+   - rollback check
+
+##### Proof Gates
+
+Run:
+
+```bash
+go test ./...
+go run ./cmd/mealcheck eval-normalization -out /tmp/mealcheck-p0-deterministic.json
+go run ./cmd/mealcheck eval-normalization \
+  -mode assist-local-llama \
+  -local-model-repeats 3 \
+  -gate all \
+  -allow-mismatch \
+  -out /tmp/mealcheck-p0-assist.json
+```
+
+Promotion gate:
+
+- deterministic P0 remains passing
+- strict assist false accepts: 0
+- source item preservation: 100%
+- deterministic row changes caused by assist: 0
+- deployed smoke passes with assist disabled and enabled
+
+##### Stop Conditions
+
+Stop if assist:
+
+- invents source ids
+- accepts unsupported units
+- changes deterministic rows
+- hides unsupported or vague input behind a plausible-looking row
+- increases post-queue failures
+
+#### Track 2: P1 Candidate Assist
+
+##### Goal
+
+Use the LLM only to choose among a bounded deterministic candidate list for
+food resolution. The model must never invent nutrient values or choose foods
+outside the candidate list.
+
+##### Preconditions
+
+- Deterministic resolver can export candidate lists for unresolved items.
+- Candidate lists contain stable ids, supported units, source-backed nutrient
+  data, and resolution method metadata.
+- `eval-checker` can score candidate-assist decisions separately from ordinary
+  resolver coverage.
+- There is a reviewed candidate-selection eval with expected candidate ids or
+  expected abstentions.
+
+##### Execution Slices
+
+1. Build deterministic candidate export.
+   - Export candidates only for eligible unresolved food identity ambiguity.
+   - Exclude missing quantity, unsupported unit, branded, supplement-like,
+     non-food, and unsafe policy cases.
+   - Cap candidates, default 5.
+   - Preserve deterministic ordering.
+
+2. Add candidate-assist artifacts.
+   - source item / food phrase
+   - candidate list
+   - model response
+   - validation result
+   - selected candidate id, confidence, and reason
+   - abstention reason
+
+3. Extend `eval-checker`.
+   - Add candidate-assist mode.
+   - Support repeats.
+   - Report selected, correct, false, ambiguous, no-safe-match, schema-failure,
+     and unstable counts.
+   - Keep strict resolver gate separate from candidate-assist exploratory gate.
+
+4. Wire resolver integration behind a flag.
+   - Resolve through the existing deterministic resolver path after selection.
+   - Mark resolution method with an assist suffix.
+   - Do not alter nutrient data.
+   - Keep unresolved when the model abstains or validation fails.
+
+5. Add report visibility.
+   - Label assisted food resolution.
+   - Show confidence and reason in operator artifacts.
+   - Keep user-facing report language conservative.
+
+##### Proof Gates
+
+Run:
+
+```bash
+go test ./...
+go run ./cmd/mealcheck fixture-check
+go run ./cmd/mealcheck eval-checker -out /tmp/mealcheck-p1-checker.json
+```
+
+Future candidate-assist gate:
+
+```bash
+go run ./cmd/mealcheck eval-checker \
+  -candidate-assist local-llama \
+  -candidate-assist-repeats 3 \
+  -allow-mismatch \
+  -out /tmp/mealcheck-p1-candidate-assist.json
+```
+
+Promotion gate:
+
+- false selections on reviewed strict cases: 0
+- selected candidate ids are replayable from artifacts
+- no expected-outcome mismatches in strict P1 eval
+- high abstention is acceptable
+- accepted selections improve common unresolved food coverage
+
+##### Stop Conditions
+
+Stop if candidate assist:
+
+- selects an id outside the supplied candidates
+- bypasses unit conversion gates
+- resolves branded, non-food, supplement, or unsafe ambiguous items
+- causes strict expected-outcome mismatches
+- makes report conclusions depend on model-supplied nutrient values
+
+#### Track 3: Resolver Coverage Expansion
+
+##### Goal
+
+Improve useful P1 coverage through deterministic, source-backed resolver work:
+aliases, conversions, exact fallback keys, approximation proxies, and
+decomposition rules.
+
+##### Preconditions
+
+- Current `eval-checker` result is saved.
+- Top unresolved foods and units are ranked.
+- Each proposed expansion has a source reference or explicit review rationale.
+
+##### Execution Slices
+
+1. Inventory unresolved items.
+   - Run strict FNDDS-grounded eval.
+   - Run WWEIA/NHANES eval with and without fallback.
+   - Inspect deployed unresolved foods from recent reports.
+   - Group by unresolved reason and user-facing credibility.
+
+2. Triage into action classes.
+   - safe exact alias
+   - source-backed unit conversion
+   - approximation proxy
+   - decomposition rule or template
+   - intentionally unresolved
+   - unsupported input guidance issue
+
+3. Implement reviewed batches.
+   - Keep batches small enough to review.
+   - Add tests for every new resolver behavior.
+   - Preserve source refs.
+   - Avoid fuzzy matching.
+
+4. Regenerate and validate artifacts when reference data changes.
+   - Regenerate FNDDS reference artifacts only when needed.
+   - Keep generated row counts and source manifests consistent.
+   - Avoid checking in source workbooks.
+
+5. Update reporting and guidance.
+   - Make unresolved reasons easier to understand.
+   - Surface concrete edit guidance where deterministic.
+   - Keep approximate and decomposed nutrition visibly marked.
+
+##### Proof Gates
+
+Run:
+
+```bash
+go test ./...
+go run ./cmd/mealcheck fixture-check
+go run ./cmd/mealcheck eval-checker -out /tmp/mealcheck-p1-checker.json
+go run ./cmd/mealcheck eval-checker \
+  -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json \
+  -out /tmp/mealcheck-wweia.json
+go run ./cmd/mealcheck eval-checker \
+  -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json \
+  -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite \
+  -skip-expected \
+  -out /tmp/mealcheck-wweia-fallback.json
+```
+
+Promotion gate:
+
+- strict expected-outcome mismatches: 0
+- fixture check passes
+- resolved rate improves on targeted common gaps
+- ambiguous, branded, vague, unsupported-unit, and non-food cases stay blocked
+- approximate/decomposed foods remain report-visible
+
+##### Stop Conditions
+
+Stop if resolver coverage work:
+
+- introduces fuzzy or broad automatic matching
+- resolves review-required or quarantined rows without explicit policy
+- hides approximation as exact nutrition
+- breaks allergy/exclusion safety assumptions
+- improves coverage only on niche rows while adding ambiguity risk
+
+#### Combined Release Discipline
+
+Do not merge all three tracks as one large behavioral change. Preferred release
+order:
+
+1. deterministic resolver coverage batches
+2. P0 assist productionization, if eval supports it
+3. P1 candidate assist exploratory eval
+4. P1 candidate assist productionization, only if false selections remain zero
+
+Every release should state which task it affects:
+
+- P0 normalization
+- P1 food/unit resolution
+- report UX
+- operational latency/capacity
+
+#### Final Deliverables
+
+- saved eval artifacts for each changed task
+- updated docs for changed command or artifact behavior
+- tests for new resolver or assist behavior
+- explicit decision on whether assist remains exploratory or is promoted
+- updated current priorities only if observed failures change the priority
+  order

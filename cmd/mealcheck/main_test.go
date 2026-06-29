@@ -176,8 +176,8 @@ func TestEvalNormalizationCommandWritesResult(t *testing.T) {
 	if result.Mode != "deterministic" {
 		t.Fatalf("mode = %q, want deterministic", result.Mode)
 	}
-	if result.TotalCases != 11 || result.SuccessCases != 8 || result.FailureCases != 3 {
-		t.Fatalf("case counts = total %d success %d failure %d, want 11/8/3", result.TotalCases, result.SuccessCases, result.FailureCases)
+	if result.TotalCases != 13 || result.SuccessCases != 8 || result.FailureCases != 5 {
+		t.Fatalf("case counts = total %d success %d failure %d, want 13/8/5", result.TotalCases, result.SuccessCases, result.FailureCases)
 	}
 	if result.CasesWithMismatches != 0 {
 		t.Fatalf("cases_with_mismatches = %d, want 0", result.CasesWithMismatches)

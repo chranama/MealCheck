@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1",
   "dataset_id": "p0-normalization-v1",
-  "description": "P0 meal-plan normalization evaluation cases for deterministic source inventory, compact-row adapter checks, qualification failures, and optional external exploratory cases.",
+  "description": "P0 meal-plan normalization evaluation cases for deterministic source inventory, compact-row adapter checks, qualification failures, deterministic normalization boundary failures, and optional external exploratory cases.",
   "case_files": [
     {
       "path": "cases-v1.jsonl",
@@ -52,7 +52,7 @@
   ],
   "summary": {
     "success_cases": 8,
-    "failure_cases": 3,
+    "failure_cases": 5,
     "quarantine_cases": 0,
     "total_expected_source_items": 120
   }
