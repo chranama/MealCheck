@@ -13,6 +13,7 @@ spreading across separate ADR, RFC, and planning documents.
 - [Current Priorities](current-priorities.md): active engineering priority order, target metrics, and next slices.
 - [Meal Plan Input Robustness](meal-plan-input-robustness.md): acceptable pasted-input boundary and synthetic normalization dataset.
 - [Evaluation](evaluation.md): P0 normalization and P1 food/unit resolution evaluation datasets, metrics, and commands.
+- [P0 Live Model Regimen](p0-live-model-regimen.md): repeatable live local-model P0 evaluation on a prototyping laptop or server.
 - [Plan Recommendation](plan_recommendation.md): deterministic recommendation principles and artifact boundary.
 - [Nutritional Guidelines](nutritional-guidelines.md): source selection, guideline-pack preprocessing, and meal-plan JSON normalization.
 - [Privacy And Safety](privacy-and-safety.md): data minimization, retention, disclosure, safety boundaries, and live-run controls.

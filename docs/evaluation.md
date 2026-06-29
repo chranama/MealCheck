@@ -37,6 +37,40 @@ local-model representation mismatch. A reasonable in-bound meal plan should
 normalize successfully before the deterministic verifier has any chance to be
 useful.
 
+### P0 Goals And Metric Translation
+
+P0's product goal is to define and harden the acceptable pasted-meal-plan input
+boundary described in `docs/product.md` and
+`docs/meal-plan-input-robustness.md`. A user should be able to paste a concise
+ingredient-level meal plan that follows the public guidance and get a reliable
+normalization result. Inputs outside that boundary should fail before queueing
+or preserve unresolved fields with clear guidance.
+
+P0 translates that goal into normalization metrics, not nutrition metrics:
+
+- acceptable-input coverage -> `case_success_rate` and
+  `normalization_success_rate`
+- the hosted default example works -> `preloaded_example_success`
+- no hidden day or meal-count override -> `day_assignment_accuracy`,
+  `meal_assignment_accuracy`, and per-tag pass rates for one-day, two-day,
+  three-day, and snack-inclusive cases
+- no source food disappears or duplicates -> `source_item_preservation_rate`,
+  `omitted_source_item_count`, and `duplicate_source_item_count`
+- quantities and units survive normalization -> `quantity_accuracy`,
+  `unit_accuracy`, and `unsupported_unit_false_failure_count`
+- food phrases remain usable for the resolver -> `food_phrase_accuracy`
+- local-model output can enter MealCheck -> `schema_validity_rate`,
+  `adapter_valid_cases`, provider failure count, and compact-output decode
+  failure count
+- vague or unsupported inputs fail at the right boundary ->
+  qualification-failure pass rate and `post_queue_normalization_failure_count`
+- live model runs are operationally usable -> repeat stability,
+  `normalization_latency_ms_p50`, and `normalization_latency_ms_p95`
+
+The current seed implementation reports a subset of these directly. Some
+accuracy metrics are currently represented as row-level mismatch messages and
+aggregate row-match rates rather than as separate first-class fields.
+
 The current checked-in P0 corpus is small and hand-authored:
 
 - `examples/meal-plan-input-robustness/manifest.json`: acceptable pasted meal
@@ -451,6 +485,50 @@ CI-safe demos, and a clear basis for deciding which long-tail foods should
 remain unresolved, resolve through the conservative FNDDS fallback, or move to
 a future API-backed lookup path.
 
+### P1 Goals And Metric Translation
+
+P1's product goal is to make the normalized MealCheck plan verifiable against
+source-backed nutrient evidence without pretending that ambiguous foods are
+known. P1 starts after P0 has already produced canonical MealCheck JSON.
+
+P1 translates that goal into resolver and evidence metrics:
+
+- common-food coverage improves -> `resolved_item_rate` overall, by dataset,
+  and by category/tag
+- resolver behavior does not regress -> expected-outcome mismatch count, which
+  should remain zero for strict gates
+- the local catalog is useful but bounded -> local-catalog resolved count,
+  unresolved count, and unresolved frequency inventory
+- fallback expansion is conservative -> FNDDS fallback coverage rate,
+  auto-match count, blocked/quarantined count, and review-required count
+- approximate nutrition is visible -> estimated resolution count,
+  decomposed resolution count, and `estimated_or_decomposed_foods` warnings
+- ambiguous, vague, unsupported, branded, or unsafe foods remain visible ->
+  unresolved reason counts and unresolved reason quality
+- unit handling is source-backed -> supported conversion count,
+  missing-conversion count, and unsupported-unit unresolved count
+- unresolved foods do not silently affect totals -> unresolved item count,
+  excluded unresolved item count, and de minimis policy warning count
+
+P1 does not judge whether the local model extracted the right meal-plan rows.
+If a canonical plan contains the wrong food, quantity, unit, day, or meal
+because normalization failed, that is a P0 failure even if the resolver handles
+the resulting structured item correctly.
+
+Current P1 result snapshot:
+
+| Evaluation layer | Resolver configuration | Resolved items | Resolver rate | Expected mismatches | Notes |
+|---|---|---:|---:|---:|---|
+| FNDDS-grounded synthetic meal plans | original 17-food catalog | 296 / 900 | 32.89% | not a current gate | MVP baseline showing the original fixture catalog limit |
+| FNDDS-grounded synthetic meal plans | expanded 151-food catalog | 885 / 900 | 98.33% | 0 | strict P1 regression gate; 15 unresolved items are intentional |
+| WWEIA/NHANES real recalls | expanded 151-food catalog | 496 / 815 | 60.86% | 0 | real-recall no-fallback coverage; exposes bounded-catalog gaps |
+| WWEIA/NHANES real recalls | expanded catalog plus FNDDS fallback | 774 / 815 | 94.97% | not compared | coverage run: 690 exact, 45 estimated, and 39 decomposed resolutions |
+
+The strictest P1 pass/fail signal is not maximum coverage by itself. It is high
+reviewed coverage with zero expected-outcome mismatches and visible unresolved,
+estimated, or decomposed items when the system cannot make an exact
+source-backed match.
+
 ## P1 Source Data
 
 FNDDS source:
@@ -757,12 +835,15 @@ Run the opt-in local-model P0 baseline when the local llama.cpp-compatible
 service is available:
 
 ```bash
-MEALCHECK_LOCAL_MODEL_NAME="$MODEL_NAME" \
-go run ./cmd/mealcheck eval-normalization \
-  -mode local-llama \
-  -dataset data/evaluation/p0-normalization/cases-v1.jsonl \
-  -out /tmp/mealcheck-p0-local-model.json
+MEALCHECK_P0_REPEATS=3 \
+MEALCHECK_P0_LOCAL_MODEL_NAME="$MODEL_NAME" \
+scripts/run-p0-local-model-regimen.sh
 ```
+
+The full live-model regimen is documented in
+`docs/p0-live-model-regimen.md`. It captures model endpoint metadata, git
+metadata, deterministic baseline results, repeated live-model results, and an
+aggregate gate summary.
 
 Regenerate the P1 catalog and dataset after downloading the FNDDS workbooks:
 

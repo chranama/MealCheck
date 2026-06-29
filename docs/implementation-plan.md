@@ -3454,9 +3454,9 @@ Verification:
 
 ## Milestone 45: P0 Normalization Evaluation Framework
 
-Status: Deterministic seed tier and opt-in local-model runner implemented in the
-current worktree. Public source-dataset expansion and live local-model baseline
-analysis remain pending.
+Status: Deterministic seed tier, opt-in local-model runner, and prototyping
+laptop live-model regimen implemented in the current worktree. Public
+source-dataset expansion and live baseline analysis remain pending.
 
 Purpose:
 
@@ -3484,6 +3484,7 @@ Deliver:
 - command-level regression coverage for deterministic P0 evaluation
 - command-level regression coverage for the local-model scoring path without a
   live llama.cpp service
+- repeatable live-model regimen for prototyping-laptop iteration
 
 Implemented So Far:
 
@@ -3517,6 +3518,11 @@ Implemented So Far:
    deterministic result for the seed corpus.
 11. Added local-model scorer regression coverage with a static provider so the
     scoring path is tested without requiring llama.cpp.
+12. Added `scripts/run-p0-local-model-regimen.sh` and
+    `docs/p0-live-model-regimen.md` for repeatable live-model evaluation on a
+    prototyping laptop. The regimen records model endpoint metadata, git
+    metadata, machine metadata, deterministic baseline output, repeated
+    live-model outputs, per-repeat summaries, and an aggregate gate result.
 
 Current Seed Results:
 
@@ -3538,7 +3544,9 @@ Remaining:
   review.
 - add TASTEset and NHANES/WWEIA-derived normalization layers only after the seed
   deterministic runner remains stable.
-- run and summarize a live local-model baseline on the MacBook model server.
+- run and summarize a live local-model baseline on the prototyping laptop.
+- repeat the same regimen on the MacBook model server before treating changes
+  as production-safe.
 - add result-directory artifacts for local-model raw compact output, canonical
   JSON, normalization events, timings, and repeat-run instability.
 
@@ -3556,6 +3564,8 @@ Acceptance:
   tiers.
 - local-model mode reports provider, decode, and canonical row-mismatch failure
   classes without changing default CI behavior.
+- prototyping-laptop regimen records enough metadata to compare later against
+  the serving MacBook run.
 
 Verification:
 
@@ -3565,4 +3575,5 @@ Verification:
 - `go run ./cmd/mealcheck eval-normalization -mode local-llama ...` is
   available for manual runs when `MEALCHECK_LOCAL_MODEL_NAME` and a
   llama.cpp-compatible service are configured.
+- `bash -n scripts/run-p0-local-model-regimen.sh` passes.
 - `git diff --check` passes.

@@ -718,6 +718,18 @@ MEALCHECK_LLAMA_REPEATS=5 \
 ./scripts/test-local-llama-structured-json.sh
 ```
 
+P0 live local-model normalization regimen:
+
+```bash
+MEALCHECK_P0_LOCAL_MODEL_NAME="$MODEL_ID" \
+MEALCHECK_P0_REPEATS=3 \
+./scripts/run-p0-local-model-regimen.sh
+```
+
+Use the P0 regimen for prompt/schema/parser iteration because it runs the
+checked-in normalization seed corpus and writes deterministic, per-repeat, and
+aggregate result artifacts. See `docs/p0-live-model-regimen.md`.
+
 ## Backend Autodeploy Poller
 
 The backend autodeploy poller is optional but recommended after the GitHub Pages
