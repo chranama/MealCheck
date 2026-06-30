@@ -73,7 +73,7 @@ Acceptable variability:
 - fractional or decimal quantities
 - one day
 - three meals per day, or snack-inclusive plans up to six meals per day
-- repeated foods across days
+- repeated foods across meals
 - common preparation adjectives such as grilled, cooked, steamed, baked, plain,
   roasted, or mixed
 
@@ -123,10 +123,10 @@ It includes:
 - one-day numbered-list input
 - one-day paragraph input
 - one-day mixed paragraph and inline input
-- two-day bullet input
 - one-day snack-inclusive input
 - one-day snack-inclusive paragraph input
-- three-day compact inline input
+- exploratory multi-day inputs retained for local/self-hosted comparison, not
+  the hosted strict gate
 
 The dataset intentionally avoids invalid examples. It should remain small
 enough to read and diagnose by hand.

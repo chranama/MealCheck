@@ -7,6 +7,11 @@
       "path": "cases-v1.jsonl",
       "source_dataset": "mealcheck_input_robustness",
       "gate": "strict"
+    },
+    {
+      "path": "multiday-exploratory-cases-v1.jsonl",
+      "source_dataset": "mealcheck_input_robustness",
+      "gate": "exploratory"
     }
   ],
   "failure_case_files": [

@@ -900,8 +900,11 @@ def write_artifacts(
     external_outputs: list[ExternalOutput],
 ) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
+    strict_robust_success = [case for case in robust_success if "one_day" in case.get("tags", [])]
+    exploratory_robust_success = [case for case in robust_success if "one_day" not in case.get("tags", [])]
     write_json(out_dir / "source-manifest.json", source_manifest(external_outputs))
-    write_jsonl(out_dir / "cases-v1.jsonl", robust_success)
+    write_jsonl(out_dir / "cases-v1.jsonl", strict_robust_success)
+    write_jsonl(out_dir / "multiday-exploratory-cases-v1.jsonl", exploratory_robust_success)
     write_jsonl(out_dir / "failure-cases-v1.jsonl", robust_failures)
 
     case_files = [
@@ -911,6 +914,14 @@ def write_artifacts(
             "gate": "strict",
         }
     ]
+    if exploratory_robust_success:
+        case_files.append(
+            {
+                "path": "multiday-exploratory-cases-v1.jsonl",
+                "source_dataset": "mealcheck_input_robustness",
+                "gate": "exploratory",
+            }
+        )
     failure_case_files = [
         {
             "path": "failure-cases-v1.jsonl",

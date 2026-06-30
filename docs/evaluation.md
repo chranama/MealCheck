@@ -79,8 +79,11 @@ The current checked-in P0 corpus is small and hand-authored:
   failures that should be refused before model normalization.
 - `data/evaluation/p0-normalization/manifest.json`: generated P0 evaluation
   manifest for the current reviewed seed corpus.
-- `data/evaluation/p0-normalization/cases-v1.jsonl`: success cases with
-  expected source items and compact-row fields.
+- `data/evaluation/p0-normalization/cases-v1.jsonl`: strict one-day success
+  cases with expected source items and compact-row fields.
+- `data/evaluation/p0-normalization/multiday-exploratory-cases-v1.jsonl`:
+  broader multi-day success cases retained for local/self-hosted comparison,
+  not the hosted strict gate.
 - `data/evaluation/p0-normalization/failure-cases-v1.jsonl`: qualification
   failure cases with expected failure status.
 - `scripts/test-meal-plan-input-robustness.sh`: local-model smoke harness for
@@ -375,13 +378,42 @@ Track but do not immediately release-block on:
 This split prevents a large generated dataset from blocking small urgent fixes
 while still making normalization reliability measurable.
 
-Current deterministic P0 seed result:
+Current strict deterministic P0 seed result:
 
-- 11 success cases pass deterministic source-inventory and adapter checks.
+- 8 one-day success cases pass deterministic source-inventory and adapter
+  checks.
 - 3 qualification-failure cases pass expected-status checks.
-- 139 of 139 expected source items are preserved, for a
+- 76 of 76 expected source items are preserved, for a
   `source_item_preservation_rate` of 1.0.
 - The seed result has zero mismatches.
+
+Exploratory multi-day P0 cases:
+
+- 3 success cases remain available under the `exploratory` gate.
+- They cover 63 expected source items.
+- They are useful for local/self-hosted comparison, but they are outside the
+  hosted one-day local-model contract and must not determine the default P0
+  live gate.
+
+Serving MacBook live local-model result before the strict one-day gate split:
+
+- Run date: 2026-06-30.
+- MealCheck commit: `094e8073b76a8564abe0d9bbf6ec992e661e87a6`.
+- Model: `Qwen3-0.6B-Q4_K_M.gguf`.
+- Model SHA-256:
+  `18ea1f301079bba6391ab6d455c0c8565fd5a3214075eb2cd9daf351dedc719b`.
+- llama.cpp commit: `7c082bc417bbe53210a83df4ba5b49e18ce6193c`.
+- Output directory:
+  `/Users/chranama-server/MealCheck-data/p0-runs/p0-live-local-model-20260630-094e807`.
+- Deterministic baseline passed: 14 of 14 cases, zero mismatches, 139 of 139
+  source items preserved.
+- The live gate failed because the old strict gate still included
+  `robustness_three_day_compact`, which is outside the current hosted one-day
+  contract.
+- Repeat 1 passed all 11 success cases. Repeats 2 and 3 each had one compact
+  decode failure on `robustness_three_day_compact`.
+- Aggregate: 3 of 3 repeats completed, 0 provider failures, 2 decode failures,
+  min row/food/quantity/unit accuracy 0.8058, max duration 676 seconds.
 
 Previous P0 live local-model seed result before per-meal chunking:
 
@@ -419,13 +451,17 @@ chunk.
 
 The current checked-in P0 corpus is still a seed corpus:
 
-- 11 success cases
+- 8 strict one-day success cases
+- 3 exploratory multi-day success cases
 - 3 qualification failure cases
-- 139 expected source items
+- 76 strict expected source items
+- 63 exploratory expected source items
 - supported units only: `g`, `oz`, `cup`, `tbsp`, `tsp`, `slice`, `serving`
 
-The live-model regimen measures model extraction quality on the success cases.
-Failure cases are still checked through deterministic qualification.
+The default live-model regimen uses the strict gate, so it measures extraction
+quality on the hosted one-day success cases. Failure cases are still checked
+through deterministic qualification. Use `mealcheck eval-normalization -gate
+exploratory` when intentionally comparing broader local/self-hosted inputs.
 
 Preconditions:
 
@@ -1049,7 +1085,6 @@ Run the deterministic P0 normalization evaluation:
 
 ```bash
 go run ./cmd/mealcheck eval-normalization \
-  -dataset data/evaluation/p0-normalization/cases-v1.jsonl \
   -out /tmp/mealcheck-p0-normalization.json
 ```
 

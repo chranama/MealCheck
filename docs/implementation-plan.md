@@ -3742,3 +3742,44 @@ Verification:
 - `go run ./cmd/mealcheck eval-checker -out /private/tmp/mealcheck-eval-checker-result.json` passes.
 - reference scans for `mealcheck eval` show only `eval-normalization` or
   historical/prose uses that are not the old command.
+
+## Milestone 49: P0 Strict Gate Matches Hosted One-Day Contract
+
+Status: Implemented locally in the current worktree.
+
+Purpose:
+
+Make the P0 live local-model regimen measure the current hosted product
+contract. The hosted local-model path accepts one day only, but the previous P0
+strict manifest still included two-day and three-day success cases from the
+earlier wider scope.
+
+Delivered:
+
+- Ran the three-repeat P0 live local-model regimen on the serving MacBook Air
+  at commit `094e8073b76a8564abe0d9bbf6ec992e661e87a6`.
+- Recorded the failed pre-split live result in `docs/evaluation.md`; the gate
+  failed only on `robustness_three_day_compact`, which is outside the current
+  hosted one-day contract.
+- Split `data/evaluation/p0-normalization/cases-v1.jsonl` into strict one-day
+  success cases and
+  `data/evaluation/p0-normalization/multiday-exploratory-cases-v1.jsonl`.
+- Updated the P0 manifest so default `-gate strict` runs only hosted one-day
+  success cases, while multi-day cases remain available under `-gate
+  exploratory`.
+- Updated the P0 generation script so future regenerated artifacts preserve the
+  strict/exploratory split.
+- Updated robustness and evaluation docs to describe the one-day strict gate.
+
+Acceptance:
+
+- default deterministic P0 evaluation measures the one-day hosted input
+  contract.
+- multi-day robustness cases remain available for local/self-hosted comparison
+  without failing the hosted strict P0 gate.
+- the live-server artifact path and failure class are recorded.
+
+Verification:
+
+- pending after the strict-gate split is pushed to the serving MacBook and the
+  P0 live regimen is rerun.
