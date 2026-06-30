@@ -274,7 +274,7 @@ test("keeps the primary workflow usable on mobile", async ({ page }) => {
   await expect(page.getByText("Eligible For Verification")).toBeVisible();
   await expectNoPrimaryActionOverflow(page);
   expect(api.payloads[0]).toMatchObject({
-    text: expect.stringContaining("Day 1 breakfast"),
+    text: expect.stringContaining("For breakfast I will have 1 cup cooked oatmeal"),
   });
 });
 
@@ -317,7 +317,7 @@ test("qualifies mocked candidate text", async ({ page }) => {
   await expect(page.getByText("1 day, 1 meal, 1 item")).toBeVisible();
   await expect(page.getByRole("tab", { name: "Checks" })).toHaveCount(0);
   expect(api.payloads[0]).toMatchObject({
-    text: expect.stringContaining("Day 1 breakfast"),
+    text: expect.stringContaining("For breakfast I will have 1 cup cooked oatmeal"),
   });
 });
 
