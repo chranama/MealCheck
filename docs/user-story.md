@@ -20,7 +20,8 @@ Example user:
 - can paste concise ingredient-level meal-plan text into the hosted site
 - may use OpenAI, Anthropic, Gemini, or an OpenAI-compatible endpoint when
   running the repo/API/CLI locally or in a self-hosted deployment
-- wants a three-day or seven-day meal plan checked
+- wants one hosted day checked, or can use local/self-hosted workflows for
+  broader plans
 - wants MealCheck to verify the plan, not provide medical nutrition advice
 - may run the repo locally or use MealCheck as a future agent-callable tool
 
@@ -86,20 +87,16 @@ A verifiable meal plan must answer:
 - what quantities and units are attached to those foods
 - which items are unresolved when quantities or foods cannot be normalized
 
-For multi-day natural-language input, the preferred shape is explicit
-day-labeled sections:
+For hosted local-model input, the preferred shape is one explicit day:
 
 ```text
 Day 1 breakfast: 1 cup oatmeal, 0.5 cup blueberries.
 Day 1 lunch: 4 oz chicken breast, 1 cup brown rice.
-Day 2 breakfast: 2 eggs, 1 cup orange segments.
-Day 2 lunch: 4 oz tuna, 2 cups mixed greens.
+Day 1 dinner: baked salmon, 1 serving sweet potato.
 ```
 
-Clear day labels support the hosted local-model decomposition path. Ambiguous
-multi-day input remains valid only if it can be normalized without guessing; the
-backend falls back to unbatched whole-plan extraction when day boundaries are
-not clear enough to split.
+The hosted local-model path accepts one day only. Multi-day natural-language
+plans should be split before submission or handled in local/self-hosted flows.
 
 Not eligible:
 
@@ -188,8 +185,6 @@ Minimal internal shape:
    - calorie target
    - protein target
 5. If defaults are not sufficient, the user adjusts verification constraints:
-   - number of days
-   - meals per day
    - allergies
    - foods to avoid
    - sodium limit

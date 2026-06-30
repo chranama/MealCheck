@@ -67,6 +67,26 @@ func TestDecodeLocalLlamaCompactPlanAcceptsLegacyV3Rows(t *testing.T) {
 	}
 }
 
+func TestDecodeLocalLlamaCompactPlanAcceptsUnresolvedRows(t *testing.T) {
+	plan, err := DecodeLocalLlamaCompactPlan(`{
+		"i":[
+			[1,1,"b","cooked oatmeal",1,"cup"],
+			[2,1,"b","banana",null,"","missing quantity","missing_quantity"],
+			[3,1,"l","grilled chicken breast",4,"oz"]
+		]
+	}`, "unresolved-row-test")
+	if err != nil {
+		t.Fatalf("DecodeLocalLlamaCompactPlan unresolved row error: %v", err)
+	}
+	if len(plan.Days) != 1 || len(plan.Days[0].Meals) != 2 {
+		t.Fatalf("plan days/meals = %d/%d, want 1/2", len(plan.Days), len(plan.Days[0].Meals))
+	}
+	item := plan.Days[0].Meals[0].Items[1]
+	if item.Food != "banana" || item.Quantity != nil || item.QuantityText != "missing quantity" || item.ResolutionStatus != "unresolved" || item.UnresolvedReason != "missing_quantity" {
+		t.Fatalf("unresolved item = %+v", item)
+	}
+}
+
 func TestDecodeLocalLlamaCompactPlanAcceptsV2TupleItems(t *testing.T) {
 	plan, err := DecodeLocalLlamaCompactPlan(`{
 		"b":[["cooked oatmeal",1,"cup"]],
@@ -323,16 +343,29 @@ func TestLocalLlamaCompactResponseSchemaUsesCompactFields(t *testing.T) {
 	}
 	properties := schema["properties"].(map[string]any)
 	items := properties["i"].(map[string]any)
-	item := items["items"].(map[string]any)
-	if item["minItems"] != 6 || item["maxItems"] != 6 {
-		t.Fatalf("row min/max items = %v/%v, want 6/6", item["minItems"], item["maxItems"])
+	rowSchema := items["items"].(map[string]any)
+	options := rowSchema["oneOf"].([]map[string]any)
+	if len(options) != 2 {
+		t.Fatalf("row schema options = %d, want 2", len(options))
 	}
-	tuple := item["items"].([]map[string]any)
+	resolved := options[0]
+	if resolved["minItems"] != 6 || resolved["maxItems"] != 6 {
+		t.Fatalf("resolved row min/max items = %v/%v, want 6/6", resolved["minItems"], resolved["maxItems"])
+	}
+	unresolved := options[1]
+	if unresolved["minItems"] != 8 || unresolved["maxItems"] != 8 {
+		t.Fatalf("unresolved row min/max items = %v/%v, want 8/8", unresolved["minItems"], unresolved["maxItems"])
+	}
+	tuple := resolved["items"].([]map[string]any)
 	if len(tuple) != 6 {
 		t.Fatalf("tuple length = %d, want 6", len(tuple))
 	}
 	if tuple[0]["type"] != "integer" || tuple[1]["type"] != "integer" || tuple[2]["type"] != "string" || tuple[3]["type"] != "string" || tuple[4]["type"] != "number" || tuple[5]["type"] != "string" {
 		t.Fatalf("tuple item types = %#v, want integer/integer/string/string/number/string", tuple)
+	}
+	unresolvedTuple := unresolved["items"].([]map[string]any)
+	if len(unresolvedTuple) != 8 || unresolvedTuple[6]["type"] != "string" {
+		t.Fatalf("unresolved tuple = %#v, want quantity_text field", unresolvedTuple)
 	}
 	mealCodes := tuple[2]["enum"].([]string)
 	if len(mealCodes) < 6 {

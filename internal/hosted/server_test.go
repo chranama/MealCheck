@@ -274,11 +274,6 @@ func TestLocalModelRunFastFailsNonVerifiableTextBeforeQueue(t *testing.T) {
 			wantStatus: QualificationStatusNotMealPlan,
 		},
 		{
-			name:       "vague meal outline",
-			text:       "Breakfast: oatmeal\nLunch: salad\nDinner: chicken bowl",
-			wantStatus: QualificationStatusMealPlanTooVague,
-		},
-		{
 			name:       "recipe needs decomposition",
 			text:       "Make a healthy chicken bowl with rice, vegetables, and sauce. Cook until warm.",
 			wantStatus: QualificationStatusRecipeOrMenuNeedsDecompose,
@@ -331,35 +326,23 @@ func TestLocalModelRunFastFailsNonVerifiableTextBeforeQueue(t *testing.T) {
 	}
 }
 
-func TestLocalModelRunDecomposesClearMultiDayInput(t *testing.T) {
+func TestLocalModelRunAcceptsMissingQuantitiesAsUnresolvedRows(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)
 	config.HostedMode = HostedModeLocalModel
 	config.LocalModelEnabled = true
 	config.LocalModelBaseURL = "http://127.0.0.1:11435/v1"
 	config.LocalModelName = "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf"
-	config.LocalModelMaxInputChars = 2_000
-	config.LocalModelMaxOutputTokens = 160
 	store := NewMemoryStore()
 	pending := NewPendingInputs()
 	server := NewServer(config, store, pending)
-	provider := &fakeProvider{responses: []string{compactLocalMealPlanJSON(), compactLocalMealPlanJSON()}}
-	seeded := seededCase(t, root)
-	settings := localModelTestSettings(seeded.Settings)
-	settings.VerificationConstraints.Days = 0
-	settings.VerificationConstraints.MealsPerDay = 0
+	provider := &fakeProvider{responses: []string{`{"i":[[1,1,"b","oatmeal",null,"","missing quantity","missing_quantity"],[2,1,"l","salad",null,"","missing quantity","missing_quantity"],[3,1,"d","chicken bowl",null,"","missing quantity","missing_quantity"]]}`}}
+	settings := localModelTestSettings(seededCase(t, root).Settings)
 
 	body := marshalJSON(t, CreateRunRequest{
-		InputMode: InputModeLocalModel,
-		Settings:  settings,
-		CandidateText: strings.Join([]string{
-			"Day 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.",
-			"Day 1 lunch: 4 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.",
-			"Day 1 dinner: 4 oz salmon, 1 cup sweet potato, and 1 cup spinach.",
-			"Day 2 breakfast: 2 eggs, 1 cup whole wheat toast, and 1 cup orange segments.",
-			"Day 2 lunch: 4 oz tuna, 2 cups mixed greens, and 1 tsp vinaigrette.",
-			"Day 2 dinner: 5 oz turkey meatballs, 1 cup whole wheat pasta, and 1 cup tomato sauce.",
-		}, "\n"),
+		InputMode:     InputModeLocalModel,
+		Settings:      settings,
+		CandidateText: "Breakfast: oatmeal\nLunch: salad\nDinner: chicken bowl",
 	})
 	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
 	if createResp.Code != http.StatusAccepted {
@@ -377,19 +360,9 @@ func TestLocalModelRunDecomposesClearMultiDayInput(t *testing.T) {
 	if !processed {
 		t.Fatal("expected worker to process one run")
 	}
-	if provider.calls != 2 {
-		t.Fatalf("provider calls = %d, want one per day", provider.calls)
+	if provider.calls != 1 {
+		t.Fatalf("provider calls = %d, want 1", provider.calls)
 	}
-	if strings.Contains(provider.messages[1][1].Content, "Day 2") {
-		t.Fatalf("second provider prompt was not rewritten for one-day extraction:\n%s", provider.messages[1][1].Content)
-	}
-	if !strings.Contains(provider.messages[1][1].Content, "Use day numbers 1..1.") {
-		t.Fatalf("second provider prompt missing one-day constraint:\n%s", provider.messages[1][1].Content)
-	}
-	if strings.Contains(provider.messages[1][1].Content, "Each day must contain exactly") {
-		t.Fatalf("second provider prompt unexpectedly carried an exact meal count:\n%s", provider.messages[1][1].Content)
-	}
-
 	run, err := store.GetRun(context.Background(), created.RunID)
 	if err != nil {
 		t.Fatalf("get run: %v", err)
@@ -397,21 +370,62 @@ func TestLocalModelRunDecomposesClearMultiDayInput(t *testing.T) {
 	if run.Status != StatusCompleted {
 		t.Fatalf("run status = %q, want completed; error=%s", run.Status, run.Error)
 	}
-	var events []NormalizationEvent
-	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "normalization-events.json")), &events)
-	if !hasNormalizationEvent(events, "local_model_decomposed") || !hasNormalizationEvent(events, "json_decoded") {
-		t.Fatalf("normalization events missing decomposition lifecycle: %+v", events)
-	}
 	var plan checker.Plan
 	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "normalized-plan.json")), &plan)
-	if len(plan.Days) != 2 {
-		t.Fatalf("plan days = %d, want 2", len(plan.Days))
+	if got := countMealPlanItems(plan); got != 3 {
+		t.Fatalf("plan item count = %d, want 3", got)
 	}
-	if plan.Days[0].Day != 1 || plan.Days[1].Day != 2 {
-		t.Fatalf("plan day numbers = %d/%d, want 1/2", plan.Days[0].Day, plan.Days[1].Day)
+	item := plan.Days[0].Meals[0].Items[0]
+	if item.Quantity != nil || item.QuantityText != "missing quantity" || item.ResolutionStatus != "unresolved" || item.UnresolvedReason != "missing_quantity" {
+		t.Fatalf("unresolved item = %+v", item)
 	}
-	if got := countMealPlanItems(plan); got != 18 {
-		t.Fatalf("plan item count = %d, want 18", got)
+}
+
+func TestLocalModelRunRejectsClearMultiDayInputBeforeQueue(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.HostedMode = HostedModeLocalModel
+	config.LocalModelEnabled = true
+	config.LocalModelBaseURL = "http://127.0.0.1:11435/v1"
+	config.LocalModelName = "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf"
+	config.LocalModelMaxInputChars = 2_000
+	config.LocalModelMaxOutputTokens = 160
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	seeded := seededCase(t, root)
+	settings := localModelTestSettings(seeded.Settings)
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode: InputModeLocalModel,
+		Settings:  settings,
+		CandidateText: strings.Join([]string{
+			"Day 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.",
+			"Day 1 lunch: 4 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.",
+			"Day 1 dinner: 4 oz salmon, 1 cup sweet potato, and 1 cup spinach.",
+			"Day 2 breakfast: 2 eggs, 1 cup whole wheat toast, and 1 cup orange segments.",
+			"Day 2 lunch: 4 oz tuna, 2 cups mixed greens, and 1 tsp vinaigrette.",
+			"Day 2 dinner: 5 oz turkey meatballs, 1 cup whole wheat pasta, and 1 cup tomato sauce.",
+		}, "\n"),
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusBadRequest {
+		t.Fatalf("create status = %d, want 400 body=%s", createResp.Code, createResp.Body.String())
+	}
+	var errorResponse ErrorResponse
+	decodeJSON(t, createResp.Body.Bytes(), &errorResponse)
+	if errorResponse.Error.Code != "invalid_request" || !strings.Contains(errorResponse.Error.Message, "one day only") {
+		t.Fatalf("error response = %+v, want one-day invalid_request", errorResponse.Error)
+	}
+	if pending.Count() != 0 {
+		t.Fatalf("pending count = %d, want 0", pending.Count())
+	}
+	stats, err := store.Stats(context.Background())
+	if err != nil {
+		t.Fatalf("store stats: %v", err)
+	}
+	if stats.Queued != 0 || stats.Running != 0 {
+		t.Fatalf("store stats queued/running = %d/%d, want 0/0", stats.Queued, stats.Running)
 	}
 }
 
@@ -1808,6 +1822,12 @@ func TestHealthReportsHostedLocalModelMode(t *testing.T) {
 	if localModel["max_input_chars"] != float64(2048) {
 		t.Fatalf("local_model max_input_chars = %v, want 2048", localModel["max_input_chars"])
 	}
+	if localModel["max_source_items"] != float64(20) {
+		t.Fatalf("local_model max_source_items = %v, want 20", localModel["max_source_items"])
+	}
+	if localModel["supported_days"] != float64(1) {
+		t.Fatalf("local_model supported_days = %v, want 1", localModel["supported_days"])
+	}
 }
 
 func TestStatusReportsUserVisibleOperationalComponents(t *testing.T) {
@@ -2432,6 +2452,7 @@ func testConfig(t *testing.T, root string) Config {
 		PublicDailyRunLimit:      20,
 		MaxCandidateTextChars:    20_000,
 		MaxGenerationPromptChars: 4_000,
+		LocalModelMaxSourceItems: 20,
 		QueueSize:                3,
 		MaxCasesPerRun:           20,
 		MaxUploadBytes:           1_000_000,
@@ -2446,7 +2467,7 @@ func testConfig(t *testing.T, root string) Config {
 }
 
 func localModelTestSettings(settings checker.Settings) checker.Settings {
-	settings.VerificationConstraints.Days = 0
+	settings.VerificationConstraints.Days = 1
 	settings.VerificationConstraints.MealsPerDay = 0
 	settings.VerificationConstraints.RequiresPrepSafetyNotes = false
 	return settings

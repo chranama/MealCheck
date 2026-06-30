@@ -321,7 +321,7 @@ function createRunFeedback({
   if (localModelUnavailable) return "Local model is unavailable right now.";
   if (needsCandidateText) return "Enter a meal plan to create a report.";
   if (candidateTextTooLong) return "Meal plan text is over the local model limit.";
-  if (isLocalModelHosted) return "Create a local-model MealCheck report.";
+  if (isLocalModelHosted) return "Create a one-day local-model MealCheck report.";
   return "Check eligibility or create a MealCheck report.";
 }
 
@@ -411,7 +411,7 @@ function CandidateTextForm({
         />
       </Field>
       <p className="field-help" id="candidate-text-guidance">
-        For multi-day plans, use clear labels like Day 1 and Day 2 with meals and amounts listed under each day.
+        Paste one day only. Use meal labels, food names, and amounts; missing amounts stay visible as unresolved items.
       </p>
       {recovery ? <RecoveryNoticeView notice={recovery} /> : null}
       {limit ? (

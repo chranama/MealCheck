@@ -58,16 +58,15 @@ The deployed MVP shape is:
 The Cloudflare Pages frontend is connected
 to the GitHub repository and automatically deploys from `main`.
 
-The hosted website is a bounded local-model verification demo: paste a concise
-ingredient-level meal plan and receive a source-backed report. The downloaded
+The hosted website is a bounded local-model verification demo: paste one concise
+ingredient-level day of meals and receive a source-backed report. The downloaded
 repository is the deterministic local verifier/debug surface, the self-hostable
 BYOK/custom endpoint surface, and the intended base for future agent-tool
 integration.
-Multi-day hosted inputs work best when each day is labeled explicitly, such as
-`Day 1`, `Day 2`, and so on, with meals and ingredient amounts grouped under
-the correct day. Clear day sections let the backend process each day in a
-smaller local-model call; ambiguous multi-day text falls back to the unbatched
-whole-plan path.
+Hosted local-model runs accept one day only. Multi-day plans, recipes, grocery
+lists, and long prose belong in a local/self-hosted workflow or should be split
+before submission. The public path keeps the small local model on the critical
+path by requiring it to normalize the pasted day before deterministic checks run.
 
 The tightened product direction adds first-class meal-plan qualification before
 verification: candidate text may be not a meal plan, too vague, recipe-like but

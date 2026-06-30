@@ -66,7 +66,7 @@ fixtures.
 
 - `manual_structured`: a local/debug case supplies normalized meal-plan JSON.
   No LLM is required.
-- `local_model`: hosted pasted meal-plan text is normalized by the
+- `local_model`: one hosted day of pasted meal-plan text is normalized by the
   server-owned local llama.cpp model, then verified.
 - `profile_generation`: the user supplies nutrition targets and verification
   constraints; MealCheck builds the LLM prompt and requires JSON output.
@@ -489,14 +489,14 @@ Hosted local-model verification:
 ```json
 {
   "input_mode": "local_model",
-  "candidate_text": "Day 1 breakfast: 1 cup cooked oatmeal, 0.5 cup blueberries, and 1 cup plain Greek yogurt.\nDay 1 lunch: 4 oz grilled chicken breast, 1 cup brown rice, and 1 cup steamed broccoli.\nDay 1 dinner: 4 oz baked salmon, 1 serving sweet potato, and 1 tbsp olive oil.\nDay 2 breakfast: 2 eggs, 1 cup whole wheat toast, and 1 cup orange segments.\nDay 2 lunch: 4 oz tuna, 2 cups mixed greens, and 1 tsp vinaigrette.\nDay 2 dinner: 5 oz turkey meatballs, 1 cup whole wheat pasta, and 1 cup tomato sauce.\nDay 3 breakfast: 1 cup cottage cheese, 1 serving pineapple, and 1 cup whole grain cereal.\nDay 3 lunch: 4 oz tofu, 1 cup soba noodles, and 1 cup bok choy.\nDay 3 dinner: 5 oz lean beef, 1 cup roasted carrots, and 1 cup barley.",
+  "candidate_text": "Day 1 breakfast: 1 cup cooked oatmeal, 0.5 cup blueberries, and 1 cup plain Greek yogurt.\nDay 1 lunch: 4 oz grilled chicken breast, 1 cup brown rice, and 1 cup steamed broccoli.\nDay 1 dinner: baked salmon, 1 serving sweet potato, and 1 tbsp olive oil.",
   "settings": {
     "nutrition_targets": {
       "calorie_target_kcal": 2000,
       "protein_target_g": 98
     },
     "verification_constraints": {
-      "days": 3,
+      "days": 1,
       "meals_per_day": 3,
       "allergies": ["peanuts"],
       "excluded_foods": ["shellfish"],
@@ -580,10 +580,13 @@ Rules:
   verification belongs to CLI/local case files.
 - `local_model` requires `candidate_text`, rejects `provider`, and uses the
   configured server-owned local model provider.
-- Multi-day `local_model` inputs work best with explicit `Day N` labels for
-  every requested day. Clear day sections are split into one local-model call
-  per day and merged afterward; ambiguous day boundaries use the unbatched
-  whole-plan fallback.
+- Hosted `local_model` accepts one day only. Omitted `days` is normalized to
+  `1`; any other day count, multi-day text, recipes, grocery lists, or oversized
+  source inventories are rejected before queueing.
+- Compact local-model rows use
+  `[source_item_id, day, meal_code, food, quantity, unit]` for resolved foods or
+  `[source_item_id, day, meal_code, food, null, "", quantity_text, unresolved_reason]`
+  for missing or vague quantities.
 - `profile_generation` and `prompt_generation` require a BYOK provider with
   `model` and `api_key`.
 - Hosted and CLI case contracts use `settings.nutrition_targets` and

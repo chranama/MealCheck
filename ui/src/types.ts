@@ -64,6 +64,7 @@ export type LocalModelHealth = {
   ready?: boolean;
   model?: string;
   max_input_chars?: number;
+  max_source_items?: number;
   max_output_tokens?: number;
   timeout_sec?: number;
   supported_days?: number;

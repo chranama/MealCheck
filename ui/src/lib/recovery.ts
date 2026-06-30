@@ -193,7 +193,7 @@ export function recoveryFromRunFailure(status: RunStatus, message: string): Reco
       message,
       tone: "warn",
       steps: [
-        "Use clear Day 1, Day 2 labels for multi-day plans.",
+        "Use one day only, with Day 1 or meal labels.",
         "Put each meal on its own line with food names and numeric quantities.",
         "Shorten the plan and retry if it includes long prose or recipes.",
       ],

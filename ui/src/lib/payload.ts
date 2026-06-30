@@ -149,9 +149,14 @@ export function buildLocalModelRunPayload(args: {
   if (!text) {
     throw new Error("Candidate meal plan text is required.");
   }
+  const settings = normalizeSettings(args.settings);
+  settings.verification_constraints = {
+    ...settings.verification_constraints,
+    days: 1,
+  };
   return {
     input_mode: "local_model",
-    settings: normalizeSettings(args.settings),
+    settings,
     candidate_text: text,
   };
 }

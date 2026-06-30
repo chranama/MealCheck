@@ -60,8 +60,16 @@ func QualifyMealPlanText(ctx context.Context, providerFactory ProviderFactory, r
 	}
 
 	classification := classifyCandidateMealPlanText(text)
+	if request.Provider.Type == ProviderTypeLocalLlama {
+		classification = classifyLocalModelCandidateMealPlanText(text)
+	}
 	if classification.Status != QualificationStatusEligibleForVerification {
-		return classification, nil
+		if request.Provider.Type == ProviderTypeLocalLlama && classification.Status == QualificationStatusEligibleWithUnresolvedItems {
+			// Continue so the local model can preserve missing quantities as
+			// unresolved rows in the normalized plan.
+		} else {
+			return classification, nil
+		}
 	}
 
 	if providerFactory == nil {
@@ -161,6 +169,18 @@ func classifyCandidateMealPlanText(text string) MealPlanQualificationResult {
 		return qualificationResult(QualificationStatusMealPlanTooVague, "The text resembles a meal plan but lacks ingredient quantities and units needed for verification.", []string{"quantities", "units"})
 	}
 	return qualificationResult(QualificationStatusEligibleForVerification, "The text appears to contain meal structure and ingredient quantities; a BYOK provider can attempt normalization into MealCheck JSON.", nil)
+}
+
+func classifyLocalModelCandidateMealPlanText(text string) MealPlanQualificationResult {
+	classification := classifyCandidateMealPlanText(text)
+	if classification.Status == QualificationStatusMealPlanTooVague && hasMealStructureSignal(strings.ToLower(text)) {
+		return qualificationResult(
+			QualificationStatusEligibleWithUnresolvedItems,
+			"The text appears to contain one-day meal structure, but some food quantities may need to remain unresolved after local-model normalization.",
+			[]string{"quantities", "units"},
+		)
+	}
+	return classification
 }
 
 func isTerminalQualificationFailure(result MealPlanQualificationResult) bool {

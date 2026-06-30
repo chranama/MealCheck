@@ -40,6 +40,15 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 	if input.Mode == "" {
 		return PreparedRun{}, fmt.Errorf("input mode is required")
 	}
+	if input.Mode == InputModeLocalModel {
+		input.Settings = normalizeLocalModelSettings(input.Settings)
+		if err := validateLocalModelSettings(input.Settings); err != nil {
+			return PreparedRun{}, err
+		}
+		if err := validateLocalModelInputContract(config, input.CandidateText); err != nil {
+			return PreparedRun{}, err
+		}
+	}
 	if err := validateSettings(input.Settings); err != nil {
 		return PreparedRun{}, err
 	}
@@ -169,11 +178,6 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 	}, nil
 }
 
-type localModelSegmentOutput struct {
-	Day    int    `json:"day,omitempty"`
-	Output string `json:"output"`
-}
-
 type localModelExtractionFailureStage string
 
 const (
@@ -183,9 +187,6 @@ const (
 )
 
 func prepareLocalModelExtraction(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, events []NormalizationEvent) (checker.Plan, string, []NormalizationEvent, error) {
-	if sections, ok := localModelDaySections(input.CandidateText); ok && len(sections) > 1 {
-		return prepareDecomposedLocalModelExtraction(ctx, config, provider, run, input, sections, events)
-	}
 	output, plan, repairs, stage, err := requestLocalModelExtraction(ctx, provider, input.Provider, input, "local-model-"+run.ID)
 	if err != nil {
 		events = append(events, localModelFailureEvent(stage))
@@ -201,62 +202,6 @@ func prepareLocalModelExtraction(ctx context.Context, config Config, provider Pr
 	}
 	events = append(events, normalizationEvent("json_decoded", "local model compact output decoded into normalized MealCheck JSON"))
 	return plan, output, events, nil
-}
-
-func prepareDecomposedLocalModelExtraction(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, sections []localModelDaySection, events []NormalizationEvent) (checker.Plan, string, []NormalizationEvent, error) {
-	events = append(events, normalizationEvent("local_model_decomposed", fmt.Sprintf("candidate text was split into %d per-day local model extraction calls", len(sections))))
-	outputs := make([]localModelSegmentOutput, 0, len(sections))
-	days := make([]checker.PlanDay, 0, len(sections))
-	for _, section := range sections {
-		sectionInput := input
-		sectionInput.CandidateText = section.Text
-		sectionInput.Settings.VerificationConstraints.Days = 1
-		sectionInput.Settings.VerificationConstraints.MealsPerDay = 0
-		output, plan, repairs, stage, err := requestLocalModelExtraction(ctx, provider, input.Provider, sectionInput, fmt.Sprintf("local-model-%s-day-%d", run.ID, section.Day))
-		outputs = append(outputs, localModelSegmentOutput{Day: section.Day, Output: output})
-		combinedOutput := formatLocalModelSegmentOutputs(outputs, true)
-		if err != nil {
-			err = fmt.Errorf("day %d local model extraction failed: %w", section.Day, err)
-			events = append(events, localModelFailureEvent(stage))
-			return checker.Plan{}, combinedOutput, events, writeLocalModelNormalizationFailureAndReturn(config, run, input, events, normalizationFailureDebug{
-				InitialOutput: combinedOutput,
-				InitialError:  err,
-				FinalError:    err,
-			})
-		}
-		if len(plan.Days) != 1 {
-			err := fmt.Errorf("day %d local model extraction returned %d day object(s), want 1", section.Day, len(plan.Days))
-			events = append(events, normalizationEvent("plan_constraints_failed", "per-day local model output did not preserve one day"))
-			return checker.Plan{}, combinedOutput, events, writeLocalModelNormalizationFailureAndReturn(config, run, input, events, normalizationFailureDebug{
-				InitialOutput: combinedOutput,
-				InitialError:  err,
-				FinalError:    err,
-			})
-		}
-		day := plan.Days[0]
-		day.Day = section.Day
-		days = append(days, day)
-		events = append(events, normalizationEvent("llm_output_received", fmt.Sprintf("local model returned compact meal-plan JSON for day %d", section.Day)))
-		if len(repairs) > 0 {
-			events = append(events, normalizationEvent("source_measurements_reconciled", fmt.Sprintf("day %d local model compact rows were repaired from %d deterministic source field(s)", section.Day, len(repairs))))
-		}
-	}
-	plan := checker.Plan{
-		SchemaVersion: "0.1",
-		PlanID:        "local-model-" + run.ID,
-		Days:          days,
-	}
-	combinedOutput := formatLocalModelSegmentOutputs(outputs, true)
-	if err := validateLocalModelExtractionCompleteness(plan, input.CandidateText); err != nil {
-		events = append(events, localModelFailureEvent(localModelFailureCompleteness))
-		return checker.Plan{}, combinedOutput, events, writeLocalModelNormalizationFailureAndReturn(config, run, input, events, normalizationFailureDebug{
-			InitialOutput: combinedOutput,
-			InitialError:  err,
-			FinalError:    err,
-		})
-	}
-	events = append(events, normalizationEvent("json_decoded", "per-day local model compact outputs decoded and merged into normalized MealCheck JSON"))
-	return plan, combinedOutput, events, nil
 }
 
 func requestLocalModelExtraction(ctx context.Context, provider Provider, providerConfig ProviderConfig, input PendingRunInput, planID string) (string, checker.Plan, []LocalLlamaNormalizationRepair, localModelExtractionFailureStage, error) {
@@ -283,25 +228,10 @@ func localModelFailureEvent(stage localModelExtractionFailureStage) Normalizatio
 	case localModelFailureProvider:
 		return normalizationEvent("provider_request_failed", "local model request failed before returning compact meal-plan JSON")
 	case localModelFailureCompleteness:
-		return normalizationEvent("item_count_failed", "local model output did not preserve the resolved source item count")
+		return normalizationEvent("item_count_failed", "local model output did not preserve the numbered source item count")
 	default:
 		return normalizationEvent("json_decode_failed", "local model output was not valid compact meal-plan JSON")
 	}
-}
-
-func formatLocalModelSegmentOutputs(outputs []localModelSegmentOutput, decomposed bool) string {
-	if !decomposed && len(outputs) == 1 {
-		return outputs[0].Output
-	}
-	payload := map[string]any{
-		"mode":    "per_day",
-		"outputs": outputs,
-	}
-	b, err := json.Marshal(payload)
-	if err != nil {
-		return ""
-	}
-	return string(b)
 }
 
 func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, plan checker.Plan, llmOutput string, initialOutput string, initialErr error, repairOutput string, repairErr error, repairAttempted bool, events []NormalizationEvent) (checker.Plan, string, string, error, bool, []NormalizationEvent, error) {
@@ -479,29 +409,33 @@ func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, err
 	if text == "" {
 		return nil, fmt.Errorf("candidate_text is required for local_model")
 	}
+	input.Settings = normalizeLocalModelSettings(input.Settings)
 	constraints := input.Settings.VerificationConstraints
 	system := strings.Join([]string{
 		"Extract meal-plan ingredients into compact MealCheck local JSON only.",
 		"Return one minified JSON object.",
 		"Shape: {\"i\":[[source_item_id,day,meal_code,food,quantity,unit]]}.",
+		"For a food without a usable quantity, use [source_item_id,day,meal_code,food,null,\"\",quantity_text,unresolved_reason].",
 		"Meal codes: b=breakfast, m=morning snack, l=lunch, a=afternoon snack, d=dinner, s=snack, e=evening snack.",
 		"When the user states the exact allowed meal codes, use only those meal codes.",
 		"Allowed units: g, oz, cup, tbsp, tsp, slice, serving.",
+		"Allowed unresolved_reason values: missing_quantity, vague_quantity, unsupported_unit.",
 	}, " ")
 	userParts := []string{
 		"Extract this meal plan into compact row JSON.",
 		"Use only the numbered source items below.",
 		localLlamaItemCountInstruction(text),
-		"Convert every numbered source item into exactly one [source_item_id, day, meal_code, food, quantity, unit] tuple.",
+		"Convert every numbered source item into exactly one row.",
 		"Copy each source_item_id exactly once in ascending order; do not skip or duplicate source_item_id values.",
-		"The numbered source item list is authoritative for source_item_id, day, meal_code, quantity, unit, and food wording.",
+		"The numbered source item list is authoritative for source_item_id, day, meal_code, and source wording.",
 		"Use the provided day value for each numbered source item.",
 		"When meal_code is one of b, m, l, a, d, s, or e, use that provided meal_code. When meal_code is infer, infer the closest supported meal code from the source context.",
 		"Do not omit, merge, summarize, or invent items.",
-		"Parse only food, numeric quantity, and unit from each source_text.",
-		"Copy quantity and unit from the leading measurement in source_text; preserve fractions such as 1/2 as 0.5.",
+		"Parse food, numeric quantity, and unit from each source_text when present.",
+		"For resolved source_text, copy quantity and unit from the leading measurement; preserve fractions such as 1/2 as 0.5.",
+		"For unresolved source_text, put the visible amount phrase in quantity_text when one exists; otherwise use \"missing quantity\".",
 		"Do not change tbsp to tsp or tsp to tbsp.",
-		"The food value must be the food name only; do not include the leading quantity or unit in the food value.",
+		"The food value must be the food name only; do not include the leading quantity, unit, quantity_text, or unresolved_reason in the food value.",
 		"Preserve source food wording, including preparation words such as cooked, plain, grilled, steamed, baked, roasted, sliced, or mixed.",
 		"Do not include other keys or text.",
 		"",
@@ -559,11 +493,11 @@ func localLlamaMealCodeInstruction(mealsPerDay int) string {
 }
 
 func localLlamaItemCountInstruction(text string) string {
-	expected := len(localLlamaResolvedSourceItems(text))
+	expected := len(localLlamaExtractionSourceItems(text))
 	if expected == 0 {
-		return "Preserve every resolved food item that has a numeric quantity plus supported unit."
+		return "Preserve every food item that can be tied to a day or meal in the source text."
 	}
-	return fmt.Sprintf("The source contains exactly %d resolved food item line(s); return exactly %d row(s).", expected, expected)
+	return fmt.Sprintf("The source contains exactly %d numbered source item(s); return exactly %d row(s).", expected, expected)
 }
 
 type localLlamaSourceItem struct {
@@ -571,6 +505,7 @@ type localLlamaSourceItem struct {
 	Day      int
 	MealCode string
 	Text     string
+	Resolved bool
 }
 
 // LocalLlamaSourceItem is the deterministic source-item inventory used before
@@ -582,13 +517,9 @@ type LocalLlamaSourceItem struct {
 	Text     string
 }
 
-type localModelDaySection struct {
-	Day  int
-	Text string
-}
-
 var (
 	localLlamaResolvedItemLinePattern = regexp.MustCompile(`(?i)^\s*(?:[-*]|\d+[.)])\s+(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s*(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\b`)
+	localLlamaAnyItemLinePattern      = regexp.MustCompile(`^\s*(?:[-*]|\d+[.)])\s+(.+?)\s*$`)
 	localLlamaInlineItemPattern       = regexp.MustCompile(`(?i)^\s*((?:\d+(?:\.\d+)?)|(?:\d+\s*/\s*\d+)|(?:\d+\s+\d+\s*/\s*\d+))\s+((?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\s+)?(.+?)\s*$`)
 	localLlamaInlineAndItemBoundary   = regexp.MustCompile(`(?i)\s+\b(?:and|with|plus)\s+((?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s+)`)
 	localLlamaInlineLeadingAnd        = regexp.MustCompile(`(?i)^\s*and\s+`)
@@ -599,6 +530,10 @@ var (
 
 func localLlamaExpectedResolvedItemCount(text string) int {
 	return len(localLlamaResolvedSourceItems(text))
+}
+
+func localLlamaExpectedExtractionItemCount(text string) int {
+	return len(localLlamaExtractionSourceItems(text))
 }
 
 // LocalLlamaExpectedResolvedItemCount returns the number of deterministic
@@ -623,89 +558,36 @@ func LocalLlamaResolvedSourceItems(text string) []LocalLlamaSourceItem {
 	return items
 }
 
-func localModelDaySections(text string) ([]localModelDaySection, bool) {
-	lines := strings.Split(strings.TrimSpace(text), "\n")
-	if len(lines) == 0 {
-		return nil, false
-	}
-
-	var sections []localModelDaySection
-	var current strings.Builder
-	currentDay := 0
-	seen := map[int]bool{}
-	sawDayMarker := false
-
-	flush := func() bool {
-		if currentDay == 0 {
-			return true
-		}
-		sectionText := strings.TrimSpace(current.String())
-		if sectionText == "" || localLlamaExpectedResolvedItemCount(sectionText) == 0 {
-			return false
-		}
-		sections = append(sections, localModelDaySection{Day: currentDay, Text: sectionText})
-		seen[currentDay] = true
-		current.Reset()
-		return true
-	}
-
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" {
-			if currentDay != 0 {
-				current.WriteString("\n")
-			}
-			continue
-		}
-		day := localLlamaDayFromHeading(trimmed)
-		if day > 0 {
-			sawDayMarker = true
-			if currentDay == 0 {
-				currentDay = day
-			} else if day != currentDay {
-				if seen[day] || !flush() {
-					return nil, false
-				}
-				currentDay = day
-			}
-			line = localLlamaRewriteDayHeading(line, 1)
-		} else if currentDay == 0 {
-			if localLlamaExpectedResolvedItemCount(trimmed) == 0 {
-				continue
-			}
-			return nil, false
-		}
-		current.WriteString(line)
-		current.WriteString("\n")
-	}
-	if !sawDayMarker || !flush() {
-		return nil, false
-	}
-	return sections, len(sections) > 1
-}
-
-func localLlamaRewriteDayHeading(line string, day int) string {
-	return localLlamaDayHeadingPattern.ReplaceAllString(line, fmt.Sprintf("Day %d", day))
-}
-
 func localLlamaSourceItemsPromptBlock(text string) string {
-	sourceItems := localLlamaResolvedSourceItems(text)
+	sourceItems := localLlamaExtractionSourceItems(text)
 	if len(sourceItems) == 0 {
 		return "Source meal plan text:\n" + text
 	}
 	var b strings.Builder
-	b.WriteString("Numbered resolved source items:\n")
+	b.WriteString("Numbered source items:\n")
 	for _, item := range sourceItems {
 		mealCode := item.MealCode
 		if mealCode == "" {
 			mealCode = "infer"
 		}
-		fmt.Fprintf(&b, "%d | day=%d | meal_code=%s | source_text=%s\n", item.ID, item.Day, mealCode, item.Text)
+		status := "unresolved"
+		if item.Resolved {
+			status = "resolved"
+		}
+		fmt.Fprintf(&b, "%d | day=%d | meal_code=%s | status=%s | source_text=%s\n", item.ID, item.Day, mealCode, status, item.Text)
 	}
 	return strings.TrimRight(b.String(), "\n")
 }
 
 func localLlamaResolvedSourceItems(text string) []localLlamaSourceItem {
+	return localLlamaSourceItems(text, false)
+}
+
+func localLlamaExtractionSourceItems(text string) []localLlamaSourceItem {
+	return localLlamaSourceItems(text, true)
+}
+
+func localLlamaSourceItems(text string, includeUnresolved bool) []localLlamaSourceItem {
 	var items []localLlamaSourceItem
 	currentDay := 1
 	currentMealCode := ""
@@ -722,9 +604,20 @@ func localLlamaResolvedSourceItems(text string) []localLlamaSourceItem {
 			if mealCode := localLlamaMealCodeFromHeading(trimmed); mealCode != "" {
 				currentMealCode = mealCode
 			}
-			inlineItems := localLlamaInlineSourceItems(trimmed, currentDay, currentMealCode, len(items)+1)
+			inlineItems := localLlamaInlineSourceItems(trimmed, currentDay, currentMealCode, len(items)+1, includeUnresolved)
 			if len(inlineItems) > 0 {
 				items = append(items, inlineItems...)
+			}
+			if includeUnresolved && len(inlineItems) == 0 {
+				if text, ok := localLlamaUnresolvedItemLine(line); ok {
+					items = append(items, localLlamaSourceItem{
+						ID:       len(items) + 1,
+						Day:      currentDay,
+						MealCode: currentMealCode,
+						Text:     text,
+						Resolved: false,
+					})
+				}
 			}
 			continue
 		}
@@ -733,12 +626,13 @@ func localLlamaResolvedSourceItems(text string) []localLlamaSourceItem {
 			Day:      currentDay,
 			MealCode: currentMealCode,
 			Text:     localLlamaCleanSourceItemLine(line),
+			Resolved: true,
 		})
 	}
 	return items
 }
 
-func localLlamaInlineSourceItems(line string, day int, mealCode string, startID int) []localLlamaSourceItem {
+func localLlamaInlineSourceItems(line string, day int, mealCode string, startID int, includeUnresolved bool) []localLlamaSourceItem {
 	if !strings.Contains(line, ":") {
 		return nil
 	}
@@ -753,6 +647,10 @@ func localLlamaInlineSourceItems(line string, day int, mealCode string, startID 
 	var items []localLlamaSourceItem
 	for _, phrase := range localLlamaSplitInlineItemPhrases(remainder) {
 		sourceText, ok := localLlamaNormalizeInlineItemPhrase(phrase)
+		resolved := ok
+		if !ok && includeUnresolved {
+			sourceText, ok = localLlamaNormalizeUnresolvedInlineItemPhrase(phrase)
+		}
 		if !ok {
 			continue
 		}
@@ -761,9 +659,35 @@ func localLlamaInlineSourceItems(line string, day int, mealCode string, startID 
 			Day:      day,
 			MealCode: mealCode,
 			Text:     sourceText,
+			Resolved: resolved && localLlamaParseSourceMeasurement(sourceText).Status == "parsed",
 		})
 	}
 	return items
+}
+
+func localLlamaNormalizeUnresolvedInlineItemPhrase(phrase string) (string, bool) {
+	text := strings.TrimSpace(strings.Trim(phrase, " \t\r\n.;,"))
+	text = localLlamaInlineLeadingAnd.ReplaceAllString(text, "")
+	if text == "" {
+		return "", false
+	}
+	lower := strings.ToLower(text)
+	if strings.Contains(lower, ":") || strings.HasPrefix(lower, "day ") {
+		return "", false
+	}
+	return text, true
+}
+
+func localLlamaUnresolvedItemLine(line string) (string, bool) {
+	matches := localLlamaAnyItemLinePattern.FindStringSubmatch(line)
+	if len(matches) != 2 {
+		return "", false
+	}
+	text := strings.TrimSpace(strings.Trim(matches[1], " \t\r\n.;,"))
+	if text == "" || strings.Contains(text, ":") {
+		return "", false
+	}
+	return text, true
 }
 
 func localLlamaSplitInlineItemPhrases(text string) []string {
@@ -885,13 +809,13 @@ func localLlamaCleanSourceItemLine(line string) string {
 }
 
 func validateLocalModelExtractionCompleteness(plan checker.Plan, sourceText string) error {
-	expected := localLlamaExpectedResolvedItemCount(sourceText)
+	expected := localLlamaExpectedExtractionItemCount(sourceText)
 	if expected == 0 {
 		return nil
 	}
 	got := countMealPlanItems(plan)
 	if got != expected {
-		return fmt.Errorf("local model extracted %d resolved food item(s); expected %d from source resolved food item lines", got, expected)
+		return fmt.Errorf("local model extracted %d food item(s); expected %d from numbered source items", got, expected)
 	}
 	return nil
 }
@@ -1166,7 +1090,7 @@ func writeNormalizationFailureAndReturn(config Config, run Run, provider Provide
 }
 
 func writeLocalModelNormalizationFailureAndReturn(config Config, run Run, input PendingRunInput, events []NormalizationEvent, failure normalizationFailureDebug) error {
-	result := classifyCandidateMealPlanText(input.CandidateText)
+	result := classifyLocalModelCandidateMealPlanText(input.CandidateText)
 	if isTerminalQualificationFailure(result) {
 		events = append(events, normalizationEvent("qualification_failed_post_model", "candidate text was classified as not ready for verification after local model normalization failed"))
 	} else {

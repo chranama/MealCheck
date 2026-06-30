@@ -163,6 +163,7 @@ describe("payload", () => {
       settings: {
         verification_constraints: {
           allergies: ["peanuts", "shellfish"],
+          days: 1,
         },
       },
     });

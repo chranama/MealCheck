@@ -35,26 +35,24 @@ nutrition-critical details.
 
 Required:
 
-- day coverage, either explicit day labels or an unambiguous one-day plan
-- meal labels for each day
+- one-day coverage, either an explicit `Day 1` label or unambiguous meal labels
+- meal labels for the day
 - food or ingredient names for each meal
-- numeric quantities for each food item
-- units that can be normalized to MealCheck-supported units
+- numeric quantities and supported units for as many food items as possible
+- visible unresolved foods when quantities or units are missing
 - enough line, sentence, or delimiter structure to associate each food item
   with the correct day and meal
 
-Ideal multi-day format:
+Ideal hosted format:
 
-- start each day with an explicit label such as `Day 1`, `Day 2`, and `Day 3`
-- keep day labels contiguous and in order for the requested verification window
-- group breakfast, lunch, dinner, and any snacks under the day they belong to
+- use `Day 1` or clear breakfast, lunch, dinner, and snack labels
 - keep each food item close to its quantity and unit
-- avoid cross-day shorthand such as "repeat yesterday's lunch" or "same snacks"
+- keep the full input to one day
+- avoid shorthand such as "same snacks" or "repeat lunch"
 
-Clear `Day N` sections let the hosted local-model path decompose a multi-day
-input into one model call per day, then merge the normalized days back into one
-canonical plan. If the day boundaries are ambiguous or incomplete, the backend
-uses the unbatched whole-plan fallback instead of silently guessing.
+The hosted local-model path rejects multi-day text before queueing. Broader
+plans should be split into one-day submissions or handled in local/self-hosted
+workflows.
 
 Supported unit vocabulary for the first robustness dataset:
 
@@ -70,7 +68,7 @@ Acceptable variability:
 
 - bullets, numbered lists, or short inline sentences
 - fractional or decimal quantities
-- one to seven days
+- one day
 - three meals per day, or snack-inclusive plans up to six meals per day
 - repeated foods across days
 - common preparation adjectives such as grilled, cooked, steamed, baked, plain,
@@ -81,7 +79,8 @@ Not acceptable for this dataset:
 - vague meal names without ingredients or quantities
 - recipes that need decomposition into ingredients
 - nutrition totals without food items
-- foods with no quantity
+- foods with no quantity may be preserved as unresolved, but fully vague meal
+  outlines are not useful for nutrition checking
 - quantities with unsupported units such as handful, bowl, scoop, or
   small/medium/large
 - clinical, pediatric, pregnancy, or disease-specific scenarios
@@ -153,10 +152,9 @@ valid meal plan may still fail nutrition, allergen, or prep-safety checks.
 ## Public Copy Alignment
 
 Public copy should stay non-technical. It should say that MealCheck works best
-with plans that list days, meals, foods or ingredients, and approximate amounts.
-For multi-day plans, it should encourage clear `Day 1`, `Day 2`, and `Day 3`
-style labels. It should not mention schemas, compact rows, model contracts,
-APIs, batching, fallback paths, or internal adapters.
+with one day of meals that lists meal labels, foods or ingredients, and
+approximate amounts. It should not mention schemas, compact rows, model
+contracts, APIs, batching, fallback paths, or internal adapters.
 
 ## Future Dataset Slices
 

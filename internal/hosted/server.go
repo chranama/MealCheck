@@ -200,6 +200,9 @@ func (s *Server) handleQualify(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 		return
 	}
+	if hostedMode(s.Config) == HostedModeLocalModel {
+		request.Settings = normalizeLocalModelSettings(request.Settings)
+	}
 	if err := validateSettings(request.Settings); err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 		return
@@ -214,6 +217,10 @@ func (s *Server) handleQualify(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := validateLocalModelSettings(request.Settings); err != nil {
+			writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
+			return
+		}
+		if err := validateLocalModelInputContract(s.Config, request.Text); err != nil {
 			writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 			return
 		}
@@ -422,6 +429,10 @@ func requestRunInput(config Config, request CreateRunRequest) (string, PendingRu
 			return "", PendingRunInput{}, false, err
 		}
 	case InputModeLocalModel:
+		pendingInput.Settings = normalizeLocalModelSettings(pendingInput.Settings)
+		if err := validateSettings(pendingInput.Settings); err != nil {
+			return "", PendingRunInput{}, false, err
+		}
 		if err := validateLocalModelAvailable(config); err != nil {
 			return "", PendingRunInput{}, false, err
 		}
@@ -437,9 +448,12 @@ func requestRunInput(config Config, request CreateRunRequest) (string, PendingRu
 		if err := validateLocalModelSettings(pendingInput.Settings); err != nil {
 			return "", PendingRunInput{}, false, err
 		}
-		qualification := classifyCandidateMealPlanText(pendingInput.CandidateText)
+		qualification := classifyLocalModelCandidateMealPlanText(pendingInput.CandidateText)
 		if isTerminalQualificationFailure(qualification) {
 			return "", PendingRunInput{}, false, qualificationRejectionError{Qualification: qualification}
+		}
+		if err := validateLocalModelInputContract(config, pendingInput.CandidateText); err != nil {
+			return "", PendingRunInput{}, false, err
 		}
 		pendingInput.Provider = localModelProviderConfig(config)
 		pendingInput.RepairJSON = false
@@ -812,6 +826,9 @@ func validateLocalModelAvailable(config Config) error {
 }
 
 func validateLocalModelSettings(settings checker.Settings) error {
+	if settings.VerificationConstraints.Days != 1 {
+		return fmt.Errorf("hosted local_model requires settings verification_constraints days to be exactly 1")
+	}
 	return nil
 }
 
@@ -825,9 +842,10 @@ func (s *Server) localModelHealth(ctx context.Context) map[string]any {
 		"ready":                   false,
 		"model":                   modelName,
 		"max_input_chars":         s.Config.LocalModelMaxInputChars,
+		"max_source_items":        s.Config.LocalModelMaxSourceItems,
 		"max_output_tokens":       s.Config.LocalModelMaxOutputTokens,
 		"timeout_sec":             int(s.Config.LocalModelTimeout.Seconds()),
-		"supported_days":          7,
+		"supported_days":          1,
 		"supported_meals_per_day": 6,
 	}
 	if !s.Config.LocalModelEnabled {

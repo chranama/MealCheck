@@ -9,10 +9,11 @@ MealCheck normalizes it through the server-owned local model before deterministi
 verification. BYOK/custom provider flows and structured JSON entry remain
 available in the downloaded repository and API/CLI for local verification,
 debugging, regression cases, and future agent-tool integration.
-The ideal hosted input labels each day explicitly, for example `Day 1`,
-`Day 2`, and `Day 3`, and groups meals, foods, quantities, and units under the
-right day. Clear day sections allow the local-model path to normalize one day at
-a time; ambiguous multi-day text uses the unbatched fallback.
+The hosted input contract is one day only. The ideal input uses `Day 1` or clear
+meal labels, stays under the configured character and source-item limits, and
+groups foods, quantities, and units under meals. Missing amounts may remain
+visible as unresolved items, but weekly plans, recipes, grocery lists, and
+multi-day text are rejected before the model is called.
 
 ## Problem
 
@@ -46,9 +47,8 @@ MealCheck should make the check bounded, source-linked, and inspectable.
   inference.
 - Determine whether model output or pasted text qualifies as a verifiable meal
   plan.
-- Verify pasted ingredient-level meal-plan text through the hosted local model.
-- Verify clear day-labeled multi-day plans through per-day local-model
-  normalization, with a whole-plan fallback for ambiguous day boundaries.
+- Verify one day of pasted ingredient-level meal-plan text through the hosted
+  local model.
 - Use BYOK/custom providers from the repo API/CLI or a self-hosted deployment
   for provider experiments and custom endpoints.
 - Verify normalized structured JSON locally through the CLI for debugging and

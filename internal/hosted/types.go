@@ -73,6 +73,7 @@ type Config struct {
 	LocalModelName            string
 	LocalModelTimeout         time.Duration
 	LocalModelMaxInputChars   int
+	LocalModelMaxSourceItems  int
 	LocalModelMaxOutputTokens int
 	QueueSize                 int
 	MaxCasesPerRun            int

@@ -37,11 +37,12 @@ func TestLocalModelExtractionMessagesIncludeResolvedItemCount(t *testing.T) {
 	userPrompt := messages[1].Content
 	for _, want := range []string{
 		"Use exactly these meal codes for every day: b, l, d.",
-		"The source contains exactly 3 resolved food item line(s); return exactly 3 row(s).",
-		"Convert every numbered source item into exactly one [source_item_id, day, meal_code, food, quantity, unit] tuple.",
-		"1 | day=1 | meal_code=b | source_text=1 cup oatmeal",
-		"2 | day=1 | meal_code=b | source_text=1/2 cup blueberries",
-		"3 | day=1 | meal_code=l | source_text=4 oz chicken",
+		"The source contains exactly 4 numbered source item(s); return exactly 4 row(s).",
+		"Convert every numbered source item into exactly one row.",
+		"1 | day=1 | meal_code=b | status=resolved | source_text=1 cup oatmeal",
+		"2 | day=1 | meal_code=b | status=resolved | source_text=1/2 cup blueberries",
+		"3 | day=1 | meal_code=b | status=unresolved | source_text=salt to taste",
+		"4 | day=1 | meal_code=l | status=resolved | source_text=4 oz chicken",
 	} {
 		if !strings.Contains(userPrompt, want) {
 			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
@@ -68,12 +69,12 @@ func TestLocalModelExtractionMessagesNumberInlineMealItems(t *testing.T) {
 	}
 	userPrompt := messages[1].Content
 	for _, want := range []string{
-		"The source contains exactly 9 resolved food item line(s); return exactly 9 row(s).",
-		"1 | day=1 | meal_code=b | source_text=1 cup cooked oatmeal",
-		"2 | day=1 | meal_code=b | source_text=1 cup blueberries",
-		"3 | day=1 | meal_code=b | source_text=1 cup plain Greek yogurt",
-		"4 | day=1 | meal_code=l | source_text=6 oz chicken breast",
-		"9 | day=1 | meal_code=d | source_text=1 cup spinach",
+		"The source contains exactly 9 numbered source item(s); return exactly 9 row(s).",
+		"1 | day=1 | meal_code=b | status=resolved | source_text=1 cup cooked oatmeal",
+		"2 | day=1 | meal_code=b | status=resolved | source_text=1 cup blueberries",
+		"3 | day=1 | meal_code=b | status=resolved | source_text=1 cup plain Greek yogurt",
+		"4 | day=1 | meal_code=l | status=resolved | source_text=6 oz chicken breast",
+		"9 | day=1 | meal_code=d | status=resolved | source_text=1 cup spinach",
 	} {
 		if !strings.Contains(userPrompt, want) {
 			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
@@ -81,11 +82,11 @@ func TestLocalModelExtractionMessagesNumberInlineMealItems(t *testing.T) {
 	}
 }
 
-func TestLocalModelExtractionMessagesInferCountsWhenUnset(t *testing.T) {
+func TestLocalModelExtractionMessagesDefaultsToOneDayWhenSettingsUnset(t *testing.T) {
 	messages, err := localModelExtractionMessages(PendingRunInput{
 		CandidateText: strings.Join([]string{
 			"Day 1 breakfast: 1 cup cooked oatmeal.",
-			"Day 2 dinner: 4 oz salmon.",
+			"Day 1 dinner: 4 oz salmon.",
 		}, "\n"),
 	})
 	if err != nil {
@@ -93,7 +94,6 @@ func TestLocalModelExtractionMessagesInferCountsWhenUnset(t *testing.T) {
 	}
 	userPrompt := messages[1].Content
 	for _, unwanted := range []string{
-		"Use day numbers 1..",
 		"Each day must contain exactly",
 		"Use exactly these meal codes",
 	} {
@@ -102,8 +102,9 @@ func TestLocalModelExtractionMessagesInferCountsWhenUnset(t *testing.T) {
 		}
 	}
 	for _, want := range []string{
-		"1 | day=1 | meal_code=b | source_text=1 cup cooked oatmeal",
-		"2 | day=2 | meal_code=d | source_text=4 oz salmon",
+		"Use day numbers 1..1.",
+		"1 | day=1 | meal_code=b | status=resolved | source_text=1 cup cooked oatmeal",
+		"2 | day=1 | meal_code=d | status=resolved | source_text=4 oz salmon",
 	} {
 		if !strings.Contains(userPrompt, want) {
 			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
@@ -126,10 +127,10 @@ func TestLocalModelExtractionMessagesPreservesAndInsideFoodNames(t *testing.T) {
 	}
 	userPrompt := messages[1].Content
 	for _, want := range []string{
-		"The source contains exactly 3 resolved food item line(s); return exactly 3 row(s).",
-		"1 | day=1 | meal_code=d | source_text=1 cup macaroni and cheese",
-		"2 | day=1 | meal_code=d | source_text=1 serving banana",
-		"3 | day=1 | meal_code=d | source_text=1 cup broccoli",
+		"The source contains exactly 3 numbered source item(s); return exactly 3 row(s).",
+		"1 | day=1 | meal_code=d | status=resolved | source_text=1 cup macaroni and cheese",
+		"2 | day=1 | meal_code=d | status=resolved | source_text=1 serving banana",
+		"3 | day=1 | meal_code=d | status=resolved | source_text=1 cup broccoli",
 	} {
 		if !strings.Contains(userPrompt, want) {
 			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
@@ -139,17 +140,17 @@ func TestLocalModelExtractionMessagesPreservesAndInsideFoodNames(t *testing.T) {
 
 func TestLocalModelExtractionMessagesNormalizesSliceUnitAndSlicedOrange(t *testing.T) {
 	messages, err := localModelExtractionMessages(PendingRunInput{
-		CandidateText: "Day 2 breakfast: 1 serving boiled egg, 2 slices whole wheat bread, and 1 cup sliced oranges.",
+		CandidateText: "Day 1 breakfast: 1 serving boiled egg, 2 slices whole wheat bread, and 1 cup sliced oranges.",
 	})
 	if err != nil {
 		t.Fatalf("localModelExtractionMessages error: %v", err)
 	}
 	userPrompt := messages[1].Content
 	for _, want := range []string{
-		"The source contains exactly 3 resolved food item line(s); return exactly 3 row(s).",
-		"1 | day=2 | meal_code=b | source_text=1 serving boiled egg",
-		"2 | day=2 | meal_code=b | source_text=2 slice whole wheat bread",
-		"3 | day=2 | meal_code=b | source_text=1 cup sliced oranges",
+		"The source contains exactly 3 numbered source item(s); return exactly 3 row(s).",
+		"1 | day=1 | meal_code=b | status=resolved | source_text=1 serving boiled egg",
+		"2 | day=1 | meal_code=b | status=resolved | source_text=2 slice whole wheat bread",
+		"3 | day=1 | meal_code=b | status=resolved | source_text=1 cup sliced oranges",
 	} {
 		if !strings.Contains(userPrompt, want) {
 			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
@@ -193,7 +194,7 @@ func TestMealPlanInputRobustnessManifestSourceInventory(t *testing.T) {
 				t.Fatalf("resolved source item count = %d, want %d\nitems=%+v", len(items), tc.ExpectedItemCount, items)
 			}
 			itemCountInstruction := localLlamaItemCountInstruction(text)
-			if !strings.Contains(itemCountInstruction, "exactly "+strconv.Itoa(tc.ExpectedItemCount)+" resolved food item") {
+			if !strings.Contains(itemCountInstruction, "exactly "+strconv.Itoa(tc.ExpectedItemCount)+" numbered source item") {
 				t.Fatalf("item count instruction does not include expected count %d: %s", tc.ExpectedItemCount, itemCountInstruction)
 			}
 
@@ -243,64 +244,44 @@ func TestMealPlanInputRobustnessManifestSourceInventory(t *testing.T) {
 			}
 
 			if tc.ExpectedDays > 1 {
-				sections, ok := localModelDaySections(text)
-				if !ok {
-					t.Fatalf("multi-day case did not decompose into day sections")
+				err := validateLocalModelInputContract(Config{LocalModelMaxSourceItems: 100}, text)
+				if err == nil {
+					t.Fatalf("multi-day case passed hosted local-model input contract")
 				}
-				if len(sections) != tc.ExpectedDays {
-					t.Fatalf("day sections = %d, want %d: %+v", len(sections), tc.ExpectedDays, sections)
-				}
-				total := 0
-				for _, section := range sections {
-					total += localLlamaExpectedResolvedItemCount(section.Text)
-				}
-				if total != tc.ExpectedItemCount {
-					t.Fatalf("day section item total = %d, want %d", total, tc.ExpectedItemCount)
+				if !strings.Contains(err.Error(), "one day") {
+					t.Fatalf("multi-day contract error = %q, want one-day rejection", err)
 				}
 			}
 		})
 	}
 }
 
-func TestLocalModelDaySectionsRewritesEachDayForSingleDayExtraction(t *testing.T) {
-	sections, ok := localModelDaySections(strings.Join([]string{
-		"Day 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.",
-		"Day 1 lunch: 4 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.",
-		"Day 1 dinner: 4 oz salmon, 1 cup sweet potato, and 1 cup spinach.",
-		"Day 2 breakfast: 2 eggs, 1 cup whole wheat toast, and 1 cup orange segments.",
-		"Day 2 lunch: 4 oz tuna, 2 cups mixed greens, and 1 tsp vinaigrette.",
-		"Day 2 dinner: 5 oz turkey meatballs, 1 cup whole wheat pasta, and 1 cup tomato sauce.",
+func TestValidateLocalModelInputContractRejectsMultiDayText(t *testing.T) {
+	err := validateLocalModelInputContract(Config{LocalModelMaxSourceItems: 20}, strings.Join([]string{
+		"Day 1 breakfast: 1 cup cooked oatmeal.",
+		"Day 2 breakfast: 1 cup cooked oatmeal.",
 	}, "\n"))
-	if !ok {
-		t.Fatal("localModelDaySections ok = false, want true")
+	if err == nil {
+		t.Fatal("validateLocalModelInputContract error = nil, want multi-day rejection")
 	}
-	if len(sections) != 2 {
-		t.Fatalf("sections length = %d, want 2", len(sections))
-	}
-	if sections[0].Day != 1 || sections[1].Day != 2 {
-		t.Fatalf("section days = %d/%d, want 1/2", sections[0].Day, sections[1].Day)
-	}
-	if strings.Contains(sections[1].Text, "Day 2") {
-		t.Fatalf("second section was not rewritten for one-day extraction:\n%s", sections[1].Text)
-	}
-	if !strings.Contains(sections[1].Text, "Day 1 breakfast") {
-		t.Fatalf("second section missing rewritten day marker:\n%s", sections[1].Text)
-	}
-	if got := localLlamaExpectedResolvedItemCount(sections[1].Text); got != 9 {
-		t.Fatalf("second section resolved item count = %d, want 9", got)
+	if !strings.Contains(err.Error(), "one day only") {
+		t.Fatalf("error = %q, want one-day contract message", err)
 	}
 }
 
-func TestLocalModelDaySectionsUsesObservedDayCoverage(t *testing.T) {
-	sections, ok := localModelDaySections(strings.Join([]string{
-		"Day 1 breakfast: 1 cup cooked oatmeal.",
-		"Day 3 breakfast: 1 cup cooked oatmeal.",
-	}, "\n"))
-	if !ok {
-		t.Fatal("localModelDaySections ok = false, want true for observed day labels")
+func TestValidateLocalModelInputContractRejectsTooManySourceItems(t *testing.T) {
+	text := strings.Join([]string{
+		"Day 1 breakfast:",
+		"- 1 cup cooked oatmeal",
+		"- 1 cup blueberries",
+		"- 1 cup plain Greek yogurt",
+	}, "\n")
+	err := validateLocalModelInputContract(Config{LocalModelMaxSourceItems: 2}, text)
+	if err == nil {
+		t.Fatal("validateLocalModelInputContract error = nil, want item limit rejection")
 	}
-	if len(sections) != 2 || sections[0].Day != 1 || sections[1].Day != 3 {
-		t.Fatalf("sections = %+v, want day 1 and day 3", sections)
+	if !strings.Contains(err.Error(), "at most 2") {
+		t.Fatalf("error = %q, want item limit", err)
 	}
 }
 

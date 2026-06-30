@@ -31,9 +31,11 @@ type localLlamaRowPlan struct {
 }
 
 type localLlamaCompactItem struct {
-	Food     string  `json:"f"`
-	Quantity float64 `json:"q"`
-	Unit     string  `json:"u"`
+	Food             string  `json:"f"`
+	Quantity         float64 `json:"q"`
+	Unit             string  `json:"u"`
+	QuantityText     string
+	UnresolvedReason string
 }
 
 type localLlamaTupleItem struct {
@@ -43,12 +45,14 @@ type localLlamaTupleItem struct {
 }
 
 type localLlamaRowItem struct {
-	SourceItemID int
-	Day          int
-	MealCode     string
-	Food         string
-	Quantity     float64
-	Unit         string
+	SourceItemID     int
+	Day              int
+	MealCode         string
+	Food             string
+	Quantity         float64
+	Unit             string
+	QuantityText     string
+	UnresolvedReason string
 }
 
 type LocalLlamaParsedSourceMeasurement struct {
@@ -90,17 +94,21 @@ func (item *localLlamaTupleItem) UnmarshalJSON(data []byte) error {
 func (item *localLlamaRowItem) UnmarshalJSON(data []byte) error {
 	var values []json.RawMessage
 	if err := json.Unmarshal(data, &values); err != nil {
-		return fmt.Errorf("local llama row item must be [source_item_id, day, meal_code, food, quantity, unit]: %w", err)
+		return fmt.Errorf("local llama row item must be [source_item_id, day, meal_code, food, quantity, unit] or unresolved row: %w", err)
 	}
-	if len(values) != 5 && len(values) != 6 {
-		return fmt.Errorf("local llama row item must have exactly 5 legacy values or 6 source-id values")
+	if len(values) != 5 && len(values) != 6 && len(values) != 7 && len(values) != 8 {
+		return fmt.Errorf("local llama row item must have 5 or 6 resolved values, or 7 or 8 unresolved values")
 	}
 	offset := 0
-	if len(values) == 6 {
+	if len(values) == 6 || len(values) == 8 {
 		if err := json.Unmarshal(values[0], &item.SourceItemID); err != nil {
 			return fmt.Errorf("local llama row item source_item_id must be an integer: %w", err)
 		}
 		offset = 1
+	}
+	rowValueCount := len(values) - offset
+	if rowValueCount != 5 && rowValueCount != 7 {
+		return fmt.Errorf("local llama rows must either all include source_item_id or all use the legacy row shape")
 	}
 	if err := json.Unmarshal(values[offset], &item.Day); err != nil {
 		return fmt.Errorf("local llama row item day must be an integer: %w", err)
@@ -111,11 +119,22 @@ func (item *localLlamaRowItem) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(values[offset+2], &item.Food); err != nil {
 		return fmt.Errorf("local llama row item food must be a string: %w", err)
 	}
-	if err := json.Unmarshal(values[offset+3], &item.Quantity); err != nil {
-		return fmt.Errorf("local llama row item quantity must be a number: %w", err)
+	quantityText := strings.TrimSpace(string(values[offset+3]))
+	if quantityText != "null" {
+		if err := json.Unmarshal(values[offset+3], &item.Quantity); err != nil {
+			return fmt.Errorf("local llama row item quantity must be a number or null for unresolved rows: %w", err)
+		}
 	}
 	if err := json.Unmarshal(values[offset+4], &item.Unit); err != nil {
 		return fmt.Errorf("local llama row item unit must be a string: %w", err)
+	}
+	if rowValueCount == 7 {
+		if err := json.Unmarshal(values[offset+5], &item.QuantityText); err != nil {
+			return fmt.Errorf("local llama unresolved row quantity_text must be a string: %w", err)
+		}
+		if err := json.Unmarshal(values[offset+6], &item.UnresolvedReason); err != nil {
+			return fmt.Errorf("local llama unresolved row unresolved_reason must be a string: %w", err)
+		}
 	}
 	return nil
 }
@@ -257,9 +276,11 @@ func expandLocalLlamaRows(rows []localLlamaRowItem, planID string) (checker.Plan
 			dayMeals[row.Day] = map[string][]localLlamaCompactItem{}
 		}
 		dayMeals[row.Day][mealCode] = append(dayMeals[row.Day][mealCode], localLlamaCompactItem{
-			Food:     row.Food,
-			Quantity: row.Quantity,
-			Unit:     row.Unit,
+			Food:             row.Food,
+			Quantity:         row.Quantity,
+			Unit:             row.Unit,
+			QuantityText:     row.QuantityText,
+			UnresolvedReason: row.UnresolvedReason,
 		})
 	}
 
@@ -441,6 +462,26 @@ func expandLocalLlamaCompactItems(mealName string, compactItems []localLlamaComp
 		if food == "" {
 			return nil, fmt.Errorf("local llama compact meal %s has an item without food", mealName)
 		}
+		if strings.TrimSpace(compact.QuantityText) != "" || strings.TrimSpace(compact.UnresolvedReason) != "" {
+			quantityText := strings.TrimSpace(compact.QuantityText)
+			if quantityText == "" {
+				quantityText = "missing quantity"
+			}
+			reason := strings.TrimSpace(compact.UnresolvedReason)
+			if reason == "" {
+				reason = "missing_quantity"
+			}
+			if !allowedLocalLlamaUnresolvedReason(reason) {
+				return nil, fmt.Errorf("local llama compact item %s has unsupported unresolved_reason %q", food, reason)
+			}
+			items = append(items, checker.FoodItem{
+				Food:             food,
+				QuantityText:     quantityText,
+				ResolutionStatus: "unresolved",
+				UnresolvedReason: reason,
+			})
+			continue
+		}
 		if compact.Quantity <= 0 {
 			return nil, fmt.Errorf("local llama compact item %s quantity must be positive", food)
 		}
@@ -457,6 +498,15 @@ func expandLocalLlamaCompactItems(mealName string, compactItems []localLlamaComp
 		})
 	}
 	return items, nil
+}
+
+func allowedLocalLlamaUnresolvedReason(reason string) bool {
+	switch reason {
+	case "missing_quantity", "vague_quantity", "unsupported_unit":
+		return true
+	default:
+		return false
+	}
 }
 
 func localLlamaStripDuplicateQuantityPrefix(food string, quantity float64, unit string) (string, string) {
@@ -595,6 +645,11 @@ func reconcileLocalLlamaRowsWithSource(rows []localLlamaRowItem, sourceText stri
 		if measurement.Status != "parsed" {
 			continue
 		}
+		if strings.TrimSpace(row.QuantityText) != "" || strings.TrimSpace(row.UnresolvedReason) != "" {
+			repairs = append(repairs, localLlamaRepair(row.SourceItemID, "resolution_status", "unresolved", "resolved", "source_measurement"))
+			row.QuantityText = ""
+			row.UnresolvedReason = ""
+		}
 		if math.Abs(row.Quantity-measurement.Quantity) > 0.0001 {
 			repairs = append(repairs, localLlamaRepair(row.SourceItemID, "quantity", formatLocalLlamaQuantity(row.Quantity), formatLocalLlamaQuantity(measurement.Quantity), "source_measurement"))
 			row.Quantity = measurement.Quantity
@@ -630,42 +685,41 @@ func formatLocalLlamaQuantity(quantity float64) string {
 }
 
 func LocalLlamaCompactResponseSchema() map[string]any {
-	item := map[string]any{
+	sourceIDField := map[string]any{"type": "integer", "minimum": 1}
+	dayField := map[string]any{"type": "integer", "minimum": 1, "maximum": 1}
+	mealCodeField := map[string]any{"type": "string", "enum": []string{"b", "m", "l", "a", "d", "s", "e"}}
+	foodField := map[string]any{"type": "string"}
+	quantityField := map[string]any{"type": "number", "exclusiveMinimum": 0}
+	unitField := map[string]any{"type": "string", "enum": []string{"g", "oz", "cup", "tbsp", "tsp", "slice", "serving"}}
+	resolvedItem := map[string]any{
+		"type":            "array",
+		"minItems":        6,
+		"maxItems":        6,
+		"items":           []map[string]any{sourceIDField, dayField, mealCodeField, foodField, quantityField, unitField},
+		"additionalItems": false,
+	}
+	unresolvedItem := map[string]any{
 		"type":     "array",
-		"minItems": 6,
-		"maxItems": 6,
+		"minItems": 8,
+		"maxItems": 8,
 		"items": []map[string]any{
-			{
-				"type":    "integer",
-				"minimum": 1,
-			},
-			{
-				"type":    "integer",
-				"minimum": 1,
-				"maximum": 7,
-			},
-			{
-				"type": "string",
-				"enum": []string{"b", "m", "l", "a", "d", "s", "e"},
-			},
-			{
-				"type": "string",
-			},
-			{
-				"type":             "number",
-				"exclusiveMinimum": 0,
-			},
-			{
-				"type": "string",
-				"enum": []string{"g", "oz", "cup", "tbsp", "tsp", "slice", "serving"},
-			},
+			sourceIDField,
+			dayField,
+			mealCodeField,
+			foodField,
+			{"type": []string{"number", "null"}},
+			{"type": "string"},
+			{"type": "string"},
+			{"type": "string", "enum": []string{"missing_quantity", "vague_quantity", "unsupported_unit"}},
 		},
 		"additionalItems": false,
 	}
 	rows := map[string]any{
 		"type":     "array",
 		"minItems": 1,
-		"items":    item,
+		"items": map[string]any{
+			"oneOf": []map[string]any{resolvedItem, unresolvedItem},
+		},
 	}
 	return map[string]any{
 		"type":                 "object",

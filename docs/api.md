@@ -379,31 +379,28 @@ file workflow. The same normalized plan validation rules apply there:
 ### Hosted Local Model Run Request
 
 `input_mode: "local_model"` queues a live check that normalizes pasted
-meal-plan text through the server-owned local model. The compact local contract
-supports up to seven days and up to six meals per day by asking the model for
-rows in the form `[source_item_id, day, meal_code, food, quantity, unit]`. The
-backend numbers resolved source item lines before prompting the model, then
-rejects outputs with missing or duplicated source item IDs.
+one day of meal-plan text through the server-owned local model. The hosted
+contract supports one day only, up to `MEALCHECK_LOCAL_MODEL_MAX_INPUT_CHARS`
+characters, and up to `MEALCHECK_LOCAL_MODEL_MAX_SOURCE_ITEMS` numbered source
+food items. Weekly plans, multi-day text, recipes, grocery lists, and long prose
+are rejected before queueing.
 
-When the text has clear `Day N` sections for every requested day, the backend
-splits the input into per-day extraction calls before it reaches the local
-model. Each day is normalized with a smaller one-day prompt, then the backend
-restores the original day number and merges the days into one canonical
-MealCheck plan. Ambiguous day boundaries fall back to the whole-plan compact
-contract.
+The compact local contract asks the model for rows in the form
+`[source_item_id, day, meal_code, food, quantity, unit]`. If a source item does
+not contain a usable amount, the model must preserve it as
+`[source_item_id, day, meal_code, food, null, "", quantity_text, unresolved_reason]`.
+The backend numbers source items before prompting the model, rejects outputs
+with missing or duplicated source item IDs, and expands the compact rows into
+canonical MealCheck JSON before deterministic verification.
 
-For best results, multi-day `candidate_text` should label every requested day
-explicitly and keep foods, quantities, and units under the matching day:
+For best results, `candidate_text` should describe one day with clear meal
+labels, foods, and amounts:
 
 ```text
 Day 1 breakfast: 1 cup cooked oatmeal, 0.5 cup blueberries, and 1 cup plain Greek yogurt.
 Day 1 lunch: 4 oz grilled chicken breast, 1 cup brown rice, and 1 cup steamed broccoli.
-Day 2 breakfast: 2 eggs, 1 cup whole wheat toast, and 1 cup orange segments.
-Day 2 lunch: 4 oz tuna, 2 cups mixed greens, and 1 tsp vinaigrette.
+Day 1 dinner: baked salmon, 1 serving sweet potato, and 1 tbsp olive oil.
 ```
-
-The unbatched fallback is intentionally preserved for clients that send
-acceptable but less regular meal-plan text.
 
 Clients must omit `provider`; the backend injects the configured local model
 endpoint and model id.
@@ -411,14 +408,14 @@ endpoint and model id.
 ```json
 {
   "input_mode": "local_model",
-  "candidate_text": "Day 1 breakfast: 1 cup cooked oatmeal, 0.5 cup blueberries, and 1 cup plain Greek yogurt.\nDay 1 lunch: 4 oz grilled chicken breast, 1 cup brown rice, and 1 cup steamed broccoli.\nDay 1 dinner: 4 oz baked salmon, 1 serving sweet potato, and 1 tbsp olive oil.\nDay 2 breakfast: 2 eggs, 1 cup whole wheat toast, and 1 cup orange segments.\nDay 2 lunch: 4 oz tuna, 2 cups mixed greens, and 1 tsp vinaigrette.\nDay 2 dinner: 5 oz turkey meatballs, 1 cup whole wheat pasta, and 1 cup tomato sauce.\nDay 3 breakfast: 1 cup cottage cheese, 1 serving pineapple, and 1 cup whole grain cereal.\nDay 3 lunch: 4 oz tofu, 1 cup soba noodles, and 1 cup bok choy.\nDay 3 dinner: 5 oz lean beef, 1 cup roasted carrots, and 1 cup barley.",
+  "candidate_text": "Day 1 breakfast: 1 cup cooked oatmeal, 0.5 cup blueberries, and 1 cup plain Greek yogurt.\nDay 1 lunch: 4 oz grilled chicken breast, 1 cup brown rice, and 1 cup steamed broccoli.\nDay 1 dinner: baked salmon, 1 serving sweet potato, and 1 tbsp olive oil.",
   "settings": {
     "nutrition_targets": {
       "calorie_target_kcal": 2000,
       "protein_target_g": 98
     },
     "verification_constraints": {
-      "days": 3,
+      "days": 1,
       "meals_per_day": 3,
       "allergies": ["peanuts"],
       "excluded_foods": ["shellfish"],
@@ -439,6 +436,9 @@ Rules:
   OpenAI-compatible API, normally `http://127.0.0.1:11435/v1`.
 - `MEALCHECK_LOCAL_MODEL_NAME` must match the loaded llama.cpp model id.
 - `candidate_text` is bounded by `MEALCHECK_LOCAL_MODEL_MAX_INPUT_CHARS`.
+- source items are bounded by `MEALCHECK_LOCAL_MODEL_MAX_SOURCE_ITEMS`.
+- `settings.verification_constraints.days` must be omitted or `1`; the backend
+  normalizes omitted local-model day count to `1`.
 - Local model output uses compact meal codes: `b` breakfast, `m` morning snack,
   `l` lunch, `a` afternoon snack, `d` dinner, `s` snack, and `e` evening snack.
   The backend expands these rows into canonical MealCheck JSON before
@@ -446,9 +446,9 @@ Rules:
 - `provider` is rejected in `local_model` requests.
 
 Before queueing a `local_model` run, the backend applies a deterministic
-meal-plan qualification preflight. Obvious non-meal text, meal-like text without
-quantities or units, and recipe-like text that has not been decomposed into
-day/meal/ingredient rows return `422` and do not call the model:
+meal-plan qualification and contract preflight. Obvious non-meal text returns
+`422` and does not call the model. Multi-day text, recipes, grocery lists,
+oversized text, and source-item overflows return `400 invalid_request`:
 
 ```json
 {
@@ -696,10 +696,11 @@ Example response:
     "enabled": true,
     "ready": true,
     "model": "Qwen3-0.6B-Q4_K_M.gguf",
-    "max_input_chars": 6000,
+    "max_input_chars": 3000,
+    "max_source_items": 20,
     "max_output_tokens": 1536,
     "timeout_sec": 240,
-    "supported_days": 7,
+    "supported_days": 1,
     "supported_meals_per_day": 6
   },
   "policy": {

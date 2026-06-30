@@ -25,7 +25,8 @@ const localModelBackend: BackendState = {
     enabled: true,
     ready: true,
     model: "Qwen3-0.6B-Q4_K_M.gguf",
-    max_input_chars: 6000,
+    max_input_chars: 3000,
+    max_source_items: 20,
     timeout_sec: 240,
   },
 };
@@ -73,7 +74,7 @@ describe("LiveWorkspace", () => {
     expect(screen.queryByText("Input")).not.toBeInTheDocument();
     expect(screen.queryByText("Timeout")).not.toBeInTheDocument();
     expect(screen.queryByText("240s")).not.toBeInTheDocument();
-    expect(screen.getAllByText(/\/ 6,000 characters/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/\/ 3,000 characters/).length).toBeGreaterThan(0);
     expect(screen.queryByText("Model Provider")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Provider")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("API key")).not.toBeInTheDocument();
@@ -101,7 +102,7 @@ describe("LiveWorkspace", () => {
     const payload = calls[0][2];
     expect(payload).not.toHaveProperty("provider");
     expect(payload).not.toHaveProperty("repair_json");
-    expect((payload.settings as { verification_constraints: Record<string, unknown> }).verification_constraints).not.toHaveProperty("days");
+    expect((payload.settings as { verification_constraints: Record<string, unknown> }).verification_constraints).toHaveProperty("days", 1);
     expect((payload.settings as { verification_constraints: Record<string, unknown> }).verification_constraints).not.toHaveProperty("meals_per_day");
   });
 
@@ -434,7 +435,7 @@ describe("LiveWorkspace", () => {
     });
 
     expect(screen.getByText("MealCheck could not normalize this plan")).toBeInTheDocument();
-    expect(screen.getByText(/Use clear Day 1, Day 2 labels/)).toBeInTheDocument();
+    expect(screen.getByText(/Use one day only/)).toBeInTheDocument();
     expect(screen.getByText(/Put each meal on its own line/)).toBeInTheDocument();
   });
 

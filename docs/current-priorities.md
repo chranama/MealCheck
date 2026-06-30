@@ -146,8 +146,8 @@ Good enough:
 - Queue-full, rate-limit, model-unavailable, timeout, and failed-run states have
   distinct recovery guidance.
 - Stage timing is visible to operators through logs or artifacts.
-- One-day and clear multi-day inputs stay within configured timeout limits under
-  normal load.
+- Accepted one-day inputs stay within configured timeout limits under normal
+  load.
 
 Near-term engineering slices:
 
@@ -157,13 +157,13 @@ Near-term engineering slices:
    user secrets or internal host paths.
 3. Use measured data before raising model limits again.
 4. Keep one active local-model run unless measurements show safe headroom.
-5. Prefer per-day decomposition for clear multi-day inputs because it reduces
-   output pressure and improves failure isolation.
+5. Keep hosted local-model input bounded to one day and the configured source
+   item cap before revisiting larger scopes.
 
 Metrics to track:
 
 - Queue wait time.
-- Local-model extraction time by day count and item count.
+- Local-model extraction time by source-item count.
 - End-to-end run time.
 - Timeout count.
 - Queue-full count.
@@ -248,7 +248,7 @@ P1 proof should include:
 P2 proof should include:
 
 - local and deployed smoke tests
-- timing summaries from representative one-day and multi-day inputs
+- timing summaries from representative one-day inputs
 - queue, timeout, and model-unavailable recovery checks
 
 P3 proof should include:
