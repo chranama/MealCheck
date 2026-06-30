@@ -474,10 +474,14 @@ Response shape:
 ```
 
 Qualification statuses are `not_meal_plan`, `meal_plan_too_vague`,
-`recipe_or_menu_needs_decomposition`, `eligible_for_verification`, and
+`recipe_or_menu_needs_decomposition`,
+`meal_plan_outside_hosted_contract`, `eligible_for_verification`, and
 `eligible_with_unresolved_items`. Qualification does not decide guideline
 compliance; it only determines whether content can become normalized meal-plan
-JSON for verification.
+JSON for verification. The hosted local-model path uses
+`meal_plan_outside_hosted_contract` for food-related input that is outside the
+public one-day contract, such as weekly plans, multi-day plans, grocery lists,
+or source inventories over the configured source-item cap.
 
 `POST /api/runs` supports four hosted request shapes.
 
@@ -587,7 +591,8 @@ Rules:
   configured server-owned local model provider.
 - Hosted `local_model` accepts one day only. Omitted `days` is normalized to
   `1`; any other day count, multi-day text, recipes, grocery lists, or oversized
-  source inventories are rejected before queueing.
+  source inventories are rejected before queueing with a structured
+  `meal_plan_not_verifiable` error.
 - Hosted `local_model` chunks accepted text by deterministic meal span. Each
   model call receives the full text for one meal plus that meal's numbered
   source items.

@@ -229,6 +229,8 @@ Target qualification outcomes:
   details such as days, meals, ingredients, quantities, or units
 - `recipe_or_menu_needs_decomposition`: the content includes recipes or menu
   labels that must be decomposed into ingredient-level items
+- `meal_plan_outside_hosted_contract`: the content may be food-related but is
+  outside the hosted one-day local-model contract
 - `eligible_for_verification`: the content has enough structure to verify
 - `eligible_with_unresolved_items`: the content can be verified, but some foods
   or quantities remain unresolved and must be reflected in the report

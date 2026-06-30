@@ -72,25 +72,31 @@ Current evidence:
   per-meal prompt messages, source IDs, raw compact output, decoded rows,
   reconciliation repairs, and stage timings. Post-model normalization failures
   embed the same chunk evidence in `debug/normalization-failure.json`.
+- The public hosted contract is now explicit across the API, UI, and docs:
+  one day of meal-labeled ingredient text, up to the configured source-item
+  cap, with weekly plans, multi-day plans, recipes, grocery lists, and long
+  inventories failing before model inference with structured qualification
+  guidance.
+- The chunk-artifact change was deployed and smoke-verified on 2026-06-30 at
+  commit `4482f8f0c5e0c1f0a34a3cefe95b8d63bd553abb`. Live run
+  `run_a0363caa5080a7ede2d01d90` completed through the deployed path with 3
+  meal chunks, 9 source items, exact source-ID preservation, 2 deterministic
+  source-measurement repairs, and about 6.0 seconds of recorded local-model
+  extraction time. The server artifact directory is
+  `/Users/chranama-server/MealCheck-data/artifacts/run_a0363caa5080a7ede2d01d90`.
 
 Near-term engineering slices:
 
-1. Deploy the chunk-artifact change, run the deployed local-model smoke, and
-   inspect the first server artifact to confirm live hosted runs expose
-   `optional/local-model-chunks.json`.
-2. Tighten the public one-day input contract across UI, API, and docs:
-   ingredient-level meal text, configured source-item cap, no weekly plans, no
-   recipes, and no long inventories.
-3. Add first-class unsupported-unit qualification diagnostics so otherwise
+1. Add first-class unsupported-unit qualification diagnostics so otherwise
    structured inputs fail or become unresolved with a specific public reason.
-4. Expand the hand-reviewed robustness corpus with observed live failures and
+2. Expand the hand-reviewed robustness corpus with observed live failures and
    product-shaped natural rewrites of the public example, including paragraphs,
    snack spans, reverse measurements, and unsupported-unit boundaries.
-5. Promote deterministic unit normalization only when the conversion is safe and
+3. Promote deterministic unit normalization only when the conversion is safe and
    visible; preserve vague or genuinely unsupported quantities as unresolved.
-6. Keep user-facing failure messages guidance-oriented and avoid exposing compact
+4. Keep user-facing failure messages guidance-oriented and avoid exposing compact
    row, schema, model-path, or parser internals.
-7. Generate and manually review small NYT Ingredient Phrase Tagger and TASTEset
+5. Generate and manually review small NYT Ingredient Phrase Tagger and TASTEset
    exploratory slices only after source/license review and after the
    product-shaped reviewed corpus has exposed the obvious gaps; promote no
    external subset to strict until expected rows and failure categories have

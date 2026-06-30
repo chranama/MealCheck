@@ -75,6 +75,7 @@ describe("LiveWorkspace", () => {
     expect(screen.queryByText("Timeout")).not.toBeInTheDocument();
     expect(screen.queryByText("240s")).not.toBeInTheDocument();
     expect(screen.getAllByText(/\/ 3,000 characters/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Up to 20 source food items/)).toBeInTheDocument();
     expect(screen.queryByText("Model Provider")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Provider")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("API key")).not.toBeInTheDocument();

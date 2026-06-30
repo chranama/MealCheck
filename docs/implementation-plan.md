@@ -3840,3 +3840,48 @@ Verification:
   sandbox because hosted provider tests need local `httptest` ports.
 - `bash -n scripts/test-deployed-local-model-live.sh` passes.
 - `git diff --check` passes.
+
+## Milestone 51: Public One-Day Input Contract Hardening
+
+Status: Implemented locally in the current worktree.
+
+Purpose:
+
+Make the hosted local-model happy path clear at the public boundary. MealCheck
+should accept one day of meal-labeled ingredient text, while rejecting food
+text that is outside the CPU-local SLM contract before queueing or model
+inference.
+
+Delivered:
+
+- Added `meal_plan_outside_hosted_contract` as a structured qualification
+  status for food-related input that is outside the hosted one-day contract.
+- Routed hosted local-model `/api/runs` and `/api/qualify` contract failures
+  through `422 meal_plan_not_verifiable` with qualification details, instead
+  of generic `400 invalid_request` responses.
+- Kept deterministic preflight ordering explicit: public contract markers,
+  meal-plan qualification, then source-span and source-item-cap validation.
+- Updated hosted UI guidance to name the one-day meal-text contract, the
+  configured source-item cap, and excluded weekly plans, recipes, grocery
+  lists, and long inventories.
+- Updated recovery guidance, API docs, contract docs, robustness docs, and
+  current priorities to use the same public contract vocabulary.
+
+Acceptance:
+
+- Multi-day and weekly local-model submissions fail before queueing with
+  `meal_plan_outside_hosted_contract`.
+- Source inventories over `MEALCHECK_LOCAL_MODEL_MAX_SOURCE_ITEMS` fail before
+  queueing with `meal_plan_outside_hosted_contract`.
+- Obvious non-meal text remains a `not_meal_plan` qualification failure.
+- The browser-facing form tells users the accepted shape without exposing
+  parser, model-path, or compact-row internals.
+
+Verification:
+
+- `GOCACHE=/private/tmp/mealcheck-gocache go test ./internal/hosted -run 'TestValidateLocalModelInputContract|TestLocalModelRunRejectsClearMultiDayInputBeforeQueue|TestLocalModelRunRejectsSourceItemOverflowBeforeQueue|TestLocalModelRunFastFailsNonVerifiableTextBeforeQueue|TestQualifyEndpointReturnsQualificationForHostedLocalModelContractFailure|TestQualifyEndpointUsesHostedLocalModelWithoutClientProvider'` passes.
+- `npm test` passes in `ui/`.
+- `npm run typecheck` passes in `ui/`.
+- `GOCACHE=/private/tmp/mealcheck-gocache go test ./...` passes outside the
+  sandbox because hosted provider tests need local `httptest` ports.
+- `git diff --check` passes.

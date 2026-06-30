@@ -245,6 +245,7 @@ Qualification statuses:
 | `not_meal_plan` | The text is not asking for or describing meals. |
 | `meal_plan_too_vague` | The text has meals or menu ideas but lacks ingredient quantities or units. |
 | `recipe_or_menu_needs_decomposition` | The text is recipe-like or menu-like and needs ingredient decomposition before verification. |
+| `meal_plan_outside_hosted_contract` | The text may describe food, but it is outside the hosted one-day local-model contract, such as weekly plans, multi-day plans, grocery lists, or source inventories over the configured cap. |
 | `eligible_for_verification` | The text is already normalized MealCheck JSON or was normalized successfully. |
 | `eligible_with_unresolved_items` | The normalized plan can be checked while preserving explicit unresolved items. |
 
@@ -455,9 +456,12 @@ Rules:
 - `provider` is rejected in `local_model` requests.
 
 Before queueing a `local_model` run, the backend applies a deterministic
-meal-plan qualification and contract preflight. Obvious non-meal text returns
-`422` and does not call the model. Multi-day text, recipes, grocery lists,
-oversized text, and source-item overflows return `400 invalid_request`:
+meal-plan qualification and contract preflight. Obvious non-meal text, vague
+meal text, recipe-like text, multi-day or weekly text, grocery lists, source
+inventories, and source-item overflows return `422 meal_plan_not_verifiable`
+with a structured qualification result and do not call the model. Oversized
+character payloads still return `400 invalid_request` because the request body
+exceeds the configured text limit:
 
 ```json
 {

@@ -351,7 +351,7 @@ func TestValidateLocalModelInputContractRejectsMultiDayText(t *testing.T) {
 	if err == nil {
 		t.Fatal("validateLocalModelInputContract error = nil, want multi-day rejection")
 	}
-	if !strings.Contains(err.Error(), "one day only") {
+	if !strings.Contains(err.Error(), "one day") {
 		t.Fatalf("error = %q, want one-day contract message", err)
 	}
 }

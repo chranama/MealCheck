@@ -75,7 +75,8 @@ checks run.
 
 The tightened product direction adds first-class meal-plan qualification before
 verification: candidate text may be not a meal plan, too vague, recipe-like but
-undecomposed, eligible, or eligible with unresolved items.
+undecomposed, outside the hosted one-day contract, eligible, or eligible with
+unresolved items.
 
 ## Verified By CI
 

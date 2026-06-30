@@ -41,6 +41,19 @@ describe("recovery", () => {
     expect(notice.steps?.join(" ")).toContain("4 oz");
   });
 
+  it("maps hosted contract qualification to one-day guidance", () => {
+    const notice = recoveryFromQualification({
+      schema_version: "0.1",
+      status: "meal_plan_outside_hosted_contract",
+      reason: "MealCheck checks one day at a time in the hosted local-model path.",
+      provider_used: false,
+    });
+
+    expect(notice.title).toBe("Use one day of meal text");
+    expect(notice.steps?.join(" ")).toContain("multi-day");
+    expect(notice.steps?.join(" ")).toContain("source-item cap");
+  });
+
   it("maps local-model normalization failures to rewrite guidance", () => {
     const notice = recoveryFromRunFailure(
       "failed",

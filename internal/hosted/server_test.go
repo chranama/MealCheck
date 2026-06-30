@@ -320,6 +320,11 @@ func TestLocalModelRunFastFailsNonVerifiableTextBeforeQueue(t *testing.T) {
 			text:       "Make a healthy chicken bowl with rice, vegetables, and sauce. Cook until warm.",
 			wantStatus: QualificationStatusRecipeOrMenuNeedsDecompose,
 		},
+		{
+			name:       "source items missing meal labels",
+			text:       "1 cup cooked oatmeal, 1 cup blueberries, and 4 oz chicken breast.",
+			wantStatus: QualificationStatusMealPlanTooVague,
+		},
 	}
 
 	for _, tt := range tests {
@@ -455,13 +460,68 @@ func TestLocalModelRunRejectsClearMultiDayInputBeforeQueue(t *testing.T) {
 		}, "\n"),
 	})
 	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
-	if createResp.Code != http.StatusBadRequest {
-		t.Fatalf("create status = %d, want 400 body=%s", createResp.Code, createResp.Body.String())
+	if createResp.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("create status = %d, want 422 body=%s", createResp.Code, createResp.Body.String())
 	}
 	var errorResponse ErrorResponse
 	decodeJSON(t, createResp.Body.Bytes(), &errorResponse)
-	if errorResponse.Error.Code != "invalid_request" || !strings.Contains(errorResponse.Error.Message, "one day only") {
-		t.Fatalf("error response = %+v, want one-day invalid_request", errorResponse.Error)
+	if errorResponse.Error.Code != "meal_plan_not_verifiable" || !strings.Contains(errorResponse.Error.Message, "one day") {
+		t.Fatalf("error response = %+v, want one-day meal_plan_not_verifiable", errorResponse.Error)
+	}
+	qualification := qualificationFromErrorResponse(t, errorResponse)
+	if qualification.Status != QualificationStatusOutsideHostedContract {
+		t.Fatalf("qualification status = %q, want %q", qualification.Status, QualificationStatusOutsideHostedContract)
+	}
+	if qualification.ProviderUsed {
+		t.Fatal("provider_used = true, want false")
+	}
+	if pending.Count() != 0 {
+		t.Fatalf("pending count = %d, want 0", pending.Count())
+	}
+	stats, err := store.Stats(context.Background())
+	if err != nil {
+		t.Fatalf("store stats: %v", err)
+	}
+	if stats.Queued != 0 || stats.Running != 0 {
+		t.Fatalf("store stats queued/running = %d/%d, want 0/0", stats.Queued, stats.Running)
+	}
+}
+
+func TestLocalModelRunRejectsSourceItemOverflowBeforeQueue(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.HostedMode = HostedModeLocalModel
+	config.LocalModelEnabled = true
+	config.LocalModelBaseURL = "http://127.0.0.1:11435/v1"
+	config.LocalModelName = "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf"
+	config.LocalModelMaxSourceItems = 2
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	settings := localModelTestSettings(seededCase(t, root).Settings)
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode: InputModeLocalModel,
+		Settings:  settings,
+		CandidateText: strings.Join([]string{
+			"Day 1 breakfast:",
+			"- 1 cup cooked oatmeal",
+			"- 1 cup blueberries",
+			"- 1 cup plain Greek yogurt",
+		}, "\n"),
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("create status = %d, want 422 body=%s", createResp.Code, createResp.Body.String())
+	}
+	var errorResponse ErrorResponse
+	decodeJSON(t, createResp.Body.Bytes(), &errorResponse)
+	if errorResponse.Error.Code != "meal_plan_not_verifiable" || !strings.Contains(errorResponse.Error.Message, "at most 2") {
+		t.Fatalf("error response = %+v, want source-cap meal_plan_not_verifiable", errorResponse.Error)
+	}
+	qualification := qualificationFromErrorResponse(t, errorResponse)
+	if qualification.Status != QualificationStatusOutsideHostedContract {
+		t.Fatalf("qualification status = %q, want %q", qualification.Status, QualificationStatusOutsideHostedContract)
 	}
 	if pending.Count() != 0 {
 		t.Fatalf("pending count = %d, want 0", pending.Count())
@@ -789,6 +849,42 @@ func TestQualifyEndpointUsesHostedLocalModelWithoutClientProvider(t *testing.T) 
 	}
 	if response.Qualification.NormalizedPlan == nil {
 		t.Fatal("normalized plan missing")
+	}
+}
+
+func TestQualifyEndpointReturnsQualificationForHostedLocalModelContractFailure(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.HostedMode = HostedModeLocalModel
+	config.LocalModelEnabled = true
+	config.LocalModelBaseURL = "http://127.0.0.1:11435/v1"
+	config.LocalModelName = "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf"
+	store := NewMemoryStore()
+	server := NewServer(config, store)
+	seeded := seededCase(t, root)
+
+	body := marshalJSON(t, MealPlanQualificationRequest{
+		Text: strings.Join([]string{
+			"Day 1 breakfast: 1 cup cooked oatmeal.",
+			"Day 2 breakfast: 1 cup cooked oatmeal.",
+		}, "\n"),
+		Settings: localModelTestSettings(seeded.Settings),
+	})
+	resp := doRequest(t, server, http.MethodPost, "/api/qualify", body)
+	if resp.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("qualify status = %d, want 422 body=%s", resp.Code, resp.Body.String())
+	}
+	var errorResponse ErrorResponse
+	decodeJSON(t, resp.Body.Bytes(), &errorResponse)
+	if errorResponse.Error.Code != "meal_plan_not_verifiable" {
+		t.Fatalf("error code = %q, want meal_plan_not_verifiable", errorResponse.Error.Code)
+	}
+	qualification := qualificationFromErrorResponse(t, errorResponse)
+	if qualification.Status != QualificationStatusOutsideHostedContract {
+		t.Fatalf("qualification status = %q, want %q", qualification.Status, QualificationStatusOutsideHostedContract)
+	}
+	if qualification.ProviderUsed {
+		t.Fatal("provider_used = true, want false")
 	}
 }
 
@@ -2533,6 +2629,21 @@ func localModelTestSettings(settings checker.Settings) checker.Settings {
 	settings.VerificationConstraints.MealsPerDay = 0
 	settings.VerificationConstraints.RequiresPrepSafetyNotes = false
 	return settings
+}
+
+func qualificationFromErrorResponse(t *testing.T, response ErrorResponse) MealPlanQualificationResult {
+	t.Helper()
+	qualificationValue, ok := response.Error.Details["qualification"]
+	if !ok {
+		t.Fatalf("error details missing qualification: %+v", response.Error.Details)
+	}
+	qualificationBytes, err := json.Marshal(qualificationValue)
+	if err != nil {
+		t.Fatalf("marshal qualification detail: %v", err)
+	}
+	var qualification MealPlanQualificationResult
+	decodeJSON(t, qualificationBytes, &qualification)
+	return qualification
 }
 
 func compactLocalMealPlanJSONResponses() []string {

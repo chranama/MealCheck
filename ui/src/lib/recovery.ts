@@ -159,6 +159,17 @@ export function recoveryFromQualification(result: MealPlanQualificationResult): 
           "List the eaten portion of each ingredient, not cooking instructions.",
         ],
       };
+    case "meal_plan_outside_hosted_contract":
+      return {
+        title: "Use one day of meal text",
+        message: result.reason || "MealCheck checks one day of meal-labeled ingredient text at a time.",
+        tone: "warn",
+        steps: [
+          "Split weekly or multi-day plans into one day per report.",
+          "Use meal labels such as breakfast, lunch, dinner, or snack.",
+          "Keep the input under the source-item cap and omit recipes, grocery lists, or long inventories.",
+        ],
+      };
     case "eligible_with_unresolved_items":
       return {
         title: "Some items may need clearer wording",

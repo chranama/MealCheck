@@ -13,8 +13,19 @@ var (
 	localModelAnyDayPattern      = regexp.MustCompile(`(?i)\bday\s*([0-9]+)\b`)
 	localModelWeeklyPattern      = regexp.MustCompile(`(?i)\b(?:multi[- ]?day|weekly|week(?:long)?\b|[2-9][-\s]?day\b|(?:[2-9]|[1-9][0-9]+)\s+days?\b|seven[- ]?day\b)`)
 	localModelRecipePattern      = regexp.MustCompile(`(?i)\b(?:recipe|instructions?|directions?|preheat|simmer|cook\s+until|mix\s+until|stir\s+until)\b`)
-	localModelGroceryListPattern = regexp.MustCompile(`(?i)\b(?:grocery|shopping)\s+list\b`)
+	localModelGroceryListPattern = regexp.MustCompile(`(?i)\b(?:grocery|shopping)\s+list\b|\binventory\b`)
 )
+
+type localModelInputContractError struct {
+	Qualification MealPlanQualificationResult
+}
+
+func (e localModelInputContractError) Error() string {
+	if e.Qualification.Reason != "" {
+		return e.Qualification.Reason
+	}
+	return "candidate_text is outside the hosted local_model input contract"
+}
 
 func normalizeLocalModelSettings(settings checker.Settings) checker.Settings {
 	if settings.VerificationConstraints.Days == 0 {
@@ -32,29 +43,97 @@ func validateLocalModelInputContract(config Config, text string) error {
 		return err
 	}
 	if localModelRecipePattern.MatchString(text) {
-		return fmt.Errorf("candidate_text must be a one-day meal plan, not a recipe or cooking instructions")
+		return localModelInputContractError{Qualification: qualificationResult(
+			QualificationStatusRecipeOrMenuNeedsDecompose,
+			"MealCheck needs one day of meal-plan text, not a recipe or cooking instructions. Rewrite it as meal labels with ingredient amounts before verification.",
+			[]string{"meals", "ingredient_items", "quantities", "units"},
+		)}
 	}
 	if localModelGroceryListPattern.MatchString(text) {
-		return fmt.Errorf("candidate_text must be a meal plan, not a grocery or shopping list")
+		return localModelInputContractError{Qualification: qualificationResult(
+			QualificationStatusOutsideHostedContract,
+			"MealCheck needs one day of meal-plan text, not a grocery list, shopping list, or source inventory. Split inventories into meal-labeled one-day text before verification.",
+			[]string{"meals", "source_item_limit"},
+		)}
 	}
 	chunks := localLlamaExtractionMealChunks(text)
 	itemCount := 0
 	for _, chunk := range chunks {
 		if strings.TrimSpace(chunk.MealCode) == "" || chunk.MealCode == "infer" {
-			return fmt.Errorf("candidate_text must identify each source food item under a meal label such as breakfast, lunch, dinner, or snack")
+			return localModelInputContractError{Qualification: qualificationResult(
+				QualificationStatusMealPlanTooVague,
+				"Each source food item must be attached to a meal label such as breakfast, lunch, dinner, or snack.",
+				[]string{"meals"},
+			)}
 		}
 		itemCount += len(chunk.Items)
 	}
 	if itemCount == 0 {
-		return fmt.Errorf("candidate_text must identify at least one source food item with a meal label")
+		return localModelInputContractError{Qualification: qualificationResult(
+			QualificationStatusMealPlanTooVague,
+			"MealCheck needs one day of meal-labeled ingredient text with at least one source food item.",
+			[]string{"ingredient_items", "meals"},
+		)}
 	}
 	itemLimit := config.LocalModelMaxSourceItems
 	if itemLimit > 0 {
 		if itemCount > itemLimit {
-			return fmt.Errorf("candidate_text includes %d source food item(s); hosted local_model accepts at most %d", itemCount, itemLimit)
+			return localModelInputContractError{Qualification: qualificationResult(
+				QualificationStatusOutsideHostedContract,
+				fmt.Sprintf("MealCheck found %d source food items. The hosted one-day local-model path accepts at most %d; split long inventories before verification.", itemCount, itemLimit),
+				[]string{"source_item_limit"},
+			)}
 		}
 	}
 	return nil
+}
+
+func validateLocalModelMealPlanPreflight(config Config, text string) error {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return fmt.Errorf("candidate_text is required for local_model")
+	}
+	if err := validateLocalModelExplicitContractMarkers(text); err != nil {
+		return err
+	}
+	qualification := classifyLocalModelCandidateMealPlanText(text)
+	if isTerminalQualificationFailure(qualification) {
+		if qualification.Status == QualificationStatusNotMealPlan && localModelHasSourceItems(text) {
+			return validateLocalModelInputContract(config, text)
+		}
+		return qualificationRejectionError{Qualification: qualification}
+	}
+	return validateLocalModelInputContract(config, text)
+}
+
+func validateLocalModelExplicitContractMarkers(text string) error {
+	if err := validateLocalModelOneDayText(text); err != nil {
+		return err
+	}
+	if localModelRecipePattern.MatchString(text) {
+		return localModelInputContractError{Qualification: qualificationResult(
+			QualificationStatusRecipeOrMenuNeedsDecompose,
+			"MealCheck needs one day of meal-plan text, not a recipe or cooking instructions. Rewrite it as meal labels with ingredient amounts before verification.",
+			[]string{"meals", "ingredient_items", "quantities", "units"},
+		)}
+	}
+	if localModelGroceryListPattern.MatchString(text) {
+		return localModelInputContractError{Qualification: qualificationResult(
+			QualificationStatusOutsideHostedContract,
+			"MealCheck needs one day of meal-plan text, not a grocery list, shopping list, or source inventory. Split inventories into meal-labeled one-day text before verification.",
+			[]string{"meals", "source_item_limit"},
+		)}
+	}
+	return nil
+}
+
+func localModelHasSourceItems(text string) bool {
+	for _, chunk := range localLlamaExtractionMealChunks(text) {
+		if len(chunk.Items) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func validateLocalModelOneDayText(text string) error {
@@ -62,12 +141,20 @@ func validateLocalModelOneDayText(text string) error {
 	if len(dayNumbers) > 0 {
 		for _, day := range dayNumbers {
 			if day != 1 {
-				return fmt.Errorf("candidate_text must describe one day only; remove Day %d content", day)
+				return localModelInputContractError{Qualification: qualificationResult(
+					QualificationStatusOutsideHostedContract,
+					fmt.Sprintf("MealCheck checks one day at a time in the hosted local-model path. Remove Day %d content or submit that day separately.", day),
+					[]string{"one_day"},
+				)}
 			}
 		}
 	}
 	if localModelWeeklyPattern.MatchString(text) {
-		return fmt.Errorf("candidate_text must describe one day only; weekly and multi-day plans are outside the hosted local_model contract")
+		return localModelInputContractError{Qualification: qualificationResult(
+			QualificationStatusOutsideHostedContract,
+			"MealCheck checks one day at a time in the hosted local-model path. Weekly and multi-day plans must be split before verification.",
+			[]string{"one_day"},
+		)}
 	}
 	return nil
 }

@@ -14,6 +14,7 @@ const (
 	QualificationStatusNotMealPlan                 = "not_meal_plan"
 	QualificationStatusMealPlanTooVague            = "meal_plan_too_vague"
 	QualificationStatusRecipeOrMenuNeedsDecompose  = "recipe_or_menu_needs_decomposition"
+	QualificationStatusOutsideHostedContract       = "meal_plan_outside_hosted_contract"
 	QualificationStatusEligibleForVerification     = "eligible_for_verification"
 	QualificationStatusEligibleWithUnresolvedItems = "eligible_with_unresolved_items"
 )
@@ -178,6 +179,8 @@ func classifyLocalModelCandidateMealPlanText(text string) MealPlanQualificationR
 func isTerminalQualificationFailure(result MealPlanQualificationResult) bool {
 	switch result.Status {
 	case QualificationStatusNotMealPlan, QualificationStatusMealPlanTooVague, QualificationStatusRecipeOrMenuNeedsDecompose:
+		return true
+	case QualificationStatusOutsideHostedContract:
 		return true
 	default:
 		return false

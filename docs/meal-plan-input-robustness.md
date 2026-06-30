@@ -100,6 +100,10 @@ Qualification failure classes:
   quantities or supported units needed for verification.
 - `recipe_or_menu_needs_decomposition`: text is recipe-like, but is not
   decomposed into day, meal, ingredient, quantity, and unit fields.
+- `meal_plan_outside_hosted_contract`: text may be food-related, but is outside
+  the hosted one-day local-model contract, such as weekly plans, multi-day
+  plans, grocery lists, or source inventories over the configured source-item
+  cap.
 
 Hosted local-model run creation should fast-fail these cases before queueing a
 run or calling the model. If an input passes preflight but model normalization

@@ -220,7 +220,10 @@ func (s *Server) handleQualify(w http.ResponseWriter, r *http.Request) {
 			writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 			return
 		}
-		if err := validateLocalModelInputContract(s.Config, request.Text); err != nil {
+		if err := validateLocalModelMealPlanPreflight(s.Config, request.Text); err != nil {
+			if writeMealPlanNotVerifiableError(w, r, err) {
+				return
+			}
 			writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 			return
 		}
@@ -306,11 +309,7 @@ func (s *Server) createRun(w http.ResponseWriter, r *http.Request) {
 
 	casePath, pendingInput, hasPending, err := requestRunInput(s.Config, request)
 	if err != nil {
-		var qualificationErr qualificationRejectionError
-		if errors.As(err, &qualificationErr) {
-			writeError(w, r, http.StatusUnprocessableEntity, "meal_plan_not_verifiable", qualificationErr.Error(), map[string]any{
-				"qualification": qualificationErr.Qualification,
-			})
+		if writeMealPlanNotVerifiableError(w, r, err) {
 			return
 		}
 		writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
@@ -448,11 +447,7 @@ func requestRunInput(config Config, request CreateRunRequest) (string, PendingRu
 		if err := validateLocalModelSettings(pendingInput.Settings); err != nil {
 			return "", PendingRunInput{}, false, err
 		}
-		qualification := classifyLocalModelCandidateMealPlanText(pendingInput.CandidateText)
-		if isTerminalQualificationFailure(qualification) {
-			return "", PendingRunInput{}, false, qualificationRejectionError{Qualification: qualification}
-		}
-		if err := validateLocalModelInputContract(config, pendingInput.CandidateText); err != nil {
+		if err := validateLocalModelMealPlanPreflight(config, pendingInput.CandidateText); err != nil {
 			return "", PendingRunInput{}, false, err
 		}
 		pendingInput.Provider = localModelProviderConfig(config)
@@ -965,6 +960,24 @@ func writePolicyError(w http.ResponseWriter, r *http.Request, err error) {
 		return
 	}
 	writeError(w, r, http.StatusTooManyRequests, "rate_limited", err.Error(), nil)
+}
+
+func writeMealPlanNotVerifiableError(w http.ResponseWriter, r *http.Request, err error) bool {
+	var qualificationErr qualificationRejectionError
+	if errors.As(err, &qualificationErr) {
+		writeError(w, r, http.StatusUnprocessableEntity, "meal_plan_not_verifiable", qualificationErr.Error(), map[string]any{
+			"qualification": qualificationErr.Qualification,
+		})
+		return true
+	}
+	var contractErr localModelInputContractError
+	if errors.As(err, &contractErr) {
+		writeError(w, r, http.StatusUnprocessableEntity, "meal_plan_not_verifiable", contractErr.Error(), map[string]any{
+			"qualification": contractErr.Qualification,
+		})
+		return true
+	}
+	return false
 }
 
 func writeError(w http.ResponseWriter, r *http.Request, status int, code, message string, details map[string]any) {

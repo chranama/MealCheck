@@ -2018,3 +2018,34 @@ Consequences:
   for the single hosted run.
 - Regression and release-candidate stability still depend on the P0
   repeat-regimen artifacts.
+
+## 2026-06-30: Hosted Contract Failures Use Qualification Envelope
+
+Status: Accepted
+
+Decision:
+
+Hosted `local_model` contract failures should return
+`422 meal_plan_not_verifiable` with a structured qualification result whenever
+the input is food-related but outside the public one-day contract. The new
+`meal_plan_outside_hosted_contract` status covers weekly plans, multi-day
+plans, grocery lists, source inventories, and source-item-cap overflows.
+
+Reason:
+
+These inputs are not malformed HTTP requests; they are understandable user
+inputs that MealCheck deliberately excludes from the MacBook-Air-hosted SLM
+happy path. Treating them as qualification failures lets the UI give recovery
+guidance and preserves the distinction between "not a meal plan", "too vague",
+"recipe-like", and "outside the hosted contract".
+
+Consequences:
+
+- `/api/runs` and `/api/qualify` expose the same public status vocabulary for
+  hosted local-model preflight failures.
+- Oversized character payloads still return `400 invalid_request` because they
+  exceed the request text limit before meal-plan qualification is meaningful.
+- The deterministic preflight order is public contract markers, meal-plan
+  qualification, then source-span and source-item-cap validation.
+- Documentation and UI copy must describe one day of meal-labeled ingredient
+  text with the configured source-item cap as the hosted input contract.

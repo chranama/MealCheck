@@ -70,6 +70,7 @@ export function LiveWorkspace({
   const candidateTextLimit = isLocalModelHosted
     ? backend.localModel?.max_input_chars || backend.maxCandidateTextChars
     : backend.maxCandidateTextChars;
+  const sourceItemLimit = isLocalModelHosted ? backend.localModel?.max_source_items : undefined;
   const candidateTextLength = candidateText.length;
   const candidateTextTooLong = Boolean(candidateTextLimit && candidateTextLength > candidateTextLimit);
   const allowOpenAICompatible = backend.accessMode !== "public_byok" || backend.publicOpenAICompatible;
@@ -180,6 +181,7 @@ export function LiveWorkspace({
               limit={candidateTextLimit}
               recovery={inlineMealPlanRecovery}
               setCandidateText={setCandidateText}
+              sourceItemLimit={sourceItemLimit}
             />
           </fieldset>
 
@@ -391,14 +393,19 @@ function CandidateTextForm({
   limit,
   recovery,
   setCandidateText,
+  sourceItemLimit,
 }: {
   candidateText: string;
   limit?: number;
   recovery?: RecoveryNotice | null;
   setCandidateText: (value: string) => void;
+  sourceItemLimit?: number;
 }) {
   const overLimit = Boolean(limit && candidateText.length > limit);
   const describedBy = ["candidate-text-guidance", limit ? "candidate-text-counter" : ""].filter(Boolean).join(" ");
+  const sourceItemGuidance = sourceItemLimit
+    ? ` Up to ${sourceItemLimit.toLocaleString()} source food items.`
+    : "";
   return (
     <section className="mode-section" id="candidate-text-section">
       <Field label="Meal plan text">
@@ -411,7 +418,7 @@ function CandidateTextForm({
         />
       </Field>
       <p className="field-help" id="candidate-text-guidance">
-        Paste one day only. Lines or paragraphs are OK when each meal names foods with amounts.
+        Paste one day of meal-labeled ingredient text. Lines or paragraphs are OK when each meal names foods with amounts. Avoid weekly plans, recipes, grocery lists, and long inventories.{sourceItemGuidance}
       </p>
       {recovery ? <RecoveryNoticeView notice={recovery} /> : null}
       {limit ? (
