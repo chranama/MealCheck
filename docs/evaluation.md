@@ -415,6 +415,25 @@ Serving MacBook live local-model result before the strict one-day gate split:
 - Aggregate: 3 of 3 repeats completed, 0 provider failures, 2 decode failures,
   min row/food/quantity/unit accuracy 0.8058, max duration 676 seconds.
 
+Current serving MacBook strict one-day live local-model result:
+
+- Run date: 2026-06-30.
+- MealCheck commit: `8a3a395ab4712c9bf08471bfb45ef655d9c164c5`.
+- Model: `Qwen3-0.6B-Q4_K_M.gguf`.
+- Model SHA-256:
+  `18ea1f301079bba6391ab6d455c0c8565fd5a3214075eb2cd9daf351dedc719b`.
+- llama.cpp commit: `7c082bc417bbe53210a83df4ba5b49e18ce6193c`.
+- Output directory:
+  `/Users/chranama-server/MealCheck-data/p0-runs/p0-live-local-model-20260630-8a3a395`.
+- Deterministic baseline passed: 11 of 11 strict cases, zero mismatches, 76 of
+  76 source items preserved.
+- Live gate passed: 3 of 3 repeats completed, zero mismatches, zero provider
+  failures, zero compact-output decode failures.
+- Minimum row, food, quantity, and unit accuracy were each 1.0.
+- Source-grounded reconciliation made 77 deterministic field repairs across the
+  three repeats and 24 repair-case observations.
+- Maximum run duration was 235 seconds.
+
 Previous P0 live local-model seed result before per-meal chunking:
 
 - 3 of 3 repeats completed against the production `Qwen3-0.6B-Q4_K_M` model

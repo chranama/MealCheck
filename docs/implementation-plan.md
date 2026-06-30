@@ -3781,5 +3781,13 @@ Acceptance:
 
 Verification:
 
-- pending after the strict-gate split is pushed to the serving MacBook and the
-  P0 live regimen is rerun.
+- `go run ./cmd/mealcheck fixture-check` passes.
+- `go run ./cmd/mealcheck eval-normalization -out /private/tmp/mealcheck-p0-strict-normalization.json` passes with 8 strict one-day success cases, 3 qualification failures, and 76 expected source items.
+- `go run ./cmd/mealcheck eval-normalization -gate exploratory -out /private/tmp/mealcheck-p0-exploratory-normalization.json` passes with 3 exploratory multi-day success cases and 63 expected source items.
+- `go test ./...` passes.
+- `python3 -m py_compile scripts/generate-p0-normalization-evaluation.py` passes.
+- `bash -n scripts/run-p0-local-model-regimen.sh` passes.
+- serving MacBook strict one-day P0 live regimen passes at commit
+  `8a3a395ab4712c9bf08471bfb45ef655d9c164c5` with 3 of 3 repeats, zero
+  mismatches, zero provider failures, zero decode failures, minimum
+  row/food/quantity/unit accuracy of 1.0, and max duration 235 seconds.
