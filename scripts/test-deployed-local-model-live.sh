@@ -227,11 +227,26 @@ inspect_completed_run() {
   mkdir -p "$run_dir"
 
   fetch_artifact "$run_id" "optional/normalization-events.json" "$run_dir/normalization-events.json"
+  fetch_artifact "$run_id" "optional/local-model-chunks.json" "$run_dir/local-model-chunks.json"
   fetch_artifact "$run_id" "normalized-plan.json" "$run_dir/normalized-plan.json"
   fetch_artifact "$run_id" "decision.json" "$run_dir/decision.json"
 
   printf "normalization events:\n"
   jq . "$run_dir/normalization-events.json"
+
+  printf "local model chunk summary:\n"
+  jq '{
+    chunk_count,
+    source_item_count,
+    chunks: [.chunks[] | {
+      index,
+      meal_code,
+      source_item_ids,
+      decoded_rows: ((.decoded_rows // []) | length),
+      repair_count: .reconciliation.repair_count,
+      total_ms: .stage_timings.total_ms
+    }]
+  }' "$run_dir/local-model-chunks.json"
 
   printf "normalized plan summary:\n"
   jq '{
@@ -250,6 +265,19 @@ inspect_completed_run() {
   fi
   if [[ "$meals" != "breakfast,dinner,lunch" ]]; then
     echo "expected breakfast,lunch,dinner meals, got $meals" >&2
+    return 1
+  fi
+  if ! jq -e '
+    .chunk_count == 3 and
+    .source_item_count == 9 and
+    ([.chunks[] | select(
+      .prompt.message_count == 2 and
+      ((.raw_compact_output // "") | length) > 0 and
+      (((.decoded_rows // []) | length) == (.source_item_ids | length))
+    )] | length) == 3
+  ' "$run_dir/local-model-chunks.json" >/dev/null; then
+    echo "local-model chunk artifact did not include expected prompt/output/decoded-row evidence" >&2
+    jq . "$run_dir/local-model-chunks.json" >&2
     return 1
   fi
 

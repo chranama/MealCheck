@@ -1110,9 +1110,11 @@ The public repo script does not require model-provider API keys. It checks that
 the deployed `/api/health` endpoint reports `hosted_mode: "local_model"` with a
 ready local model, submits one short ingredient-level meal plan through
 `input_mode: "local_model"`, polls the run to completion, fetches
-`optional/normalization-events.json`, `normalized-plan.json`, and
-`decision.json`, and verifies the normalized plan contains the expected
-breakfast/lunch/dinner meal structure and item count.
+`optional/normalization-events.json`, `optional/local-model-chunks.json`,
+`normalized-plan.json`, and `decision.json`, and verifies the normalized plan
+contains the expected breakfast/lunch/dinner meal structure and item count. It
+also checks that each local-model chunk includes prompt, raw compact output,
+decoded-row, source-ID, and timing evidence.
 
 The script also verifies hosted local-model policy behavior:
 

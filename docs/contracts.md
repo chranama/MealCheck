@@ -344,6 +344,7 @@ artifacts/<run-id>/
   optional/
     llm-output.json
     normalization-events.json
+    local-model-chunks.json
 ```
 
 Responsibilities:
@@ -377,6 +378,10 @@ Responsibilities:
   for manual-only runs.
 - `optional/normalization-events.json`: validation, repair, unresolved-field,
   and normalization events.
+- `optional/local-model-chunks.json`: hosted local-model chunk evidence when
+  the server-owned local model path was used, including per-meal prompt
+  messages, source IDs, raw compact output, decoded rows, reconciliation
+  repairs, and stage timings.
 - `guideline-pack/`: exact source-pack snapshot used for the run.
 - `schemas/`: validation schemas for artifact consumers.
 
@@ -609,8 +614,9 @@ Rules:
   invocation.
 - `configs/redacted-provider.json` records provider type, base URL, and model
   with `api_key` set to `redacted`.
-- `optional/llm-output.json` and `optional/normalization-events.json` are
-  emitted only when a run used provider generation or normalization metadata.
+- `optional/llm-output.json`, `optional/normalization-events.json`, and
+  `optional/local-model-chunks.json` are emitted only when a run used provider
+  generation or normalization metadata that applies to those artifacts.
 - `optional/llm-output.json` must redact exact provider-key matches before
   persistence.
 - `openai_compatible` sends the supplied API key to `base_url`; users must

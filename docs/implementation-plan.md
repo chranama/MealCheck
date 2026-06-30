@@ -3791,3 +3791,52 @@ Verification:
   `8a3a395ab4712c9bf08471bfb45ef655d9c164c5` with 3 of 3 repeats, zero
   mismatches, zero provider failures, zero decode failures, minimum
   row/food/quantity/unit accuracy of 1.0, and max duration 235 seconds.
+
+## Milestone 50: Chunk-Level Local-Model Artifacts
+
+Status: Implemented locally in the current worktree.
+
+Purpose:
+
+Make the SLM-critical happy path inspectable at the same granularity as the
+actual model task. Because hosted local-model extraction now calls the small
+model once per deterministic meal chunk, operators need artifact evidence that
+shows what each chunk sent to the model, what came back, how the compact rows
+decoded, whether deterministic reconciliation changed anything, and where time
+was spent.
+
+Delivered:
+
+- Added `optional/local-model-chunks.json` for successful hosted local-model
+  runs.
+- Captured per-chunk prompt messages, meal text, source item IDs, source item
+  parse status, raw compact output, decoded rows, reconciliation repairs, and
+  prompt/provider/decode/total timings.
+- Added extraction-level chunking, expansion, completeness-check, and total
+  timings.
+- Embedded the same local-model extraction evidence in
+  `debug/normalization-failure.json` when normalization fails after model work
+  begins.
+- Kept hosted production runs single-pass; repeat-run instability remains
+  measured by the P0 `eval-normalization` repeat summaries rather than by
+  extra production model calls.
+- Updated the artifact contract, runbook, deployed local-model smoke script,
+  and hosted tests for the new optional artifact.
+
+Acceptance:
+
+- successful hosted local-model runs list `optional/local-model-chunks.json` in
+  `manifest.json`.
+- the artifact contains one chunk per deterministic meal model call.
+- every successful chunk records source IDs, prompt evidence, raw compact
+  output, decoded rows, reconciliation result, and non-negative stage timings.
+- local-model decode failures include chunk-level evidence in the debug
+  normalization artifact.
+
+Verification:
+
+- `GOCACHE=/private/tmp/mealcheck-gocache go test ./internal/hosted -run 'TestLocalModelRunUsesServerOwnedProvider|TestLocalModelRunReportsFriendlyPostModelNormalizationFailure'` passes.
+- `GOCACHE=/private/tmp/mealcheck-gocache go test ./...` passes outside the
+  sandbox because hosted provider tests need local `httptest` ports.
+- `bash -n scripts/test-deployed-local-model-live.sh` passes.
+- `git diff --check` passes.

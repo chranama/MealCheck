@@ -68,12 +68,16 @@ Current evidence:
   mismatches, zero provider failures, zero decode failures, and minimum
   row/food/quantity/unit accuracy of 1.0. The artifact directory is
   `/Users/chranama-server/MealCheck-data/p0-runs/p0-live-local-model-20260630-8a3a395`.
+- Hosted local-model runs now write `optional/local-model-chunks.json` with
+  per-meal prompt messages, source IDs, raw compact output, decoded rows,
+  reconciliation repairs, and stage timings. Post-model normalization failures
+  embed the same chunk evidence in `debug/normalization-failure.json`.
 
 Near-term engineering slices:
 
-1. Add chunk-level local-model artifacts for prompt metadata, source IDs, raw
-   compact output, decoded rows, reconciliation results, stage timings, and
-   repeat-run instability.
+1. Deploy the chunk-artifact change, run the deployed local-model smoke, and
+   inspect the first server artifact to confirm live hosted runs expose
+   `optional/local-model-chunks.json`.
 2. Tighten the public one-day input contract across UI, API, and docs:
    ingredient-level meal text, configured source-item cap, no weekly plans, no
    recipes, and no long inventories.

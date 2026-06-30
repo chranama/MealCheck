@@ -249,6 +249,48 @@ func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
 	if !hasNormalizationEvent(events, "json_decoded") {
 		t.Fatalf("normalization events missing json_decoded: %+v", events)
 	}
+
+	var chunkArtifact LocalModelExtractionArtifact
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "optional", "local-model-chunks.json")), &chunkArtifact)
+	if chunkArtifact.SchemaVersion != "0.1" {
+		t.Fatalf("chunk artifact schema_version = %q, want 0.1", chunkArtifact.SchemaVersion)
+	}
+	if chunkArtifact.ChunkCount != 3 || chunkArtifact.SourceItemCount != 9 || len(chunkArtifact.Chunks) != 3 {
+		t.Fatalf("chunk artifact counts = chunks:%d sources:%d len:%d, want 3/9/3", chunkArtifact.ChunkCount, chunkArtifact.SourceItemCount, len(chunkArtifact.Chunks))
+	}
+	if chunkArtifact.Provider.Type != ProviderTypeLocalLlama || chunkArtifact.Provider.APIKey != "not_applicable" {
+		t.Fatalf("chunk artifact provider = %+v, want redacted local llama", chunkArtifact.Provider)
+	}
+	if chunkArtifact.RepeatRunInstability.Measured {
+		t.Fatalf("chunk artifact repeat instability should not be measured for a single hosted run: %+v", chunkArtifact.RepeatRunInstability)
+	}
+	breakfast := chunkArtifact.Chunks[0]
+	if breakfast.MealCode != "b" || breakfast.MealLabel != "breakfast" {
+		t.Fatalf("breakfast chunk meal = %s/%s, want b/breakfast", breakfast.MealCode, breakfast.MealLabel)
+	}
+	if got := fmt.Sprint(breakfast.SourceItemIDs); got != "[1 2 3]" {
+		t.Fatalf("breakfast source ids = %s, want [1 2 3]", got)
+	}
+	if breakfast.Prompt.MessageCount != 2 || !strings.Contains(breakfast.Prompt.Messages[1].Content, "Meal text:") {
+		t.Fatalf("breakfast prompt artifact = %+v, want system/user prompt with meal text", breakfast.Prompt)
+	}
+	if !strings.Contains(breakfast.RawOutput, `"cooked oatmeal"`) {
+		t.Fatalf("breakfast raw compact output = %q, want cooked oatmeal row", breakfast.RawOutput)
+	}
+	if len(breakfast.DecodedRows) != 3 || !breakfast.DecodedRows[0].Resolved || breakfast.DecodedRows[0].Food != "cooked oatmeal" {
+		t.Fatalf("breakfast decoded rows = %+v, want resolved cooked oatmeal row", breakfast.DecodedRows)
+	}
+	if got := fmt.Sprint(breakfast.Reconciliation.DecodedSourceItemIDs); got != "[1 2 3]" {
+		t.Fatalf("breakfast decoded source ids = %s, want [1 2 3]", got)
+	}
+	if breakfast.StageTimings.PromptBuildMS < 0 || breakfast.StageTimings.ProviderRequestMS < 0 || breakfast.StageTimings.DecodeReconcileMS < 0 || breakfast.StageTimings.TotalMS < 0 {
+		t.Fatalf("breakfast stage timings must be non-negative: %+v", breakfast.StageTimings)
+	}
+
+	manifestBytes := readFile(t, filepath.Join(run.ArtifactDir, "manifest.json"))
+	if !bytes.Contains(manifestBytes, []byte("optional/local-model-chunks.json")) {
+		t.Fatalf("manifest missing optional/local-model-chunks.json:\n%s", string(manifestBytes))
+	}
 }
 
 func TestLocalModelRunFastFailsNonVerifiableTextBeforeQueue(t *testing.T) {
@@ -495,6 +537,22 @@ func TestLocalModelRunReportsFriendlyPostModelNormalizationFailure(t *testing.T)
 	}
 	if !strings.Contains(debug.FinalError, "no JSON object found") {
 		t.Fatalf("debug final error = %q, want decode detail", debug.FinalError)
+	}
+	if debug.LocalModelExtraction == nil {
+		t.Fatal("debug artifact missing local model extraction evidence")
+	}
+	if debug.LocalModelExtraction.FailureStage != "decode" {
+		t.Fatalf("debug local model failure stage = %q, want decode", debug.LocalModelExtraction.FailureStage)
+	}
+	if len(debug.LocalModelExtraction.Chunks) != 1 {
+		t.Fatalf("debug local model chunk count = %d, want failed first chunk only", len(debug.LocalModelExtraction.Chunks))
+	}
+	failedChunk := debug.LocalModelExtraction.Chunks[0]
+	if failedChunk.FailureStage != "decode" || !strings.Contains(failedChunk.RawOutput, "this is not compact json") {
+		t.Fatalf("failed chunk artifact = %+v, want decode failure with raw output", failedChunk)
+	}
+	if failedChunk.Prompt.MessageCount != 2 || !strings.Contains(failedChunk.Prompt.Messages[1].Content, "Source items:") {
+		t.Fatalf("failed chunk prompt artifact = %+v, want meal prompt evidence", failedChunk.Prompt)
 	}
 }
 

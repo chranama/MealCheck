@@ -1983,3 +1983,38 @@ Consequences:
 - Existing local scripts or operator muscle memory that call `mealcheck eval`
   need to be updated.
 - The normalization command remains unchanged.
+
+## 2026-06-30: Hosted Local-Model Chunk Evidence Is Single-Run
+
+Status: Accepted
+
+Decision:
+
+Successful hosted local-model runs should write `optional/local-model-chunks.json`
+with one evidence record per deterministic meal chunk. Each record should include
+the redacted prompt messages, meal text, source item IDs and parse statuses, raw
+compact model output, decoded rows, reconciliation repairs, and stage timings.
+When post-model normalization fails, the same extraction evidence should be
+embedded in `debug/normalization-failure.json`.
+
+Hosted production runs should not add repeated model calls just to measure
+nondeterminism. Repeat-run instability remains part of the P0
+`mealcheck eval-normalization -mode local-llama -local-model-repeats N`
+regimen, where the extra inference cost is deliberate and operator-initiated.
+
+Reason:
+
+The product happy path should stay bounded for the MacBook Air CPU inference
+environment. Chunk evidence needs to explain the actual run the user requested;
+repeat stability is important, but measuring it by default would multiply
+latency and capacity cost for every hosted report.
+
+Consequences:
+
+- Operators can debug prompt, source-inventory, model-output, decode,
+  reconciliation, and timing failures from hosted run artifacts.
+- The deployed smoke test can assert that local-model chunk evidence exists.
+- Production artifacts explicitly note that repeat instability is not measured
+  for the single hosted run.
+- Regression and release-candidate stability still depend on the P0
+  repeat-regimen artifacts.

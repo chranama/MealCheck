@@ -23,11 +23,12 @@ const (
 )
 
 type PreparedRun struct {
-	CasePath            string
-	LLMOutput           string
-	NormalizationEvents []NormalizationEvent
-	RedactedProvider    RedactedProviderConfig
-	UsedProvider        bool
+	CasePath             string
+	LLMOutput            string
+	NormalizationEvents  []NormalizationEvent
+	RedactedProvider     RedactedProviderConfig
+	LocalModelExtraction *LocalModelExtractionArtifact
+	UsedProvider         bool
 }
 
 type NormalizationEvent struct {
@@ -63,6 +64,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 	var events []NormalizationEvent
 	var providerRedacted RedactedProviderConfig
 	var provider Provider
+	var localModelExtraction *LocalModelExtractionArtifact
 	usedProvider := false
 
 	switch input.Mode {
@@ -147,7 +149,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		}
 		providerRedacted = redactProvider(input.Provider)
 		usedProvider = true
-		plan, llmOutput, events, err = prepareLocalModelExtraction(ctx, config, provider, run, input, events)
+		plan, llmOutput, events, localModelExtraction, err = prepareLocalModelExtraction(ctx, config, provider, run, input, events)
 		if err != nil {
 			return PreparedRun{}, err
 		}
@@ -157,7 +159,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 
 	if usedProvider {
 		var err error
-		plan, llmOutput, repairOutput, repairErr, repairAttempted, events, err = normalizeGeneratedPlanPostDecode(ctx, config, provider, run, input, plan, llmOutput, initialOutput, initialErr, repairOutput, repairErr, repairAttempted, events)
+		plan, llmOutput, repairOutput, repairErr, repairAttempted, events, err = normalizeGeneratedPlanPostDecode(ctx, config, provider, run, input, plan, llmOutput, initialOutput, initialErr, repairOutput, repairErr, repairAttempted, events, localModelExtraction)
 		if err != nil {
 			return PreparedRun{}, err
 		}
@@ -170,11 +172,12 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		return PreparedRun{}, err
 	}
 	return PreparedRun{
-		CasePath:            casePath,
-		LLMOutput:           sanitizeDebugArtifactText(llmOutput, input.Provider.APIKey),
-		NormalizationEvents: events,
-		RedactedProvider:    providerRedacted,
-		UsedProvider:        usedProvider,
+		CasePath:             casePath,
+		LLMOutput:            sanitizeDebugArtifactText(llmOutput, input.Provider.APIKey),
+		NormalizationEvents:  events,
+		RedactedProvider:     providerRedacted,
+		LocalModelExtraction: localModelExtraction,
+		UsedProvider:         usedProvider,
 	}, nil
 }
 
@@ -186,14 +189,15 @@ const (
 	localModelFailureCompleteness localModelExtractionFailureStage = "completeness"
 )
 
-func prepareLocalModelExtraction(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, events []NormalizationEvent) (checker.Plan, string, []NormalizationEvent, error) {
-	output, plan, repairs, stage, err := requestLocalModelExtraction(ctx, provider, input.Provider, input, "local-model-"+run.ID)
+func prepareLocalModelExtraction(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, events []NormalizationEvent) (checker.Plan, string, []NormalizationEvent, *LocalModelExtractionArtifact, error) {
+	output, plan, repairs, extraction, stage, err := requestLocalModelExtractionWithArtifacts(ctx, provider, input.Provider, input, "local-model-"+run.ID)
 	if err != nil {
 		events = append(events, localModelFailureEvent(stage))
-		return checker.Plan{}, output, events, writeLocalModelNormalizationFailureAndReturn(config, run, input, events, normalizationFailureDebug{
-			InitialOutput: output,
-			InitialError:  err,
-			FinalError:    err,
+		return checker.Plan{}, output, events, extraction, writeLocalModelNormalizationFailureAndReturn(config, run, input, events, normalizationFailureDebug{
+			InitialOutput:        output,
+			InitialError:         err,
+			FinalError:           err,
+			LocalModelExtraction: extraction,
 		})
 	}
 	events = append(events, normalizationEvent("llm_output_received", "local model returned compact meal-plan JSON"))
@@ -201,50 +205,112 @@ func prepareLocalModelExtraction(ctx context.Context, config Config, provider Pr
 		events = append(events, normalizationEvent("source_measurements_reconciled", fmt.Sprintf("local model compact rows were repaired from %d deterministic source field(s)", len(repairs))))
 	}
 	events = append(events, normalizationEvent("json_decoded", "local model compact output decoded into normalized MealCheck JSON"))
-	return plan, output, events, nil
+	return plan, output, events, extraction, nil
 }
 
 // RunLocalModelExtraction normalizes hosted local-model text through the same
 // chunked extraction path used by live run creation.
 func RunLocalModelExtraction(ctx context.Context, provider Provider, providerConfig ProviderConfig, input PendingRunInput, planID string) (string, checker.Plan, []LocalLlamaNormalizationRepair, string, error) {
-	output, plan, repairs, stage, err := requestLocalModelExtraction(ctx, provider, providerConfig, input, planID)
+	output, plan, repairs, _, stage, err := requestLocalModelExtractionWithArtifacts(ctx, provider, providerConfig, input, planID)
 	return output, plan, repairs, string(stage), err
 }
 
+// RunLocalModelExtractionWithArtifacts normalizes hosted local-model text and
+// returns the chunk-level evidence artifact captured during extraction.
+func RunLocalModelExtractionWithArtifacts(ctx context.Context, provider Provider, providerConfig ProviderConfig, input PendingRunInput, planID string) (string, checker.Plan, []LocalLlamaNormalizationRepair, *LocalModelExtractionArtifact, string, error) {
+	output, plan, repairs, extraction, stage, err := requestLocalModelExtractionWithArtifacts(ctx, provider, providerConfig, input, planID)
+	return output, plan, repairs, extraction, string(stage), err
+}
+
 func requestLocalModelExtraction(ctx context.Context, provider Provider, providerConfig ProviderConfig, input PendingRunInput, planID string) (string, checker.Plan, []LocalLlamaNormalizationRepair, localModelExtractionFailureStage, error) {
+	output, plan, repairs, _, stage, err := requestLocalModelExtractionWithArtifacts(ctx, provider, providerConfig, input, planID)
+	return output, plan, repairs, stage, err
+}
+
+func requestLocalModelExtractionWithArtifacts(ctx context.Context, provider Provider, providerConfig ProviderConfig, input PendingRunInput, planID string) (string, checker.Plan, []LocalLlamaNormalizationRepair, *LocalModelExtractionArtifact, localModelExtractionFailureStage, error) {
+	started := time.Now()
+	extraction := newLocalModelExtractionArtifact(providerConfig, planID)
+	chunkingStarted := time.Now()
 	chunks := localLlamaExtractionMealChunks(input.CandidateText)
+	extraction.StageTimings.ChunkingMS = elapsedMillis(chunkingStarted)
+	extraction.ChunkCount = len(chunks)
+	extraction.SourceItemCount = localLlamaMealChunkItemCount(chunks)
 	if len(chunks) == 0 {
-		return "", checker.Plan{}, nil, localModelFailureDecode, fmt.Errorf("candidate_text must identify at least one meal chunk with source food items")
+		err := fmt.Errorf("candidate_text must identify at least one meal chunk with source food items")
+		finishLocalModelExtractionArtifact(extraction, started, localModelFailureDecode, err, providerConfig.APIKey)
+		return "", checker.Plan{}, nil, extraction, localModelFailureDecode, err
 	}
 	var outputs []string
 	var rows []localLlamaRowItem
 	var repairs []LocalLlamaNormalizationRepair
-	for _, chunk := range chunks {
+	for index, chunk := range chunks {
+		chunkStarted := time.Now()
+		chunkArtifact := localModelChunkArtifact(index+1, chunk)
+		promptStarted := time.Now()
 		messages, err := localModelExtractionMessagesForMealChunk(input, chunk)
+		chunkArtifact.StageTimings.PromptBuildMS = elapsedMillis(promptStarted)
 		if err != nil {
-			return localLlamaCombinedChunkOutput(outputs), checker.Plan{}, repairs, localModelFailureDecode, err
+			chunkArtifact.FailureStage = string(localModelFailureDecode)
+			chunkArtifact.Error = sanitizeDebugError(err, providerConfig.APIKey)
+			chunkArtifact.StageTimings.TotalMS = elapsedMillis(chunkStarted)
+			extraction.Chunks = append(extraction.Chunks, chunkArtifact)
+			output := localLlamaCombinedChunkOutput(outputs)
+			finishLocalModelExtractionArtifact(extraction, started, localModelFailureDecode, err, providerConfig.APIKey)
+			return output, checker.Plan{}, repairs, extraction, localModelFailureDecode, err
 		}
+		chunkArtifact.Prompt = localModelPromptArtifact(messages, providerConfig.APIKey)
+		providerStarted := time.Now()
 		output, err := provider.Complete(ctx, providerConfig, messages)
+		chunkArtifact.StageTimings.ProviderRequestMS = elapsedMillis(providerStarted)
+		chunkArtifact.RawOutput = sanitizeDebugArtifactText(strings.TrimSpace(output), providerConfig.APIKey)
 		outputs = append(outputs, localLlamaChunkOutputBlock(chunk, output))
 		if err != nil {
-			return localLlamaCombinedChunkOutput(outputs), checker.Plan{}, repairs, localModelFailureProvider, err
+			chunkArtifact.FailureStage = string(localModelFailureProvider)
+			chunkArtifact.Error = sanitizeDebugError(err, providerConfig.APIKey)
+			chunkArtifact.StageTimings.TotalMS = elapsedMillis(chunkStarted)
+			extraction.Chunks = append(extraction.Chunks, chunkArtifact)
+			finishLocalModelExtractionArtifact(extraction, started, localModelFailureProvider, err, providerConfig.APIKey)
+			return localLlamaCombinedChunkOutput(outputs), checker.Plan{}, repairs, extraction, localModelFailureProvider, err
 		}
+		decodeStarted := time.Now()
 		chunkRows, chunkRepairs, err := decodeLocalLlamaMealChunkRows(output, chunk)
+		chunkArtifact.StageTimings.DecodeReconcileMS = elapsedMillis(decodeStarted)
 		repairs = append(repairs, chunkRepairs...)
 		if err != nil {
-			return localLlamaCombinedChunkOutput(outputs), checker.Plan{}, repairs, localModelFailureDecode, err
+			chunkArtifact.FailureStage = string(localModelFailureDecode)
+			chunkArtifact.Error = sanitizeDebugError(err, providerConfig.APIKey)
+			chunkArtifact.StageTimings.TotalMS = elapsedMillis(chunkStarted)
+			extraction.Chunks = append(extraction.Chunks, chunkArtifact)
+			finishLocalModelExtractionArtifact(extraction, started, localModelFailureDecode, err, providerConfig.APIKey)
+			return localLlamaCombinedChunkOutput(outputs), checker.Plan{}, repairs, extraction, localModelFailureDecode, err
 		}
+		chunkArtifact.DecodedRows = localModelDecodedRowArtifacts(chunkRows)
+		chunkArtifact.Reconciliation = LocalModelChunkReconciliationArtifact{
+			DecodedSourceItemIDs: localModelDecodedSourceItemIDs(chunkRows),
+			RepairCount:          len(chunkRepairs),
+			Repairs:              chunkRepairs,
+		}
+		chunkArtifact.StageTimings.TotalMS = elapsedMillis(chunkStarted)
+		extraction.Chunks = append(extraction.Chunks, chunkArtifact)
 		rows = append(rows, chunkRows...)
 	}
 	output := localLlamaCombinedChunkOutput(outputs)
+	expansionStarted := time.Now()
 	plan, err := expandLocalLlamaRows(rows, planID)
+	extraction.StageTimings.ExpansionMS = elapsedMillis(expansionStarted)
 	if err != nil {
-		return output, checker.Plan{}, repairs, localModelFailureDecode, err
+		finishLocalModelExtractionArtifact(extraction, started, localModelFailureDecode, err, providerConfig.APIKey)
+		return output, checker.Plan{}, repairs, extraction, localModelFailureDecode, err
 	}
+	completenessStarted := time.Now()
 	if err := validateLocalModelExtractionCompleteness(plan, input.CandidateText); err != nil {
-		return output, checker.Plan{}, repairs, localModelFailureCompleteness, err
+		extraction.StageTimings.CompletenessCheckMS = elapsedMillis(completenessStarted)
+		finishLocalModelExtractionArtifact(extraction, started, localModelFailureCompleteness, err, providerConfig.APIKey)
+		return output, checker.Plan{}, repairs, extraction, localModelFailureCompleteness, err
 	}
-	return output, plan, repairs, "", nil
+	extraction.StageTimings.CompletenessCheckMS = elapsedMillis(completenessStarted)
+	finishLocalModelExtractionArtifact(extraction, started, "", nil, providerConfig.APIKey)
+	return output, plan, repairs, extraction, "", nil
 }
 
 func localLlamaChunkOutputBlock(chunk localLlamaMealChunk, output string) string {
@@ -266,7 +332,7 @@ func localModelFailureEvent(stage localModelExtractionFailureStage) Normalizatio
 	}
 }
 
-func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, plan checker.Plan, llmOutput string, initialOutput string, initialErr error, repairOutput string, repairErr error, repairAttempted bool, events []NormalizationEvent) (checker.Plan, string, string, error, bool, []NormalizationEvent, error) {
+func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, plan checker.Plan, llmOutput string, initialOutput string, initialErr error, repairOutput string, repairErr error, repairAttempted bool, events []NormalizationEvent, localModelExtraction *LocalModelExtractionArtifact) (checker.Plan, string, string, error, bool, []NormalizationEvent, error) {
 	if normalizedPlan, changed := markUnsupportedUnitsUnresolved(plan); changed {
 		plan = normalizedPlan
 		events = append(events, normalizationEvent("unsupported_units_marked_unresolved", "provider numeric items with unsupported units were preserved as unresolved quantities"))
@@ -274,11 +340,12 @@ func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provid
 	if err := validatePlan(plan); err != nil {
 		events = append(events, normalizationEvent("plan_validation_failed", "decoded provider output failed MealCheck plan validation"))
 		return checker.Plan{}, llmOutput, repairOutput, repairErr, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
-			InitialOutput: initialOutput,
-			InitialError:  initialErr,
-			RepairOutput:  repairOutput,
-			RepairError:   repairErr,
-			FinalError:    err,
+			InitialOutput:        initialOutput,
+			InitialError:         initialErr,
+			RepairOutput:         repairOutput,
+			RepairError:          repairErr,
+			FinalError:           err,
+			LocalModelExtraction: localModelExtraction,
 		})
 	}
 
@@ -286,11 +353,12 @@ func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provid
 		events = append(events, normalizationEvent("plan_constraints_failed", "decoded provider output did not satisfy requested day and meal counts"))
 		if !input.RepairJSON || repairAttempted {
 			return checker.Plan{}, llmOutput, repairOutput, repairErr, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
-				InitialOutput: initialOutput,
-				InitialError:  initialErr,
-				RepairOutput:  repairOutput,
-				RepairError:   repairErr,
-				FinalError:    err,
+				InitialOutput:        initialOutput,
+				InitialError:         initialErr,
+				RepairOutput:         repairOutput,
+				RepairError:          repairErr,
+				FinalError:           err,
+				LocalModelExtraction: localModelExtraction,
 			})
 		}
 
@@ -298,10 +366,11 @@ func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provid
 		repairOutput, repairErr = provider.Complete(ctx, input.Provider, repairMessages(input, sanitizeDebugArtifactText(llmOutput, input.Provider.APIKey), sanitizeRepairPromptError(err, input.Provider.APIKey)))
 		if repairErr != nil {
 			return checker.Plan{}, llmOutput, repairOutput, repairErr, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
-				InitialOutput: initialOutput,
-				InitialError:  initialErr,
-				RepairError:   repairErr,
-				FinalError:    repairErr,
+				InitialOutput:        initialOutput,
+				InitialError:         initialErr,
+				RepairError:          repairErr,
+				FinalError:           repairErr,
+				LocalModelExtraction: localModelExtraction,
 			})
 		}
 
@@ -310,11 +379,12 @@ func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provid
 		decodeResult, decodeErr := decodePlanTextDetailed(repairOutput)
 		if decodeErr != nil {
 			return checker.Plan{}, llmOutput, repairOutput, decodeErr, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
-				InitialOutput: initialOutput,
-				InitialError:  initialErr,
-				RepairOutput:  repairOutput,
-				RepairError:   decodeErr,
-				FinalError:    decodeErr,
+				InitialOutput:        initialOutput,
+				InitialError:         initialErr,
+				RepairOutput:         repairOutput,
+				RepairError:          decodeErr,
+				FinalError:           decodeErr,
+				LocalModelExtraction: localModelExtraction,
 			})
 		}
 		plan = decodeResult.Plan
@@ -329,21 +399,23 @@ func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provid
 		if err := validatePlan(plan); err != nil {
 			events = append(events, normalizationEvent("plan_validation_failed", "repair output failed MealCheck plan validation"))
 			return checker.Plan{}, llmOutput, repairOutput, err, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
-				InitialOutput: initialOutput,
-				InitialError:  initialErr,
-				RepairOutput:  repairOutput,
-				RepairError:   err,
-				FinalError:    err,
+				InitialOutput:        initialOutput,
+				InitialError:         initialErr,
+				RepairOutput:         repairOutput,
+				RepairError:          err,
+				FinalError:           err,
+				LocalModelExtraction: localModelExtraction,
 			})
 		}
 		if err := validateGeneratedPlanAgainstConstraints(plan, input.Settings.VerificationConstraints); err != nil {
 			events = append(events, normalizationEvent("plan_constraints_failed", "repair output did not satisfy requested day and meal counts"))
 			return checker.Plan{}, llmOutput, repairOutput, err, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
-				InitialOutput: initialOutput,
-				InitialError:  initialErr,
-				RepairOutput:  repairOutput,
-				RepairError:   err,
-				FinalError:    err,
+				InitialOutput:        initialOutput,
+				InitialError:         initialErr,
+				RepairOutput:         repairOutput,
+				RepairError:          err,
+				FinalError:           err,
+				LocalModelExtraction: localModelExtraction,
 			})
 		}
 	}
@@ -1405,36 +1477,43 @@ func writeOptionalArtifacts(outDir string, prepared PreparedRun) error {
 			return err
 		}
 	}
+	if prepared.LocalModelExtraction != nil {
+		if err := writeJSONFile(filepath.Join(outDir, "optional", "local-model-chunks.json"), prepared.LocalModelExtraction); err != nil {
+			return err
+		}
+	}
 	if prepared.UsedProvider {
 		if err := writeJSONFile(filepath.Join(outDir, "configs", "redacted-provider.json"), prepared.RedactedProvider); err != nil {
 			return err
 		}
 	}
-	if prepared.UsedProvider || len(prepared.NormalizationEvents) > 0 {
+	if prepared.UsedProvider || len(prepared.NormalizationEvents) > 0 || prepared.LocalModelExtraction != nil {
 		return updateManifestOptionals(outDir, prepared)
 	}
 	return nil
 }
 
 type normalizationFailureDebug struct {
-	InitialOutput string
-	InitialError  error
-	RepairOutput  string
-	RepairError   error
-	FinalError    error
+	InitialOutput        string
+	InitialError         error
+	RepairOutput         string
+	RepairError          error
+	FinalError           error
+	LocalModelExtraction *LocalModelExtractionArtifact
 }
 
 type normalizationFailureArtifact struct {
-	SchemaVersion       string                 `json:"schema_version"`
-	RunID               string                 `json:"run_id"`
-	CreatedAt           string                 `json:"created_at"`
-	Provider            RedactedProviderConfig `json:"provider"`
-	NormalizationEvents []NormalizationEvent   `json:"normalization_events"`
-	InitialOutput       string                 `json:"initial_output,omitempty"`
-	InitialError        string                 `json:"initial_error,omitempty"`
-	RepairOutput        string                 `json:"repair_output,omitempty"`
-	RepairError         string                 `json:"repair_error,omitempty"`
-	FinalError          string                 `json:"final_error,omitempty"`
+	SchemaVersion        string                        `json:"schema_version"`
+	RunID                string                        `json:"run_id"`
+	CreatedAt            string                        `json:"created_at"`
+	Provider             RedactedProviderConfig        `json:"provider"`
+	NormalizationEvents  []NormalizationEvent          `json:"normalization_events"`
+	InitialOutput        string                        `json:"initial_output,omitempty"`
+	InitialError         string                        `json:"initial_error,omitempty"`
+	RepairOutput         string                        `json:"repair_output,omitempty"`
+	RepairError          string                        `json:"repair_error,omitempty"`
+	FinalError           string                        `json:"final_error,omitempty"`
+	LocalModelExtraction *LocalModelExtractionArtifact `json:"local_model_extraction,omitempty"`
 }
 
 func writeNormalizationFailureAndReturn(config Config, run Run, provider ProviderConfig, events []NormalizationEvent, failure normalizationFailureDebug) error {
@@ -1487,16 +1566,17 @@ func writeNormalizationFailureDebug(config Config, run Run, provider ProviderCon
 		return err
 	}
 	artifact := normalizationFailureArtifact{
-		SchemaVersion:       "0.1",
-		RunID:               run.ID,
-		CreatedAt:           time.Now().UTC().Format(time.RFC3339),
-		Provider:            redactProvider(provider),
-		NormalizationEvents: append([]NormalizationEvent(nil), events...),
-		InitialOutput:       sanitizeDebugArtifactText(failure.InitialOutput, provider.APIKey),
-		InitialError:        sanitizeDebugError(failure.InitialError, provider.APIKey),
-		RepairOutput:        sanitizeDebugArtifactText(failure.RepairOutput, provider.APIKey),
-		RepairError:         sanitizeDebugError(failure.RepairError, provider.APIKey),
-		FinalError:          sanitizeDebugError(failure.FinalError, provider.APIKey),
+		SchemaVersion:        "0.1",
+		RunID:                run.ID,
+		CreatedAt:            time.Now().UTC().Format(time.RFC3339),
+		Provider:             redactProvider(provider),
+		NormalizationEvents:  append([]NormalizationEvent(nil), events...),
+		InitialOutput:        sanitizeDebugArtifactText(failure.InitialOutput, provider.APIKey),
+		InitialError:         sanitizeDebugError(failure.InitialError, provider.APIKey),
+		RepairOutput:         sanitizeDebugArtifactText(failure.RepairOutput, provider.APIKey),
+		RepairError:          sanitizeDebugError(failure.RepairError, provider.APIKey),
+		FinalError:           sanitizeDebugError(failure.FinalError, provider.APIKey),
+		LocalModelExtraction: failure.LocalModelExtraction,
 	}
 	return writeJSONFile(filepath.Join(debugDir, "normalization-failure.json"), artifact)
 }
@@ -1553,6 +1633,9 @@ func updateManifestOptionals(outDir string, prepared PreparedRun) error {
 	}
 	if len(prepared.NormalizationEvents) > 0 {
 		manifest.Artifacts = appendIfMissing(manifest.Artifacts, "optional/normalization-events.json")
+	}
+	if prepared.LocalModelExtraction != nil {
+		manifest.Artifacts = appendIfMissing(manifest.Artifacts, "optional/local-model-chunks.json")
 	}
 	return writeJSONFile(manifestPath, manifest)
 }
