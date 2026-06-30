@@ -63,7 +63,7 @@ export const INITIAL_MANUAL_ITEMS: ManualItem[] = [
 export const DEFAULT_GENERATION_PROMPT = "Create a simple one-day high-protein meal plan. Avoid peanuts and shellfish.";
 export const DEFAULT_PREP_NOTES = "Refrigerate cooked foods within 2 hours.\nReheat leftovers until steaming.";
 export const DEFAULT_CANDIDATE_TEXT = [
-  "Day 1 breakfast: 1 cup cooked oatmeal, 0.5 cup blueberries, and 1 cup plain Greek yogurt.",
-  "Day 1 lunch: 4 oz grilled chicken breast, 1 cup brown rice, and 1 cup broccoli.",
-  "Day 1 dinner: 4 oz baked salmon, 1 serving sweet potato, and 1 tbsp olive oil.",
-].join("\n");
+  "For breakfast I will have 1 cup cooked oatmeal with 0.5 cup blueberries and 1 cup plain Greek yogurt.",
+  "For lunch I will have 4 oz grilled chicken breast with 1 cup brown rice plus 1 cup broccoli.",
+  "For dinner I will have 4 oz baked salmon with 1 serving sweet potato and 1 tbsp olive oil.",
+].join(" ");

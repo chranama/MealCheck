@@ -3542,8 +3542,8 @@ Current Seed Results:
 - Total P0 cases: 14.
 - Success cases: 11.
 - Failure cases: 3.
-- Expected source items: 148.
-- Source items matched: 148.
+- Expected source items: 139.
+- Source items matched: 139.
 - Source item preservation rate: 100%.
 - Adapter-valid success cases: 11.
 - Qualification failure cases passed: 3.

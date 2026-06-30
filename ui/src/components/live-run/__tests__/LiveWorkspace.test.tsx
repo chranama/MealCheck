@@ -94,7 +94,7 @@ describe("LiveWorkspace", () => {
       "",
       expect.objectContaining({
         input_mode: "local_model",
-        candidate_text: expect.stringContaining("Day 1 breakfast"),
+        candidate_text: expect.stringContaining("For breakfast"),
         settings: expect.any(Object),
       }),
     );
@@ -232,7 +232,7 @@ describe("LiveWorkspace", () => {
       "http://127.0.0.1:8080",
       "",
       expect.objectContaining({
-        text: expect.stringContaining("Day 1 breakfast"),
+        text: expect.stringContaining("For breakfast"),
       }),
     );
     const calls = onQualify.mock.calls as unknown as Array<[string, string, Record<string, unknown>]>;
@@ -356,7 +356,7 @@ describe("LiveWorkspace", () => {
       "http://127.0.0.1:8080",
       "",
       expect.objectContaining({
-        text: expect.stringContaining("Day 1 breakfast"),
+        text: expect.stringContaining("For breakfast"),
         provider: expect.objectContaining({
           type: "openai",
           base_url: "",

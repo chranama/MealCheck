@@ -379,7 +379,7 @@ Current deterministic P0 seed result:
 
 - 11 success cases pass deterministic source-inventory and adapter checks.
 - 3 qualification-failure cases pass expected-status checks.
-- 148 of 148 expected source items are preserved, for a
+- 139 of 139 expected source items are preserved, for a
   `source_item_preservation_rate` of 1.0.
 - The seed result has zero mismatches.
 
@@ -421,7 +421,7 @@ The current checked-in P0 corpus is still a seed corpus:
 
 - 11 success cases
 - 3 qualification failure cases
-- 148 expected source items
+- 139 expected source items
 - supported units only: `g`, `oz`, `cup`, `tbsp`, `tsp`, `slice`, `serving`
 
 The live-model regimen measures model extraction quality on the success cases.
