@@ -659,14 +659,6 @@ func evaluateSuccessCase(c successCase) (caseMismatch, int, bool) {
 }
 
 func evaluateLocalModelSuccessCase(c successCase, providerFactory hosted.ProviderFactory, providerConfig hosted.ProviderConfig) ([]string, rowComparisonMetrics, int, string) {
-	messages, err := hosted.LocalModelExtractionMessages(hosted.PendingRunInput{
-		Mode:          hosted.InputModeLocalModel,
-		CandidateText: c.InputText,
-		Provider:      providerConfig,
-	})
-	if err != nil {
-		return []string{fmt.Sprintf("local_model_prompt_failed: %v", err)}, rowComparisonMetrics{}, 0, "prompt"
-	}
 	provider, err := providerFactory(providerConfig)
 	if err != nil {
 		return []string{fmt.Sprintf("local_model_provider_failed: %v", err)}, rowComparisonMetrics{}, 0, "provider"
@@ -677,13 +669,19 @@ func evaluateLocalModelSuccessCase(c successCase, providerFactory hosted.Provide
 		ctx, cancel = context.WithTimeout(ctx, providerConfig.Timeout)
 		defer cancel()
 	}
-	output, err := provider.Complete(ctx, providerConfig, messages)
+	_, plan, repairs, stage, err := hosted.RunLocalModelExtraction(ctx, provider, providerConfig, hosted.PendingRunInput{
+		Mode:          hosted.InputModeLocalModel,
+		CandidateText: c.InputText,
+		Provider:      providerConfig,
+	}, "p0-normalization-local-model-eval")
 	if err != nil {
-		return []string{fmt.Sprintf("local_model_provider_failed: %v", err)}, rowComparisonMetrics{}, 0, "provider"
-	}
-	plan, repairs, err := hosted.DecodeLocalLlamaCompactPlanWithSource(output, "p0-normalization-local-model-eval", c.InputText)
-	if err != nil {
-		return []string{fmt.Sprintf("local_model_decode_failed: %v", err)}, rowComparisonMetrics{}, len(repairs), "decode"
+		failure := "decode"
+		if stage == "provider" {
+			failure = "provider"
+		} else if stage == "completeness" {
+			failure = "decode"
+		}
+		return []string{fmt.Sprintf("local_model_%s_failed: %v", failure, err)}, rowComparisonMetrics{}, len(repairs), failure
 	}
 	compareMessages, metrics := comparePlanRowsDetailed(plan, c.Expected.SourceItems)
 	for i := range compareMessages {

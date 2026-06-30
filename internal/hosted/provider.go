@@ -174,7 +174,7 @@ func completeOpenAIChat(ctx context.Context, client *http.Client, config Provide
 			"json_schema": map[string]any{
 				"name":   "mealcheck_compact_meal_plan",
 				"strict": true,
-				"schema": LocalLlamaCompactResponseSchema(),
+				"schema": LocalLlamaMealChunkResponseSchema(),
 			},
 		}
 	}

@@ -4,7 +4,7 @@ This document is MealCheck's active engineering-priority surface. The
 implementation plan records milestone history; this document ranks the next
 work by user impact, observed failure modes, and proof value.
 
-Last reviewed: 2026-06-27.
+Last reviewed: 2026-06-30.
 
 ## Prioritization Rule
 
@@ -33,6 +33,8 @@ Goal:
 MealCheck should reliably normalize concise ingredient-level meal plans that
 match the public input guidance. The preloaded example and a small regression
 corpus of natural rewrites must work before broader feature work gets priority.
+The immediate proof is that the new one-day, per-meal, SLM-critical path works
+on the serving MacBook with enough artifacts to explain failures.
 
 Why this is first:
 
@@ -44,9 +46,14 @@ Why this is first:
 
 Good enough:
 
+- The reviewed robustness corpus succeeds through the hosted per-meal
+  local-model path on the serving MacBook, not only in deterministic or
+  prototyping-laptop tests.
 - The preloaded hosted example succeeds locally and on the deployed path.
 - The acceptable-input robustness corpus succeeds for normalization correctness,
   independent of whether the final decision is `pass`, `warn`, or `block`.
+- Each accepted model chunk has enough redacted evidence to debug prompt,
+  source-inventory, model-output, decode, reconciliation, and timing failures.
 - Common natural rewrites of the example either normalize successfully or fail
   before queueing with specific, actionable guidance.
 - Source item preservation is exact: every resolved source item appears once,
@@ -56,17 +63,29 @@ Good enough:
 
 Near-term engineering slices:
 
-1. Expand the robustness corpus with observed live failures and natural rewrites
-   of the public example.
-2. Add a repeatable local command or test target that runs the corpus through
-   the hosted local-model normalization path or a deterministic substitute where
-   model access is unavailable.
-3. Promote deterministic unit normalization only when the conversion is safe and
+1. Run the reviewed robustness corpus through the hosted per-meal local-model
+   normalization path on the serving MacBook and record the live P0 regimen
+   result before treating the current contract as production-stable.
+2. Add chunk-level local-model artifacts for prompt metadata, source IDs, raw
+   compact output, decoded rows, reconciliation results, stage timings, and
+   repeat-run instability.
+3. Tighten the public one-day input contract across UI, API, and docs:
+   ingredient-level meal text, configured source-item cap, no weekly plans, no
+   recipes, and no long inventories.
+4. Add first-class unsupported-unit qualification diagnostics so otherwise
+   structured inputs fail or become unresolved with a specific public reason.
+5. Expand the hand-reviewed robustness corpus with observed live failures and
+   product-shaped natural rewrites of the public example, including paragraphs,
+   snack spans, reverse measurements, and unsupported-unit boundaries.
+6. Promote deterministic unit normalization only when the conversion is safe and
    visible; preserve vague or genuinely unsupported quantities as unresolved.
-4. Improve debug artifacts and log summaries so failed runs identify the exact
-   normalization stage, source line, unit, food phrase, and item-count mismatch.
-5. Keep user-facing failure messages guidance-oriented and avoid exposing compact
+7. Keep user-facing failure messages guidance-oriented and avoid exposing compact
    row, schema, model-path, or parser internals.
+8. Generate and manually review small NYT Ingredient Phrase Tagger and TASTEset
+   exploratory slices only after source/license review and after the
+   product-shaped reviewed corpus has exposed the obvious gaps; promote no
+   external subset to strict until expected rows and failure categories have
+   been inspected.
 
 Metrics to track:
 
@@ -75,6 +94,11 @@ Metrics to track:
 - `source_item_preservation_rate` on normalized runs.
 - `unsupported_unit_false_failure_count` from observed in-bound inputs.
 - `post_queue_normalization_failure_count` for inputs that passed preflight.
+- `local_model_chunk_decode_failure_count` by meal code and source-item count.
+- live P0 row, food, quantity, and unit accuracy on the serving MacBook model.
+- chunk artifact completeness for accepted local-model runs.
+- per-stage duration for qualification, chunk extraction, checker execution,
+  artifact writing, and report loading.
 
 ## P1: Common Food And Unit Resolution
 
@@ -138,7 +162,9 @@ Why this is third:
 - Local llama.cpp on the MacBook Air is a real resource constraint.
 - Slow but transparent can be acceptable for this MVP; slow and silent feels
   broken.
-- Latency tuning should be driven by stage measurements, not guesswork.
+- The first timing capture belongs to P0 because it proves the SLM-critical
+  path; P2 turns those measurements into user-facing progress, capacity policy,
+  and tuning decisions.
 
 Good enough:
 
@@ -151,14 +177,16 @@ Good enough:
 
 Near-term engineering slices:
 
-1. Record stage timings for qualification, queue wait, local-model extraction,
-   checker execution, artifact writing, and report loading.
-2. Summarize timing and failure stages in run artifacts or logs without leaking
-   user secrets or internal host paths.
+1. Convert P0 stage timings and failure stages into clear user/operator states
+   without leaking user secrets or internal host paths.
+2. Add distinct recovery guidance for queue-full, rate-limit, model-unavailable,
+   timeout, failed-normalization, and report-loading failures.
 3. Use measured data before raising model limits again.
 4. Keep one active local-model run unless measurements show safe headroom.
 5. Keep hosted local-model input bounded to one day and the configured source
    item cap before revisiting larger scopes.
+6. Compare the production `Qwen3-0.6B-Q4_K_M` model against one larger local
+   candidate only after P0 stage timing and live-regimen artifacts are recorded.
 
 Metrics to track:
 
@@ -212,6 +240,10 @@ observed failure changes the priority calculation:
 - adding a dynamic frontend server
 - expanding deterministic recommendation classes before unresolved and
   normalization reliability improve
+- promoting NYT/TASTEset-generated P0 cases before product-shaped reviewed cases
+  and manual review
+- comparing larger models before serving-MacBook P0 artifacts and stage timing
+  exist
 - raising local-model limits without stage timing evidence
 
 ## Operating Loop
@@ -234,21 +266,23 @@ Use this loop when choosing the next engineering task:
 P0 proof should include:
 
 - robustness corpus normalization checks
-- local-model live smoke when the deployed service is involved
+- serving-MacBook live P0 regimen for the per-meal local-model path
+- chunk-level artifact completeness for accepted model calls
 - backend tests for source-item preservation and unsupported-unit handling
 - frontend tests for actionable recovery messages
 
 P1 proof should include:
 
 - `go run ./cmd/mealcheck fixture-check`
-- `go run ./cmd/mealcheck eval`
+- `go run ./cmd/mealcheck eval-checker`
 - WWEIA/NHANES evaluation when changing catalog or fallback behavior
 - resolver tests for new unresolved reasons or conversions
 
 P2 proof should include:
 
 - local and deployed smoke tests
-- timing summaries from representative one-day inputs
+- timing summaries from representative one-day inputs, derived from the P0
+  instrumentation path
 - queue, timeout, and model-unavailable recovery checks
 
 P3 proof should include:

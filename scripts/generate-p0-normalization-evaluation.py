@@ -70,10 +70,26 @@ INLINE_ITEM_PATTERN = re.compile(
     rf"^\s*({QUANTITY_PATTERN})\s+(({UNIT_PATTERN})\s+)?(.+?)\s*$",
     re.IGNORECASE,
 )
+REVERSE_ITEM_PATTERN = re.compile(
+    rf"^\s*(.+?)\s*(?:,|-|\()\s*({QUANTITY_PATTERN})\s+({UNIT_PATTERN})\)?\s*$",
+    re.IGNORECASE,
+)
+MEASUREMENT_ONLY_PATTERN = re.compile(rf"^\s*{QUANTITY_PATTERN}\s+{UNIT_PATTERN}\s*$", re.IGNORECASE)
 INLINE_BOUNDARY_PATTERN = re.compile(
     rf"\s+\b(?:and|with|plus)\s+(({QUANTITY_PATTERN})\s+)",
     re.IGNORECASE,
 )
+LEADING_CONNECTOR_PATTERN = re.compile(r"^\s*(?:and|with|plus)\s+", re.IGNORECASE)
+MEAL_PHRASE_PREFIX = re.compile(
+    r"^\s*(?:i\s+(?:will\s+)?(?:have|had|ate|eat)|will\s+have|had|have|ate|eat|includes?|include|was|is|were|are)\s+",
+    re.IGNORECASE,
+)
+TRAILING_MEAL_VERB = re.compile(r"\b(?:includes?|include|was|is|were|are|has|had|have)\s*$", re.IGNORECASE)
+PARAGRAPH_MEAL_PATTERN = re.compile(
+    r"\b(?:for|at|as|my|the)?\s*(morning snack|afternoon snack|evening snack|breakfast|lunch|dinner|snack)\b",
+    re.IGNORECASE,
+)
+PARAGRAPH_QUANTITY_START_PATTERN = re.compile(QUANTITY_PATTERN, re.IGNORECASE)
 DAY_PATTERN = re.compile(r"\bday\s*([1-7])\b", re.IGNORECASE)
 SOURCE_ITEM_MARKER_PATTERN = re.compile(r"^\s*(?:[-*]|\d+[.)])\s+")
 PARSED_SOURCE_PATTERN = re.compile(rf"^\s*({QUANTITY_PATTERN})\s+(\S+)\s+(.+?)\s*$", re.IGNORECASE)
@@ -610,16 +626,65 @@ def resolved_source_items(text: str) -> list[SourceItem]:
             meal_code = meal_code_from_heading(trimmed)
             if meal_code:
                 current_meal_code = meal_code
-            for source_text in inline_source_texts(trimmed):
-                item = source_item_from_text(current_day, current_meal_code, len(items) + 1, source_text)
-                if item is not None:
-                    items.append(item)
+            inline_items = inline_source_texts(trimmed)
+            paragraph_items = paragraph_source_items(trimmed, current_day, len(items) + 1)
+            if len(paragraph_items) > len(inline_items):
+                items.extend(paragraph_items)
+                continue
+            if inline_items:
+                for source_text in inline_items:
+                    item = source_item_from_text(current_day, current_meal_code, len(items) + 1, source_text)
+                    if item is not None:
+                        items.append(item)
+                continue
+            if paragraph_items:
+                items.extend(paragraph_items)
+                continue
             continue
         source_text = SOURCE_ITEM_MARKER_PATTERN.sub("", line).strip()
         item = source_item_from_text(current_day, current_meal_code, len(items) + 1, source_text)
         if item is not None:
             items.append(item)
     return items
+
+
+def paragraph_source_items(line: str, day: int, start_id: int) -> list[SourceItem]:
+    matches = list(PARAGRAPH_MEAL_PATTERN.finditer(line))
+    if not matches:
+        return []
+    items: list[SourceItem] = []
+    for index, match in enumerate(matches):
+        meal_code = meal_code_from_heading(match.group(1))
+        if not meal_code:
+            continue
+        section_start = match.end()
+        section_end = matches[index + 1].start() if index + 1 < len(matches) else len(line)
+        section = line[section_start:section_end].strip()
+        if not section:
+            continue
+        normalized = section.replace(";", ",")
+        for part in split_comma_item_parts(normalized):
+            for phrase in split_inline_and_quantified(part):
+                source_text = paragraph_source_text(phrase)
+                if source_text:
+                    item = source_item_from_text(day, meal_code, start_id + len(items), source_text)
+                    if item is not None:
+                        items.append(item)
+    return items
+
+
+def paragraph_source_text(phrase: str) -> str:
+    text = LEADING_CONNECTOR_PATTERN.sub("", phrase.strip().strip(".;,\t\r\n "))
+    if not text:
+        return ""
+    inline = inline_source_text_from_phrase(text)
+    if inline:
+        return inline
+    match = PARAGRAPH_QUANTITY_START_PATTERN.search(text)
+    if match:
+        text = text[match.start() :].strip()
+    inline = inline_source_text_from_phrase(text)
+    return inline
 
 
 def inline_source_texts(line: str) -> list[str]:
@@ -630,26 +695,85 @@ def inline_source_texts(line: str) -> list[str]:
         return []
     rest = rest.replace(";", ",")
     phrases: list[str] = []
-    for part in rest.split(","):
+    for part in split_comma_item_parts(rest):
         phrases.extend(split_inline_and_quantified(part))
     source_texts: list[str] = []
     for phrase in phrases:
-        phrase = re.sub(r"^\s*and\s+", "", phrase.strip().strip("."), flags=re.IGNORECASE)
-        if not phrase:
-            continue
-        match = INLINE_ITEM_PATTERN.match(phrase)
-        if not match:
-            continue
-        quantity = " ".join(match.group(1).split())
-        unit = (match.group(2) or "").strip()
-        food = match.group(4).strip()
-        if unit:
-            food = re.sub(r"^of\s+", "", food, flags=re.IGNORECASE).strip()
-        else:
-            unit = "serving"
-        unit = normalize_unit(unit)
-        source_texts.append(f"{quantity} {unit} {food}".strip())
+        source_text = inline_source_text_from_phrase(phrase)
+        if source_text:
+            source_texts.append(source_text)
     return source_texts
+
+
+def inline_source_text_from_phrase(phrase: str) -> str:
+    phrase = LEADING_CONNECTOR_PATTERN.sub("", phrase.strip().strip("."))
+    if not phrase:
+        return ""
+    reverse = reverse_source_text_from_phrase(phrase)
+    if reverse:
+        return reverse
+    match = INLINE_ITEM_PATTERN.match(phrase)
+    if not match:
+        return ""
+    quantity = " ".join(match.group(1).split())
+    unit = (match.group(2) or "").strip()
+    food = clean_meal_context_prefix(match.group(4).strip())
+    if unit:
+        food = re.sub(r"^of\s+", "", food, flags=re.IGNORECASE).strip()
+    else:
+        unit = "serving"
+    unit = normalize_unit(unit)
+    return f"{quantity} {unit} {food}".strip()
+
+
+def reverse_source_text_from_phrase(phrase: str) -> str:
+    match = REVERSE_ITEM_PATTERN.match(phrase.strip().strip(".;,\t\r\n "))
+    if not match:
+        return ""
+    food = clean_meal_context_prefix(match.group(1)).strip(" \t\r\n.;:-()")
+    if not food:
+        return ""
+    quantity = " ".join(match.group(2).split())
+    unit = normalize_unit(match.group(3))
+    return f"{quantity} {unit} {food}".strip()
+
+
+def split_comma_item_parts(text: str) -> list[str]:
+    raw_parts = text.split(",")
+    parts: list[str] = []
+    index = 0
+    while index < len(raw_parts):
+        part = raw_parts[index].strip()
+        if not part:
+            index += 1
+            continue
+        if index + 1 < len(raw_parts):
+            next_part = raw_parts[index + 1].strip()
+            if should_merge_reverse_measurement_parts(part, next_part):
+                parts.append(f"{part}, {next_part}")
+                index += 2
+                continue
+        parts.append(part)
+        index += 1
+    return parts
+
+
+def should_merge_reverse_measurement_parts(food_part: str, measurement_part: str) -> bool:
+    if not food_part or not measurement_part:
+        return False
+    if PARAGRAPH_QUANTITY_START_PATTERN.search(food_part):
+        return False
+    return bool(MEASUREMENT_ONLY_PATTERN.match(measurement_part.strip(" .;")))
+
+
+def clean_meal_context_prefix(text: str) -> str:
+    text = text.strip()
+    while True:
+        cleaned = MEAL_PHRASE_PREFIX.sub("", text).strip()
+        cleaned = TRAILING_MEAL_VERB.sub("", cleaned).strip()
+        if cleaned == text:
+            return text
+        text = cleaned
 
 
 def split_inline_and_quantified(part: str) -> list[str]:

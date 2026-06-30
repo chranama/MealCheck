@@ -177,7 +177,7 @@ func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
 	store := NewMemoryStore()
 	pending := NewPendingInputs()
 	server := NewServer(config, store, pending)
-	provider := &fakeProvider{responses: []string{compactLocalMealPlanJSON()}}
+	provider := &fakeProvider{responses: compactLocalMealPlanJSONResponses()}
 	seeded := seededCase(t, root)
 	settings := localModelTestSettings(seeded.Settings)
 
@@ -217,8 +217,8 @@ func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
 	if !processed {
 		t.Fatal("expected worker to process one run")
 	}
-	if provider.calls != 1 {
-		t.Fatalf("provider calls = %d, want 1", provider.calls)
+	if provider.calls != 3 {
+		t.Fatalf("provider calls = %d, want 3", provider.calls)
 	}
 
 	run, err := store.GetRun(context.Background(), created.RunID)
@@ -336,7 +336,11 @@ func TestLocalModelRunAcceptsMissingQuantitiesAsUnresolvedRows(t *testing.T) {
 	store := NewMemoryStore()
 	pending := NewPendingInputs()
 	server := NewServer(config, store, pending)
-	provider := &fakeProvider{responses: []string{`{"i":[[1,1,"b","oatmeal",null,"","missing quantity","missing_quantity"],[2,1,"l","salad",null,"","missing quantity","missing_quantity"],[3,1,"d","chicken bowl",null,"","missing quantity","missing_quantity"]]}`}}
+	provider := &fakeProvider{responses: []string{
+		`{"i":[[1,"oatmeal",null,"","missing quantity","missing_quantity"]]}`,
+		`{"i":[[2,"salad",null,"","missing quantity","missing_quantity"]]}`,
+		`{"i":[[3,"chicken bowl",null,"","missing quantity","missing_quantity"]]}`,
+	}}
 	settings := localModelTestSettings(seededCase(t, root).Settings)
 
 	body := marshalJSON(t, CreateRunRequest{
@@ -360,8 +364,8 @@ func TestLocalModelRunAcceptsMissingQuantitiesAsUnresolvedRows(t *testing.T) {
 	if !processed {
 		t.Fatal("expected worker to process one run")
 	}
-	if provider.calls != 1 {
-		t.Fatalf("provider calls = %d, want 1", provider.calls)
+	if provider.calls != 3 {
+		t.Fatalf("provider calls = %d, want 3", provider.calls)
 	}
 	run, err := store.GetRun(context.Background(), created.RunID)
 	if err != nil {
@@ -695,7 +699,7 @@ func TestQualifyEndpointUsesHostedLocalModelWithoutClientProvider(t *testing.T) 
 	store := NewMemoryStore()
 	server := NewServer(config, store)
 	seeded := seededCase(t, root)
-	provider := &fakeProvider{responses: []string{compactLocalMealPlanJSON()}}
+	provider := &fakeProvider{responses: compactLocalMealPlanJSONResponses()}
 	server.ProviderFactory = func(config ProviderConfig) (Provider, error) {
 		if config.Type != ProviderTypeLocalLlama {
 			t.Fatalf("provider type = %q, want %q", config.Type, ProviderTypeLocalLlama)
@@ -714,8 +718,8 @@ func TestQualifyEndpointUsesHostedLocalModelWithoutClientProvider(t *testing.T) 
 	if resp.Code != http.StatusOK {
 		t.Fatalf("qualify status = %d, want 200 body=%s", resp.Code, resp.Body.String())
 	}
-	if provider.calls != 1 {
-		t.Fatalf("provider calls = %d, want 1", provider.calls)
+	if provider.calls != 3 {
+		t.Fatalf("provider calls = %d, want 3", provider.calls)
 	}
 	var response QualifyMealPlanResponse
 	decodeJSON(t, resp.Body.Bytes(), &response)
@@ -2473,8 +2477,12 @@ func localModelTestSettings(settings checker.Settings) checker.Settings {
 	return settings
 }
 
-func compactLocalMealPlanJSON() string {
-	return `{"i":[[1,"b","cooked oatmeal",1,"cup"],[1,"b","blueberries",1,"cup"],[1,"b","plain Greek yogurt",1,"cup"],[1,"l","chicken breast",4,"oz"],[1,"l","brown rice",1,"cup"],[1,"l","broccoli",1,"cup"],[1,"d","salmon",4,"oz"],[1,"d","sweet potato",1,"cup"],[1,"d","spinach",1,"cup"]]}`
+func compactLocalMealPlanJSONResponses() []string {
+	return []string{
+		`{"i":[[1,"cooked oatmeal",1,"cup"],[2,"blueberries",1,"cup"],[3,"plain Greek yogurt",1,"cup"]]}`,
+		`{"i":[[4,"chicken breast",4,"oz"],[5,"brown rice",1,"cup"],[6,"broccoli",1,"cup"]]}`,
+		`{"i":[[7,"salmon",4,"oz"],[8,"sweet potato",1,"cup"],[9,"spinach",1,"cup"]]}`,
+	}
 }
 
 func repoRoot(t *testing.T) string {

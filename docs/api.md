@@ -383,23 +383,32 @@ one day of meal-plan text through the server-owned local model. The hosted
 contract supports one day only, up to `MEALCHECK_LOCAL_MODEL_MAX_INPUT_CHARS`
 characters, and up to `MEALCHECK_LOCAL_MODEL_MAX_SOURCE_ITEMS` numbered source
 food items. Weekly plans, multi-day text, recipes, grocery lists, and long prose
-are rejected before queueing.
+without identifiable meal anchors and bounded source food spans are rejected
+before queueing.
 
-The compact local contract asks the model for rows in the form
-`[source_item_id, day, meal_code, food, quantity, unit]`. If a source item does
-not contain a usable amount, the model must preserve it as
-`[source_item_id, day, meal_code, food, null, "", quantity_text, unresolved_reason]`.
-The backend numbers source items before prompting the model, rejects outputs
-with missing or duplicated source item IDs, and expands the compact rows into
-canonical MealCheck JSON before deterministic verification.
+The backend deterministically chunks the accepted day by meal. Each local-model
+call receives the full text span for one meal plus that meal's numbered source
+items. The meal text is context; the source item list is authoritative. The
+compact local contract asks the model for rows in the form
+`[source_item_id, food, quantity, unit]`. If a source item does not contain a
+usable amount, the model must preserve it as
+`[source_item_id, food, null, "", quantity_text, unresolved_reason]`. The
+backend rejects missing, duplicated, or extra source item IDs per meal chunk,
+then reattaches the deterministic day and meal code before expanding rows into
+canonical MealCheck JSON for verification.
 
 For best results, `candidate_text` should describe one day with clear meal
-labels, foods, and amounts:
+labels, foods, and approximate amounts. Semi-structured lines and paragraphs are
+both accepted when each meal names bounded food spans:
 
 ```text
 Day 1 breakfast: 1 cup cooked oatmeal, 0.5 cup blueberries, and 1 cup plain Greek yogurt.
 Day 1 lunch: 4 oz grilled chicken breast, 1 cup brown rice, and 1 cup steamed broccoli.
-Day 1 dinner: baked salmon, 1 serving sweet potato, and 1 tbsp olive oil.
+Day 1 dinner: salmon, 100 g, 1 serving sweet potato, and 1 tbsp olive oil.
+```
+
+```text
+For breakfast I will have 1 cup oatmeal with 0.5 cup blueberries. For lunch I will have 4 oz chicken with 1 cup rice. Dinner includes 4 oz salmon and 1 serving sweet potato.
 ```
 
 Clients must omit `provider`; the backend injects the configured local model

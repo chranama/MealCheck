@@ -37,9 +37,19 @@ func validateLocalModelInputContract(config Config, text string) error {
 	if localModelGroceryListPattern.MatchString(text) {
 		return fmt.Errorf("candidate_text must be a meal plan, not a grocery or shopping list")
 	}
+	chunks := localLlamaExtractionMealChunks(text)
+	itemCount := 0
+	for _, chunk := range chunks {
+		if strings.TrimSpace(chunk.MealCode) == "" || chunk.MealCode == "infer" {
+			return fmt.Errorf("candidate_text must identify each source food item under a meal label such as breakfast, lunch, dinner, or snack")
+		}
+		itemCount += len(chunk.Items)
+	}
+	if itemCount == 0 {
+		return fmt.Errorf("candidate_text must identify at least one source food item with a meal label")
+	}
 	itemLimit := config.LocalModelMaxSourceItems
 	if itemLimit > 0 {
-		itemCount := localLlamaExpectedExtractionItemCount(text)
 		if itemCount > itemLimit {
 			return fmt.Errorf("candidate_text includes %d source food item(s); hosted local_model accepts at most %d", itemCount, itemLimit)
 		}

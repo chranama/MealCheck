@@ -436,7 +436,7 @@ describe("LiveWorkspace", () => {
 
     expect(screen.getByText("MealCheck could not normalize this plan")).toBeInTheDocument();
     expect(screen.getByText(/Use one day only/)).toBeInTheDocument();
-    expect(screen.getByText(/Put each meal on its own line/)).toBeInTheDocument();
+    expect(screen.getByText(/Use lines or paragraphs/)).toBeInTheDocument();
   });
 
   it("submits selected Gemini providers", async () => {

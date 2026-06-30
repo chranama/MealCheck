@@ -94,10 +94,50 @@ func (item *localLlamaTupleItem) UnmarshalJSON(data []byte) error {
 func (item *localLlamaRowItem) UnmarshalJSON(data []byte) error {
 	var values []json.RawMessage
 	if err := json.Unmarshal(data, &values); err != nil {
-		return fmt.Errorf("local llama row item must be [source_item_id, day, meal_code, food, quantity, unit] or unresolved row: %w", err)
+		return fmt.Errorf("local llama row item must be a hosted meal-chunk row, full source-id row, or unresolved row: %w", err)
 	}
-	if len(values) != 5 && len(values) != 6 && len(values) != 7 && len(values) != 8 {
-		return fmt.Errorf("local llama row item must have 5 or 6 resolved values, or 7 or 8 unresolved values")
+	if len(values) != 4 && len(values) != 5 && len(values) != 6 && len(values) != 7 && len(values) != 8 {
+		return fmt.Errorf("local llama row item must have 4 or 6 meal-chunk values, 5 or 6 resolved values, or 7 or 8 unresolved values")
+	}
+	if len(values) == 4 {
+		if err := json.Unmarshal(values[0], &item.SourceItemID); err != nil {
+			return fmt.Errorf("local llama row item source_item_id must be an integer: %w", err)
+		}
+		if err := json.Unmarshal(values[1], &item.Food); err != nil {
+			return fmt.Errorf("local llama row item food must be a string: %w", err)
+		}
+		if err := json.Unmarshal(values[2], &item.Quantity); err != nil {
+			return fmt.Errorf("local llama row item quantity must be a number: %w", err)
+		}
+		if err := json.Unmarshal(values[3], &item.Unit); err != nil {
+			return fmt.Errorf("local llama row item unit must be a string: %w", err)
+		}
+		return nil
+	}
+	if len(values) == 6 {
+		var food string
+		if err := json.Unmarshal(values[1], &food); err == nil {
+			if err := json.Unmarshal(values[0], &item.SourceItemID); err != nil {
+				return fmt.Errorf("local llama row item source_item_id must be an integer: %w", err)
+			}
+			item.Food = food
+			quantityText := strings.TrimSpace(string(values[2]))
+			if quantityText != "null" {
+				if err := json.Unmarshal(values[2], &item.Quantity); err != nil {
+					return fmt.Errorf("local llama row item quantity must be a number or null for unresolved rows: %w", err)
+				}
+			}
+			if err := json.Unmarshal(values[3], &item.Unit); err != nil {
+				return fmt.Errorf("local llama row item unit must be a string: %w", err)
+			}
+			if err := json.Unmarshal(values[4], &item.QuantityText); err != nil {
+				return fmt.Errorf("local llama unresolved row quantity_text must be a string: %w", err)
+			}
+			if err := json.Unmarshal(values[5], &item.UnresolvedReason); err != nil {
+				return fmt.Errorf("local llama unresolved row unresolved_reason must be a string: %w", err)
+			}
+			return nil
+		}
 	}
 	offset := 0
 	if len(values) == 6 || len(values) == 8 {
@@ -230,6 +270,65 @@ func decodeLocalLlamaRowPlanJSONWithSource(jsonText string, planID string, sourc
 		return checker.Plan{}, repairs, err
 	}
 	return plan, repairs, nil
+}
+
+func decodeLocalLlamaMealChunkRows(text string, chunk localLlamaMealChunk) ([]localLlamaRowItem, []LocalLlamaNormalizationRepair, error) {
+	jsonText, err := extractJSONObject(text)
+	if err != nil {
+		return nil, nil, err
+	}
+	if !localLlamaJSONUsesRowKeys(jsonText) {
+		return nil, nil, fmt.Errorf("local llama meal chunk output must use compact row key i")
+	}
+	decoder := json.NewDecoder(strings.NewReader(jsonText))
+	decoder.DisallowUnknownFields()
+	var rowPlan localLlamaRowPlan
+	if err := decoder.Decode(&rowPlan); err != nil {
+		return nil, nil, err
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return nil, nil, fmt.Errorf("local llama row JSON contains multiple values")
+	}
+	rows := append([]localLlamaRowItem(nil), rowPlan.Items...)
+	for index := range rows {
+		rows[index].Day = chunk.Day
+		rows[index].MealCode = chunk.MealCode
+	}
+	if err := validateLocalLlamaChunkSourceItemIDs(rows, chunk); err != nil {
+		return nil, nil, err
+	}
+	rows, repairs := reconcileLocalLlamaRowsWithSourceItems(rows, chunk.Items)
+	return rows, repairs, nil
+}
+
+func validateLocalLlamaChunkSourceItemIDs(rows []localLlamaRowItem, chunk localLlamaMealChunk) error {
+	if len(rows) != len(chunk.Items) {
+		return fmt.Errorf("local llama %s chunk extracted %d food item(s); expected %d source item(s)", chunk.MealCode, len(rows), len(chunk.Items))
+	}
+	expected := make(map[int]bool, len(chunk.Items))
+	for _, item := range chunk.Items {
+		expected[item.ID] = true
+	}
+	seen := make(map[int]bool, len(rows))
+	for _, row := range rows {
+		if row.SourceItemID == 0 {
+			return fmt.Errorf("local llama %s chunk row is missing source_item_id", chunk.MealCode)
+		}
+		if !expected[row.SourceItemID] {
+			return fmt.Errorf("local llama %s chunk returned unexpected source_item_id %d", chunk.MealCode, row.SourceItemID)
+		}
+		if seen[row.SourceItemID] {
+			return fmt.Errorf("local llama %s chunk duplicated source_item_id %d", chunk.MealCode, row.SourceItemID)
+		}
+		seen[row.SourceItemID] = true
+	}
+	for _, item := range chunk.Items {
+		if !seen[item.ID] {
+			return fmt.Errorf("local llama %s chunk omitted source_item_id %d", chunk.MealCode, item.ID)
+		}
+	}
+	return nil
 }
 
 func decodeLocalLlamaTuplePlanJSON(jsonText string, planID string) (checker.Plan, error) {
@@ -617,8 +716,12 @@ func reconcileLocalLlamaRowsWithSource(rows []localLlamaRowItem, sourceText stri
 			return rows, nil
 		}
 	}
+	return reconcileLocalLlamaRowsWithSourceItems(rows, localLlamaExtractionSourceItems(sourceText))
+}
+
+func reconcileLocalLlamaRowsWithSourceItems(rows []localLlamaRowItem, sourceItems []localLlamaSourceItem) ([]localLlamaRowItem, []LocalLlamaNormalizationRepair) {
 	sourceByID := map[int]localLlamaSourceItem{}
-	for _, item := range localLlamaResolvedSourceItems(sourceText) {
+	for _, item := range sourceItems {
 		sourceByID[item.ID] = item
 	}
 	if len(sourceByID) == 0 {
@@ -640,6 +743,9 @@ func reconcileLocalLlamaRowsWithSource(rows []localLlamaRowItem, sourceText stri
 		if sourceItem.MealCode != "" && row.MealCode != sourceItem.MealCode {
 			repairs = append(repairs, localLlamaRepair(row.SourceItemID, "meal_code", row.MealCode, sourceItem.MealCode, "source_inventory"))
 			row.MealCode = sourceItem.MealCode
+		}
+		if sourceItem.ParseStatus != localLlamaSourceResolved {
+			continue
 		}
 		measurement := localLlamaParseSourceMeasurement(sourceItem.Text)
 		if measurement.Status != "parsed" {
@@ -706,6 +812,49 @@ func LocalLlamaCompactResponseSchema() map[string]any {
 			sourceIDField,
 			dayField,
 			mealCodeField,
+			foodField,
+			{"type": []string{"number", "null"}},
+			{"type": "string"},
+			{"type": "string"},
+			{"type": "string", "enum": []string{"missing_quantity", "vague_quantity", "unsupported_unit"}},
+		},
+		"additionalItems": false,
+	}
+	rows := map[string]any{
+		"type":     "array",
+		"minItems": 1,
+		"items": map[string]any{
+			"oneOf": []map[string]any{resolvedItem, unresolvedItem},
+		},
+	}
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"i"},
+		"properties": map[string]any{
+			"i": rows,
+		},
+	}
+}
+
+func LocalLlamaMealChunkResponseSchema() map[string]any {
+	sourceIDField := map[string]any{"type": "integer", "minimum": 1}
+	foodField := map[string]any{"type": "string"}
+	quantityField := map[string]any{"type": "number", "exclusiveMinimum": 0}
+	unitField := map[string]any{"type": "string", "enum": []string{"g", "oz", "cup", "tbsp", "tsp", "slice", "serving"}}
+	resolvedItem := map[string]any{
+		"type":            "array",
+		"minItems":        4,
+		"maxItems":        4,
+		"items":           []map[string]any{sourceIDField, foodField, quantityField, unitField},
+		"additionalItems": false,
+	}
+	unresolvedItem := map[string]any{
+		"type":     "array",
+		"minItems": 6,
+		"maxItems": 6,
+		"items": []map[string]any{
+			sourceIDField,
 			foodField,
 			{"type": []string{"number", "null"}},
 			{"type": "string"},

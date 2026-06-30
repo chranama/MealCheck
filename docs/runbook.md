@@ -728,7 +728,8 @@ MEALCHECK_P0_REPEATS=3 \
 
 Use the P0 regimen for prompt/schema/parser iteration because it runs the
 checked-in normalization seed corpus and writes deterministic, per-repeat, and
-aggregate result artifacts. See `docs/p0-live-model-regimen.md`.
+aggregate result artifacts. See the P0 live local-model regimen in
+`docs/evaluation.md`.
 
 ## Backend Autodeploy Poller
 

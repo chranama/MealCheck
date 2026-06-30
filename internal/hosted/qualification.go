@@ -84,20 +84,12 @@ func QualifyMealPlanText(ctx context.Context, providerFactory ProviderFactory, r
 	}
 
 	if request.Provider.Type == ProviderTypeLocalLlama {
-		messages, messageErr := localModelExtractionMessages(PendingRunInput{
+		_, plan, _, _, decodeErr := requestLocalModelExtraction(ctx, provider, request.Provider, PendingRunInput{
 			Mode:          InputModeLocalModel,
 			Settings:      request.Settings,
 			CandidateText: text,
 			Provider:      request.Provider,
-		})
-		if messageErr != nil {
-			return MealPlanQualificationResult{}, messageErr
-		}
-		output, err := provider.Complete(ctx, request.Provider, messages)
-		if err != nil {
-			return MealPlanQualificationResult{}, err
-		}
-		plan, _, decodeErr := DecodeLocalLlamaCompactPlanWithSource(output, defaultLocalLlamaPlanID, text)
+		}, defaultLocalLlamaPlanID)
 		if decodeErr != nil {
 			return MealPlanQualificationResult{
 				SchemaVersion: "0.1",

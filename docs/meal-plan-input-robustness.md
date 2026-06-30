@@ -40,13 +40,15 @@ Required:
 - food or ingredient names for each meal
 - numeric quantities and supported units for as many food items as possible
 - visible unresolved foods when quantities or units are missing
-- enough line, sentence, or delimiter structure to associate each food item
-  with the correct day and meal
+- enough line, sentence, paragraph, or delimiter structure to associate each food
+  item with the correct day and meal
 
 Ideal hosted format:
 
 - use `Day 1` or clear breakfast, lunch, dinner, and snack labels
 - keep each food item close to its quantity and unit
+- paragraph text is acceptable when each meal span has a clear meal anchor and
+  measurable food phrases, for example "For breakfast..." or "Dinner includes..."
 - keep the full input to one day
 - avoid shorthand such as "same snacks" or "repeat lunch"
 
@@ -66,7 +68,8 @@ Supported unit vocabulary for the first robustness dataset:
 
 Acceptable variability:
 
-- bullets, numbered lists, or short inline sentences
+- bullets, numbered lists, short inline sentences, or paragraph text with clear
+  meal anchors
 - fractional or decimal quantities
 - one day
 - three meals per day, or snack-inclusive plans up to six meals per day
@@ -118,8 +121,11 @@ It includes:
 - one-day canonical bullet input
 - one-day inline sentence input
 - one-day numbered-list input
+- one-day paragraph input
+- one-day mixed paragraph and inline input
 - two-day bullet input
 - one-day snack-inclusive input
+- one-day snack-inclusive paragraph input
 - three-day compact inline input
 
 The dataset intentionally avoids invalid examples. It should remain small
@@ -137,7 +143,7 @@ That set is for pre-model refusal behavior, not successful normalization.
 
 For each acceptable input case, a normalization run should:
 
-- return valid compact row JSON
+- return valid compact row JSON for each deterministic meal chunk
 - preserve each expected source item exactly once
 - preserve the expected day and meal association
 - preserve numeric quantities as numbers
@@ -153,7 +159,9 @@ valid meal plan may still fail nutrition, allergen, or prep-safety checks.
 
 Public copy should stay non-technical. It should say that MealCheck works best
 with one day of meals that lists meal labels, foods or ingredients, and
-approximate amounts. It should not mention schemas, compact rows, model
+approximate amounts. It can say that paragraphs are fine when each meal names
+foods clearly, including ordinary forms such as `chicken, 100 g`. It should not
+mention schemas, compact rows, model
 contracts, APIs, batching, fallback paths, or internal adapters.
 
 ## Future Dataset Slices

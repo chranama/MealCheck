@@ -583,10 +583,14 @@ Rules:
 - Hosted `local_model` accepts one day only. Omitted `days` is normalized to
   `1`; any other day count, multi-day text, recipes, grocery lists, or oversized
   source inventories are rejected before queueing.
-- Compact local-model rows use
-  `[source_item_id, day, meal_code, food, quantity, unit]` for resolved foods or
-  `[source_item_id, day, meal_code, food, null, "", quantity_text, unresolved_reason]`
-  for missing or vague quantities.
+- Hosted `local_model` chunks accepted text by deterministic meal span. Each
+  model call receives the full text for one meal plus that meal's numbered
+  source items.
+- Hosted local-model chunk rows use
+  `[source_item_id, food, quantity, unit]` for resolved foods or
+  `[source_item_id, food, null, "", quantity_text, unresolved_reason]` for
+  missing or vague quantities. The backend reattaches the deterministic day and
+  meal code after per-chunk source-ID reconciliation.
 - `profile_generation` and `prompt_generation` require a BYOK provider with
   `model` and `api_key`.
 - Hosted and CLI case contracts use `settings.nutrition_targets` and

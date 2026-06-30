@@ -12,7 +12,7 @@ import (
 
 	"github.com/chranama/MealCheck/internal/artifacts"
 	"github.com/chranama/MealCheck/internal/checker"
-	"github.com/chranama/MealCheck/internal/commands/eval"
+	"github.com/chranama/MealCheck/internal/commands/evalchecker"
 	"github.com/chranama/MealCheck/internal/commands/evalnormalization"
 	"github.com/chranama/MealCheck/internal/commands/fixturecheck"
 	"github.com/chranama/MealCheck/internal/commands/localsmoke"
@@ -36,8 +36,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runBundleCommand("compare", args[1:], stdout, stderr)
 	case "decision":
 		return runDecisionCommand(args[1:], stdout, stderr)
-	case "eval":
-		return eval.Run(args[1:], stdout, stderr)
+	case "eval-checker":
+		return evalchecker.Run(args[1:], stdout, stderr)
 	case "eval-normalization":
 		return evalnormalization.Run(args[1:], stdout, stderr)
 	case "fixture-check":
@@ -413,7 +413,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  mealcheck validate --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]")
 	fmt.Fprintln(w, "  mealcheck compare --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]")
 	fmt.Fprintln(w, "  mealcheck decision [--strict] <decision.json>")
-	fmt.Fprintln(w, "  mealcheck eval [-dataset dataset.json] [-out results.json] [-fndds-fallback fndds.sqlite] [-skip-expected]")
+	fmt.Fprintln(w, "  mealcheck eval-checker [-dataset dataset.json] [-out results.json] [-fndds-fallback fndds.sqlite] [-skip-expected]")
 	fmt.Fprintln(w, "  mealcheck eval-normalization [-mode deterministic|local-llama] [-local-model-repeats N] [-gate strict|exploratory|all] [-source-dataset ID] [-out results.json]")
 	fmt.Fprintln(w, "  mealcheck fixture-check [-root repo-root]")
 	fmt.Fprintln(w, "  mealcheck local-llama normalize --input compact.json [--out normalized-plan.json]")

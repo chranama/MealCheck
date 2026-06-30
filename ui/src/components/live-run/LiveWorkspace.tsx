@@ -411,7 +411,7 @@ function CandidateTextForm({
         />
       </Field>
       <p className="field-help" id="candidate-text-guidance">
-        Paste one day only. Use meal labels, food names, and amounts; missing amounts stay visible as unresolved items.
+        Paste one day only. Lines or paragraphs are OK when each meal names foods with amounts.
       </p>
       {recovery ? <RecoveryNoticeView notice={recovery} /> : null}
       {limit ? (

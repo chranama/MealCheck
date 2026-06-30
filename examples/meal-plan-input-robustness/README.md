@@ -9,11 +9,10 @@ Each case should satisfy the internal "good meal plan" boundary documented in
 and units clearly enough that MealCheck can normalize the text before running
 deterministic verification.
 
-For multi-day cases, prefer explicit `Day 1`, `Day 2`, and `Day 3` labels with
-meals and ingredient quantities grouped under the matching day. That shape
-exercises the hosted local-model per-day decomposition path. Ambiguous but still
-acceptable multi-day text should be tracked separately because it exercises the
-unbatched whole-plan fallback.
+Hosted local-model cases should prefer one day only. Paragraph cases are in
+scope when each meal span has a clear meal anchor and measurable foods. Older
+multi-day fixtures remain useful for adapter and evaluation regression coverage,
+but the hosted product rejects multi-day text before queueing.
 
 ## Files
 
@@ -36,13 +35,14 @@ Suggested progression:
 2. Run each one-day, three-meal case through the existing local llama smoke
    script by setting `MEALCHECK_LLAMA_PROMPT_FILE`, or use
    `scripts/test-meal-plan-input-robustness.sh`.
-3. Use the multi-day and snack cases for hosted local-model regression,
-   especially after changes to day-section splitting or the unbatched fallback.
+3. Use the paragraph and snack cases for hosted local-model regression,
+   especially after changes to source inventory parsing or meal-code assignment.
 
 The Go hosted test suite also reads the manifest and checks the deterministic
 source-item inventory for every acceptable case. That coverage is intentionally
-model-free: it verifies the item count, day coverage, meal-code coverage, and
-prompt item-count instruction before a local model is involved.
+model-free: it verifies the item count, day coverage, meal-code coverage, source
+status, and meal-chunk prompt item-count instruction before a local model is
+involved.
 
 The acceptable-input manifest does not include intentionally invalid inputs.
 Invalid and vague inputs belong in qualification tests, not in the successful

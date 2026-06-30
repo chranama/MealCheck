@@ -251,6 +251,52 @@ func TestDecodeLocalLlamaCompactPlanWithSourceRepairsMeasurementDrift(t *testing
 	assertItem(3, "plain Greek yogurt", 1, "cup")
 }
 
+func TestDecodeLocalLlamaMealChunkRowsReattachesDeterministicMeal(t *testing.T) {
+	chunk := localLlamaMealChunk{
+		Day:       1,
+		MealCode:  "l",
+		MealLabel: "lunch",
+		MealText:  "Lunch: chicken, 100 g, and a side salad.",
+		Items: []localLlamaSourceItem{
+			{ID: 4, Day: 1, MealCode: "l", Text: "100 g chicken", ParseStatus: localLlamaSourceResolved},
+			{ID: 5, Day: 1, MealCode: "l", Text: "a side salad", ParseStatus: localLlamaSourceNeedsModelParse},
+		},
+	}
+	rows, repairs, err := decodeLocalLlamaMealChunkRows(`{"i":[[4,"chicken",4,"oz"],[5,"side salad",null,"","missing quantity","missing_quantity"]]}`, chunk)
+	if err != nil {
+		t.Fatalf("decodeLocalLlamaMealChunkRows error: %v", err)
+	}
+	if len(repairs) == 0 {
+		t.Fatal("repairs length = 0, want source-measurement repair for resolved source")
+	}
+	if len(rows) != 2 {
+		t.Fatalf("rows length = %d, want 2", len(rows))
+	}
+	if rows[0].Day != 1 || rows[0].MealCode != "l" || rows[0].Food != "chicken" || rows[0].Quantity != 100 || rows[0].Unit != "g" {
+		t.Fatalf("first row = %+v, want server meal metadata and repaired source measurement", rows[0])
+	}
+	if rows[1].Day != 1 || rows[1].MealCode != "l" || rows[1].Food != "side salad" || rows[1].QuantityText != "missing quantity" {
+		t.Fatalf("second row = %+v, want server meal metadata and unresolved fields", rows[1])
+	}
+}
+
+func TestDecodeLocalLlamaMealChunkRowsRejectsUnexpectedSourceID(t *testing.T) {
+	chunk := localLlamaMealChunk{
+		Day:      1,
+		MealCode: "b",
+		Items: []localLlamaSourceItem{
+			{ID: 1, Day: 1, MealCode: "b", Text: "1 cup oatmeal", ParseStatus: localLlamaSourceResolved},
+		},
+	}
+	_, _, err := decodeLocalLlamaMealChunkRows(`{"i":[[2,"oatmeal",1,"cup"]]}`, chunk)
+	if err == nil {
+		t.Fatal("decodeLocalLlamaMealChunkRows error = nil, want source ID rejection")
+	}
+	if !strings.Contains(err.Error(), "unexpected source_item_id 2") {
+		t.Fatalf("error = %q, want unexpected source_item_id", err)
+	}
+}
+
 func TestDecodeLocalLlamaCompactPlanAcceptsLegacyObjectItems(t *testing.T) {
 	plan, err := DecodeLocalLlamaCompactPlan(`{
 		"breakfast":[{"f":"cooked oatmeal","q":1,"u":"cup"}],
@@ -375,7 +421,7 @@ func TestLocalLlamaCompactResponseSchemaUsesCompactFields(t *testing.T) {
 
 func TestLocalLlamaCompactResponseSchemaMatchesFixture(t *testing.T) {
 	var fixture map[string]any
-	decodeJSON(t, readFile(t, filepath.Join(repoRoot(t), "examples/local-llama/compact-meal-plan-response.schema.json")), &fixture)
+	decodeJSON(t, readFile(t, filepath.Join(repoRoot(t), "examples/local-llama/full-row-compact-meal-plan-response.schema.json")), &fixture)
 
 	b, err := json.Marshal(LocalLlamaCompactResponseSchema())
 	if err != nil {
@@ -387,5 +433,22 @@ func TestLocalLlamaCompactResponseSchemaMatchesFixture(t *testing.T) {
 	}
 	if !reflect.DeepEqual(generated, fixture) {
 		t.Fatalf("generated schema does not match fixture\ngot:  %#v\nwant: %#v", generated, fixture)
+	}
+}
+
+func TestLocalLlamaMealChunkResponseSchemaMatchesFixture(t *testing.T) {
+	var fixture map[string]any
+	decodeJSON(t, readFile(t, filepath.Join(repoRoot(t), "examples/local-llama/compact-meal-plan-response.schema.json")), &fixture)
+
+	b, err := json.Marshal(LocalLlamaMealChunkResponseSchema())
+	if err != nil {
+		t.Fatalf("marshal schema: %v", err)
+	}
+	var generated map[string]any
+	if err := json.Unmarshal(b, &generated); err != nil {
+		t.Fatalf("unmarshal generated: %v", err)
+	}
+	if !reflect.DeepEqual(generated, fixture) {
+		t.Fatalf("generated meal-chunk schema does not match fixture\ngot:  %#v\nwant: %#v", generated, fixture)
 	}
 }

@@ -10,8 +10,8 @@ plan can be turned into canonical MealCheck structure:
 
 ```text
 natural meal-plan text
-  -> numbered source item inventory
-  -> compact row JSON
+  -> deterministic meal chunks with numbered source items
+  -> per-meal compact row JSON
   -> canonical MealCheck plan JSON
   -> deterministic checker load
 ```
@@ -117,8 +117,10 @@ instructions as valid P0 success cases, make fuzzy food matching part of the P0
 score, or check in raw third-party source datasets until license and size
 handling are reviewed.
 
-The concrete integration plan for these two external sources lives in
-[P0 External Dataset Integration Plan](p0-external-dataset-integration-plan.md).
+Optional NYT and TASTEset generation support lives in
+`scripts/generate-p0-normalization-evaluation.py`. Raw third-party source files
+stay local, generated external outputs remain exploratory until manual review,
+and active promotion decisions belong in [Current Priorities](current-priorities.md).
 
 ### P0 Case Format
 
@@ -249,9 +251,11 @@ contexts:
 
 - one-day canonical bullets
 - one-day inline sentences
+- one-day paragraph meal spans
 - numbered list items
 - two-day clear `Day N` sections
 - one-day snack-inclusive plans
+- one-day snack-inclusive paragraphs
 - compact multi-day text near the public input style
 - natural rewrites with `with`, `plus`, commas, and `of` after the unit
 
@@ -274,16 +278,19 @@ Tier 1: deterministic source-inventory tests.
 
 Tier 2: adapter contract tests.
 
-- Feed expected compact rows into the existing adapter.
+- Feed expected full compact rows into the existing adapter.
 - Verify canonical plan JSON loads and preserves day, meal, quantity, unit, and
   food values.
 - Does not require llama.cpp.
 
 Tier 3: local-model normalization eval.
 
+- Run the same per-meal chunked local-model workflow used by hosted live runs.
+- Each model call sees one meal text span and only that meal's source items.
+
 - Run manually or in a scheduled environment with the MacBook model server.
-- Send `input_text` through the same compact local-model extraction prompt and
-  adapter used by live runs.
+- Send `input_text` through the same per-meal compact extraction path used by
+  live runs.
 - Compare normalized canonical plan JSON against expected rows.
 - Record provider, decode, and row-match failure classes.
 - Support repeats per case because the model path can be nondeterministic.
@@ -368,15 +375,15 @@ Track but do not immediately release-block on:
 This split prevents a large generated dataset from blocking small urgent fixes
 while still making normalization reliability measurable.
 
-Current P0 seed result:
+Current deterministic P0 seed result:
 
-- 8 success cases pass deterministic source-inventory and adapter checks.
+- 11 success cases pass deterministic source-inventory and adapter checks.
 - 3 qualification-failure cases pass expected-status checks.
-- 120 of 120 expected source items are preserved, for a
+- 148 of 148 expected source items are preserved, for a
   `source_item_preservation_rate` of 1.0.
 - The seed result has zero mismatches.
 
-Current P0 live local-model seed result:
+Previous P0 live local-model seed result before per-meal chunking:
 
 - 3 of 3 repeats completed against the production `Qwen3-0.6B-Q4_K_M` model
   on the prototyping laptop.
@@ -387,9 +394,174 @@ Current P0 live local-model seed result:
 - Source-grounded reconciliation made 306 field repairs across the three
   repeats, so the seed now passes through deterministic repair rather than
   because the model emits perfect rows unaided.
+- The current per-meal chunked local-model contract needs a fresh live regimen
+  run before the live result is treated as production evidence.
 
 The live local-model improvement loop is tracked in
-[Normalization Engine Improvement Plan](normalization-engine-improvement-plan.md).
+[Current Priorities](current-priorities.md) and milestone history is recorded in
+[Implementation Plan](implementation-plan.md).
+
+### P0 Live Local-Model Regimen
+
+The P0 live local-model regimen evaluates MealCheck's P0 normalization task
+against a live llama.cpp-compatible model endpoint on a prototyping laptop or
+server. It is intended for fast prompt, schema, parser, and model-server
+iteration. It is not a substitute for final acceptance on the serving MacBook.
+
+Goal:
+
+Measure whether the live local model can turn acceptable pasted meal-plan text
+into per-meal compact MealCheck rows without losing source items, changing
+quantities, changing units, or producing invalid compact JSON. Day and meal
+assignment are determined by the source inventory before the model call; the
+model returns only source id, food phrase, quantity, and unit for each meal
+chunk.
+
+The current checked-in P0 corpus is still a seed corpus:
+
+- 11 success cases
+- 3 qualification failure cases
+- 148 expected source items
+- supported units only: `g`, `oz`, `cup`, `tbsp`, `tsp`, `slice`, `serving`
+
+The live-model regimen measures model extraction quality on the success cases.
+Failure cases are still checked through deterministic qualification.
+
+Preconditions:
+
+- Start one local model behind an OpenAI-compatible `/v1` endpoint. The default
+  endpoint is `http://127.0.0.1:11435/v1`.
+- The script expects `curl`, `git`, `go`, `jq`, a running
+  llama.cpp-compatible server, and a clean enough MealCheck worktree to make the
+  run interpretable.
+- The script does not start llama.cpp and does not download models.
+
+Fast iteration run:
+
+```bash
+MEALCHECK_P0_REPEATS=1 \
+MEALCHECK_P0_ALLOW_MISMATCH=1 \
+scripts/run-p0-local-model-regimen.sh
+```
+
+This mode is for finding obvious failure classes. It should not be treated as a
+pass/fail gate.
+
+Baseline run:
+
+```bash
+MEALCHECK_P0_REPEATS=3 \
+MEALCHECK_P0_LOCAL_MODEL_BASE_URL=http://127.0.0.1:11435/v1 \
+MEALCHECK_P0_LOCAL_MODEL_NAME="$MODEL_NAME" \
+scripts/run-p0-local-model-regimen.sh
+```
+
+If `MEALCHECK_P0_LOCAL_MODEL_NAME` is omitted, the script uses the first model
+id from `/v1/models`.
+
+The baseline gate requires:
+
+- deterministic P0 eval passes first
+- every live repeat exits successfully
+- zero provider failures
+- zero compact-output decode failures
+- zero case mismatches
+- `local_model_row_match_rate` is at least `MEALCHECK_P0_MIN_ROW_MATCH_RATE`,
+  which defaults to `1`
+
+Useful optional knobs:
+
+- `MEALCHECK_P0_OUTPUT_DIR`: result directory
+- `MEALCHECK_P0_MAX_OUTPUT_TOKENS`: local-model output cap, default `1536`
+- `MEALCHECK_P0_LOCAL_MODEL_TIMEOUT`: model request timeout, default `240s`
+- `MEALCHECK_P0_CURL_MAX_TIME_SECONDS`: endpoint health-check timeout, default
+  `20`
+- `MEALCHECK_P0_REQUIRE_CLEAN_WORKTREE=1`: require no uncommitted changes
+
+For release-candidate confidence on the prototyping laptop, run five repeats:
+
+```bash
+MEALCHECK_P0_REPEATS=5 \
+scripts/run-p0-local-model-regimen.sh
+```
+
+Captured artifacts:
+
+Each run writes a timestamped directory under `/tmp` unless
+`MEALCHECK_P0_OUTPUT_DIR` is set. The directory contains:
+
+- `metadata.json`: git commit, branch, dirty status, model endpoint, model id,
+  optional model SHA/build labels, Go version, OS, CPU, memory, repeat count,
+  and gate threshold
+- `models-response.json`: raw `/v1/models` response
+- `git-status.txt`: short worktree status
+- `deterministic-result.json`: offline P0 result
+- `live-result.json`: repeat-aware local-model result from
+  `mealcheck eval-normalization -mode local-llama -local-model-repeats N`
+- `live-summary.jsonl`: one compact result row per repeat
+- `summary.json`: aggregate gate result
+- stdout/stderr files for deterministic and live runs
+
+Set optional model labels when available:
+
+```bash
+MEALCHECK_P0_MODEL_SHA=<gguf-sha256> \
+MEALCHECK_P0_LLAMA_BUILD=<llama.cpp-version-or-commit> \
+scripts/run-p0-local-model-regimen.sh
+```
+
+Those labels make laptop-to-server comparison easier.
+
+Reading results:
+
+```bash
+jq . /tmp/mealcheck-p0-local-model-*/summary.json
+```
+
+The highest-signal fields are:
+
+- `gate.passed`
+- `repeats_with_mismatches`
+- `min_local_model_row_match_rate`
+- `total_provider_failures`
+- `total_decode_failures`
+- `mismatch_case_ids`
+- `max_duration_seconds`
+
+Then inspect mismatched run files:
+
+```bash
+jq '.mismatches' /tmp/mealcheck-p0-local-model-*/live-result.json
+```
+
+Interpret failures by class:
+
+- provider failures: model endpoint, timeout, server crash, or request
+  incompatibility
+- decode failures: model did not return valid compact MealCheck JSON
+- row mismatches: model returned parseable rows but changed item count, day,
+  meal, food phrase, quantity, or unit
+- deterministic failures: source inventory or adapter logic changed before the
+  model was tested
+
+Regression-risk discipline:
+
+The prototyping laptop is useful for fast iteration because it has better
+hardware, but it can hide production failures. Treat laptop results as a
+development baseline only.
+
+Before promoting a prompt, schema, model, llama.cpp build, or extraction logic
+change, repeat the same P0 regimen on the serving MacBook with:
+
+- same MealCheck commit
+- same GGUF file and SHA
+- same llama.cpp build
+- same endpoint configuration
+- same context size, max output tokens, timeout, thread/GPU settings, and prompt
+  cache settings where applicable
+
+The serving MacBook remains authoritative for latency, capacity, timeout, and
+queue-risk decisions.
 
 ### P0 Buildout Plan
 
@@ -640,7 +812,7 @@ Regeneration expects them at:
 - `data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json`:
   coverage run for the same real-recall dataset with the optional FNDDS SQLite
   fallback enabled.
-- `mealcheck eval`: deterministic runner for case coverage, unresolved food
+- `mealcheck eval-checker`: deterministic runner for case coverage, unresolved food
   frequency, category summaries, and expected-outcome mismatches.
 - `scripts/generate-fndds-evaluation.py`: reproducible generator for the
   expanded fixture catalog and FNDDS-grounded evaluation dataset.
@@ -890,10 +1062,9 @@ MEALCHECK_P0_LOCAL_MODEL_NAME="$MODEL_NAME" \
 scripts/run-p0-local-model-regimen.sh
 ```
 
-The full live-model regimen is documented in
-`docs/p0-live-model-regimen.md`. It captures model endpoint metadata, git
-metadata, deterministic baseline results, repeated live-model results, and an
-aggregate gate summary.
+The live-model regimen above captures model endpoint metadata, git metadata,
+deterministic baseline results, repeated live-model results, and an aggregate
+gate summary.
 
 Regenerate the P1 catalog and dataset after downloading the FNDDS workbooks:
 
@@ -911,20 +1082,20 @@ python3 scripts/generate-wweia-nhanes-evaluation.py
 Run the expanded P1 catalog evaluation:
 
 ```bash
-go run ./cmd/mealcheck eval
+go run ./cmd/mealcheck eval-checker
 ```
 
 Write a result artifact:
 
 ```bash
-go run ./cmd/mealcheck eval \
+go run ./cmd/mealcheck eval-checker \
   -out data/evaluation/results/fndds-grounded-catalog-v1.json
 ```
 
 Write the WWEIA/NHANES result artifact:
 
 ```bash
-go run ./cmd/mealcheck eval \
+go run ./cmd/mealcheck eval-checker \
   -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json \
   -out data/evaluation/results/wweia-nhanes-real-recalls-v1.json
 ```
@@ -932,7 +1103,7 @@ go run ./cmd/mealcheck eval \
 Write the WWEIA/NHANES FNDDS fallback coverage artifact:
 
 ```bash
-go run ./cmd/mealcheck eval \
+go run ./cmd/mealcheck eval-checker \
   -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json \
   -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite \
   -skip-expected \
@@ -942,7 +1113,7 @@ go run ./cmd/mealcheck eval \
 Run a comparison against another catalog:
 
 ```bash
-go run ./cmd/mealcheck eval \
+go run ./cmd/mealcheck eval-checker \
   -catalog /path/to/catalog.json \
   -out data/evaluation/results/custom.json \
   -allow-mismatch
@@ -984,13 +1155,13 @@ reference-layer integrity:
 The strict evaluation can be used as a release gate:
 
 ```bash
-go run ./cmd/mealcheck eval
+go run ./cmd/mealcheck eval-checker
 ```
 
 The WWEIA/NHANES layer can also be run as a release or catalog-expansion gate:
 
 ```bash
-go run ./cmd/mealcheck eval \
+go run ./cmd/mealcheck eval-checker \
   -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json
 ```
 
@@ -998,7 +1169,7 @@ The FNDDS fallback coverage run is useful for catalog expansion analysis but is
 not a strict release gate:
 
 ```bash
-go run ./cmd/mealcheck eval \
+go run ./cmd/mealcheck eval-checker \
   -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json \
   -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite \
   -skip-expected

@@ -12,10 +12,7 @@ spreading across separate ADR, RFC, and planning documents.
 - [User Story](user-story.md): MVP user story, flow, LLM role, checks, and acceptance criteria.
 - [Current Priorities](current-priorities.md): active engineering priority order, target metrics, and next slices.
 - [Meal Plan Input Robustness](meal-plan-input-robustness.md): acceptable pasted-input boundary and synthetic normalization dataset.
-- [Evaluation](evaluation.md): P0 normalization and P1 food/unit resolution evaluation datasets, metrics, and commands.
-- [P0 Live Model Regimen](p0-live-model-regimen.md): repeatable live local-model P0 evaluation on a prototyping laptop or server.
-- [Normalization Engine Improvement Plan](normalization-engine-improvement-plan.md): P0 normalization repair, prompt, eval, and model-experiment slices.
-- [P0 External Dataset Integration Plan](p0-external-dataset-integration-plan.md): NYT Ingredient Phrase Tagger and TASTEset integration plan for P0 evaluation.
+- [Evaluation](evaluation.md): P0 normalization, live local-model regimen, and P1 food/unit resolution evaluation datasets, metrics, and commands.
 - [Plan Recommendation](plan_recommendation.md): deterministic recommendation principles and artifact boundary.
 - [Nutritional Guidelines](nutritional-guidelines.md): source selection, guideline-pack preprocessing, and meal-plan JSON normalization.
 - [Privacy And Safety](privacy-and-safety.md): data minimization, retention, disclosure, safety boundaries, and live-run controls.

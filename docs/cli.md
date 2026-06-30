@@ -44,7 +44,7 @@ The deployed MacBook layout uses:
 | `mealcheck validate` | Evaluate a case file and write the full artifact bundle. |
 | `mealcheck compare` | Exercise the baseline/candidate command surface and write a compare-mode bundle. |
 | `mealcheck decision` | Read an existing `decision.json` and apply MealCheck exit-code policy. |
-| `mealcheck eval` | Run deterministic evaluation datasets and write coverage results. |
+| `mealcheck eval-checker` | Run deterministic evaluation datasets and write coverage results. |
 | `mealcheck eval-normalization` | Run P0 meal-plan normalization evaluation. |
 | `mealcheck fixture-check` | Validate checked-in schemas, fixtures, catalogs, and reference data. |
 | `mealcheck local-llama normalize` | Expand compact local llama JSON into canonical MealCheck plan JSON. |
@@ -61,7 +61,7 @@ usage:
   mealcheck validate --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]
   mealcheck compare --case <case.json> [--out artifacts/latest] [--fndds-fallback fndds.sqlite] [--strict]
   mealcheck decision [--strict] <decision.json>
-  mealcheck eval [-dataset dataset.json] [-out results.json] [-fndds-fallback fndds.sqlite] [-skip-expected]
+  mealcheck eval-checker [-dataset dataset.json] [-out results.json] [-fndds-fallback fndds.sqlite] [-skip-expected]
   mealcheck eval-normalization [-mode deterministic|local-llama] [-dataset cases.jsonl] [-failures failure-cases.jsonl] [-out results.json]
   mealcheck fixture-check [-root repo-root]
   mealcheck local-llama normalize --input compact.json [--out normalized-plan.json]
@@ -185,14 +185,14 @@ Options:
 `decision` requires exactly one positional path to a `decision.json` file.
 Unknown fields in that file are rejected.
 
-## Run Evaluation
+## Run Checker Evaluation
 
-`eval` runs a checked-in evaluation dataset through the deterministic resolver
-and reports coverage, unresolved food frequency, category summaries, and
-expected-outcome mismatches.
+`eval-checker` runs a checked-in evaluation dataset through the deterministic
+resolver and reports coverage, unresolved food frequency, category summaries,
+and expected-outcome mismatches.
 
 ```bash
-go run ./cmd/mealcheck eval
+go run ./cmd/mealcheck eval-checker
 ```
 
 Options:
@@ -270,17 +270,19 @@ Options:
 `local-llama` supports the local model feasibility harness. It does not start
 `llama-server` and does not call a remote provider.
 
-`local-llama schema` prints the active compact JSON Schema used for llama.cpp
-schema-constrained decoding. The active schema is the source-ID row contract:
+`local-llama schema` prints the active hosted meal-chunk JSON Schema used for
+llama.cpp schema-constrained decoding. The hosted schema is the short source-ID
+row contract:
 
 ```bash
 go run ./cmd/mealcheck local-llama schema
 ```
 
-`local-llama normalize` expands compact model output into canonical MealCheck
-plan JSON. It accepts the active source-ID row contract, the earlier v3
-`[day, meal_code, food, quantity, unit]` row contract, the v2 `b`/`l`/`d` tuple
-contract, and the first object-item compact contract used by old local artifacts:
+`local-llama normalize` expands standalone full compact model output into
+canonical MealCheck plan JSON. It accepts the source-ID full row contract, the
+earlier v3 `[day, meal_code, food, quantity, unit]` row contract, the v2
+`b`/`l`/`d` tuple contract, and the first object-item compact contract used by
+old local artifacts:
 
 ```bash
 go run ./cmd/mealcheck local-llama normalize \
@@ -289,7 +291,7 @@ go run ./cmd/mealcheck local-llama normalize \
   --plan-id local-llama-smoke
 ```
 
-Active compact input shape:
+Standalone full compact input shape:
 
 ```json
 {
@@ -301,11 +303,14 @@ Active compact input shape:
 }
 ```
 
-Each active row is `[source_item_id, day, meal_code, food, quantity, unit]`.
-Meal codes are `b` breakfast, `m` morning snack, `l` lunch, `a` afternoon snack,
-`d` dinner, `s` snack, and `e` evening snack. The adapter rejects unknown
-fields, malformed rows, missing or duplicate source item IDs, unsupported meal
-codes, nonpositive quantities, and unsupported units.
+Hosted meal-chunk rows are `[source_item_id, food, quantity, unit]`; the server
+reattaches day and meal code from the deterministic meal chunk. The standalone
+`normalize` adapter has no enclosing meal chunk, so full rows still need
+`[source_item_id, day, meal_code, food, quantity, unit]`. Meal codes are `b`
+breakfast, `m` morning snack, `l` lunch, `a` afternoon snack, `d` dinner, `s`
+snack, and `e` evening snack. The adapter rejects unknown fields, malformed
+rows, missing or duplicate source item IDs, unsupported meal codes, nonpositive
+quantities, and unsupported units.
 
 ## Artifact Bundle
 

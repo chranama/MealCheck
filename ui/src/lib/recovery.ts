@@ -187,15 +187,15 @@ export function recoveryFromQualification(result: MealPlanQualificationResult): 
 
 export function recoveryFromRunFailure(status: RunStatus, message: string): RecoveryNotice | null {
   if (status !== "failed" || !message.trim()) return null;
-  if (/could not normalize|day labels|meal labels|quantit/i.test(message)) {
+  if (/could not normalize|day labels|meal labels|source food item|quantit/i.test(message)) {
     return {
       title: "MealCheck could not normalize this plan",
       message,
       tone: "warn",
       steps: [
         "Use one day only, with Day 1 or meal labels.",
-        "Put each meal on its own line with food names and numeric quantities.",
-        "Shorten the plan and retry if it includes long prose or recipes.",
+        "Use lines or paragraphs where each meal names foods with numeric quantities.",
+        "Shorten the plan and retry if it includes recipes or unrelated prose.",
       ],
     };
   }

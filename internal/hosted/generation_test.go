@@ -36,13 +36,15 @@ func TestLocalModelExtractionMessagesIncludeResolvedItemCount(t *testing.T) {
 	}
 	userPrompt := messages[1].Content
 	for _, want := range []string{
-		"Use exactly these meal codes for every day: b, l, d.",
-		"The source contains exactly 4 numbered source item(s); return exactly 4 row(s).",
+		"Meal: day=1 meal_code=b meal_label=breakfast.",
+		"The full request contains exactly 3 distinct meal chunk(s) for the day.",
+		"This meal chunk contains exactly 3 numbered source item(s); return exactly 3 row(s).",
+		"Meal text:\nBreakfast:",
 		"Convert every numbered source item into exactly one row.",
-		"1 | day=1 | meal_code=b | status=resolved | source_text=1 cup oatmeal",
-		"2 | day=1 | meal_code=b | status=resolved | source_text=1/2 cup blueberries",
-		"3 | day=1 | meal_code=b | status=unresolved | source_text=salt to taste",
-		"4 | day=1 | meal_code=l | status=resolved | source_text=4 oz chicken",
+		"The server already knows day and meal_code; do not output day or meal_code.",
+		"1 | status=resolved | source_text=1 cup oatmeal",
+		"2 | status=resolved | source_text=1/2 cup blueberries",
+		"3 | status=needs_model_parse | source_text=salt to taste",
 	} {
 		if !strings.Contains(userPrompt, want) {
 			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
@@ -69,16 +71,58 @@ func TestLocalModelExtractionMessagesNumberInlineMealItems(t *testing.T) {
 	}
 	userPrompt := messages[1].Content
 	for _, want := range []string{
-		"The source contains exactly 9 numbered source item(s); return exactly 9 row(s).",
-		"1 | day=1 | meal_code=b | status=resolved | source_text=1 cup cooked oatmeal",
-		"2 | day=1 | meal_code=b | status=resolved | source_text=1 cup blueberries",
-		"3 | day=1 | meal_code=b | status=resolved | source_text=1 cup plain Greek yogurt",
-		"4 | day=1 | meal_code=l | status=resolved | source_text=6 oz chicken breast",
-		"9 | day=1 | meal_code=d | status=resolved | source_text=1 cup spinach",
+		"This meal chunk contains exactly 3 numbered source item(s); return exactly 3 row(s).",
+		"Meal text:\nDay 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.",
+		"1 | status=resolved | source_text=1 cup cooked oatmeal",
+		"2 | status=resolved | source_text=1 cup blueberries",
+		"3 | status=resolved | source_text=1 cup plain Greek yogurt",
 	} {
 		if !strings.Contains(userPrompt, want) {
 			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
 		}
+	}
+	chunks := localLlamaExtractionMealChunks(strings.Join([]string{
+		"Day 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.",
+		"Day 1 lunch: 6 oz chicken breast, 1 cup brown rice, and 1 cup broccoli.",
+		"Day 1 dinner: 6 oz salmon, 1 cup sweet potato, and 1 cup spinach.",
+	}, "\n"))
+	if len(chunks) != 3 {
+		t.Fatalf("meal chunks = %d, want 3", len(chunks))
+	}
+	if chunks[1].Items[0].ID != 4 || chunks[2].Items[2].ID != 9 {
+		t.Fatalf("global source IDs not preserved across chunks: %+v", chunks)
+	}
+}
+
+func TestLocalModelExtractionMessagesNumberParagraphMealItems(t *testing.T) {
+	text := "For breakfast I will have 1 cup oatmeal with 0.5 cup blueberries and 1 cup plain Greek yogurt. For lunch I will have 4 oz chicken breast with 1 cup brown rice plus 1 cup broccoli. Dinner includes 4 oz salmon and 1 serving sweet potato."
+	messages, err := localModelExtractionMessages(PendingRunInput{
+		CandidateText: text,
+		Settings: checker.Settings{
+			VerificationConstraints: checker.VerificationConstraints{
+				Days:        1,
+				MealsPerDay: 3,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("localModelExtractionMessages error: %v", err)
+	}
+	userPrompt := messages[1].Content
+	for _, want := range []string{
+		"This meal chunk contains exactly 3 numbered source item(s); return exactly 3 row(s).",
+		"Meal text:\nFor breakfast I will have 1 cup oatmeal with 0.5 cup blueberries and 1 cup plain Greek yogurt.",
+		"1 | status=resolved | source_text=1 cup oatmeal",
+		"2 | status=resolved | source_text=0.5 cup blueberries",
+		"3 | status=resolved | source_text=1 cup plain Greek yogurt",
+	} {
+		if !strings.Contains(userPrompt, want) {
+			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
+		}
+	}
+	chunks := localLlamaExtractionMealChunks(text)
+	if len(chunks) != 3 || chunks[1].Items[0].ID != 4 || chunks[2].Items[1].ID != 8 {
+		t.Fatalf("paragraph chunks/source IDs = %+v, want three meal chunks with global IDs", chunks)
 	}
 }
 
@@ -102,9 +146,8 @@ func TestLocalModelExtractionMessagesDefaultsToOneDayWhenSettingsUnset(t *testin
 		}
 	}
 	for _, want := range []string{
-		"Use day numbers 1..1.",
-		"1 | day=1 | meal_code=b | status=resolved | source_text=1 cup cooked oatmeal",
-		"2 | day=1 | meal_code=d | status=resolved | source_text=4 oz salmon",
+		"The full request is limited to day numbers 1..1.",
+		"1 | status=resolved | source_text=1 cup cooked oatmeal",
 	} {
 		if !strings.Contains(userPrompt, want) {
 			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
@@ -127,10 +170,10 @@ func TestLocalModelExtractionMessagesPreservesAndInsideFoodNames(t *testing.T) {
 	}
 	userPrompt := messages[1].Content
 	for _, want := range []string{
-		"The source contains exactly 3 numbered source item(s); return exactly 3 row(s).",
-		"1 | day=1 | meal_code=d | status=resolved | source_text=1 cup macaroni and cheese",
-		"2 | day=1 | meal_code=d | status=resolved | source_text=1 serving banana",
-		"3 | day=1 | meal_code=d | status=resolved | source_text=1 cup broccoli",
+		"This meal chunk contains exactly 3 numbered source item(s); return exactly 3 row(s).",
+		"1 | status=resolved | source_text=1 cup macaroni and cheese",
+		"2 | status=resolved | source_text=1 serving banana",
+		"3 | status=resolved | source_text=1 cup broccoli",
 	} {
 		if !strings.Contains(userPrompt, want) {
 			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
@@ -147,13 +190,57 @@ func TestLocalModelExtractionMessagesNormalizesSliceUnitAndSlicedOrange(t *testi
 	}
 	userPrompt := messages[1].Content
 	for _, want := range []string{
-		"The source contains exactly 3 numbered source item(s); return exactly 3 row(s).",
-		"1 | day=1 | meal_code=b | status=resolved | source_text=1 serving boiled egg",
-		"2 | day=1 | meal_code=b | status=resolved | source_text=2 slice whole wheat bread",
-		"3 | day=1 | meal_code=b | status=resolved | source_text=1 cup sliced oranges",
+		"This meal chunk contains exactly 3 numbered source item(s); return exactly 3 row(s).",
+		"1 | status=resolved | source_text=1 serving boiled egg",
+		"2 | status=resolved | source_text=2 slice whole wheat bread",
+		"3 | status=resolved | source_text=1 cup sliced oranges",
 	} {
 		if !strings.Contains(userPrompt, want) {
 			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
+		}
+	}
+}
+
+func TestLocalModelExtractionMessagesNormalizesReverseQuantityOrder(t *testing.T) {
+	messages, err := localModelExtractionMessages(PendingRunInput{
+		CandidateText: "Day 1 lunch: chicken, 100 g, rice, 1 cup, and a side salad.",
+	})
+	if err != nil {
+		t.Fatalf("localModelExtractionMessages error: %v", err)
+	}
+	userPrompt := messages[1].Content
+	for _, want := range []string{
+		"Meal: day=1 meal_code=l meal_label=lunch.",
+		"1 | status=resolved | source_text=100 g chicken",
+		"2 | status=resolved | source_text=1 cup rice",
+		"3 | status=needs_model_parse | source_text=a side salad",
+	} {
+		if !strings.Contains(userPrompt, want) {
+			t.Fatalf("user prompt missing %q:\n%s", want, userPrompt)
+		}
+	}
+}
+
+func TestLocalModelExtractionMessagesNormalizesParagraphReverseQuantityOrder(t *testing.T) {
+	chunks := localLlamaExtractionMealChunks("For lunch I had chicken, 100 g, rice, 1 cup, and a side salad.")
+	if len(chunks) != 1 {
+		t.Fatalf("chunks = %d, want 1: %+v", len(chunks), chunks)
+	}
+	if len(chunks[0].Items) != 3 {
+		t.Fatalf("chunk items = %d, want 3: %+v", len(chunks[0].Items), chunks[0].Items)
+	}
+	wants := []struct {
+		text   string
+		status localLlamaSourceParseStatus
+	}{
+		{text: "100 g chicken", status: localLlamaSourceResolved},
+		{text: "1 cup rice", status: localLlamaSourceResolved},
+		{text: "a side salad", status: localLlamaSourceNeedsModelParse},
+	}
+	for index, want := range wants {
+		item := chunks[0].Items[index]
+		if item.Text != want.text || item.ParseStatus != want.status {
+			t.Fatalf("item %d = %+v, want text=%q status=%s", index, item, want.text, want.status)
 		}
 	}
 }
@@ -282,6 +369,25 @@ func TestValidateLocalModelInputContractRejectsTooManySourceItems(t *testing.T) 
 	}
 	if !strings.Contains(err.Error(), "at most 2") {
 		t.Fatalf("error = %q, want item limit", err)
+	}
+}
+
+func TestValidateLocalModelInputContractAcceptsParagraphMealPlan(t *testing.T) {
+	text := "For breakfast I will have 1 cup oatmeal with 0.5 cup blueberries. For lunch I will have 4 oz chicken with 1 cup rice. Dinner includes 4 oz salmon and 1 serving sweet potato."
+	err := validateLocalModelInputContract(Config{LocalModelMaxSourceItems: 20}, text)
+	if err != nil {
+		t.Fatalf("validateLocalModelInputContract error = %v, want nil", err)
+	}
+}
+
+func TestValidateLocalModelInputContractRejectsZeroInventoryMealText(t *testing.T) {
+	text := "Please draft a short meeting agenda for tomorrow afternoon."
+	err := validateLocalModelInputContract(Config{LocalModelMaxSourceItems: 20}, text)
+	if err == nil {
+		t.Fatal("validateLocalModelInputContract error = nil, want zero-inventory rejection")
+	}
+	if !strings.Contains(err.Error(), "source food item") {
+		t.Fatalf("error = %q, want source item guidance", err)
 	}
 }
 

@@ -7,16 +7,21 @@ These files support the local llama.cpp model trial matrix.
   ingredients.
 - `compact-meal-plan-response.schema.json` is the active local llama.cpp
   response schema. It asks the model for compact rows under `i`, where each
-  row is `[source_item_id, day, meal_code, food, quantity, unit]`, then the
-  MealCheck adapter expands that output into canonical verifier JSON. The
-  adapter still accepts the earlier v3 `[day, meal_code, food, quantity, unit]`
-  row shape, v2 `b`/`l`/`d` tuple shape, and object-item compact shape for old
-  artifacts.
+  hosted meal-chunk row is `[source_item_id, food, quantity, unit]`. The hosted
+  backend supplies day and meal code from deterministic meal chunking before
+  expanding the merged output into canonical verifier JSON. The standalone
+  adapter still accepts the earlier source-ID full row shape, v3
+  `[day, meal_code, food, quantity, unit]` row shape, v2 `b`/`l`/`d` tuple
+  shape, and object-item compact shape for old artifacts.
+- `full-row-compact-meal-plan-response.schema.json` is the compatibility schema
+  for the standalone smoke script. It asks for full rows that include day and
+  meal code because `mealcheck local-llama normalize` has no enclosing hosted
+  meal chunk.
 - `meal-plan-response.schema.json` is retained as the earlier direct-canonical
   schema for comparison when measuring contract size.
-- `scripts/test-local-llama-structured-json.sh` asks the model for minified row
-  JSON with source item IDs, expands it through `mealcheck local-llama normalize`,
-  and prints
+- `scripts/test-local-llama-structured-json.sh` asks the model for minified
+  full-row JSON with source item IDs, expands it through
+  `mealcheck local-llama normalize`, and prints
   content-byte and token-count metrics so latency changes are visible between
   model and quantization trials.
 

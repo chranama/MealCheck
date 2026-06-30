@@ -2958,7 +2958,7 @@ Implemented:
    catalog schema.
 4. Added `data/evaluation/fndds-grounded-meal-plans-v1.json` with 100
    structured one-day meal-plan cases and expected outcomes.
-5. Added `mealcheck eval` as a deterministic resolver/evaluation runner.
+5. Added `mealcheck eval-checker` as a deterministic resolver/evaluation runner.
 6. Updated fixture validation to require at least 100 foods, source-compatible
    catalog quality, and the 100-case evaluation dataset.
 7. Recorded baseline and expanded resolver results:
@@ -2986,7 +2986,7 @@ Verification:
 - `python3 scripts/generate-fndds-evaluation.py` passes.
 - `python3 -m py_compile scripts/generate-fndds-evaluation.py` passes.
 - `go run ./cmd/mealcheck fixture-check` passes.
-- `go run ./cmd/mealcheck eval` passes.
+- `go run ./cmd/mealcheck eval-checker` passes.
 
 ## Milestone 39: WWEIA/NHANES Real-Recall Evaluation Layer
 
@@ -3027,7 +3027,7 @@ Implemented:
    FNDDS food codes to user-facing food descriptions.
 4. Marked nonlocal FNDDS foods as intentional `unknown_food` unresolved items
    so the dataset drives catalog expansion instead of guessing.
-5. Extended `mealcheck eval` to accept per-case source refs, source metrics,
+5. Extended `mealcheck eval-checker` to accept per-case source refs, source metrics,
    and top-level dataset summaries.
 6. Added `data/evaluation/results/wweia-nhanes-real-recalls-v1.json`.
 7. Updated fixture validation so both evaluation datasets must contain exactly
@@ -3061,7 +3061,7 @@ Verification:
 - `python3 scripts/generate-wweia-nhanes-evaluation.py` passes.
 - `python3 -m py_compile scripts/generate-wweia-nhanes-evaluation.py` passes.
 - `go run ./cmd/mealcheck fixture-check` passes.
-- `go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -out data/evaluation/results/wweia-nhanes-real-recalls-v1.json` passes.
+- `go run ./cmd/mealcheck eval-checker -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -out data/evaluation/results/wweia-nhanes-real-recalls-v1.json` passes.
 
 ## Milestone 40: FNDDS Reference Database And Candidate Preprocessing
 
@@ -3188,9 +3188,9 @@ Implemented:
 4. Allowed explicit `unknown_food` items with quantities to retry the fallback,
    while preserving unresolved behavior for vague quantities, unsupported
    units, and other unresolved reasons.
-5. Added `-fndds-fallback` to `mealcheck eval`, `mealcheck validate`, and
+5. Added `-fndds-fallback` to `mealcheck eval-checker`, `mealcheck validate`, and
    `mealcheck compare`.
-6. Added `-skip-expected` to `mealcheck eval` for coverage runs where the
+6. Added `-skip-expected` to `mealcheck eval-checker` for coverage runs where the
    expected unresolved counts describe no-fallback mode.
 7. Wired hosted workers to pass `MEALCHECK_FNDDS_FALLBACK_PATH` into artifact
    generation when explicitly configured.
@@ -3233,7 +3233,7 @@ Verification:
 - `python3 -m py_compile scripts/import-fndds-reference.py` passes.
 - `go test ./internal/checker` passes.
 - `go run ./cmd/mealcheck fixture-check` passes.
-- `go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
+- `go run ./cmd/mealcheck eval-checker -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
 
 ## Milestone 42: FNDDS Resolver Well-Defined Food Gate
 
@@ -3286,7 +3286,7 @@ Verification:
 - `go test ./internal/checker` passes.
 - `go test ./...` passes.
 - `go run ./cmd/mealcheck fixture-check` passes.
-- `go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
+- `go run ./cmd/mealcheck eval-checker -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes.
 - `cd ui && npm run typecheck` passes.
 - `cd ui && npm run test` passes.
 - `cd ui && npm run build` passes.
@@ -3449,14 +3449,14 @@ Verification:
 
 - `go test ./...` passes.
 - `go run ./cmd/mealcheck fixture-check` passes.
-- `go run ./cmd/mealcheck eval -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out /tmp/mealcheck-wweia-fallback-current.json` passes.
+- `go run ./cmd/mealcheck eval-checker -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out /tmp/mealcheck-wweia-fallback-current.json` passes.
 - `git diff --check` passes.
 
 ## Milestone 45: P0 Normalization Evaluation Framework
 
-Status: Deterministic seed tier, opt-in local-model runner, and prototyping
-laptop live-model regimen implemented in the current worktree. Public
-source-dataset expansion and live baseline analysis remain pending.
+Status: Deterministic seed tier, opt-in local-model runner, prototyping laptop
+live-model regimen, and optional external-source scaffolding implemented.
+Reviewed public-source promotion and live baseline analysis remain pending.
 
 Purpose:
 
@@ -3485,6 +3485,9 @@ Deliver:
 - command-level regression coverage for the local-model scoring path without a
   live llama.cpp service
 - repeatable live-model regimen for prototyping-laptop iteration
+- optional NYT Ingredient Phrase Tagger and TASTEset source probes, adapters,
+  exploratory generated files, quarantine files, manifest gates, and per-source
+  summaries
 
 Implemented So Far:
 
@@ -3518,35 +3521,42 @@ Implemented So Far:
    deterministic result for the seed corpus.
 11. Added local-model scorer regression coverage with a static provider so the
     scoring path is tested without requiring llama.cpp.
-12. Added `scripts/run-p0-local-model-regimen.sh` and
-    `docs/p0-live-model-regimen.md` for repeatable live-model evaluation on a
+12. Added `scripts/run-p0-local-model-regimen.sh` and the P0 live local-model
+    regimen in `docs/evaluation.md` for repeatable live-model evaluation on a
     prototyping laptop. The regimen records model endpoint metadata, git
     metadata, machine metadata, deterministic baseline output, repeated
     live-model outputs, per-repeat summaries, and an aggregate gate result.
+13. Added optional NYT Ingredient Phrase Tagger and TASTEset probes/adapters in
+    `scripts/generate-p0-normalization-evaluation.py`. Raw third-party data is
+    not checked in; local source paths can generate exploratory success,
+    failure, and quarantine artifacts with source metadata.
+14. Extended P0 manifests, fixture checks, and `mealcheck eval-normalization`
+    with strict/exploratory gates, source-dataset filtering, per-source
+    summaries, and quarantine summaries.
+15. Expanded the reviewed robustness seed with paragraph and snack-inclusive
+    paragraph cases so deterministic P0 covers natural meal spans as well as
+    semi-structured input.
 
 Current Seed Results:
 
-- Total P0 cases: 11.
-- Success cases: 8.
+- Total P0 cases: 14.
+- Success cases: 11.
 - Failure cases: 3.
-- Expected source items: 120.
-- Source items matched: 120.
+- Expected source items: 148.
+- Source items matched: 148.
 - Source item preservation rate: 100%.
-- Adapter-valid success cases: 8.
+- Adapter-valid success cases: 11.
 - Qualification failure cases passed: 3.
 - Cases with mismatches: 0.
 
 Remaining:
 
-- decide whether the seed corpus is large enough for the first release gate or
-  should stay advisory while generated public-source coverage is added.
-- add the first small NYT Ingredient Phrase Tagger subset after source/license
-  review.
-- add TASTEset and NHANES/WWEIA-derived normalization layers only after the seed
-  deterministic runner remains stable.
-- run and summarize a live local-model baseline on the prototyping laptop.
-- repeat the same regimen on the MacBook model server before treating changes
-  as production-safe.
+- keep the reviewed seed corpus as the strict gate until external samples are
+  manually reviewed.
+- add the first small NYT Ingredient Phrase Tagger and TASTEset reviewed
+  subsets only after source/license review and expected-row inspection.
+- run and summarize live local-model baselines on the prototyping laptop and the
+  MacBook model server before treating normalization changes as production-safe.
 - add result-directory artifacts for local-model raw compact output, canonical
   JSON, normalization events, timings, and repeat-run instability.
 
@@ -3577,3 +3587,158 @@ Verification:
   llama.cpp-compatible service are configured.
 - `bash -n scripts/run-p0-local-model-regimen.sh` passes.
 - `git diff --check` passes.
+
+## Milestone 46: Per-Meal Local-Model Normalization Contract
+
+Status: Implemented locally in the current worktree.
+
+Purpose:
+
+Keep the small local model on the critical happy path while making the model
+task small enough for reliable edge-device execution. The backend should own
+request gating, meal boundaries, source IDs, and reconciliation; the SLM should
+own semantic parsing of bounded source spans inside one meal at a time.
+
+Deliver:
+
+- one-day hosted local-model input contract with strict request-level gating
+- deterministic meal chunks with full meal text and globally unique source IDs
+- explicit `resolved` versus `needs_model_parse` source statuses
+- per-meal local-model calls with meal text as context and source items as
+  authority
+- compact hosted meal-chunk row schema:
+  `[source_item_id, food, quantity, unit]`
+- server-owned day and meal code reattachment after chunk reconciliation
+- exact per-chunk source-ID validation with missing, duplicate, and extra IDs
+  rejected
+- reverse-measurement parsing for forms such as `chicken, 100 g`,
+  `rice - 1 cup`, and `broccoli (2 cups)`
+- qualification and P0 local-model evaluation routed through the same chunked
+  extraction path as live runs
+- hosted meal-chunk JSON Schema separated from the standalone full-row
+  `local-llama normalize` compatibility schema
+- docs, UI guidance, robustness fixtures, P0 generated artifacts, and tests
+  updated for paragraph input and meal chunks
+
+Implemented:
+
+1. Added `localLlamaMealChunk`, source parse status, deterministic meal text
+   capture, and globally unique source IDs in `internal/hosted/generation.go`.
+2. Changed hosted local-model extraction to call the provider once per meal
+   chunk, decode each chunk independently, merge rows, and validate global
+   completeness before checker execution.
+3. Changed the hosted prompt so the model emits only
+   `[source_item_id, food, quantity, unit]`; day and meal code are deterministic
+   server metadata.
+4. Added paragraph and reverse-quantity source inventory support so
+   `chicken, 100 g` becomes one resolved source item instead of two ambiguous
+   spans.
+5. Added chunk-specific compact decode and reconciliation in
+   `internal/hosted/local_llama_contract.go`, including exact per-chunk
+   source-ID validation and deterministic day/meal reattachment.
+6. Added `LocalLlamaMealChunkResponseSchema` for hosted constrained decoding
+   while preserving `LocalLlamaCompactResponseSchema` and
+   `full-row-compact-meal-plan-response.schema.json` for standalone adapter
+   compatibility.
+7. Routed `QualifyMealPlanText` and `mealcheck eval-normalization -mode
+   local-llama` through the production chunked extraction path.
+8. Updated P0 generation, docs, frontend recovery copy, and robustness fixtures
+   for paragraph input and the current one-day, meal-chunk contract.
+
+Acceptance:
+
+- hosted local-model happy path performs one model call per deterministic meal
+  chunk.
+- model rows do not include day or meal code.
+- every chunk response covers exactly the source IDs in that chunk.
+- deterministic code can preserve bounded ambiguous spans as
+  `needs_model_parse` without rejecting the whole meal plan.
+- reverse-measurement input such as `chicken, 100 g` is accepted as one source
+  item.
+- standalone local llama adapter compatibility remains available for full-row
+  JSON.
+
+Verification:
+
+- `go test ./...` passes.
+- `cd ui && npm test` passes.
+- `cd ui && npm run typecheck` passes.
+
+## Milestone 47: Planning Documentation Consolidation
+
+Status: Implemented locally in the current worktree.
+
+Purpose:
+
+Keep MealCheck's planning history and active priorities authoritative after the
+P0 normalization work moved from brainstorming into implementation. Completed
+work should live in milestone history, active work should live in current
+priorities, and evaluation procedures should live in the evaluation doc instead
+of separate short-lived implementation-plan files.
+
+Delivered:
+
+- Recorded completed normalization-evaluation and per-meal local-model work in
+  Milestones 45 and 46.
+- Moved remaining P0 normalization reliability work into
+  `docs/current-priorities.md`.
+- Folded the P0 live local-model regimen into `docs/evaluation.md`.
+- Updated the docs index, runbook, and milestone references to point to the
+  focused docs.
+- Deleted obsolete standalone planning docs:
+  `docs/normalization-engine-improvement-plan.md`,
+  `docs/p0-external-dataset-integration-plan.md`, and
+  `docs/p0-live-model-regimen.md`.
+- Updated `docs/decision-log.md` with the one-day per-meal hosted local-model
+  contract and the documentation-consolidation decision.
+
+Acceptance:
+
+- no active docs index, runbook, evaluation, or procedural page points readers
+  to deleted planning filenames.
+- `docs/implementation-plan.md` records completed work.
+- `docs/current-priorities.md` records remaining work that should still happen.
+- `docs/evaluation.md` records P0 metrics, commands, seed results, and live
+  regimen details.
+- `docs/decision-log.md` records the accepted tradeoffs behind the current
+  workflow and documentation shape.
+
+Verification:
+
+- reference scans for deleted planning filenames return no active references
+  outside milestone and decision history.
+- `bash -n scripts/run-p0-local-model-regimen.sh` passes.
+- `git diff --check` passes for the updated documentation files.
+
+## Milestone 48: Checker Evaluation Command Naming
+
+Status: Implemented locally in the current worktree.
+
+Purpose:
+
+Make the CLI distinguish deterministic checker/resolver evaluation from P0
+normalization evaluation. The checker evaluation command should no longer be
+the generic `eval` command when `eval-normalization` also exists.
+
+Delivered:
+
+- Renamed the user-facing checker evaluation subcommand from `mealcheck eval`
+  to `mealcheck eval-checker`.
+- Kept the Go package name and import path as `evalchecker` because Go package
+  names cannot use hyphens.
+- Updated command dispatch, help output, CLI tests, and documentation examples.
+- Updated historical milestone command references to use the current
+  user-facing name.
+
+Acceptance:
+
+- `mealcheck eval-checker` writes the deterministic checker evaluation result.
+- `mealcheck eval-normalization` remains unchanged.
+- Active docs do not advertise `mealcheck eval` as the current command.
+
+Verification:
+
+- `go test ./cmd/mealcheck ./internal/commands/evalchecker ./internal/commands/evalnormalization` passes.
+- `go run ./cmd/mealcheck eval-checker -out /private/tmp/mealcheck-eval-checker-result.json` passes.
+- reference scans for `mealcheck eval` show only `eval-normalization` or
+  historical/prose uses that are not the old command.

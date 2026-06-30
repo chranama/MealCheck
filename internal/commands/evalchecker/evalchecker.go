@@ -1,4 +1,4 @@
-package eval
+package evalchecker
 
 import (
 	"encoding/json"
@@ -108,7 +108,7 @@ type categoryAccumulator struct {
 }
 
 func Run(args []string, stdout, stderr io.Writer) int {
-	flags := flag.NewFlagSet("eval", flag.ContinueOnError)
+	flags := flag.NewFlagSet("eval-checker", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	root := flags.String("root", ".", "repository root")
 	datasetPath := flags.String("dataset", "data/evaluation/fndds-grounded-meal-plans-v1.json", "evaluation dataset path")
@@ -123,20 +123,20 @@ func Run(args []string, stdout, stderr io.Writer) int {
 
 	result, err := run(*root, *datasetPath, *catalogOverride, *fallbackPath, *skipExpected)
 	if err != nil {
-		fmt.Fprintf(stderr, "mealcheck eval failed: %v\n", err)
+		fmt.Fprintf(stderr, "mealcheck eval-checker failed: %v\n", err)
 		return 1
 	}
 
 	encoded, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
-		fmt.Fprintf(stderr, "encode eval result: %v\n", err)
+		fmt.Fprintf(stderr, "encode eval-checker result: %v\n", err)
 		return 1
 	}
 	encoded = append(encoded, '\n')
 
 	if *outPath != "" {
 		if err := os.WriteFile(resolvePath(*root, *outPath), encoded, 0o644); err != nil {
-			fmt.Fprintf(stderr, "write eval result: %v\n", err)
+			fmt.Fprintf(stderr, "write eval-checker result: %v\n", err)
 			return 1
 		}
 	} else {

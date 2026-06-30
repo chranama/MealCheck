@@ -204,16 +204,40 @@ func prepareLocalModelExtraction(ctx context.Context, config Config, provider Pr
 	return plan, output, events, nil
 }
 
+// RunLocalModelExtraction normalizes hosted local-model text through the same
+// chunked extraction path used by live run creation.
+func RunLocalModelExtraction(ctx context.Context, provider Provider, providerConfig ProviderConfig, input PendingRunInput, planID string) (string, checker.Plan, []LocalLlamaNormalizationRepair, string, error) {
+	output, plan, repairs, stage, err := requestLocalModelExtraction(ctx, provider, providerConfig, input, planID)
+	return output, plan, repairs, string(stage), err
+}
+
 func requestLocalModelExtraction(ctx context.Context, provider Provider, providerConfig ProviderConfig, input PendingRunInput, planID string) (string, checker.Plan, []LocalLlamaNormalizationRepair, localModelExtractionFailureStage, error) {
-	messages, err := localModelExtractionMessages(input)
-	if err != nil {
-		return "", checker.Plan{}, nil, localModelFailureDecode, err
+	chunks := localLlamaExtractionMealChunks(input.CandidateText)
+	if len(chunks) == 0 {
+		return "", checker.Plan{}, nil, localModelFailureDecode, fmt.Errorf("candidate_text must identify at least one meal chunk with source food items")
 	}
-	output, err := provider.Complete(ctx, providerConfig, messages)
-	if err != nil {
-		return output, checker.Plan{}, nil, localModelFailureProvider, err
+	var outputs []string
+	var rows []localLlamaRowItem
+	var repairs []LocalLlamaNormalizationRepair
+	for _, chunk := range chunks {
+		messages, err := localModelExtractionMessagesForMealChunk(input, chunk)
+		if err != nil {
+			return localLlamaCombinedChunkOutput(outputs), checker.Plan{}, repairs, localModelFailureDecode, err
+		}
+		output, err := provider.Complete(ctx, providerConfig, messages)
+		outputs = append(outputs, localLlamaChunkOutputBlock(chunk, output))
+		if err != nil {
+			return localLlamaCombinedChunkOutput(outputs), checker.Plan{}, repairs, localModelFailureProvider, err
+		}
+		chunkRows, chunkRepairs, err := decodeLocalLlamaMealChunkRows(output, chunk)
+		repairs = append(repairs, chunkRepairs...)
+		if err != nil {
+			return localLlamaCombinedChunkOutput(outputs), checker.Plan{}, repairs, localModelFailureDecode, err
+		}
+		rows = append(rows, chunkRows...)
 	}
-	plan, repairs, err := DecodeLocalLlamaCompactPlanWithSource(output, planID, input.CandidateText)
+	output := localLlamaCombinedChunkOutput(outputs)
+	plan, err := expandLocalLlamaRows(rows, planID)
 	if err != nil {
 		return output, checker.Plan{}, repairs, localModelFailureDecode, err
 	}
@@ -221,6 +245,14 @@ func requestLocalModelExtraction(ctx context.Context, provider Provider, provide
 		return output, checker.Plan{}, repairs, localModelFailureCompleteness, err
 	}
 	return output, plan, repairs, "", nil
+}
+
+func localLlamaChunkOutputBlock(chunk localLlamaMealChunk, output string) string {
+	return fmt.Sprintf("Meal chunk day=%d meal_code=%s source_ids=%s\n%s", chunk.Day, chunk.MealCode, localLlamaChunkSourceIDList(chunk), strings.TrimSpace(output))
+}
+
+func localLlamaCombinedChunkOutput(outputs []string) string {
+	return strings.TrimSpace(strings.Join(outputs, "\n\n"))
 }
 
 func localModelFailureEvent(stage localModelExtractionFailureStage) NormalizationEvent {
@@ -409,45 +441,56 @@ func localModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, err
 	if text == "" {
 		return nil, fmt.Errorf("candidate_text is required for local_model")
 	}
+	chunks := localLlamaExtractionMealChunks(text)
+	if len(chunks) == 0 {
+		return nil, fmt.Errorf("candidate_text must identify at least one meal chunk with source food items")
+	}
+	return localModelExtractionMessagesForMealChunk(input, chunks[0])
+}
+
+func localModelExtractionMessagesForMealChunk(input PendingRunInput, chunk localLlamaMealChunk) ([]ProviderMessage, error) {
 	input.Settings = normalizeLocalModelSettings(input.Settings)
 	constraints := input.Settings.VerificationConstraints
 	system := strings.Join([]string{
 		"Extract meal-plan ingredients into compact MealCheck local JSON only.",
 		"Return one minified JSON object.",
-		"Shape: {\"i\":[[source_item_id,day,meal_code,food,quantity,unit]]}.",
-		"For a food without a usable quantity, use [source_item_id,day,meal_code,food,null,\"\",quantity_text,unresolved_reason].",
-		"Meal codes: b=breakfast, m=morning snack, l=lunch, a=afternoon snack, d=dinner, s=snack, e=evening snack.",
-		"When the user states the exact allowed meal codes, use only those meal codes.",
+		"Shape: {\"i\":[[source_item_id,food,quantity,unit]]}.",
+		"For a food without a usable quantity, use [source_item_id,food,null,\"\",quantity_text,unresolved_reason].",
 		"Allowed units: g, oz, cup, tbsp, tsp, slice, serving.",
 		"Allowed unresolved_reason values: missing_quantity, vague_quantity, unsupported_unit.",
 	}, " ")
+	mealLabel := chunk.MealLabel
+	if mealLabel == "" {
+		mealLabel, _ = localLlamaMealName(chunk.MealCode)
+	}
 	userParts := []string{
-		"Extract this meal plan into compact row JSON.",
+		"Extract this meal chunk into compact row JSON.",
+		fmt.Sprintf("Meal: day=%d meal_code=%s meal_label=%s.", chunk.Day, chunk.MealCode, mealLabel),
+		localLlamaChunkItemCountInstruction(chunk),
 		"Use only the numbered source items below.",
-		localLlamaItemCountInstruction(text),
+		"Use the meal text only as context for resolving the listed source items.",
+		"Do not add foods from the meal text unless they appear in Source items.",
 		"Convert every numbered source item into exactly one row.",
 		"Copy each source_item_id exactly once in ascending order; do not skip or duplicate source_item_id values.",
-		"The numbered source item list is authoritative for source_item_id, day, meal_code, and source wording.",
-		"Use the provided day value for each numbered source item.",
-		"When meal_code is one of b, m, l, a, d, s, or e, use that provided meal_code. When meal_code is infer, infer the closest supported meal code from the source context.",
+		"The numbered source item list is authoritative for source_item_id and source wording.",
+		"The server already knows day and meal_code; do not output day or meal_code.",
 		"Do not omit, merge, summarize, or invent items.",
 		"Parse food, numeric quantity, and unit from each source_text when present.",
 		"For resolved source_text, copy quantity and unit from the leading measurement; preserve fractions such as 1/2 as 0.5.",
-		"For unresolved source_text, put the visible amount phrase in quantity_text when one exists; otherwise use \"missing quantity\".",
+		"For needs_model_parse source_text, infer food and usable quantity from the source_text and meal text when possible; otherwise put the visible amount phrase in quantity_text when one exists, or use \"missing quantity\".",
 		"Do not change tbsp to tsp or tsp to tbsp.",
 		"The food value must be the food name only; do not include the leading quantity, unit, quantity_text, or unresolved_reason in the food value.",
 		"Preserve source food wording, including preparation words such as cooked, plain, grilled, steamed, baked, roasted, sliced, or mixed.",
 		"Do not include other keys or text.",
 		"",
-		localLlamaSourceItemsPromptBlock(text),
+		localLlamaMealChunkPromptBlock(chunk),
 	}
 	if constraints.Days > 0 {
-		userParts = append(userParts[:2], append([]string{fmt.Sprintf("Use day numbers 1..%d.", constraints.Days)}, userParts[2:]...)...)
+		userParts = append(userParts[:2], append([]string{fmt.Sprintf("The full request is limited to day numbers 1..%d.", constraints.Days)}, userParts[2:]...)...)
 	}
 	if constraints.MealsPerDay > 0 {
 		userParts = append(userParts[:3], append([]string{
-			fmt.Sprintf("Each day must contain exactly %d distinct meal code(s).", constraints.MealsPerDay),
-			localLlamaMealCodeInstruction(constraints.MealsPerDay),
+			fmt.Sprintf("The full request contains exactly %d distinct meal chunk(s) for the day.", constraints.MealsPerDay),
 		}, userParts[3:]...)...)
 	}
 	user := strings.Join(userParts, "\n")
@@ -501,31 +544,53 @@ func localLlamaItemCountInstruction(text string) string {
 }
 
 type localLlamaSourceItem struct {
-	ID       int
-	Day      int
-	MealCode string
-	Text     string
-	Resolved bool
+	ID          int
+	Day         int
+	MealCode    string
+	Text        string
+	ParseStatus localLlamaSourceParseStatus
+}
+
+type localLlamaSourceParseStatus string
+
+const (
+	localLlamaSourceResolved        localLlamaSourceParseStatus = "resolved"
+	localLlamaSourceNeedsModelParse localLlamaSourceParseStatus = "needs_model_parse"
+)
+
+type localLlamaMealChunk struct {
+	Day       int
+	MealCode  string
+	MealLabel string
+	MealText  string
+	Items     []localLlamaSourceItem
 }
 
 // LocalLlamaSourceItem is the deterministic source-item inventory used before
 // compact local-model extraction.
 type LocalLlamaSourceItem struct {
-	ID       int
-	Day      int
-	MealCode string
-	Text     string
+	ID          int
+	Day         int
+	MealCode    string
+	Text        string
+	ParseStatus string
 }
 
 var (
 	localLlamaResolvedItemLinePattern = regexp.MustCompile(`(?i)^\s*(?:[-*]|\d+[.)])\s+(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s*(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\b`)
 	localLlamaAnyItemLinePattern      = regexp.MustCompile(`^\s*(?:[-*]|\d+[.)])\s+(.+?)\s*$`)
 	localLlamaInlineItemPattern       = regexp.MustCompile(`(?i)^\s*((?:\d+(?:\.\d+)?)|(?:\d+\s*/\s*\d+)|(?:\d+\s+\d+\s*/\s*\d+))\s+((?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\s+)?(.+?)\s*$`)
+	localLlamaReverseItemPattern      = regexp.MustCompile(`(?i)^\s*(.+?)\s*(?:,|-|\()\s*((?:\d+(?:\.\d+)?)|(?:\d+\s*/\s*\d+)|(?:\d+\s+\d+\s*/\s*\d+))\s+(g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\)?\s*$`)
+	localLlamaMeasurementOnlyPattern  = regexp.MustCompile(`(?i)^\s*(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s+(?:g|grams?|oz|ounces?|cups?|tbsp|tablespoons?|tsp|teaspoons?|slices?|servings?)\s*$`)
 	localLlamaInlineAndItemBoundary   = regexp.MustCompile(`(?i)\s+\b(?:and|with|plus)\s+((?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s+)`)
-	localLlamaInlineLeadingAnd        = regexp.MustCompile(`(?i)^\s*and\s+`)
+	localLlamaInlineLeadingAnd        = regexp.MustCompile(`(?i)^\s*(?:and|with|plus)\s+`)
+	localLlamaMealPhrasePrefix        = regexp.MustCompile(`(?i)^\s*(?:i\s+(?:will\s+)?(?:have|had|ate|eat)|will\s+have|had|have|ate|eat|includes?|include|was|is|were|are)\s+`)
+	localLlamaTrailingMealVerb        = regexp.MustCompile(`(?i)\b(?:includes?|include|was|is|were|are|has|had|have)\s*$`)
 	localLlamaLeadingOf               = regexp.MustCompile(`(?i)^of\s+`)
 	localLlamaSourceItemMarkerPattern = regexp.MustCompile(`^\s*(?:[-*]|\d+[.)])\s+`)
 	localLlamaDayHeadingPattern       = regexp.MustCompile(`(?i)\bday\s*([1-7])\b`)
+	localLlamaParagraphMealPattern    = regexp.MustCompile(`(?i)\b(?:for|at|as|my|the)?\s*(morning snack|afternoon snack|evening snack|breakfast|lunch|dinner|snack)\b`)
+	localLlamaParagraphQuantityStart  = regexp.MustCompile(`(?i)(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)`)
 )
 
 func localLlamaExpectedResolvedItemCount(text string) int {
@@ -549,10 +614,11 @@ func LocalLlamaResolvedSourceItems(text string) []LocalLlamaSourceItem {
 	items := make([]LocalLlamaSourceItem, 0, len(internal))
 	for _, item := range internal {
 		items = append(items, LocalLlamaSourceItem{
-			ID:       item.ID,
-			Day:      item.Day,
-			MealCode: item.MealCode,
-			Text:     item.Text,
+			ID:          item.ID,
+			Day:         item.Day,
+			MealCode:    item.MealCode,
+			Text:        item.Text,
+			ParseStatus: string(item.ParseStatus),
 		})
 	}
 	return items
@@ -570,13 +636,32 @@ func localLlamaSourceItemsPromptBlock(text string) string {
 		if mealCode == "" {
 			mealCode = "infer"
 		}
-		status := "unresolved"
-		if item.Resolved {
-			status = "resolved"
-		}
-		fmt.Fprintf(&b, "%d | day=%d | meal_code=%s | status=%s | source_text=%s\n", item.ID, item.Day, mealCode, status, item.Text)
+		fmt.Fprintf(&b, "%d | day=%d | meal_code=%s | status=%s | source_text=%s\n", item.ID, item.Day, mealCode, item.ParseStatus, item.Text)
 	}
 	return strings.TrimRight(b.String(), "\n")
+}
+
+func localLlamaMealChunkPromptBlock(chunk localLlamaMealChunk) string {
+	var b strings.Builder
+	b.WriteString("Meal text:\n")
+	b.WriteString(strings.TrimSpace(chunk.MealText))
+	b.WriteString("\n\nSource items:\n")
+	for _, item := range chunk.Items {
+		fmt.Fprintf(&b, "%d | status=%s | source_text=%s\n", item.ID, item.ParseStatus, item.Text)
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
+
+func localLlamaChunkItemCountInstruction(chunk localLlamaMealChunk) string {
+	return fmt.Sprintf("This meal chunk contains exactly %d numbered source item(s); return exactly %d row(s).", len(chunk.Items), len(chunk.Items))
+}
+
+func localLlamaChunkSourceIDList(chunk localLlamaMealChunk) string {
+	ids := make([]string, 0, len(chunk.Items))
+	for _, item := range chunk.Items {
+		ids = append(ids, strconv.Itoa(item.ID))
+	}
+	return strings.Join(ids, ",")
 }
 
 func localLlamaResolvedSourceItems(text string) []localLlamaSourceItem {
@@ -588,9 +673,24 @@ func localLlamaExtractionSourceItems(text string) []localLlamaSourceItem {
 }
 
 func localLlamaSourceItems(text string, includeUnresolved bool) []localLlamaSourceItem {
+	chunks := localLlamaMealChunks(text, includeUnresolved)
 	var items []localLlamaSourceItem
+	for _, chunk := range chunks {
+		items = append(items, chunk.Items...)
+	}
+	return items
+}
+
+func localLlamaExtractionMealChunks(text string) []localLlamaMealChunk {
+	return localLlamaMealChunks(text, true)
+}
+
+func localLlamaMealChunks(text string, includeUnresolved bool) []localLlamaMealChunk {
+	var chunks []localLlamaMealChunk
 	currentDay := 1
 	currentMealCode := ""
+	currentChunkIndex := -1
+	nextID := 1
 	for _, line := range strings.Split(text, "\n") {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
@@ -603,33 +703,225 @@ func localLlamaSourceItems(text string, includeUnresolved bool) []localLlamaSour
 			}
 			if mealCode := localLlamaMealCodeFromHeading(trimmed); mealCode != "" {
 				currentMealCode = mealCode
+				currentChunkIndex = localLlamaEnsureMealChunk(&chunks, currentDay, currentMealCode, trimmed)
 			}
-			inlineItems := localLlamaInlineSourceItems(trimmed, currentDay, currentMealCode, len(items)+1, includeUnresolved)
+			inlineItems := localLlamaInlineSourceItems(trimmed, currentDay, currentMealCode, nextID, includeUnresolved)
+			paragraphChunks := localLlamaParagraphMealChunks(trimmed, currentDay, nextID, includeUnresolved)
+			if localLlamaMealChunkItemCount(paragraphChunks) > len(inlineItems) {
+				chunks = append(chunks, paragraphChunks...)
+				nextID += localLlamaMealChunkItemCount(paragraphChunks)
+				if len(paragraphChunks) > 0 {
+					last := paragraphChunks[len(paragraphChunks)-1]
+					currentDay = last.Day
+					currentMealCode = last.MealCode
+					currentChunkIndex = -1
+				}
+				continue
+			}
 			if len(inlineItems) > 0 {
-				items = append(items, inlineItems...)
+				if currentMealCode == "" {
+					currentMealCode = "infer"
+				}
+				currentChunkIndex = localLlamaEnsureMealChunk(&chunks, currentDay, currentMealCode, trimmed)
+				chunks[currentChunkIndex].Items = append(chunks[currentChunkIndex].Items, inlineItems...)
+				nextID += len(inlineItems)
+				continue
 			}
-			if includeUnresolved && len(inlineItems) == 0 {
+			if len(paragraphChunks) > 0 {
+				chunks = append(chunks, paragraphChunks...)
+				nextID += localLlamaMealChunkItemCount(paragraphChunks)
+				last := paragraphChunks[len(paragraphChunks)-1]
+				currentDay = last.Day
+				currentMealCode = last.MealCode
+				currentChunkIndex = -1
+				continue
+			}
+			if includeUnresolved {
 				if text, ok := localLlamaUnresolvedItemLine(line); ok {
-					items = append(items, localLlamaSourceItem{
-						ID:       len(items) + 1,
-						Day:      currentDay,
-						MealCode: currentMealCode,
-						Text:     text,
-						Resolved: false,
+					if currentMealCode == "" {
+						currentMealCode = "infer"
+					}
+					currentChunkIndex = localLlamaEnsureMealChunk(&chunks, currentDay, currentMealCode, trimmed)
+					chunks[currentChunkIndex].Items = append(chunks[currentChunkIndex].Items, localLlamaSourceItem{
+						ID:          nextID,
+						Day:         currentDay,
+						MealCode:    currentMealCode,
+						Text:        text,
+						ParseStatus: localLlamaSourceNeedsModelParse,
 					})
+					nextID++
 				}
 			}
 			continue
 		}
-		items = append(items, localLlamaSourceItem{
-			ID:       len(items) + 1,
-			Day:      currentDay,
-			MealCode: currentMealCode,
-			Text:     localLlamaCleanSourceItemLine(line),
-			Resolved: true,
-		})
+		if currentMealCode == "" {
+			currentMealCode = "infer"
+		}
+		currentChunkIndex = localLlamaEnsureMealChunk(&chunks, currentDay, currentMealCode, trimmed)
+		cleaned := localLlamaCleanSourceItemLine(line)
+		item := localLlamaSourceItemFromText(nextID, currentDay, currentMealCode, cleaned, includeUnresolved)
+		if item.ParseStatus != "" {
+			chunks[currentChunkIndex].Items = append(chunks[currentChunkIndex].Items, item)
+			nextID++
+		}
 	}
-	return items
+	return localLlamaNonEmptyMealChunks(chunks)
+}
+
+func localLlamaEnsureMealChunk(chunks *[]localLlamaMealChunk, day int, mealCode string, mealText string) int {
+	if mealCode == "" {
+		mealCode = "infer"
+	}
+	for index := len(*chunks) - 1; index >= 0; index-- {
+		chunk := &(*chunks)[index]
+		if chunk.Day == day && chunk.MealCode == mealCode {
+			localLlamaAppendMealText(chunk, mealText)
+			return index
+		}
+	}
+	mealLabel, _ := localLlamaMealName(mealCode)
+	if mealLabel == "" {
+		mealLabel = mealCode
+	}
+	*chunks = append(*chunks, localLlamaMealChunk{
+		Day:       day,
+		MealCode:  mealCode,
+		MealLabel: mealLabel,
+		MealText:  strings.TrimSpace(mealText),
+	})
+	return len(*chunks) - 1
+}
+
+func localLlamaAppendMealText(chunk *localLlamaMealChunk, mealText string) {
+	mealText = strings.TrimSpace(mealText)
+	if mealText == "" {
+		return
+	}
+	if chunk.MealText == "" {
+		chunk.MealText = mealText
+		return
+	}
+	if strings.Contains(chunk.MealText, mealText) {
+		return
+	}
+	chunk.MealText = strings.TrimSpace(chunk.MealText + "\n" + mealText)
+}
+
+func localLlamaNonEmptyMealChunks(chunks []localLlamaMealChunk) []localLlamaMealChunk {
+	filtered := make([]localLlamaMealChunk, 0, len(chunks))
+	for _, chunk := range chunks {
+		if len(chunk.Items) > 0 {
+			filtered = append(filtered, chunk)
+		}
+	}
+	return filtered
+}
+
+func localLlamaMealChunkItemCount(chunks []localLlamaMealChunk) int {
+	count := 0
+	for _, chunk := range chunks {
+		count += len(chunk.Items)
+	}
+	return count
+}
+
+func localLlamaSourceItemFromText(id int, day int, mealCode string, sourceText string, includeUnresolved bool) localLlamaSourceItem {
+	sourceText = strings.TrimSpace(sourceText)
+	if sourceText == "" {
+		return localLlamaSourceItem{}
+	}
+	status := localLlamaSourceNeedsModelParse
+	if localLlamaParseSourceMeasurement(sourceText).Status == "parsed" {
+		status = localLlamaSourceResolved
+	} else if !includeUnresolved {
+		return localLlamaSourceItem{}
+	}
+	return localLlamaSourceItem{
+		ID:          id,
+		Day:         day,
+		MealCode:    mealCode,
+		Text:        sourceText,
+		ParseStatus: status,
+	}
+}
+
+func localLlamaParagraphMealChunks(line string, day int, startID int, includeUnresolved bool) []localLlamaMealChunk {
+	matches := localLlamaParagraphMealPattern.FindAllStringSubmatchIndex(line, -1)
+	if len(matches) == 0 {
+		return nil
+	}
+	var chunks []localLlamaMealChunk
+	nextID := startID
+	for index, match := range matches {
+		if len(match) < 4 {
+			continue
+		}
+		mealLabel := strings.ToLower(strings.TrimSpace(line[match[2]:match[3]]))
+		mealCode := localLlamaMealCodeFromHeading(mealLabel)
+		if mealCode == "" {
+			continue
+		}
+		sectionStart := match[1]
+		sectionEnd := len(line)
+		if index+1 < len(matches) {
+			sectionEnd = matches[index+1][0]
+		}
+		section := strings.TrimSpace(line[sectionStart:sectionEnd])
+		if section == "" {
+			continue
+		}
+		chunk := localLlamaMealChunk{
+			Day:       day,
+			MealCode:  mealCode,
+			MealLabel: mealLabel,
+			MealText:  strings.TrimSpace(line[match[0]:sectionEnd]),
+		}
+		for _, sourceText := range localLlamaParagraphSourceTexts(section, includeUnresolved) {
+			item := localLlamaSourceItemFromText(nextID, day, mealCode, sourceText, includeUnresolved)
+			if item.ParseStatus == "" {
+				continue
+			}
+			chunk.Items = append(chunk.Items, item)
+			nextID++
+		}
+		if len(chunk.Items) > 0 {
+			chunks = append(chunks, chunk)
+		}
+	}
+	return chunks
+}
+
+func localLlamaParagraphSourceTexts(section string, includeUnresolved bool) []string {
+	normalized := strings.ReplaceAll(section, ";", ",")
+	parts := localLlamaSplitCommaItemParts(normalized)
+	sourceTexts := make([]string, 0, len(parts))
+	for _, part := range parts {
+		for _, phrase := range localLlamaSplitInlineAndQuantified(part) {
+			sourceText, ok := localLlamaNormalizeParagraphItemPhrase(phrase)
+			if !ok && includeUnresolved {
+				sourceText, ok = localLlamaNormalizeUnresolvedParagraphItemPhrase(phrase)
+			}
+			if ok {
+				sourceTexts = append(sourceTexts, sourceText)
+			}
+		}
+	}
+	return sourceTexts
+}
+
+func localLlamaNormalizeParagraphItemPhrase(phrase string) (string, bool) {
+	text := strings.TrimSpace(strings.Trim(phrase, " \t\r\n.;,"))
+	text = localLlamaInlineLeadingAnd.ReplaceAllString(text, "")
+	if text == "" {
+		return "", false
+	}
+	if sourceText, ok := localLlamaNormalizeInlineItemPhrase(text); ok {
+		return sourceText, true
+	}
+	if match := localLlamaParagraphQuantityStart.FindStringIndex(text); len(match) == 2 {
+		text = strings.TrimSpace(text[match[0]:])
+	}
+	return localLlamaNormalizeInlineItemPhrase(text)
 }
 
 func localLlamaInlineSourceItems(line string, day int, mealCode string, startID int, includeUnresolved bool) []localLlamaSourceItem {
@@ -647,20 +939,16 @@ func localLlamaInlineSourceItems(line string, day int, mealCode string, startID 
 	var items []localLlamaSourceItem
 	for _, phrase := range localLlamaSplitInlineItemPhrases(remainder) {
 		sourceText, ok := localLlamaNormalizeInlineItemPhrase(phrase)
-		resolved := ok
 		if !ok && includeUnresolved {
 			sourceText, ok = localLlamaNormalizeUnresolvedInlineItemPhrase(phrase)
 		}
 		if !ok {
 			continue
 		}
-		items = append(items, localLlamaSourceItem{
-			ID:       startID + len(items),
-			Day:      day,
-			MealCode: mealCode,
-			Text:     sourceText,
-			Resolved: resolved && localLlamaParseSourceMeasurement(sourceText).Status == "parsed",
-		})
+		item := localLlamaSourceItemFromText(startID+len(items), day, mealCode, sourceText, includeUnresolved)
+		if item.ParseStatus != "" {
+			items = append(items, item)
+		}
 	}
 	return items
 }
@@ -668,6 +956,7 @@ func localLlamaInlineSourceItems(line string, day int, mealCode string, startID 
 func localLlamaNormalizeUnresolvedInlineItemPhrase(phrase string) (string, bool) {
 	text := strings.TrimSpace(strings.Trim(phrase, " \t\r\n.;,"))
 	text = localLlamaInlineLeadingAnd.ReplaceAllString(text, "")
+	text = localLlamaCleanMealContextPrefix(text)
 	if text == "" {
 		return "", false
 	}
@@ -692,7 +981,7 @@ func localLlamaUnresolvedItemLine(line string) (string, bool) {
 
 func localLlamaSplitInlineItemPhrases(text string) []string {
 	normalized := strings.ReplaceAll(text, ";", ",")
-	parts := strings.Split(normalized, ",")
+	parts := localLlamaSplitCommaItemParts(normalized)
 	phrases := make([]string, 0, len(parts))
 	for _, part := range parts {
 		for _, subpart := range localLlamaSplitInlineAndQuantified(part) {
@@ -727,14 +1016,48 @@ func localLlamaSplitInlineAndQuantified(part string) []string {
 	}
 }
 
+func localLlamaSplitCommaItemParts(text string) []string {
+	rawParts := strings.Split(text, ",")
+	parts := make([]string, 0, len(rawParts))
+	for index := 0; index < len(rawParts); index++ {
+		part := strings.TrimSpace(rawParts[index])
+		if part == "" {
+			continue
+		}
+		if index+1 < len(rawParts) {
+			next := strings.TrimSpace(rawParts[index+1])
+			if localLlamaShouldMergeReverseMeasurementParts(part, next) {
+				parts = append(parts, part+", "+next)
+				index++
+				continue
+			}
+		}
+		parts = append(parts, part)
+	}
+	return parts
+}
+
+func localLlamaShouldMergeReverseMeasurementParts(foodPart string, measurementPart string) bool {
+	if foodPart == "" || measurementPart == "" {
+		return false
+	}
+	if localLlamaParagraphQuantityStart.MatchString(foodPart) {
+		return false
+	}
+	return localLlamaMeasurementOnlyPattern.MatchString(strings.Trim(measurementPart, " .;"))
+}
+
 func localLlamaNormalizeInlineItemPhrase(phrase string) (string, bool) {
+	if sourceText, ok := localLlamaNormalizeReverseItemPhrase(phrase); ok {
+		return sourceText, true
+	}
 	matches := localLlamaInlineItemPattern.FindStringSubmatch(strings.TrimSpace(phrase))
 	if len(matches) != 4 {
 		return "", false
 	}
 	quantity := strings.Join(strings.Fields(matches[1]), " ")
 	unit := strings.TrimSpace(matches[2])
-	food := strings.TrimSpace(matches[3])
+	food := localLlamaCleanMealContextPrefix(strings.TrimSpace(matches[3]))
 	if quantity == "" || food == "" {
 		return "", false
 	}
@@ -746,6 +1069,48 @@ func localLlamaNormalizeInlineItemPhrase(phrase string) (string, bool) {
 	}
 	unit = localLlamaNormalizeSourceUnit(unit)
 	return strings.TrimSpace(quantity + " " + unit + " " + food), true
+}
+
+func localLlamaNormalizeReverseItemPhrase(phrase string) (string, bool) {
+	matches := localLlamaReverseItemPattern.FindStringSubmatch(strings.TrimSpace(strings.Trim(phrase, " \t\r\n.;")))
+	if len(matches) != 4 {
+		return "", false
+	}
+	food := localLlamaCleanMealContextPrefix(matches[1])
+	food = strings.TrimSpace(strings.Trim(food, " \t\r\n.;:-()"))
+	if food == "" {
+		return "", false
+	}
+	quantity := strings.Join(strings.Fields(matches[2]), " ")
+	unit := localLlamaNormalizeSourceUnit(matches[3])
+	return strings.TrimSpace(quantity + " " + unit + " " + food), true
+}
+
+func localLlamaNormalizeUnresolvedParagraphItemPhrase(phrase string) (string, bool) {
+	text := strings.TrimSpace(strings.Trim(phrase, " \t\r\n.;,"))
+	text = localLlamaInlineLeadingAnd.ReplaceAllString(text, "")
+	text = localLlamaCleanMealContextPrefix(text)
+	if text == "" {
+		return "", false
+	}
+	lower := strings.ToLower(text)
+	if strings.Contains(lower, ":") || strings.HasPrefix(lower, "day ") {
+		return "", false
+	}
+	return text, true
+}
+
+func localLlamaCleanMealContextPrefix(text string) string {
+	text = strings.TrimSpace(text)
+	for {
+		cleaned := strings.TrimSpace(localLlamaMealPhrasePrefix.ReplaceAllString(text, ""))
+		cleaned = strings.TrimSpace(localLlamaTrailingMealVerb.ReplaceAllString(cleaned, ""))
+		if cleaned == text {
+			break
+		}
+		text = cleaned
+	}
+	return strings.TrimSpace(text)
 }
 
 func localLlamaNormalizeSourceUnit(unit string) string {

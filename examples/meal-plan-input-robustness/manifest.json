@@ -2,7 +2,7 @@
   "schema_version": "0.1",
   "dataset_id": "meal-plan-input-robustness-v1",
   "purpose": "Synthetic acceptable meal-plan text inputs for normalization robustness testing.",
-  "max_input_chars": 6000,
+  "max_input_chars": 3000,
   "case_contract": {
     "days_required": true,
     "meals_required": true,
@@ -36,6 +36,32 @@
       "expected_item_count": 9,
       "smoke_harness_compatible": true,
       "coverage_tags": ["one_day", "three_meals", "inline_text", "commas", "supported_units"]
+    },
+    {
+      "id": "one_day_paragraph_basic",
+      "file": "cases/one-day-paragraph-basic.txt",
+      "title": "One-day paragraph",
+      "expected_days": 1,
+      "expected_meals_per_day": 3,
+      "expected_meal_codes_by_day": {
+        "1": ["b", "l", "d"]
+      },
+      "expected_item_count": 8,
+      "smoke_harness_compatible": false,
+      "coverage_tags": ["one_day", "three_meals", "paragraph_text", "natural_language", "with_plus_boundaries", "supported_units"]
+    },
+    {
+      "id": "one_day_paragraph_mixed_inline",
+      "file": "cases/one-day-paragraph-mixed-inline.txt",
+      "title": "One-day mixed paragraph and inline text",
+      "expected_days": 1,
+      "expected_meals_per_day": 3,
+      "expected_meal_codes_by_day": {
+        "1": ["b", "l", "d"]
+      },
+      "expected_item_count": 8,
+      "smoke_harness_compatible": false,
+      "coverage_tags": ["one_day", "three_meals", "paragraph_text", "inline_text", "natural_language", "supported_units"]
     },
     {
       "id": "one_day_numbered_items",
@@ -104,6 +130,19 @@
       "expected_item_count": 12,
       "smoke_harness_compatible": false,
       "coverage_tags": ["one_day", "six_meals", "snacks", "supported_units"]
+    },
+    {
+      "id": "one_day_paragraph_with_snacks",
+      "file": "cases/one-day-paragraph-with-snacks.txt",
+      "title": "One-day paragraph with snacks",
+      "expected_days": 1,
+      "expected_meals_per_day": 6,
+      "expected_meal_codes_by_day": {
+        "1": ["b", "m", "l", "a", "d", "e"]
+      },
+      "expected_item_count": 12,
+      "smoke_harness_compatible": false,
+      "coverage_tags": ["one_day", "six_meals", "snacks", "paragraph_text", "natural_language", "supported_units"]
     },
     {
       "id": "three_day_compact",

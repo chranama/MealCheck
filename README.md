@@ -63,10 +63,15 @@ ingredient-level day of meals and receive a source-backed report. The downloaded
 repository is the deterministic local verifier/debug surface, the self-hostable
 BYOK/custom endpoint surface, and the intended base for future agent-tool
 integration.
-Hosted local-model runs accept one day only. Multi-day plans, recipes, grocery
-lists, and long prose belong in a local/self-hosted workflow or should be split
-before submission. The public path keeps the small local model on the critical
-path by requiring it to normalize the pasted day before deterministic checks run.
+Hosted local-model runs accept one day only. Semi-structured lines and paragraph
+text are both supported when meals have clear anchors and bounded food spans.
+The backend chunks the day by meal, sends each meal text span plus its numbered
+source items to the small local model, and reattaches deterministic meal
+metadata after source-ID reconciliation. Multi-day plans, recipes, grocery
+lists, and unrelated long prose belong in a local/self-hosted workflow or should
+be split before submission. The public path keeps the small local model on the
+critical path by requiring it to normalize each meal chunk before deterministic
+checks run.
 
 The tightened product direction adds first-class meal-plan qualification before
 verification: candidate text may be not a meal plan, too vague, recipe-like but

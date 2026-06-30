@@ -237,18 +237,11 @@ Status: Accepted
 
 Decision:
 
-MealCheck will use a small current documentation set:
-
-- `README.md`
-- `docs/product.md`
-- `docs/user-story.md`
-- `docs/nutritional-guidelines.md`
-- `docs/contracts.md`
-- `docs/architecture.md`
-- `docs/backend_server.md`
-- `docs/implementation-plan.md`
-- `docs/runbook.md`
-- `docs/decision-log.md`
+MealCheck will use a small current documentation set organized around stable
+questions: what the product is, what the public contracts are, how it is built,
+how it is operated, what has been decided, and what the next implementation
+slice is. `docs/README.md` is the authoritative index for the current document
+set.
 
 Reason:
 
@@ -260,6 +253,9 @@ Consequences:
 - Decisions live in this log by default.
 - New docs need to justify their existence against the documentation rule in
   `docs/README.md`.
+- Short-lived implementation plans should be folded into
+  `docs/implementation-plan.md`, `docs/current-priorities.md`, or the relevant
+  focused doc once they are no longer active working documents.
 - MVP user flow lives in `docs/user-story.md`.
 - Guideline sources and preprocessing live in
   `docs/nutritional-guidelines.md`.
@@ -1879,3 +1875,111 @@ Consequences:
 - Fine-tuning, constrained decoding, or other model-weight changes should wait
   until deterministic and local-model baselines identify stable high-frequency
   failures that simpler parser, prompt, or contract changes cannot address.
+
+## 2026-06-30: Hosted Local Model Uses One-Day Per-Meal Chunks
+
+Status: Accepted
+
+Decision:
+
+Make the hosted local-model happy path a one-day meal-plan workflow that calls
+the small local model once per deterministic meal chunk. The backend owns
+request-level gating, day and meal identification, source-item IDs, meal text
+capture, and final day/meal reattachment. The model sees one meal's text span
+and source inventory, then returns only compact rows in the shape:
+
+```text
+[source_item_id, food, quantity, unit]
+```
+
+The deterministic source inventory distinguishes source items that are already
+measurement-resolved from bounded spans that still need model parsing. It should
+accept concise natural-language meal paragraphs as well as semi-structured
+bullets, including reverse-measurement forms such as `chicken, 100 g`.
+
+Reason:
+
+MealCheck needs the SLM to remain on the critical happy path, but the previous
+whole-plan contract made the model responsible for too much structure at once.
+Constraining hosted input to one day and decomposing it into per-meal chunks
+keeps the semantic parsing task useful while bounding prompt size, output
+tokens, and failure blast radius for the 2019 MacBook Air deployment.
+
+Removing day and meal code from the model's output also narrows the error
+surface: the backend can deterministically preserve meal assignment and use the
+model for food/quantity/unit semantics inside a bounded span.
+
+Consequences:
+
+- Hosted local-model verification remains SLM-critical because every accepted
+  meal chunk must pass through the model before deterministic checking.
+- The public hosted input contract is one day of concise ingredient-level meal
+  text with the configured source-item cap.
+- Multi-day or weekly plans are out of scope for the hosted happy path unless
+  they move to a future explicitly measured workflow.
+- The backend rejects chunk outputs with missing, duplicate, or extra source
+  IDs before checker execution.
+- Standalone full-row compact JSON remains available for CLI/debug adapter
+  compatibility, but hosted constrained decoding uses the meal-chunk schema.
+- P0 local-model evaluation must route through the same chunked extraction path
+  used by live hosted runs.
+- A fresh live regimen on the serving MacBook is required before treating the
+  per-meal contract as production-stable.
+
+## 2026-06-30: Fold Working Plans Into Focused Docs
+
+Status: Accepted
+
+Decision:
+
+Delete standalone planning docs once their completed work is recorded in
+`docs/implementation-plan.md` and their remaining useful work is recorded in
+`docs/current-priorities.md` or the relevant focused document. Fold the P0 live
+local-model regimen into `docs/evaluation.md` because it is part of the P0
+evaluation surface, not a separate product or architecture contract.
+
+Reason:
+
+Separate implementation-plan files become stale quickly and make it harder to
+tell which document is authoritative. The repo already has a documentation rule:
+milestones belong in the implementation plan, next slices belong in current
+priorities, evaluation methods belong in evaluation docs, and accepted tradeoffs
+belong in the decision log.
+
+Consequences:
+
+- `docs/normalization-engine-improvement-plan.md`,
+  `docs/p0-external-dataset-integration-plan.md`, and
+  `docs/p0-live-model-regimen.md` are removed.
+- Milestone 45 records completed P0 evaluation and external-source scaffolding.
+- Milestone 46 records the per-meal local-model normalization contract.
+- `docs/current-priorities.md` tracks remaining P0 live-regimen,
+  unsupported-unit, artifact, and external-sample review work.
+- `docs/evaluation.md` is the authoritative home for P0 evaluation commands,
+  metrics, seed results, and live local-model regimen details.
+
+## 2026-06-30: Checker Evaluation Command Uses `eval-checker`
+
+Status: Accepted
+
+Decision:
+
+Rename the deterministic checker/resolver evaluation CLI command from
+`mealcheck eval` to `mealcheck eval-checker`. Keep
+`mealcheck eval-normalization` for the P0 normalization task. Keep the internal
+Go package name as `evalchecker` because package identifiers and import paths
+should avoid hyphens.
+
+Reason:
+
+The generic `eval` command became ambiguous after MealCheck added a separate
+normalization evaluation surface. The new name makes command intent visible at
+the call site: `eval-checker` evaluates canonical plans through the checker and
+resolver; `eval-normalization` evaluates pasted-text normalization.
+
+Consequences:
+
+- User-facing docs and examples should use `mealcheck eval-checker`.
+- Existing local scripts or operator muscle memory that call `mealcheck eval`
+  need to be updated.
+- The normalization command remains unchanged.
