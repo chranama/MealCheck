@@ -80,9 +80,22 @@ func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get run: %v", err)
 	}
-	if run.Status != StatusCompleted {
-		t.Fatalf("run status = %q, want completed; error=%s", run.Status, run.Error)
+	if run.Status != StatusAwaitingReview {
+		t.Fatalf("run status = %q, want awaiting_review; error=%s", run.Status, run.Error)
 	}
+
+	review := readReviewArtifact(t, server, created.RunID)
+	if review.RequiresConfirmation {
+		t.Fatalf("review requires confirmation = true, want false for clean rows: %+v", review.TrustSignals)
+	}
+	if review.TrustSignals.SourceItemCount != 9 || review.TrustSignals.NormalizedRowCount != 9 || len(review.Rows) != 9 {
+		t.Fatalf("review signals/rows = %+v len=%d, want 9 source and normalized rows", review.TrustSignals, len(review.Rows))
+	}
+	if review.Rows[0].SourceText == "" || review.Rows[0].NormalizedFood != "cooked oatmeal" {
+		t.Fatalf("first review row = %+v, want source-linked cooked oatmeal", review.Rows[0])
+	}
+
+	run = confirmReviewRun(t, server, store, created.RunID)
 
 	var redacted RedactedProviderConfig
 	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "configs", "redacted-provider.json")), &redacted)
@@ -145,6 +158,9 @@ func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
 	manifestBytes := readFile(t, filepath.Join(run.ArtifactDir, "manifest.json"))
 	if !bytes.Contains(manifestBytes, []byte("optional/local-model-chunks.json")) {
 		t.Fatalf("manifest missing optional/local-model-chunks.json:\n%s", string(manifestBytes))
+	}
+	if !bytes.Contains(manifestBytes, []byte("review/normalized-plan-review.json")) || !bytes.Contains(manifestBytes, []byte("review/review-actions.jsonl")) {
+		t.Fatalf("manifest missing review artifacts:\n%s", string(manifestBytes))
 	}
 }
 
@@ -310,6 +326,14 @@ func TestLocalModelRunAcceptsMissingQuantitiesAsUnresolvedRows(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get run: %v", err)
 	}
+	if run.Status != StatusAwaitingReview {
+		t.Fatalf("run status = %q, want awaiting_review; error=%s", run.Status, run.Error)
+	}
+	review := readReviewArtifact(t, server, created.RunID)
+	if !review.RequiresConfirmation || review.TrustSignals.UnresolvedItemCount != 3 {
+		t.Fatalf("review signals = %+v requires=%t, want 3 unresolved requiring confirmation", review.TrustSignals, review.RequiresConfirmation)
+	}
+	run = confirmReviewRun(t, server, store, created.RunID)
 	if run.Status != StatusCompleted {
 		t.Fatalf("run status = %q, want completed; error=%s", run.Status, run.Error)
 	}
@@ -506,4 +530,31 @@ func TestLocalModelRunReportsFriendlyPostModelNormalizationFailure(t *testing.T)
 	if failedChunk.Prompt.MessageCount != 2 || !strings.Contains(failedChunk.Prompt.Messages[1].Content, "Authoritative source items") {
 		t.Fatalf("failed chunk prompt artifact = %+v, want meal prompt evidence", failedChunk.Prompt)
 	}
+}
+
+func readReviewArtifact(t *testing.T, server *Server, runID string) NormalizedPlanReviewArtifact {
+	t.Helper()
+	resp := doRequest(t, server, http.MethodGet, "/api/runs/"+runID+"/review", "")
+	if resp.Code != http.StatusOK {
+		t.Fatalf("review status = %d body=%s", resp.Code, resp.Body.String())
+	}
+	var review NormalizedPlanReviewArtifact
+	decodeJSON(t, resp.Body.Bytes(), &review)
+	return review
+}
+
+func confirmReviewRun(t *testing.T, server *Server, store Store, runID string) Run {
+	t.Helper()
+	resp := doRequest(t, server, http.MethodPost, "/api/runs/"+runID+"/review/confirm", "{}")
+	if resp.Code != http.StatusOK {
+		t.Fatalf("confirm review status = %d body=%s", resp.Code, resp.Body.String())
+	}
+	run, err := store.GetRun(context.Background(), runID)
+	if err != nil {
+		t.Fatalf("get confirmed run: %v", err)
+	}
+	if run.Status != StatusCompleted {
+		t.Fatalf("run status = %q, want completed; error=%s", run.Status, run.Error)
+	}
+	return run
 }

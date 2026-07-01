@@ -37,6 +37,10 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if parts[1] == "review" {
+		s.runReview(w, r, runID, parts[2:])
+		return
+	}
 	if r.Method != http.MethodGet {
 		writeError(w, r, http.StatusMethodNotAllowed, "method_not_allowed", "method not allowed", nil)
 		return

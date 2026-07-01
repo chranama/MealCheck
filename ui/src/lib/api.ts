@@ -3,6 +3,7 @@ import type {
   CreateRunResponse,
   HealthResponse,
   MealPlanQualificationResult,
+  NormalizedPlanReviewArtifact,
   PublicStatusResponse,
   QualifyMealPlanPayload,
   QualifyMealPlanResponse,
@@ -189,6 +190,32 @@ export async function fetchEvents(base: string, runID: string, fallback: RunEven
 
 export async function fetchArtifact<T>(base: string, runID: string, path: string): Promise<T> {
   return requestJSON<T>(base, `/api/runs/${runID}/artifacts/${path}`);
+}
+
+export async function fetchNormalizedPlanReview(base: string, runID: string): Promise<NormalizedPlanReviewArtifact> {
+  return requestJSON<NormalizedPlanReviewArtifact>(base, `/api/runs/${runID}/review`);
+}
+
+export async function confirmNormalizedPlanReview(base: string, runID: string): Promise<RunDocument> {
+  return requestJSON<RunDocument>(base, `/api/runs/${runID}/review/confirm`, {
+    method: "POST",
+  });
+}
+
+export async function rejectNormalizedPlanReview(base: string, runID: string, reason: string): Promise<RunDocument> {
+  return requestJSON<RunDocument>(base, `/api/runs/${runID}/review/reject`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function requestNormalizedPlanRewrite(base: string, runID: string, reason: string): Promise<RunDocument> {
+  return requestJSON<RunDocument>(base, `/api/runs/${runID}/review/rewrite`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
 }
 
 async function fetchOptionalArtifact<T>(base: string, runID: string, path: string, fallback: T): Promise<T> {

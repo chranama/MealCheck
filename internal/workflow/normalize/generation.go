@@ -16,6 +16,7 @@ const (
 
 type PreparedRun struct {
 	CasePath             string
+	Plan                 checker.Plan
 	LLMOutput            string
 	NormalizationEvents  []NormalizationEvent
 	RedactedProvider     RedactedProviderConfig
@@ -165,6 +166,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 	}
 	return PreparedRun{
 		CasePath:             casePath,
+		Plan:                 plan,
 		LLMOutput:            sanitizeDebugArtifactText(llmOutput, input.Provider.APIKey),
 		NormalizationEvents:  events,
 		RedactedProvider:     providerRedacted,

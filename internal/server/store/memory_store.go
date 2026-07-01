@@ -102,6 +102,40 @@ func (s *MemoryStore) ClaimNextRun(_ context.Context, _ string, _ time.Time) (Ru
 	return run, true, nil
 }
 
+func (s *MemoryStore) MarkRunAwaitingReview(_ context.Context, id string, summary string, at time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	run, ok := s.runs[id]
+	if !ok {
+		return ErrNotFound
+	}
+	run.Status = StatusAwaitingReview
+	run.Summary = summary
+	run.UpdatedAt = at
+	s.runs[id] = run
+	return nil
+}
+
+func (s *MemoryStore) StartReviewRun(_ context.Context, id string, _ string, _ time.Time, at time.Time) (Run, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	run, ok := s.runs[id]
+	if !ok {
+		return Run{}, ErrNotFound
+	}
+	if run.Status != StatusAwaitingReview {
+		return Run{}, ErrConflict
+	}
+	run.Status = StatusRunning
+	run.UpdatedAt = at
+	if run.StartedAt == nil {
+		startedAt := at
+		run.StartedAt = &startedAt
+	}
+	s.runs[id] = run
+	return run, nil
+}
+
 func (s *MemoryStore) CompleteRun(_ context.Context, id string, decision checker.DecisionDocument, completedAt time.Time) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

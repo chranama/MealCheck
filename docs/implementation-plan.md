@@ -4120,3 +4120,49 @@ Verification:
   local-model artifact root reports one completed run, three chunks, zero
   failed runs, zero timeouts, zero decode failures, and zero repairs.
 - `git diff --check` passes.
+
+## Milestone 56: P3 Normalized-Plan Review Pause
+
+Status: Implemented locally in the current worktree.
+
+Purpose:
+
+Add the first report-trust slice between hosted local-model normalization and
+deterministic checking. MealCheck should show users the normalized source-linked
+rows before the checker gives those rows authority.
+
+Delivered:
+
+- Added `awaiting_review` run status and review events for ready, confirmed,
+  rejected, and rewrite-requested review states.
+- Split hosted local-model worker processing so it writes review artifacts and
+  pauses after normalization instead of immediately writing the checker bundle.
+- Added `/api/runs/{id}/review`, `/review/confirm`, `/review/reject`, and
+  `/review/rewrite` endpoints.
+- Added a source-linked normalized-plan review artifact with trust signals,
+  normalized plan, and rows carrying day, meal, source text, normalized food,
+  quantity, unit, and unresolved reason.
+- Restored review artifacts, local-model chunks, normalization events, and
+  redacted provider configuration into the final manifest after confirmation.
+- Added a live UI review panel with trust-signal metrics, source-to-normalized
+  rows, and `Check now`, `Rewrite input`, and `Reject` actions.
+- Extended local smoke so the local-model path fetches and confirms review
+  before inspecting final local-model artifacts.
+
+Acceptance:
+
+- Hosted local-model runs pause before deterministic checking.
+- Users can inspect source-linked normalized rows before report generation.
+- Confirmation runs the deterministic checker and produces the normal report
+  artifact bundle.
+- Reject and rewrite actions stop checker execution and leave action artifacts.
+- Confirmed reports retain review artifacts in the manifest.
+
+Verification:
+
+- `GOCACHE=/private/tmp/mealcheck-gocache go test ./...` passes with localhost
+  listener access for `httptest` packages.
+- `npm test -- --run` passes in `ui/`.
+- `npm run typecheck` passes in `ui/`.
+- `npm run build` passes in `ui/`.
+- `GOCACHE=/private/tmp/mealcheck-gocache go run ./cmd/mealcheck local-smoke --root /Users/chranama/career/MealCheck --work-dir /private/tmp/mealcheck-local-smoke-p3` passes.

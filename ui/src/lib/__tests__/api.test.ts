@@ -2,12 +2,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ApiError,
   cleanApiBase,
+  confirmNormalizedPlanReview,
   createRun,
+  fetchNormalizedPlanReview,
   fetchHealth,
   fetchPublicStatus,
   joinUrl,
   qualifyMealPlan,
   qualificationFromApiError,
+  rejectNormalizedPlanReview,
+  requestNormalizedPlanRewrite,
   requestJSON,
 } from "../api";
 import { DEFAULT_SETTINGS } from "../../constants";
@@ -162,6 +166,71 @@ describe("api", () => {
         }),
       }),
     );
+  });
+
+  it("loads and acts on normalized-plan review endpoints", async () => {
+    const fetchMock = vi.fn(async (url: string, options?: RequestInit) => {
+      if (url.endsWith("/review") && !options?.method) {
+        return new Response(JSON.stringify({
+          schema_version: "0.1",
+          run_id: "run-review",
+          created_at: "2026-07-01T12:00:00Z",
+          status: "awaiting_confirmation",
+          requires_confirmation: true,
+          trust_signals: {
+            source_item_count: 1,
+            normalized_row_count: 1,
+            unresolved_item_count: 0,
+            repair_count: 0,
+            failed_chunk_count: 0,
+          },
+          normalized_plan: {
+            schema_version: "0.1",
+            plan_id: "plan-review",
+            description: "Review plan",
+            days: [],
+            shopping_list: [],
+            prep_notes: [],
+          },
+          rows: [],
+        }), { status: 200 });
+      }
+      return new Response(JSON.stringify({
+        run: { status: "completed" },
+        links: {},
+        progress: {
+          state: "ready",
+          label: "Report ready",
+          message: "done",
+          updated_at: "2026-07-01T12:00:00Z",
+        },
+      }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchNormalizedPlanReview("http://api", "run-review")).resolves.toMatchObject({
+      requires_confirmation: true,
+    });
+    await expect(confirmNormalizedPlanReview("http://api", "run-review")).resolves.toMatchObject({
+      run: { status: "completed" },
+    });
+    await rejectNormalizedPlanReview("http://api", "run-review", "bad rows");
+    await requestNormalizedPlanRewrite("http://api", "run-review", "rewrite source");
+
+    expect(fetchMock).toHaveBeenCalledWith("http://api/api/runs/run-review/review", expect.objectContaining({
+      headers: expect.objectContaining({ accept: "application/json" }),
+    }));
+    expect(fetchMock).toHaveBeenCalledWith("http://api/api/runs/run-review/review/confirm", expect.objectContaining({
+      method: "POST",
+    }));
+    expect(fetchMock).toHaveBeenCalledWith("http://api/api/runs/run-review/review/reject", expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({ reason: "bad rows" }),
+    }));
+    expect(fetchMock).toHaveBeenCalledWith("http://api/api/runs/run-review/review/rewrite", expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({ reason: "rewrite source" }),
+    }));
   });
 
   it("loads health metadata", async () => {

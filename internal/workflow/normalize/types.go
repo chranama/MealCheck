@@ -15,6 +15,7 @@ type Provider = llm.Provider
 type ProviderFactory = llm.ProviderFactory
 type ProviderMessage = llm.ProviderMessage
 type LocalModelExtractionArtifact = localmodel.LocalModelExtractionArtifact
+type LocalModelChunkSourceItemArtifact = localmodel.LocalModelChunkSourceItemArtifact
 type LocalLlamaNormalizationRepair = localmodel.LocalLlamaNormalizationRepair
 
 const (

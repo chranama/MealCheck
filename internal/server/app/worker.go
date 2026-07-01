@@ -65,23 +65,33 @@ func (w *Worker) ProcessOne(ctx context.Context) (bool, error) {
 		return true, err
 	}
 
-	done := make(chan error, 1)
-	var result artifacts.BundleResult
-	var processedPending bool
+	done := make(chan workerProcessResult, 1)
 	go func() {
 		var err error
 		var prepared PreparedRun
+		var result artifacts.BundleResult
+		var processedPending bool
+		var awaitingReview bool
 		casePath := run.CasePath
 		if pendingInput, ok := w.Pending.Take(run.ID); ok {
 			processedPending = true
 			prepared, err = PrepareRunInput(runCtx, w.Config, w.ProviderFactory, run, pendingInput)
 			if err != nil {
-				done <- err
+				done <- workerProcessResult{err: err}
 				return
 			}
 			casePath = prepared.CasePath
+			if pendingInput.Mode == InputModeLocalModel {
+				if err := writeReviewArtifacts(run.ArtifactDir, run.ID, prepared); err != nil {
+					done <- workerProcessResult{err: err}
+					return
+				}
+				awaitingReview = true
+				done <- workerProcessResult{processedPending: processedPending, awaitingReview: awaitingReview}
+				return
+			}
 		} else if run.CasePath == runtimeCasePath(w.Config, run.ID) {
-			done <- fmt.Errorf("pending BYOK run input expired before processing; resubmit with a fresh provider API key")
+			done <- workerProcessResult{err: fmt.Errorf("pending BYOK run input expired before processing; resubmit with a fresh provider API key")}
 			return
 		}
 		result, err = artifacts.WriteBundle(artifacts.BundleOptions{
@@ -94,7 +104,12 @@ func (w *Worker) ProcessOne(ctx context.Context) (bool, error) {
 		if err == nil && processedPending {
 			err = writeOptionalArtifacts(result.OutDir, prepared)
 		}
-		done <- err
+		done <- workerProcessResult{
+			result:           result,
+			processedPending: processedPending,
+			awaitingReview:   awaitingReview,
+			err:              err,
+		}
 	}()
 
 	select {
@@ -104,29 +119,46 @@ func (w *Worker) ProcessOne(ctx context.Context) (bool, error) {
 		_ = w.Store.FailRun(context.Background(), run.ID, message, now)
 		_ = w.Store.AppendEvent(context.Background(), run.ID, EventFailed, message, now)
 		return true, runCtx.Err()
-	case err := <-done:
+	case outcome := <-done:
 		now := time.Now().UTC()
-		if err != nil {
-			_ = w.Store.FailRun(ctx, run.ID, err.Error(), now)
-			_ = w.Store.AppendEvent(ctx, run.ID, EventFailed, err.Error(), now)
-			return true, err
+		if outcome.err != nil {
+			_ = w.Store.FailRun(ctx, run.ID, outcome.err.Error(), now)
+			_ = w.Store.AppendEvent(ctx, run.ID, EventFailed, outcome.err.Error(), now)
+			return true, outcome.err
 		}
-		if processedPending {
+		if outcome.processedPending {
 			if err := w.Store.AppendEvent(ctx, run.ID, EventPlanNormalized, "meal plan normalized", now); err != nil {
 				return true, err
 			}
 		}
+		if outcome.awaitingReview {
+			summary := "MealCheck normalized this plan for source-linked review."
+			if err := w.Store.MarkRunAwaitingReview(ctx, run.ID, summary, now); err != nil {
+				return true, err
+			}
+			if err := w.Store.AppendEvent(ctx, run.ID, EventReviewReady, "normalized plan ready for review", now); err != nil {
+				return true, err
+			}
+			return true, nil
+		}
 		if err := w.Store.AppendEvent(ctx, run.ID, EventArtifactWritten, "artifact bundle written", now); err != nil {
 			return true, err
 		}
-		if err := w.Store.CompleteRun(ctx, run.ID, result.Decision, now); err != nil {
+		if err := w.Store.CompleteRun(ctx, run.ID, outcome.result.Decision, now); err != nil {
 			return true, err
 		}
-		if err := w.Store.AppendEvent(ctx, run.ID, EventCompleted, result.Decision.Decision, now); err != nil {
+		if err := w.Store.AppendEvent(ctx, run.ID, EventCompleted, outcome.result.Decision.Decision, now); err != nil {
 			return true, err
 		}
 		return true, nil
 	}
+}
+
+type workerProcessResult struct {
+	result           artifacts.BundleResult
+	processedPending bool
+	awaitingReview   bool
+	err              error
 }
 
 type CleanupJob struct {

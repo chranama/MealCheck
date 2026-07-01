@@ -167,6 +167,39 @@ func (s *PostgresStore) ClaimNextRun(ctx context.Context, workerID string, lease
 	return run, true, nil
 }
 
+func (s *PostgresStore) MarkRunAwaitingReview(ctx context.Context, id string, summary string, at time.Time) error {
+	result, err := s.db.ExecContext(ctx, `
+		update runs
+		set status = $1,
+			summary = $2,
+			updated_at = $3,
+			lease_owner = null,
+			lease_expires_at = null
+		where id = $4
+	`, StatusAwaitingReview, summary, at, id)
+	return checkRows(result, err)
+}
+
+func (s *PostgresStore) StartReviewRun(ctx context.Context, id string, workerID string, leaseUntil time.Time, at time.Time) (Run, error) {
+	row := s.db.QueryRowContext(ctx, `
+		update runs
+		set status = $1,
+			started_at = coalesce(started_at, $2),
+			updated_at = $2,
+			lease_owner = $3,
+			lease_expires_at = $4
+		where id = $5 and status = $6
+		returning id, case_path, coalesce(input_mode, ''), status, coalesce(decision, ''), coalesce(risk_level, ''),
+			coalesce(summary, ''), artifact_dir, coalesce(error_message, ''),
+			created_at, updated_at, started_at, completed_at, expires_at
+	`, StatusRunning, at, workerID, leaseUntil, id, StatusAwaitingReview)
+	run, err := scanRun(row)
+	if errors.Is(err, ErrNotFound) {
+		return Run{}, ErrConflict
+	}
+	return run, err
+}
+
 func (s *PostgresStore) CompleteRun(ctx context.Context, id string, decision checker.DecisionDocument, completedAt time.Time) error {
 	result, err := s.db.ExecContext(ctx, `
 		update runs

@@ -6,6 +6,37 @@ public expectations.
 Use this log instead of separate ADR and RFC files until a decision becomes too
 large to keep readable here.
 
+## 2026-07-01: Local-Model Runs Pause For Normalized-Plan Review
+
+Status: Accepted
+
+Decision:
+
+Hosted local-model runs should pause after normalization in an `awaiting_review`
+state. The product should expose a source-linked normalized-plan review artifact
+before deterministic checker execution. Confirmation resumes checking and
+produces the report bundle. Rejection and rewrite requests end the run before
+checking and record review actions.
+
+Reason:
+
+The local model performs semantic interpretation that can look authoritative
+once deterministic checks run over it. Users need a product surface that shows
+what MealCheck extracted from their source text before the checker converts that
+interpretation into a report decision.
+
+Consequences:
+
+- Local-model worker processing now writes review artifacts and releases the run
+  lease before checker execution.
+- `/api/runs/{id}/review` is available before a report manifest exists.
+- Confirmation restores review and normalization artifacts into the final
+  manifest after the bundle writer recreates the artifact directory.
+- Review action artifacts become the starting point for future correction and
+  P0-promotion workflows.
+- The first slice supports confirm/reject/rewrite; direct normalized-plan
+  editing remains a later P3 slice.
+
 ## 2026-07-01: Local Model Capacity Is Enforced In Store Claims
 
 Status: Accepted

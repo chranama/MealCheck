@@ -500,9 +500,30 @@ h1 {
   min-height: 0;
 }
 
-.live-workspace .live-panel:last-child {
+.live-workspace .results-panel {
   position: sticky;
   top: 18px;
+}
+
+.review-panel {
+  grid-column: 1 / -1;
+}
+
+.review-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.review-table-wrap {
+  margin-top: 4px;
+}
+
+.review-table {
+  min-width: 920px;
+}
+
+.review-source-cell {
+  max-width: 360px;
+  overflow-wrap: anywhere;
 }
 
 .live-action-strip {
@@ -1491,7 +1512,7 @@ tr:last-child td {
     grid-template-columns: 1fr;
   }
 
-  .live-workspace .live-panel:last-child {
+  .live-workspace .results-panel {
     position: static;
   }
 }
@@ -1621,6 +1642,10 @@ tr:last-child td {
   }
 
   .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .review-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

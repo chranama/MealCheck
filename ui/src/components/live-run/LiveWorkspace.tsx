@@ -13,6 +13,7 @@ import type {
   BackendState,
   GenerationMode,
   LiveState,
+  NormalizedPlanReviewState,
   ProviderConfig,
   QualificationState,
   QualifyMealPlanPayload,
@@ -27,24 +28,33 @@ import { ProviderForm } from "./ProviderForm";
 import { RunActionStrip } from "./RunActionStrip";
 import { RunStatusPanel } from "./RunStatusPanel";
 import { VerificationSettingsForm } from "./VerificationSettingsForm";
+import { NormalizedPlanReviewPanel } from "./NormalizedPlanReviewPanel";
 
 export function LiveWorkspace({
   apiBase,
   backend,
   live,
   qualification,
+  review,
   onCreateRun,
   onQualify,
   onDeleteRun,
+  onConfirmReview,
+  onRejectReview,
+  onRequestRewrite,
   onError,
 }: {
   apiBase: string;
   backend: BackendState;
   live: LiveState;
   qualification: QualificationState;
+  review: NormalizedPlanReviewState;
   onCreateRun: (base: string, inviteToken: string, payload: RunPayload) => Promise<void>;
   onQualify: (base: string, inviteToken: string, payload: QualifyMealPlanPayload) => Promise<void>;
   onDeleteRun: () => Promise<void>;
+  onConfirmReview: () => Promise<void>;
+  onRejectReview: () => Promise<void>;
+  onRequestRewrite: () => Promise<void>;
   onError: (error: unknown) => void;
 }) {
   const [inviteToken, setInviteToken] = useState("");
@@ -75,7 +85,7 @@ export function LiveWorkspace({
   const candidateTextLength = candidateText.length;
   const candidateTextTooLong = Boolean(candidateTextLimit && candidateTextLength > candidateTextLimit);
   const allowOpenAICompatible = backend.accessMode !== "public_byok" || backend.publicOpenAICompatible;
-  const isSubmitting = live.status === "queued" || live.status === "running";
+  const isSubmitting = live.status === "queued" || live.status === "running" || live.status === "awaiting_review" || review.status === "submitting";
   const isCheckingQualification = qualification.status === "checking";
   const healthBlocksSubmit = backend.kind === "offline" && Boolean(cleanBase);
   const canDeleteRun = Boolean(live.runID && live.status !== "deleted");
@@ -207,6 +217,13 @@ export function LiveWorkspace({
       </section>
 
       <RunStatusPanel live={live} qualification={qualification} />
+
+      <NormalizedPlanReviewPanel
+        review={review}
+        onConfirm={() => onConfirmReview().catch(onError)}
+        onReject={() => onRejectReview().catch(onError)}
+        onRequestRewrite={() => onRequestRewrite().catch(onError)}
+      />
 
       {confirmDelete ? (
         <ConfirmDeleteDialog

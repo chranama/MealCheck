@@ -395,27 +395,39 @@ Why this follows the earlier priorities:
 - A correction loop turns user-visible SLM mistakes into review artifacts that
   can later become regression cases.
 
+Implemented first slice:
+
+- Hosted local-model runs now pause in `awaiting_review` after normalization
+  and before deterministic checker execution.
+- `/api/runs/{id}/review` returns a source-linked normalized-plan review with
+  source item count, normalized row count, unresolved count, repair count, and
+  failed chunk count.
+- The live product shows review rows by day, meal, source text, normalized
+  food, quantity, unit, and unresolved reason.
+- `Check now` confirms the normalized plan and runs the checker; `Reject` and
+  `Rewrite input` end the run before checking and leave review action artifacts.
+- Completed confirmed runs keep review artifacts, local-model chunks,
+  normalization events, and redacted provider details in the final manifest.
+
 Near-term engineering slices:
 
-1. Add a normalized-plan review step between local-model normalization and
-   checker execution.
-2. Keep the review step efficient for broad users: make `Check now` the obvious
+1. Keep the review step efficient for broad users: make `Check now` the obvious
    action for clean normalizations, but require explicit confirmation when
    unresolved items, source repairs, vague quantities, or other trust signals
    are present.
-3. Preserve source links by day, meal, source text, normalized food, quantity,
+2. Preserve source links by day, meal, source text, normalized food, quantity,
    unit, and unresolved reason so the user can see exactly what the SLM changed.
-4. Start with confirm/rewrite recovery; add direct normalized-plan editing after
+3. Start with confirm/rewrite recovery; add direct normalized-plan editing after
    strict validation and clear source preservation are in place.
-5. Add a source-linked normalization inspection panel to the live report flow so
+4. Add a source-linked normalization inspection panel to the live report flow so
    users can trace source inventory, normalized rows, repairs, and unresolved
    items from the product surface.
-6. Capture user rejections, rewrites, and corrections as review artifacts that
+5. Capture user rejections, rewrites, and corrections as review artifacts that
    can be promoted into P0 cases when they expose real in-bound failures.
-7. Make unresolved items easier to scan by reason and affected day/meal.
-8. Surface concrete edit guidance where deterministic and safe.
-9. Keep deterministic recommendations conservative and verification-gated.
-10. Add generative explanation after deterministic facts and unresolved-state UX
+6. Make unresolved items easier to scan by reason and affected day/meal.
+7. Surface concrete edit guidance where deterministic and safe.
+8. Keep deterministic recommendations conservative and verification-gated.
+9. Add generative explanation after deterministic facts and unresolved-state UX
    are reliable.
 
 Metrics to track:

@@ -13,6 +13,7 @@ import (
 )
 
 type PreparedRun = normalize.PreparedRun
+type NormalizedPlanReviewArtifact = normalize.NormalizedPlanReviewArtifact
 type qualificationRejectionError = localmodel.QualificationRejectionError
 type localModelInputContractError = localmodel.LocalModelInputContractError
 
@@ -38,6 +39,14 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 
 func writeOptionalArtifacts(outDir string, prepared PreparedRun) error {
 	return normalize.WriteOptionalArtifacts(outDir, prepared)
+}
+
+func writeReviewArtifacts(outDir string, runID string, prepared PreparedRun) error {
+	return normalize.WriteReviewArtifacts(outDir, runID, prepared)
+}
+
+func updateManifestArtifacts(outDir string, paths ...string) error {
+	return normalize.UpdateManifestArtifacts(outDir, paths...)
 }
 
 func runtimeCasePath(config Config, runID string) string {

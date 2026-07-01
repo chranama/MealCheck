@@ -46,15 +46,20 @@ type QualifyMealPlanResponse = core.QualifyMealPlanResponse
 type NormalizationEvent = normalize.NormalizationEvent
 
 const (
-	StatusQueued    = core.StatusQueued
-	StatusRunning   = core.StatusRunning
-	StatusCompleted = core.StatusCompleted
-	StatusFailed    = core.StatusFailed
-	StatusDeleted   = core.StatusDeleted
+	StatusQueued         = core.StatusQueued
+	StatusRunning        = core.StatusRunning
+	StatusAwaitingReview = core.StatusAwaitingReview
+	StatusCompleted      = core.StatusCompleted
+	StatusFailed         = core.StatusFailed
+	StatusDeleted        = core.StatusDeleted
 
 	EventQueued          = core.EventQueued
 	EventStarted         = core.EventStarted
 	EventPlanNormalized  = core.EventPlanNormalized
+	EventReviewReady     = core.EventReviewReady
+	EventReviewConfirmed = core.EventReviewConfirmed
+	EventReviewRejected  = core.EventReviewRejected
+	EventReviewRewrite   = core.EventReviewRewrite
 	EventArtifactWritten = core.EventArtifactWritten
 	EventCompleted       = core.EventCompleted
 	EventFailed          = core.EventFailed

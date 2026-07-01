@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import {
   cleanApiBase,
+  confirmNormalizedPlanReview,
   createRun,
   deleteRun,
   fetchHealth,
   fetchEvents,
+  fetchNormalizedPlanReview,
   fetchRun,
   loadLiveArtifacts as loadLiveArtifactsForRun,
   qualifyMealPlan,
   qualificationFromApiError,
+  rejectNormalizedPlanReview,
+  requestNormalizedPlanRewrite,
 } from "./lib/api";
 import { recoveryFromError } from "./lib/recovery";
 import type { RecoveryNotice } from "./lib/recovery";
@@ -22,6 +26,7 @@ import type {
   BackendState,
   LiveState,
   MealPlanQualificationResult,
+  NormalizedPlanReviewState,
   QualificationState,
   QualifyMealPlanPayload,
   ReportArtifacts,
@@ -54,6 +59,12 @@ const INITIAL_QUALIFICATION: QualificationState = {
   result: null,
 };
 
+const INITIAL_REVIEW: NormalizedPlanReviewState = {
+  status: "idle",
+  message: "",
+  artifact: null,
+};
+
 export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig }) {
   const [activeTab, setActiveTab] = useState<ReportTab>("checks");
   const [apiBase, setApiBase] = useState(() => configuredApiBase(runtimeConfig));
@@ -62,6 +73,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
   const [recovery, setRecovery] = useState<RecoveryNotice | null>(null);
   const [live, setLive] = useState<LiveState>(INITIAL_LIVE);
   const [qualification, setQualification] = useState<QualificationState>(INITIAL_QUALIFICATION);
+  const [review, setReview] = useState<NormalizedPlanReviewState>(INITIAL_REVIEW);
   const pollRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -118,6 +130,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     setActiveTab("checks");
     setRecovery(null);
     setQualification(INITIAL_QUALIFICATION);
+    setReview(INITIAL_REVIEW);
     setLive({
       runID: "",
       status: "queued",
@@ -226,10 +239,31 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     }));
     if (run.status === "completed") {
       stopLivePolling();
+      setReview(INITIAL_REVIEW);
       await loadLiveArtifacts(base, runID);
+    } else if (run.status === "awaiting_review") {
+      stopLivePolling();
+      await loadNormalizedPlanReview(base, runID);
     } else if (run.status === "failed" || run.status === "deleted") {
       stopLivePolling();
+      setReview(INITIAL_REVIEW);
     }
+  }
+
+  async function loadNormalizedPlanReview(base: string, runID: string) {
+    setReview({
+      status: "loading",
+      message: "Loading normalized plan review.",
+      artifact: null,
+    });
+    const artifact = await fetchNormalizedPlanReview(base, runID);
+    setReview({
+      status: "ready",
+      message: artifact.requires_confirmation
+        ? "Review unresolved or repaired rows before checking."
+        : "Normalized rows are ready for checking.",
+      artifact,
+    });
   }
 
   async function loadLiveArtifacts(base: string, runID: string) {
@@ -248,12 +282,107 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     await deleteRun(apiBase, live.runID);
     stopLivePolling();
     setArtifacts(null);
+    setReview(INITIAL_REVIEW);
     setLive((current) => ({
       ...current,
       status: "deleted",
       message: "Report deleted.",
       artifactItems: [],
     }));
+  }
+
+  async function confirmNormalizedPlan() {
+    if (!live.runID) {
+      showError(new Error("No normalized plan is selected."));
+      return;
+    }
+    setReview((current) => ({
+      ...current,
+      status: "submitting",
+      message: "Checking confirmed normalized plan.",
+    }));
+    try {
+      const runDoc = await confirmNormalizedPlanReview(apiBase, live.runID);
+      await applyRunDocument(apiBase, live.runID, runDoc);
+      setReview(INITIAL_REVIEW);
+    } catch (error) {
+      setReview((current) => ({
+        ...current,
+        status: "failed",
+        message: "Review action failed.",
+      }));
+      throw error;
+    }
+  }
+
+  async function rejectNormalizedPlan() {
+    if (!live.runID) {
+      showError(new Error("No normalized plan is selected."));
+      return;
+    }
+    setReview((current) => ({
+      ...current,
+      status: "submitting",
+      message: "Rejecting normalized plan.",
+    }));
+    try {
+      const runDoc = await rejectNormalizedPlanReview(apiBase, live.runID, "Normalized plan rejected before checking.");
+      await applyRunDocument(apiBase, live.runID, runDoc);
+      setReview(INITIAL_REVIEW);
+    } catch (error) {
+      setReview((current) => ({
+        ...current,
+        status: "failed",
+        message: "Review action failed.",
+      }));
+      throw error;
+    }
+  }
+
+  async function requestSourceRewrite() {
+    if (!live.runID) {
+      showError(new Error("No normalized plan is selected."));
+      return;
+    }
+    setReview((current) => ({
+      ...current,
+      status: "submitting",
+      message: "Requesting source text rewrite.",
+    }));
+    try {
+      const runDoc = await requestNormalizedPlanRewrite(apiBase, live.runID, "Source text rewrite requested before checking.");
+      await applyRunDocument(apiBase, live.runID, runDoc);
+      setReview(INITIAL_REVIEW);
+    } catch (error) {
+      setReview((current) => ({
+        ...current,
+        status: "failed",
+        message: "Review action failed.",
+      }));
+      throw error;
+    }
+  }
+
+  async function applyRunDocument(base: string, runID: string, runDoc: Awaited<ReturnType<typeof fetchRun>>) {
+    const events = await fetchEvents(base, runID, live.events);
+    const run = runDoc.run;
+    const progress = runDoc.progress || null;
+    setLive((current) => ({
+      ...current,
+      runID,
+      status: run.status,
+      message: progress?.message || run.error || run.summary || `Report ${run.status}.`,
+      events,
+      progress,
+    }));
+    if (run.status === "completed") {
+      stopLivePolling();
+      await loadLiveArtifacts(base, runID);
+    } else if (run.status === "failed" || run.status === "deleted") {
+      stopLivePolling();
+    } else {
+      startLivePolling(base, runID);
+    }
   }
 
   function showError(errorLike: unknown) {
@@ -284,9 +413,13 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
             backend={backend}
             live={live}
             qualification={qualification}
+            review={review}
             onCreateRun={createLiveRun}
             onQualify={qualifyCandidate}
             onDeleteRun={deleteLiveRun}
+            onConfirmReview={confirmNormalizedPlan}
+            onRejectReview={rejectNormalizedPlan}
+            onRequestRewrite={requestSourceRewrite}
             onError={showError}
           />
 

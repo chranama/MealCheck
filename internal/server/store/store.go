@@ -20,6 +20,8 @@ type Store interface {
 	CreateRun(ctx context.Context, run Run, queueSize int, inviteTokenID string) error
 	GetRun(ctx context.Context, id string) (Run, error)
 	ClaimNextRun(ctx context.Context, workerID string, leaseUntil time.Time) (Run, bool, error)
+	MarkRunAwaitingReview(ctx context.Context, id string, summary string, at time.Time) error
+	StartReviewRun(ctx context.Context, id string, workerID string, leaseUntil time.Time, at time.Time) (Run, error)
 	CompleteRun(ctx context.Context, id string, decision checker.DecisionDocument, completedAt time.Time) error
 	FailRun(ctx context.Context, id string, message string, completedAt time.Time) error
 	DeleteRun(ctx context.Context, id string) (Run, error)

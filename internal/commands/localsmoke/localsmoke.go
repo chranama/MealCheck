@@ -340,6 +340,12 @@ func (r *runner) p2OperationalSmoke() error {
 	}); err != nil {
 		return err
 	}
+	if _, err := requestBody(localServer.Client(), http.MethodGet, localServer.URL+"/api/runs/"+localRunID+"/review", nil, http.StatusOK); err != nil {
+		return err
+	}
+	if _, err := requestBody(localServer.Client(), http.MethodPost, localServer.URL+"/api/runs/"+localRunID+"/review/confirm", strings.NewReader("{}"), http.StatusOK); err != nil {
+		return err
+	}
 	if _, err := requestBody(localServer.Client(), http.MethodGet, localServer.URL+"/api/runs/"+localRunID+"/artifacts/optional/local-model-chunks.json", nil, http.StatusOK); err != nil {
 		return err
 	}

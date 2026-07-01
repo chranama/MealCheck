@@ -49,6 +49,10 @@ func runProgress(run Run, events []RunEvent) *core.RunProgress {
 			progress.Label = "Writing report"
 			progress.Message = "MealCheck is writing report artifacts."
 		}
+	case StatusAwaitingReview:
+		progress.State = "reviewing"
+		progress.Label = "Review normalized plan"
+		progress.Message = publicRunMessage(firstNonEmpty(run.Summary, "MealCheck normalized this plan for source-linked review."))
 	case StatusCompleted:
 		progress.State = "ready"
 		progress.Label = "Report ready"

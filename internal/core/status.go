@@ -1,17 +1,22 @@
 package core
 
 const (
-	StatusQueued    = "queued"
-	StatusRunning   = "running"
-	StatusCompleted = "completed"
-	StatusFailed    = "failed"
-	StatusDeleted   = "deleted"
+	StatusQueued         = "queued"
+	StatusRunning        = "running"
+	StatusAwaitingReview = "awaiting_review"
+	StatusCompleted      = "completed"
+	StatusFailed         = "failed"
+	StatusDeleted        = "deleted"
 )
 
 const (
 	EventQueued          = "queued"
 	EventStarted         = "started"
 	EventPlanNormalized  = "plan_normalized"
+	EventReviewReady     = "review_ready"
+	EventReviewConfirmed = "review_confirmed"
+	EventReviewRejected  = "review_rejected"
+	EventReviewRewrite   = "review_rewrite_requested"
 	EventArtifactWritten = "artifact_written"
 	EventCompleted       = "completed"
 	EventFailed          = "failed"

@@ -275,6 +275,46 @@ export type LiveState = {
   progress?: RunProgress | null;
 };
 
+export type NormalizedPlanReviewTrustSignals = {
+  source_item_count: number;
+  normalized_row_count: number;
+  unresolved_item_count: number;
+  repair_count: number;
+  failed_chunk_count: number;
+};
+
+export type NormalizedPlanReviewRow = {
+  day: number;
+  meal_code: string;
+  meal_label?: string;
+  source_item_id: number;
+  source_text: string;
+  source_parse_status?: string;
+  normalized_food?: string;
+  resolved: boolean;
+  quantity?: number;
+  unit?: string;
+  quantity_text?: string;
+  unresolved_reason?: string;
+};
+
+export type NormalizedPlanReviewArtifact = {
+  schema_version: string;
+  run_id: string;
+  created_at: string;
+  status: string;
+  requires_confirmation: boolean;
+  trust_signals: NormalizedPlanReviewTrustSignals;
+  normalized_plan: MealPlan;
+  rows: NormalizedPlanReviewRow[];
+};
+
+export type NormalizedPlanReviewState = {
+  status: "idle" | "loading" | "ready" | "submitting" | "failed";
+  message: string;
+  artifact: NormalizedPlanReviewArtifact | null;
+};
+
 export type QualificationState = {
   status: "idle" | "checking" | "completed" | "failed";
   message: string;

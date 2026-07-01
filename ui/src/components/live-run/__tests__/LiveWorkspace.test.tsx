@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { LiveWorkspace } from "../LiveWorkspace";
-import type { BackendState, LiveState } from "../../../types";
+import type { BackendState, LiveState, NormalizedPlanReviewState } from "../../../types";
 
 const backend: BackendState = {
   online: true,
@@ -45,6 +45,12 @@ const qualification = {
   result: null,
 };
 
+const review: NormalizedPlanReviewState = {
+  status: "idle",
+  message: "",
+  artifact: null,
+};
+
 function renderWorkspace(overrides: Partial<Parameters<typeof LiveWorkspace>[0]> = {}) {
   return render(
     <LiveWorkspace
@@ -52,9 +58,13 @@ function renderWorkspace(overrides: Partial<Parameters<typeof LiveWorkspace>[0]>
       backend={backend}
       live={live}
       qualification={qualification}
+      review={review}
       onCreateRun={vi.fn(async () => undefined)}
       onQualify={vi.fn(async () => undefined)}
       onDeleteRun={vi.fn(async () => undefined)}
+      onConfirmReview={vi.fn(async () => undefined)}
+      onRejectReview={vi.fn(async () => undefined)}
+      onRequestRewrite={vi.fn(async () => undefined)}
       onError={vi.fn()}
       {...overrides}
     />,
@@ -154,6 +164,87 @@ describe("LiveWorkspace", () => {
     expect(screen.getByText("Report timed out")).toBeInTheDocument();
     expect(screen.getByText("Shorten long meal descriptions before resubmitting.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open status page" })).toHaveAttribute("href", "/status.html");
+  });
+
+  it("renders source-linked normalized-plan review actions", async () => {
+    const user = userEvent.setup();
+    const onConfirmReview = vi.fn(async () => undefined);
+    const onRejectReview = vi.fn(async () => undefined);
+    const onRequestRewrite = vi.fn(async () => undefined);
+    renderWorkspace({
+      live: {
+        ...live,
+        runID: "run-review",
+        status: "awaiting_review",
+        message: "MealCheck normalized this plan for source-linked review.",
+      },
+      review: {
+        status: "ready",
+        message: "Review unresolved or repaired rows before checking.",
+        artifact: {
+          schema_version: "0.1",
+          run_id: "run-review",
+          created_at: "2026-07-01T12:00:00Z",
+          status: "awaiting_confirmation",
+          requires_confirmation: true,
+          trust_signals: {
+            source_item_count: 2,
+            normalized_row_count: 2,
+            unresolved_item_count: 1,
+            repair_count: 1,
+            failed_chunk_count: 0,
+          },
+          normalized_plan: {
+            schema_version: "0.1",
+            plan_id: "review-plan",
+            description: "Review plan",
+            days: [],
+            shopping_list: [],
+            prep_notes: [],
+          },
+          rows: [
+            {
+              day: 1,
+              meal_code: "b",
+              meal_label: "breakfast",
+              source_item_id: 1,
+              source_text: "1 cup oatmeal",
+              normalized_food: "cooked oatmeal",
+              resolved: true,
+              quantity: 1,
+              unit: "cup",
+            },
+            {
+              day: 1,
+              meal_code: "b",
+              meal_label: "breakfast",
+              source_item_id: 2,
+              source_text: "a bowl of berries",
+              normalized_food: "berries",
+              resolved: false,
+              quantity_text: "a bowl",
+              unresolved_reason: "vague_quantity",
+            },
+          ],
+        },
+      },
+      onConfirmReview,
+      onRejectReview,
+      onRequestRewrite,
+    });
+
+    expect(screen.getByRole("heading", { name: "Normalized Plan Review" })).toBeInTheDocument();
+    expect(screen.getByText("1 cup oatmeal")).toBeInTheDocument();
+    expect(screen.getByText("cooked oatmeal")).toBeInTheDocument();
+    expect(screen.getByText("a vague quantity")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Check now" }));
+    await user.click(screen.getByRole("button", { name: "Rewrite input" }));
+    await user.click(screen.getByRole("button", { name: "Reject" }));
+
+    expect(onConfirmReview).toHaveBeenCalledTimes(1);
+    expect(onRequestRewrite).toHaveBeenCalledTimes(1);
+    expect(onRejectReview).toHaveBeenCalledTimes(1);
   });
 
   it("shows a text-first BYOK workspace with verification settings collapsed", () => {
