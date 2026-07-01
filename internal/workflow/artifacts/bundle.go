@@ -152,6 +152,7 @@ func WriteBundle(opts BundleOptions) (BundleResult, error) {
 		"meal-plan.schema.json",
 		"guideline-pack.schema.json",
 		"nutrient-catalog.schema.json",
+		"recommendation.schema.json",
 	} {
 		if err := copyFile(filepath.Join(root, "schemas", schema), filepath.Join(outDir, "schemas", schema)); err != nil {
 			return BundleResult{}, err
@@ -194,6 +195,7 @@ func WriteBundle(opts BundleOptions) (BundleResult, error) {
 			"schemas/meal-plan.schema.json",
 			"schemas/guideline-pack.schema.json",
 			"schemas/nutrient-catalog.schema.json",
+			"schemas/recommendation.schema.json",
 			"schemas/report.schema.json",
 		},
 	}

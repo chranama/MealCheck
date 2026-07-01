@@ -105,6 +105,31 @@ func TestGenerateAddsMissingVegetableWhenItMakesPlanPass(t *testing.T) {
 	}
 }
 
+func TestGenerateDoesNotMutateSourcePlan(t *testing.T) {
+	c := testCase()
+	plan := passingPlan()
+	plan.Days[0].Meals[1].Items = nil
+	catalog := testCatalog()
+	evaluation := checker.Evaluate(c, plan, catalog)
+	if evaluation.Decision != "warn" {
+		t.Fatalf("setup decision = %q, want warn", evaluation.Decision)
+	}
+
+	got := Generate(c, plan, catalog, evaluation)
+	if got.Status != "available" {
+		t.Fatalf("Status = %q, want available: %s", got.Status, got.Reason)
+	}
+	if plan.PlanID != "recommend-source" {
+		t.Fatalf("source plan ID = %q, want unchanged recommend-source", plan.PlanID)
+	}
+	if len(plan.Days[0].Meals[2].Items) != 1 {
+		t.Fatalf("source dinner items = %#v, want unchanged one-item dinner", plan.Days[0].Meals[2].Items)
+	}
+	if got.ModifiedPlan == nil || got.ModifiedPlan.PlanID != "recommend-source-recommended" || len(got.ModifiedPlan.Days[0].Meals[2].Items) != 2 {
+		t.Fatalf("modified plan = %#v, want separate recommended plan with added item", got.ModifiedPlan)
+	}
+}
+
 func TestGenerateRefusesUnresolvedQuantities(t *testing.T) {
 	c := testCase()
 	plan := passingPlan()
@@ -126,6 +151,73 @@ func TestGenerateRefusesUnresolvedQuantities(t *testing.T) {
 	if len(got.BlockingChecks) == 0 || got.BlockingChecks[0] != "quantities_resolvable" {
 		t.Fatalf("BlockingChecks = %v, want quantities_resolvable first", got.BlockingChecks)
 	}
+}
+
+func TestGenerateHidesAttemptedEditWhenProjectedPlanStillFails(t *testing.T) {
+	c := testCase()
+	c.Settings.VerificationConstraints.Allergies = []string{"peanuts"}
+	c.Settings.VerificationConstraints.RequiresPrepSafetyNotes = false
+	c.Settings.NutritionTargets.ProteinTargetG = 100
+	plan := passingPlan()
+	quantity := 1.0
+	plan.Days[0].Meals[1].Items = append(plan.Days[0].Meals[1].Items, checker.FoodItem{
+		Food:     "peanut sauce",
+		Quantity: &quantity,
+		Unit:     "tbsp",
+	})
+	catalog := testCatalog()
+	evaluation := checker.Evaluate(c, plan, catalog)
+	if evaluation.Decision != "block" {
+		t.Fatalf("setup decision = %q, want block", evaluation.Decision)
+	}
+
+	got := Generate(c, plan, catalog, evaluation)
+	if got.Status != "unavailable" {
+		t.Fatalf("Status = %q, want unavailable", got.Status)
+	}
+	assertRecommendationUnavailableHidesEdits(t, got)
+	if !containsString(got.BlockingChecks, "protein_minimum_met") {
+		t.Fatalf("BlockingChecks = %v, want projected protein_minimum_met", got.BlockingChecks)
+	}
+}
+
+func TestGenerateReturnsUnavailableForUnsupportedWarnings(t *testing.T) {
+	c := testCase()
+	c.Settings.NutritionTargets.ProteinTargetG = 100
+	plan := passingPlan()
+	catalog := testCatalog()
+	evaluation := checker.Evaluate(c, plan, catalog)
+	if evaluation.Decision != "warn" {
+		t.Fatalf("setup decision = %q, want warn", evaluation.Decision)
+	}
+
+	got := Generate(c, plan, catalog, evaluation)
+	if got.Status != "unavailable" {
+		t.Fatalf("Status = %q, want unavailable", got.Status)
+	}
+	if got.Reason != "No supported deterministic edit matched the failed checks." {
+		t.Fatalf("Reason = %q, want unsupported edit reason", got.Reason)
+	}
+	assertRecommendationUnavailableHidesEdits(t, got)
+	if !containsString(got.BlockingChecks, "protein_minimum_met") {
+		t.Fatalf("BlockingChecks = %v, want source protein_minimum_met", got.BlockingChecks)
+	}
+}
+
+func assertRecommendationUnavailableHidesEdits(t *testing.T, got Document) {
+	t.Helper()
+	if got.ModifiedPlan != nil || got.ProjectedDecision != nil || len(got.Changes) != 0 {
+		t.Fatalf("unavailable recommendation leaked edit details: %#v", got)
+	}
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
 }
 
 func testCase() checker.Case {

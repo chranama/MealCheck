@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mealcheck.local/schemas/recommendation.schema.json",
+  "title": "MealCheck Recommendation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "reason",
+    "source_decision",
+    "source_plan_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["available", "unavailable"]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_decision": {
+      "type": "string",
+      "enum": ["pass", "warn", "block"]
+    },
+    "source_plan_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "blocking_checks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "changes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/change"
+      }
+    },
+    "modified_plan": {
+      "$ref": "#/$defs/meal_plan"
+    },
+    "projected_decision": {
+      "$ref": "#/$defs/projected_decision"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "available"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["changes", "modified_plan", "projected_decision"],
+        "properties": {
+          "projected_decision": {
+            "properties": {
+              "decision": {
+                "const": "pass"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "unavailable"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": ["changes"]
+            },
+            {
+              "required": ["modified_plan"]
+            },
+            {
+              "required": ["projected_decision"]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "reason", "addresses_checks"],
+      "properties": {
+        "operation": {
+          "type": "string",
+          "enum": ["replace_item", "add_item", "add_prep_note"]
+        },
+        "day": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "meal": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from": {
+          "$ref": "#/$defs/food_item"
+        },
+        "to": {
+          "$ref": "#/$defs/food_item"
+        },
+        "prep_note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "addresses_checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "food_item": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["food"],
+      "properties": {
+        "food": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "quantity_text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "meal_plan": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schema_version", "plan_id", "days"],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "0.1"
+        },
+        "plan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "days": {
+          "type": "array",
+          "minItems": 1
+        }
+      }
+    },
+    "projected_decision": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schema_version", "decision", "failed_checks", "checks"],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "0.1"
+        },
+        "decision": {
+          "type": "string",
+          "enum": ["pass", "warn", "block"]
+        },
+        "failed_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "checks": {
+          "type": "array"
+        }
+      }
+    }
+  }
+}

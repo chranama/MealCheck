@@ -435,12 +435,20 @@ Implemented slices:
 - Frontend report fixtures cover available and unavailable recommendation
   states, and backend recommendation tests cover the supported missing-vegetable
   edit class.
+- Recommendation artifacts are now included with a bundled schema. Available
+  recommendations must carry deterministic changes, a modified plan, and a
+  projected `pass` decision; unavailable recommendations do not expose attempted
+  edits as product recommendations.
+- Recommendation tests cover source-plan immutability, unsupported warning
+  classes that stay unavailable, and attempted deterministic edits that remain
+  hidden unless the checker projection passes.
 
 Near-term engineering slices:
 
-1. Keep deterministic recommendations conservative and verification-gated.
-2. Add generative explanation after deterministic facts and unresolved-state UX
-   are reliable.
+P3 implementation work is complete for the current product shape. Promote a new
+P3 slice when review artifacts, completed reports, or user review show that
+users cannot understand or act on deterministic report facts already present in
+the product.
 
 Metrics to track:
 
@@ -536,6 +544,9 @@ Promote these areas when the named product evidence appears:
   while preserving deterministic source packs as verification authority.
 - Expand deterministic recommendation classes after unresolved-state UX and
   normalization reliability are stable.
+- Add generative recommendation explanation after deterministic recommendation
+  artifacts, unresolved-state UX, and completed-report source visibility show a
+  concrete explanation gap that static artifact views do not solve.
 - Promote NYT/TASTEset-generated P0 cases after product-shaped reviewed cases
   expose the gap and manual review classifies expected rows and failures.
 - Compare larger models after operator timing summaries exist.
