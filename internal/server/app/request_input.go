@@ -244,6 +244,15 @@ func validateLocalModelAvailable(config Config) error {
 	}
 	return nil
 }
+func isLocalModelAvailabilityError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := err.Error()
+	return message == "local model provider is not enabled" ||
+		message == "local model base URL is not configured" ||
+		message == "local model name is not configured"
+}
 func validateLocalModelSettings(settings checker.Settings) error {
 	if settings.VerificationConstraints.Days != 1 {
 		return fmt.Errorf("hosted local_model requires settings verification_constraints days to be exactly 1")

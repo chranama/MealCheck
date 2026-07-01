@@ -13,6 +13,7 @@ import (
 	"github.com/chranama/MealCheck/internal/commands/evalchecker"
 	"github.com/chranama/MealCheck/internal/commands/evalnormalization"
 	"github.com/chranama/MealCheck/internal/commands/fixturecheck"
+	"github.com/chranama/MealCheck/internal/commands/localmodelsummary"
 	"github.com/chranama/MealCheck/internal/commands/localsmoke"
 	localmodel "github.com/chranama/MealCheck/internal/llm/local"
 	"github.com/chranama/MealCheck/internal/server/access"
@@ -50,6 +51,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return localsmoke.Run(args[1:], stdout, stderr)
 	case "local-llama":
 		return runLocalLlamaCommand(args[1:], stdout, stderr)
+	case "local-model-summary":
+		return localmodelsummary.Run(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		printUsage(stdout)
 		return 0
@@ -420,6 +423,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  mealcheck fixture-check [-root repo-root]")
 	fmt.Fprintln(w, "  mealcheck local-llama normalize --input compact.json [--out normalized-plan.json]")
 	fmt.Fprintln(w, "  mealcheck local-llama schema")
+	fmt.Fprintln(w, "  mealcheck local-model-summary [-artifact-root artifacts] [-format text|json] [-out summary.json]")
 	fmt.Fprintln(w, "  mealcheck local-smoke [-root repo-root] [-work-dir dir] [-keep-work-dir]")
 	fmt.Fprintln(w, "  mealcheck invite create --label <label> [--expires YYYY-MM-DD] [--max-runs N]")
 	fmt.Fprintln(w, "  mealcheck invite list")

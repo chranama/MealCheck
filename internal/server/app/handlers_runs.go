@@ -79,6 +79,10 @@ func (s *Server) createRun(w http.ResponseWriter, r *http.Request) {
 		if writeMealPlanNotVerifiableError(w, r, err) {
 			return
 		}
+		if isLocalModelAvailabilityError(err) {
+			writeError(w, r, http.StatusServiceUnavailable, "local_model_unavailable", err.Error(), nil)
+			return
+		}
 		writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)
 		return
 	}
@@ -137,7 +141,15 @@ func (s *Server) getRun(w http.ResponseWriter, r *http.Request, runID string) {
 		writeStoreError(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"run": run, "links": linksForRun(run.ID)})
+	events, err := s.Store.ListEvents(r.Context(), runID, 0)
+	if err != nil {
+		writeStoreError(w, r, err)
+		return
+	}
+	for i := range events {
+		events[i] = publicRunEvent(events[i])
+	}
+	writeJSON(w, http.StatusOK, runDocument(run, events))
 }
 func (s *Server) deleteRun(w http.ResponseWriter, r *http.Request, runID string) {
 	run, err := s.Store.DeleteRun(r.Context(), runID)
@@ -164,6 +176,7 @@ func (s *Server) runEvents(w http.ResponseWriter, r *http.Request, runID string)
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	for _, event := range events {
+		event = publicRunEvent(event)
 		fmt.Fprintf(w, "id: %d\n", event.ID)
 		fmt.Fprintf(w, "event: %s\n", event.Type)
 		fmt.Fprintf(w, "data: %s\n\n", jsonRaw(event))

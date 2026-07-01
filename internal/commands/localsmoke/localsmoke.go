@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chranama/MealCheck/internal/commands/localmodelsummary"
 	"github.com/chranama/MealCheck/internal/core"
 	llm "github.com/chranama/MealCheck/internal/llm/external"
 	"github.com/chranama/MealCheck/internal/server/app"
@@ -80,6 +81,9 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	if err := r.hostedSmoke(); err != nil {
+		return err
+	}
+	if err := r.p2OperationalSmoke(); err != nil {
 		return err
 	}
 	if strings.Contains(r.logs.String(), providerSecret) {
@@ -209,6 +213,107 @@ func (r *runner) hostedSmoke() error {
 	return deleteRun(client, httpServer.URL, byokRunID)
 }
 
+func (r *runner) p2OperationalSmoke() error {
+	r.logf("p2: verify queue-full response")
+	queueConfig := smokeConfig(r.root, filepath.Join(r.workDir, "p2-queue"))
+	queueConfig.QueueSize = 1
+	queueStore := store.NewMemoryStore()
+	queueServer := httptest.NewServer(app.NewServer(queueConfig, queueStore, app.NewPendingInputs()).Handler())
+	defer queueServer.Close()
+	client := queueServer.Client()
+	body := `{"case_path":"` + seededCasePath + `"}`
+	if err := expectStatus(client, http.MethodPost, queueServer.URL+"/api/runs", body, inviteToken, http.StatusAccepted); err != nil {
+		return err
+	}
+	if err := expectErrorCode(client, http.MethodPost, queueServer.URL+"/api/runs", body, inviteToken, http.StatusTooManyRequests, "queue_full"); err != nil {
+		return err
+	}
+
+	r.logf("p2: verify local-model unavailable response")
+	unavailableConfig := localModelSmokeConfig(r.root, filepath.Join(r.workDir, "p2-unavailable"))
+	unavailableConfig.LocalModelEnabled = false
+	unavailableServer := httptest.NewServer(app.NewServer(unavailableConfig, store.NewMemoryStore(), app.NewPendingInputs()).Handler())
+	defer unavailableServer.Close()
+	var seeded checker.Case
+	if err := readJSON(filepath.Join(r.root, seededCasePath), &seeded); err != nil {
+		return err
+	}
+	localBody := localModelRunBody(seeded.Settings)
+	if err := expectErrorCode(unavailableServer.Client(), http.MethodPost, unavailableServer.URL+"/api/runs", localBody, inviteToken, http.StatusServiceUnavailable, "local_model_unavailable"); err != nil {
+		return err
+	}
+
+	r.logf("p2: verify timeout failure progress")
+	timeoutConfig := localModelSmokeConfig(r.root, filepath.Join(r.workDir, "p2-timeout"))
+	timeoutConfig.RunTimeout = 20 * time.Millisecond
+	timeoutStore := store.NewMemoryStore()
+	timeoutPending := app.NewPendingInputs()
+	timeoutServer := httptest.NewServer(app.NewServer(timeoutConfig, timeoutStore, timeoutPending).Handler())
+	defer timeoutServer.Close()
+	timeoutRunID, err := r.createRun(timeoutServer.Client(), timeoutServer.URL, localModelRunRequest(seeded.Settings))
+	if err != nil {
+		return err
+	}
+	slowProvider := &sleepingProvider{delay: 200 * time.Millisecond, done: make(chan struct{})}
+	processed, err := app.NewWorker(timeoutConfig, timeoutStore, timeoutPending, func(core.ProviderConfig) (llm.Provider, error) {
+		return slowProvider, nil
+	}).ProcessOne(context.Background())
+	if !processed {
+		return fmt.Errorf("expected timeout worker to process one run")
+	}
+	if err == nil {
+		return fmt.Errorf("expected timeout worker error")
+	}
+	if err := slowProvider.wait(); err != nil {
+		return err
+	}
+	timeoutRunBody, err := requestBody(timeoutServer.Client(), http.MethodGet, timeoutServer.URL+"/api/runs/"+timeoutRunID, nil, http.StatusOK)
+	if err != nil {
+		return err
+	}
+	var timeoutDoc struct {
+		Progress core.RunProgress `json:"progress"`
+	}
+	if err := json.Unmarshal(timeoutRunBody, &timeoutDoc); err != nil {
+		return err
+	}
+	if timeoutDoc.Progress.State != "failed" || timeoutDoc.Progress.Recovery == nil || timeoutDoc.Progress.Recovery.Title != "Report timed out" {
+		return fmt.Errorf("timeout progress = %+v, want failed timeout recovery", timeoutDoc.Progress)
+	}
+
+	r.logf("p2: verify local-model artifact writes and summary")
+	localConfig := localModelSmokeConfig(r.root, filepath.Join(r.workDir, "p2-local-model"))
+	localStore := store.NewMemoryStore()
+	localPending := app.NewPendingInputs()
+	localServer := httptest.NewServer(app.NewServer(localConfig, localStore, localPending).Handler())
+	defer localServer.Close()
+	localRunID, err := r.createRun(localServer.Client(), localServer.URL, localModelRunRequest(seeded.Settings))
+	if err != nil {
+		return err
+	}
+	responses := []string{
+		`{"i":[[1,"cooked oatmeal",1,"cup"],[2,"blueberries",1,"cup"],[3,"plain Greek yogurt",1,"cup"]]}`,
+		`{"i":[[4,"chicken breast",4,"oz"],[5,"brown rice",1,"cup"],[6,"broccoli",1,"cup"]]}`,
+		`{"i":[[7,"salmon",4,"oz"],[8,"sweet potato",1,"cup"],[9,"spinach",1,"cup"]]}`,
+	}
+	if err := processOne(localConfig, localStore, localPending, func(core.ProviderConfig) (llm.Provider, error) {
+		return &sequenceProvider{responses: responses}, nil
+	}); err != nil {
+		return err
+	}
+	if _, err := requestBody(localServer.Client(), http.MethodGet, localServer.URL+"/api/runs/"+localRunID+"/artifacts/optional/local-model-chunks.json", nil, http.StatusOK); err != nil {
+		return err
+	}
+	summary, err := localmodelsummary.Build(localConfig.ArtifactDir)
+	if err != nil {
+		return err
+	}
+	if summary.RunCount != 1 || summary.ChunkCount != 3 || summary.Runs[0].SourceItemCount != 9 {
+		return fmt.Errorf("local-model summary = %+v, want one 3-chunk 9-source run", summary)
+	}
+	return nil
+}
+
 func (r *runner) verifyCORS(client *http.Client, baseURL string) error {
 	r.logf("hosted: verify CORS allowed and disallowed origins")
 	allowedReq, err := http.NewRequest(http.MethodOptions, baseURL+"/api/runs", nil)
@@ -305,6 +410,38 @@ func smokeConfig(root, workDir string) core.Config {
 	}
 }
 
+func localModelSmokeConfig(root, workDir string) core.Config {
+	config := smokeConfig(root, workDir)
+	config.HostedMode = core.HostedModeLocalModel
+	config.LocalModelEnabled = true
+	config.LocalModelBaseURL = "http://127.0.0.1:11435/v1"
+	config.LocalModelName = "/tmp/MealCheck/models/Qwen3-0.6B-Q4_K_M.gguf"
+	config.LocalModelTimeout = 2 * time.Second
+	config.LocalModelMaxInputChars = 3_000
+	config.LocalModelMaxSourceItems = 20
+	config.LocalModelMaxOutputTokens = 160
+	return config
+}
+
+func localModelRunRequest(settings checker.Settings) core.CreateRunRequest {
+	settings.VerificationConstraints.Days = 1
+	settings.VerificationConstraints.MealsPerDay = 0
+	settings.VerificationConstraints.RequiresPrepSafetyNotes = false
+	return core.CreateRunRequest{
+		InputMode:     core.InputModeLocalModel,
+		Settings:      settings,
+		CandidateText: "Breakfast: 1 cup cooked oatmeal, 1 cup blueberries, 1 cup plain Greek yogurt.\nLunch: 4 oz chicken breast, 1 cup brown rice, 1 cup broccoli.\nDinner: 4 oz salmon, 1 cup sweet potato, 1 cup spinach.",
+	}
+}
+
+func localModelRunBody(settings checker.Settings) string {
+	body, err := json.Marshal(localModelRunRequest(settings))
+	if err != nil {
+		panic(err)
+	}
+	return string(body)
+}
+
 func processOne(config core.Config, store store.Store, pending *app.PendingInputs, providerFactory llm.ProviderFactory) error {
 	processed, err := app.NewWorker(config, store, pending, providerFactory).ProcessOne(context.Background())
 	if err != nil {
@@ -314,6 +451,45 @@ func processOne(config core.Config, store store.Store, pending *app.PendingInput
 		return fmt.Errorf("expected worker to process one run")
 	}
 	return nil
+}
+
+type sequenceProvider struct {
+	responses []string
+	index     int
+}
+
+func (p *sequenceProvider) Complete(_ context.Context, _ core.ProviderConfig, _ []llm.ProviderMessage) (string, error) {
+	if p.index >= len(p.responses) {
+		return "", fmt.Errorf("sequence provider exhausted")
+	}
+	response := p.responses[p.index]
+	p.index++
+	return response, nil
+}
+
+type sleepingProvider struct {
+	delay time.Duration
+	done  chan struct{}
+}
+
+func (p *sleepingProvider) Complete(ctx context.Context, _ core.ProviderConfig, _ []llm.ProviderMessage) (string, error) {
+	if p.done != nil {
+		defer close(p.done)
+	}
+	time.Sleep(p.delay)
+	return "", ctx.Err()
+}
+
+func (p *sleepingProvider) wait() error {
+	if p.done == nil {
+		return nil
+	}
+	select {
+	case <-p.done:
+		return nil
+	case <-time.After(time.Second):
+		return fmt.Errorf("slow provider did not finish after timeout smoke")
+	}
 }
 
 func verifyCompletedRun(client *http.Client, baseURL, runID string) error {
@@ -415,13 +591,39 @@ func expectStatus(client *http.Client, method, url, body, inviteToken string, st
 	return nil
 }
 
+func expectErrorCode(client *http.Client, method, url, body, inviteToken string, status int, code string) error {
+	var reader io.Reader
+	if body != "" {
+		reader = strings.NewReader(body)
+	}
+	data, err := requestBodyWithInvite(client, method, url, reader, inviteToken, status)
+	if err != nil {
+		return err
+	}
+	var response core.ErrorResponse
+	if err := json.Unmarshal(data, &response); err != nil {
+		return err
+	}
+	if response.Error.Code != code {
+		return fmt.Errorf("%s %s error code = %q, want %q body=%s", method, url, response.Error.Code, code, string(data))
+	}
+	return nil
+}
+
 func requestBody(client *http.Client, method, url string, body io.Reader, status int) ([]byte, error) {
+	return requestBodyWithInvite(client, method, url, body, "", status)
+}
+
+func requestBodyWithInvite(client *http.Client, method, url string, body io.Reader, inviteToken string, status int) ([]byte, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Origin", allowedOrigin)
+	if inviteToken != "" {
+		req.Header.Set("X-MealCheck-Invite-Token", inviteToken)
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err

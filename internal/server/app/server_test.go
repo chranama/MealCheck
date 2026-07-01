@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/chranama/MealCheck/internal/workflow/checker"
 )
@@ -43,7 +44,8 @@ func TestHostedRunLifecycle(t *testing.T) {
 		t.Fatalf("run status = %d body=%s", runResp.Code, runResp.Body.String())
 	}
 	var runDoc struct {
-		Run Run `json:"run"`
+		Run      Run         `json:"run"`
+		Progress RunProgress `json:"progress"`
 	}
 	decodeJSON(t, runResp.Body.Bytes(), &runDoc)
 	if runDoc.Run.Status != StatusCompleted {
@@ -51,6 +53,9 @@ func TestHostedRunLifecycle(t *testing.T) {
 	}
 	if runDoc.Run.Decision != "block" {
 		t.Fatalf("run decision = %q, want block", runDoc.Run.Decision)
+	}
+	if runDoc.Progress.State != "ready" || runDoc.Progress.Label != "Report ready" {
+		t.Fatalf("run progress = %+v, want ready report", runDoc.Progress)
 	}
 
 	reportResp := doRequest(t, server, http.MethodGet, "/api/runs/"+created.RunID+"/report", "")
@@ -89,6 +94,54 @@ func TestHostedRunLifecycle(t *testing.T) {
 		if !strings.Contains(eventsResp.Body.String(), expected) {
 			t.Fatalf("events missing %q:\n%s", expected, eventsResp.Body.String())
 		}
+	}
+}
+
+func TestRunProgressClassifiesFailuresAndRedactsMessages(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	store := NewMemoryStore()
+	server := NewServer(config, store)
+	run := newRun(config, "examples/seeded-one-day-peanut-allergy/case.json")
+	if err := store.CreateRun(context.Background(), run, config.QueueSize, ""); err != nil {
+		t.Fatalf("create run: %v", err)
+	}
+	now := time.Now().UTC()
+	if err := store.FailRun(context.Background(), run.ID, "run timed out while reading /Users/example/MealCheck-data/secret.txt with sk-test-secret", now); err != nil {
+		t.Fatalf("fail run: %v", err)
+	}
+	if err := store.AppendEvent(context.Background(), run.ID, EventFailed, "failed at /Users/example/private/path with sk-test-secret", now); err != nil {
+		t.Fatalf("append event: %v", err)
+	}
+
+	runResp := doRequest(t, server, http.MethodGet, "/api/runs/"+run.ID, "")
+	if runResp.Code != http.StatusOK {
+		t.Fatalf("run status = %d body=%s", runResp.Code, runResp.Body.String())
+	}
+	var runDoc struct {
+		Run      Run         `json:"run"`
+		Progress RunProgress `json:"progress"`
+	}
+	decodeJSON(t, runResp.Body.Bytes(), &runDoc)
+	if runDoc.Progress.State != "failed" {
+		t.Fatalf("progress state = %q, want failed", runDoc.Progress.State)
+	}
+	if runDoc.Progress.Recovery == nil || runDoc.Progress.Recovery.Title != "Report timed out" {
+		t.Fatalf("progress recovery = %+v, want timeout recovery", runDoc.Progress.Recovery)
+	}
+	if strings.Contains(runDoc.Progress.Message, "/Users/example") || strings.Contains(runDoc.Progress.Message, "sk-test-secret") {
+		t.Fatalf("progress message was not redacted: %q", runDoc.Progress.Message)
+	}
+	if strings.Contains(runDoc.Run.Error, "/Users/example") || strings.Contains(runDoc.Run.Error, "sk-test-secret") {
+		t.Fatalf("run error was not redacted: %q", runDoc.Run.Error)
+	}
+
+	eventsResp := doRequest(t, server, http.MethodGet, "/api/runs/"+run.ID+"/events", "")
+	if eventsResp.Code != http.StatusOK {
+		t.Fatalf("events status = %d body=%s", eventsResp.Code, eventsResp.Body.String())
+	}
+	if strings.Contains(eventsResp.Body.String(), "/Users/example") || strings.Contains(eventsResp.Body.String(), "sk-test-secret") {
+		t.Fatalf("events were not redacted: %s", eventsResp.Body.String())
 	}
 }
 

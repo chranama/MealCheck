@@ -4047,3 +4047,67 @@ Verification:
 - `GOCACHE=/private/tmp/mealcheck-gocache go run ./cmd/mealcheck fixture-check` passes.
 - `GOCACHE=/private/tmp/mealcheck-gocache go test ./internal/workflow/checker` passes.
 - `python3 -m py_compile scripts/generate-fndds-evaluation.py scripts/generate-wweia-nhanes-evaluation.py` passes.
+
+## Milestone 55: P2 Progress, Recovery, And Local-Model Operations
+
+Status: Implemented locally in the current worktree.
+
+Purpose:
+
+Complete the first P2 foundation pass for latency, progress, and capacity UX.
+MealCheck should show useful product states while the MacBook-local model works,
+give users concrete recovery guidance for expected failure classes, and give
+operators a compact summary surface for local-model timing and failure evidence.
+
+Delivered:
+
+- Added a `progress` object to `/api/runs/{id}` with redacted product states for
+  queued, normalizing, checking, writing report, ready, failed, and deleted
+  runs.
+- Redacted filesystem-like paths and key-shaped secrets from public run progress,
+  legacy run error fields, and event messages returned through the API.
+- Updated the live UI to render backend progress labels and backend-supplied
+  recovery details while keeping raw event history available in the activity
+  details panel.
+- Added recovery guidance for queue-full, rate-limit, local-model unavailable,
+  timeout, failed-normalization, and report-artifact loading failures.
+- Returned `503 local_model_unavailable` before queueing hosted local-model runs
+  when the server-owned model is not configured.
+- Added `mealcheck local-model-summary` to summarize completed and failed
+  local-model artifact evidence from `optional/local-model-chunks.json` and
+  `debug/normalization-failure.json`.
+- Extended `mealcheck local-smoke` with P2 checks for queue capacity, timeout
+  failure progress, local-model unavailable responses, artifact writes, and
+  local-model summary generation.
+- Documented the new local-model summary command and expanded smoke coverage in
+  the CLI docs.
+
+Acceptance:
+
+- Users see clear progress labels instead of only raw run status values.
+- Public progress and event messages do not expose provider secrets or internal
+  host paths.
+- Expected capacity and outage failures have distinct recovery guidance.
+- Operators can summarize local-model timing, repair, decode-failure, timeout,
+  source-count, chunk-count, model, and final-status data from artifact roots.
+- Local smoke coverage proves queue, timeout, local-model outage, artifact, and
+  summary behavior without a live llama.cpp service.
+
+Remaining P2 Work:
+
+- Hard-enforce the one-active-local-model-run policy in the worker/store claim
+  path so a second worker process cannot run another local-model job at the same
+  time.
+- Run `mealcheck local-model-summary` on representative hosted artifacts after
+  deployments, prompt changes, and model changes.
+- Use measured timing and failure data before raising local-model limits or
+  comparing a larger model.
+
+Verification:
+
+- `go test ./...` passes.
+- `npm test -- --run` passes in `ui/`.
+- `npm run build` passes in `ui/`.
+- `go run ./cmd/mealcheck local-smoke` passes with localhost listener access.
+- `go run ./cmd/mealcheck local-model-summary -artifact-root .mealcheck-data/artifacts -format json` passes.
+- `git diff --check` passes.

@@ -49,6 +49,7 @@ The deployed MacBook layout uses:
 | `mealcheck fixture-check` | Validate checked-in schemas, fixtures, catalogs, and reference data. |
 | `mealcheck local-llama normalize` | Expand compact local llama JSON into canonical MealCheck plan JSON. |
 | `mealcheck local-llama schema` | Print the compact local llama response schema. |
+| `mealcheck local-model-summary` | Summarize hosted local-model chunk artifacts for operator review. |
 | `mealcheck local-smoke` | Run the local CLI/API smoke proof with a fake provider. |
 | `mealcheck invite create` | Create a hosted API access code in Postgres. |
 | `mealcheck invite list` | List hosted API access-code metadata from Postgres. |
@@ -66,6 +67,7 @@ usage:
   mealcheck fixture-check [-root repo-root]
   mealcheck local-llama normalize --input compact.json [--out normalized-plan.json]
   mealcheck local-llama schema
+  mealcheck local-model-summary [-artifact-root artifacts] [-format text|json] [-out summary.json]
   mealcheck local-smoke [-root repo-root] [-work-dir dir] [-keep-work-dir]
   mealcheck invite create --label <label> [--expires YYYY-MM-DD] [--max-runs N]
   mealcheck invite list
@@ -248,6 +250,37 @@ Options:
 | `-local-model-repeats` | `MEALCHECK_P0_REPEATS` or `1` | Number of local-model attempts per success case. Deterministic mode ignores this. |
 | `-out` | stdout | Optional path to write JSON results. |
 | `-allow-mismatch` | `false` | Exit successfully even when expected outcomes mismatch. |
+
+## Summarize Local-Model Artifacts
+
+`local-model-summary` scans hosted artifact directories for
+`optional/local-model-chunks.json` and failed
+`debug/normalization-failure.json` evidence. It emits compact run and chunk
+summaries with source-item counts, timings, repair counts, decode failures,
+failure stages, timeout flags, model metadata, and final status.
+
+```bash
+go run ./cmd/mealcheck local-model-summary \
+  -artifact-root .mealcheck-data/artifacts \
+  -format text
+```
+
+Write JSON for comparison across commits:
+
+```bash
+go run ./cmd/mealcheck local-model-summary \
+  -artifact-root .mealcheck-data/artifacts \
+  -format json \
+  -out /tmp/mealcheck-local-model-summary.json
+```
+
+Options:
+
+| Option | Default | Meaning |
+|---|---|---|
+| `-artifact-root` | `.mealcheck-data/artifacts` | Artifact root or a single `local-model-chunks.json` path. |
+| `-format` | `text` | Output format: `text` or `json`. |
+| `-out` | stdout | Optional path to write the summary. |
 
 ## Check Fixtures
 
@@ -492,7 +525,9 @@ go run ./cmd/mealcheck local-smoke
 The smoke command builds the CLI in a temporary clean build directory, runs the
 seeded validation, verifies the expected `block` exit behavior, reads the
 decision artifact, starts a local hosted stack with a fake provider response,
-and verifies BYOK redaction behavior.
+verifies BYOK redaction behavior, and exercises P2 operational checks for queue
+capacity, timeout failure state, artifact writes, local-model unavailability,
+and local-model summary generation.
 
 ## BYOK Key Posture
 

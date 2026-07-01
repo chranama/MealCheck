@@ -6,11 +6,12 @@ import { RecoveryNoticeView } from "../common/RecoveryNotice";
 export function RunStatusPanel({ live, qualification }: { live: LiveState; qualification: QualificationState }) {
   const hasEvents = live.events.length > 0;
   const hasReport = live.status !== "deleted" && live.artifactItems.length > 0;
-  const runRecovery = recoveryFromRunFailure(live.status, live.message);
+  const runRecovery = live.progress?.recovery || recoveryFromRunFailure(live.status, live.message);
+  const statusLabel = live.progress?.label || "Results";
   return (
     <section className="panel live-panel results-panel" id="live-status-panel">
       <div className="panel-heading">
-        <h2>Results</h2>
+        <h2>{statusLabel}</h2>
       </div>
       <div className="status-stack">
         <p className="summary-text">{live.message || "Your report will appear here after you create a check."}</p>

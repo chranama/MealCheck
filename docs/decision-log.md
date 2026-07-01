@@ -6,6 +6,50 @@ public expectations.
 Use this log instead of separate ADR and RFC files until a decision becomes too
 large to keep readable here.
 
+## 2026-07-01: P2 Progress Uses Redacted Product States And Artifact Summaries
+
+Status: Accepted
+
+Decision:
+
+Hosted run status should expose a redacted product-level `progress` contract
+instead of requiring the frontend to infer user-facing state from raw run status,
+worker events, or internal error strings. The progress contract should name
+states users can understand: queued, normalizing, checking, writing report,
+ready, failed, and deleted. It should also carry structured recovery guidance
+for expected queue, rate-limit, local-model, timeout, normalization, and
+report-artifact failures.
+
+Local-model operator review should use a compact artifact summary command over
+the existing run artifacts. `mealcheck local-model-summary` should summarize
+`optional/local-model-chunks.json` and failed `debug/normalization-failure.json`
+evidence by run, source-item count, meal chunk, model, commit/version, stage
+timing, repair count, decode failure count, timeout, and final status.
+
+Reason:
+
+P2 is about making slow local-model work understandable and bounded. Raw events
+and debug artifacts are useful to maintainers, but they are too noisy and too
+close to implementation details for the main product surface. A public progress
+contract gives the UI stable language and recovery affordances while preserving
+raw artifacts for deeper inspection. A summary command lets operators review
+many local-model runs without opening each chunk artifact manually.
+
+Consequences:
+
+- `/api/runs/{id}` includes a `progress` object alongside the existing run
+  document.
+- Public progress, legacy error fields, and event messages are redacted for
+  internal host paths and key-shaped secrets.
+- The live UI renders backend progress labels and backend recovery guidance.
+- `mealcheck local-smoke` includes P2 operational coverage for queue capacity,
+  timeout failure progress, local-model unavailability, artifact writes, and
+  summary generation.
+- Future model-limit increases and model comparisons should use summarized
+  timing and failure evidence rather than one-off run inspection.
+- A remaining P2 hardening slice should enforce the one-active-local-model-run
+  policy below process topology, in the worker/store claim path.
+
 ## 2026-06-19: Hosted BYOK Uses Public Policy Gates By Default
 
 Status: Accepted

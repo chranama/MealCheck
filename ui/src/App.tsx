@@ -45,6 +45,7 @@ const INITIAL_LIVE: LiveState = {
   message: "",
   events: [],
   artifactItems: [],
+  progress: null,
 };
 
 const INITIAL_QUALIFICATION: QualificationState = {
@@ -123,6 +124,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
       message: "Creating report.",
       events: [],
       artifactItems: [],
+      progress: null,
     });
 
     let created: Awaited<ReturnType<typeof createRun>>;
@@ -143,6 +145,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
           message: "MealCheck could not start a report because this input is not ready for verification.",
           events: [],
           artifactItems: [],
+          progress: null,
         });
         return;
       }
@@ -212,12 +215,14 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
       fetchEvents(base, runID, live.events),
     ]);
     const run = runDoc.run;
+    const progress = runDoc.progress || null;
     setLive((current) => ({
       ...current,
       runID,
       status: run.status,
-      message: run.error || run.summary || `Report ${run.status}.`,
+      message: progress?.message || run.error || run.summary || `Report ${run.status}.`,
       events,
+      progress,
     }));
     if (run.status === "completed") {
       stopLivePolling();

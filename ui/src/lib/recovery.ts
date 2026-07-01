@@ -36,7 +36,8 @@ export function recoveryFromError(errorLike: unknown): RecoveryNotice {
           title: "Request limit reached",
           message: "MealCheck accepted too many recent requests from this browser or access code.",
           tone: "warn",
-          steps: ["Wait before trying again.", "Avoid repeated retries while a report is already queued."],
+          steps: ["Wait for the retry window before trying again.", "Use one submitted report at a time.", "Check service status if limits seem stuck."],
+          action: { label: "Open status page", href: "/status.html" },
         };
       case "local_model_unavailable":
         return {
@@ -73,10 +74,10 @@ export function recoveryFromError(errorLike: unknown): RecoveryNotice {
       case "artifact_delete_failed":
       case "artifacts_unavailable":
         return {
-          title: "MealCheck service problem",
-          message: "MealCheck could not complete a backend storage or report-file operation.",
+          title: "Report files are unavailable",
+          message: "MealCheck could not load or update the report artifact files.",
           tone: "block",
-          steps: ["Try again later.", "Check the public status page before submitting another report."],
+          steps: ["Refresh the report once.", "Create a new report if this one was deleted or expired.", "Check the public status page before submitting another report."],
           action: { label: "Open status page", href: "/status.html" },
         };
       case "not_found":
@@ -209,6 +210,19 @@ export function recoveryFromQualification(result: MealPlanQualificationResult): 
 
 export function recoveryFromRunFailure(status: RunStatus, message: string): RecoveryNotice | null {
   if (status !== "failed" || !message.trim()) return null;
+  if (/timed out|deadline exceeded/i.test(message)) {
+    return {
+      title: "Report timed out",
+      message,
+      tone: "warn",
+      steps: [
+        "Retry with one day of meal-labeled ingredient text.",
+        "Shorten long meal descriptions before resubmitting.",
+        "Check service status if timeouts repeat.",
+      ],
+      action: { label: "Open status page", href: "/status.html" },
+    };
+  }
   if (/could not normalize|day labels|meal labels|source food item|quantit/i.test(message)) {
     return {
       title: "MealCheck could not normalize this plan",

@@ -314,25 +314,48 @@ Good enough:
 - Accepted one-day inputs stay within configured timeout limits under normal
   load.
 
+Current evidence:
+
+- The backend now returns a redacted `progress` object on `/api/runs/{id}` with
+  product states for queued, normalizing, checking, writing report, ready,
+  failed, and deleted runs.
+- The live UI renders the backend progress label and recovery details while
+  keeping raw event details available for inspection.
+- `mealcheck local-model-summary` scans hosted local-model artifacts and failed
+  normalization debug artifacts for per-run and per-chunk timings, source-item
+  counts, repair counts, decode failures, timeout flags, model metadata, and
+  final status.
+- `mealcheck local-smoke` now exercises queue-full behavior, timeout failure
+  progress, local-model unavailable responses, local-model artifact writes, and
+  local-model summary generation.
+- Hosted local-model creation returns `503 local_model_unavailable` before
+  queueing when the server-owned local model is not configured.
+- Validation passed on 2026-07-01 with `go test ./...`,
+  `npm test -- --run`, `npm run build`, `mealcheck local-smoke`, and
+  `mealcheck local-model-summary`.
+
+Current implementation state:
+
+The main P2 foundation slices are complete in the current implementation:
+operator summaries exist, product progress states are redacted and surfaced,
+recovery guidance distinguishes the expected failure classes, and smoke
+coverage exercises queue, timeout, artifact, and local-model outage behavior.
+P2 now moves into active-run hardening and measurement.
+
 Near-term engineering slices:
 
-1. Add an operator timing and failure summary over local-model chunk artifacts,
-   grouped by run, source-item count, meal chunk, model, commit, stage, repair
-   count, decode failure count, timeout, and final status.
-2. Convert P0 stage timings and failure stages into clear user/operator states
-   with redacted labels for secrets and internal host paths.
-3. Add distinct recovery guidance for queue-full, rate-limit, model-unavailable,
-   timeout, failed-normalization, and report-loading failures.
-4. Use measured data before raising model limits again.
-5. Keep one active local-model run until measurements show safe headroom.
-6. Keep hosted local-model input bounded to one day and the configured source
+1. Hard-enforce the one-active-local-model-run policy in the worker/store claim
+   path so a second server worker or process cannot run another local-model job
+   at the same time.
+2. Run `mealcheck local-model-summary` against representative hosted artifacts
+   after each local-model deployment or prompt/model change.
+3. Use measured data before raising model limits again.
+4. Keep hosted local-model input bounded to one day and the configured source
    item cap before revisiting larger scopes.
-7. Compare the production `Qwen3-0.6B-Q4_K_M` model against one larger local
+5. Compare the production `Qwen3-0.6B-Q4_K_M` model against one larger local
    candidate after the operator timing summary exists. Record quality,
    latency, timeout, memory, repair rate, decode failures, and user-visible
    tradeoffs.
-8. Add a small load/smoke harness for queue capacity, timeout behavior, artifact
-   writes, and local-model unavailability.
 
 Metrics to track:
 

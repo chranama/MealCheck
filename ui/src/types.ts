@@ -243,12 +243,36 @@ export type RunEvent = {
   message: string;
 };
 
+export type RecoveryAction = {
+  label: string;
+  href: string;
+};
+
+export type RecoveryNotice = {
+  title: string;
+  message: string;
+  tone: "info" | "pass" | "warn" | "block";
+  steps?: string[];
+  action?: RecoveryAction;
+};
+
+export type RunProgress = {
+  state: string;
+  label: string;
+  message: string;
+  last_event?: string;
+  recovery?: RecoveryNotice | null;
+  updated_at: string;
+  finished_at?: string;
+};
+
 export type LiveState = {
   runID: string;
   status: RunStatus;
   message: string;
   events: RunEvent[];
   artifactItems: ArtifactItem[];
+  progress?: RunProgress | null;
 };
 
 export type QualificationState = {
@@ -263,6 +287,7 @@ export type RunDocument = {
     error?: string | null;
     summary?: string | null;
   };
+  progress?: RunProgress | null;
 };
 
 export type ArtifactListResponse = {

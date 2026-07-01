@@ -226,6 +226,38 @@ func TestLocalModelRunFastFailsNonVerifiableTextBeforeQueue(t *testing.T) {
 	}
 }
 
+func TestLocalModelRunReturnsUnavailableWhenServerModelIsNotConfigured(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.HostedMode = HostedModeLocalModel
+	config.LocalModelEnabled = false
+	store := NewMemoryStore()
+	server := NewServer(config, store)
+	settings := localModelTestSettings(seededCase(t, root).Settings)
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:     InputModeLocalModel,
+		Settings:      settings,
+		CandidateText: "Breakfast: 1 cup cooked oatmeal.\nLunch: 4 oz chicken breast.\nDinner: 4 oz salmon.",
+	})
+	resp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if resp.Code != http.StatusServiceUnavailable {
+		t.Fatalf("create status = %d, want 503 body=%s", resp.Code, resp.Body.String())
+	}
+	var errorResponse ErrorResponse
+	decodeJSON(t, resp.Body.Bytes(), &errorResponse)
+	if errorResponse.Error.Code != "local_model_unavailable" {
+		t.Fatalf("error code = %q, want local_model_unavailable", errorResponse.Error.Code)
+	}
+	stats, err := store.Stats(context.Background())
+	if err != nil {
+		t.Fatalf("store stats: %v", err)
+	}
+	if stats.Queued != 0 || stats.Running != 0 {
+		t.Fatalf("store stats queued/running = %d/%d, want 0/0", stats.Queued, stats.Running)
+	}
+}
+
 func TestLocalModelRunAcceptsMissingQuantitiesAsUnresolvedRows(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)

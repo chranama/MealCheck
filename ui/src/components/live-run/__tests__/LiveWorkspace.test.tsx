@@ -125,6 +125,37 @@ describe("LiveWorkspace", () => {
     expect(screen.getByRole("button", { name: "Create Report" })).toBeDisabled();
   });
 
+  it("renders backend progress labels and recovery details", () => {
+    renderWorkspace({
+      live: {
+        ...live,
+        runID: "run-timeout",
+        status: "failed",
+        message: "run timed out",
+        progress: {
+          state: "failed",
+          label: "Run failed",
+          message: "run timed out",
+          updated_at: "2026-07-01T12:00:00Z",
+          recovery: {
+            title: "Report timed out",
+            message: "MealCheck spent too long normalizing or checking this report.",
+            tone: "warn",
+            steps: ["Shorten long meal descriptions before resubmitting."],
+            action: { label: "Open status page", href: "/status.html" },
+          },
+        },
+        events: [{ type: "failed", message: "run timed out" }],
+        artifactItems: [],
+      },
+    });
+
+    expect(screen.getByRole("heading", { name: "Run failed" })).toBeInTheDocument();
+    expect(screen.getByText("Report timed out")).toBeInTheDocument();
+    expect(screen.getByText("Shorten long meal descriptions before resubmitting.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open status page" })).toHaveAttribute("href", "/status.html");
+  });
+
   it("shows a text-first BYOK workspace with verification settings collapsed", () => {
     renderWorkspace();
 

@@ -28,6 +28,35 @@ type CreateRunResponse struct {
 	Links     RunLinks  `json:"links"`
 }
 
+type RunDocument struct {
+	Run      Run          `json:"run"`
+	Links    RunLinks     `json:"links"`
+	Progress *RunProgress `json:"progress,omitempty"`
+}
+
+type RunProgress struct {
+	State      string          `json:"state"`
+	Label      string          `json:"label"`
+	Message    string          `json:"message"`
+	LastEvent  string          `json:"last_event,omitempty"`
+	Recovery   *RecoveryNotice `json:"recovery,omitempty"`
+	UpdatedAt  time.Time       `json:"updated_at"`
+	FinishedAt *time.Time      `json:"finished_at,omitempty"`
+}
+
+type RecoveryNotice struct {
+	Title   string          `json:"title"`
+	Message string          `json:"message"`
+	Tone    string          `json:"tone"`
+	Steps   []string        `json:"steps,omitempty"`
+	Action  *RecoveryAction `json:"action,omitempty"`
+}
+
+type RecoveryAction struct {
+	Label string `json:"label"`
+	Href  string `json:"href"`
+}
+
 type RunLinks struct {
 	Self      string `json:"self"`
 	Events    string `json:"events"`

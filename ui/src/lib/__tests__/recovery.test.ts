@@ -20,6 +20,25 @@ describe("recovery", () => {
     expect(notice.steps?.join(" ")).toContain("try again");
   });
 
+  it("maps rate limits to retry-window guidance", () => {
+    const notice = recoveryFromError(new ApiError(429, "rate limited", {
+      error: { code: "rate_limited", message: "too many requests" },
+    }));
+
+    expect(notice.title).toBe("Request limit reached");
+    expect(notice.steps?.join(" ")).toContain("retry window");
+    expect(notice.action?.href).toBe("/status.html");
+  });
+
+  it("maps report artifact loading errors to report-file guidance", () => {
+    const notice = recoveryFromError(new ApiError(404, "missing artifacts", {
+      error: { code: "artifacts_unavailable", message: "artifact manifest is not available" },
+    }));
+
+    expect(notice.title).toBe("Report files are unavailable");
+    expect(notice.steps?.join(" ")).toContain("Refresh the report");
+  });
+
   it("maps unreachable API failures to status-page guidance", () => {
     const notice = recoveryFromError(new TypeError("Failed to fetch"));
 
@@ -78,5 +97,16 @@ describe("recovery", () => {
       tone: "warn",
     });
     expect(notice?.steps?.join(" ")).toContain("Day 1");
+  });
+
+  it("maps run timeouts to timeout recovery guidance", () => {
+    const notice = recoveryFromRunFailure("failed", "run timed out");
+
+    expect(notice).toMatchObject({
+      title: "Report timed out",
+      tone: "warn",
+      action: { href: "/status.html" },
+    });
+    expect(notice?.steps?.join(" ")).toContain("Shorten");
   });
 });
