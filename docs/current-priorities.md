@@ -484,28 +484,36 @@ Why this follows the earlier priorities:
   authoritative verifier/API, while Python and TypeScript are added for
   evaluation, operations, UI, or narrow edge integration needs.
 
+Implemented slices:
+
+- The runbook now has a focused operator walkthrough that starts with local
+  validation, runs the deployed local-model smoke path, captures review and
+  report artifacts, verifies deletion, and names the evidence bundle a
+  maintainer should preserve for failures.
+- The deployed local-model smoke script now treats `awaiting_review` as the
+  expected midpoint, fetches the normalized-plan review artifact, confirms the
+  review, verifies completed review/recommendation artifacts, exercises
+  local-model rejection policy, and verifies deleted runs are no longer
+  retrievable.
+
 Near-term engineering slices:
 
-1. Add an end-to-end operator walkthrough that submits a sample run, watches
-   progress, opens normalization details, checks the final report, inspects
-   artifacts, verifies deletion, exercises backend-unavailable behavior, and
-   names the local validation commands.
-2. Add a reproducible deployment profile for API, Postgres, artifact storage,
+1. Add a reproducible deployment profile for API, Postgres, artifact storage,
    and mocked or local model endpoint. Keep the MacBook/Cloudflare production
    deployment documented, but make local production behavior easier to replay.
-3. Add a portable eval/reporting export, such as JSONL or CSV, so normalization
+2. Add a portable eval/reporting export, such as JSONL or CSV, so normalization
    and resolver changes can be compared across commits from structured outputs.
-4. Add Python operator tooling that consumes run artifacts or eval datasets to
+3. Add Python operator tooling that consumes run artifacts or eval datasets to
    produce summaries, clusters, comparisons, and review queues tied back to
    canonical Go report/eval artifacts.
-5. Add TypeScript backend-adjacent code for the static UI or edge path, such as
+4. Add TypeScript backend-adjacent code for the static UI or edge path, such as
    typed API clients, runtime config validation, report preflight, or a narrow
    Cloudflare Worker adapter backed by the Go API contract.
-6. Add a compact source and citation inspection surface when it helps users
+5. Add a compact source and citation inspection surface when it helps users
    trace report findings to source facts, guideline references, normalized
    foods, quantities, and unresolved reasons. Deterministic source packs remain
    the source of verification truth.
-7. Keep product copy focused on checking a bounded meal plan against declared
+6. Keep product copy focused on checking a bounded meal plan against declared
    constraints, source-backed findings, and concrete recovery guidance.
 
 Metrics to track:

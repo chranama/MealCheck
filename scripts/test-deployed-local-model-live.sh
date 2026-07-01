@@ -9,6 +9,9 @@
 #     MEALCHECK_LOCAL_MODEL_ENABLED=true
 # - It writes fetched public run artifacts to a local temp directory for
 #   inspection, then deletes the deployed run by default.
+# - It expects hosted local-model runs to pause in awaiting_review, fetches the
+#   normalized-plan review artifact, confirms the review, and then verifies the
+#   completed report artifacts.
 #
 # Usage:
 #   MEALCHECK_DEPLOYED_API_URL=https://api.mealcheck.dev \
@@ -35,6 +38,7 @@ created_runs=()
 failures=0
 SUBMITTED_RUN_ID=""
 HEALTH_JSON=""
+LAST_RUN_STATUS=""
 
 require_command() {
   local name="$1"
@@ -68,17 +72,22 @@ curl_api_expect_error() {
   local expected_status="$3"
   local body="${4:-}"
   local tmp_body tmp_status
+  local args
 
   tmp_body="$(mktemp)"
   tmp_status="$(mktemp)"
+  args=(-sS -o "$tmp_body" -w "%{http_code}" -X "$method" "$API_URL$path")
+  if [[ -n "$INVITE_TOKEN" ]]; then
+    args+=(-H "X-MealCheck-Invite-Token: $INVITE_TOKEN")
+  fi
   if [[ -n "$body" ]]; then
-    curl -sS -o "$tmp_body" -w "%{http_code}" -X "$method" "$API_URL$path" \
-      -H "Content-Type: application/json" \
-      ${INVITE_TOKEN:+-H "X-MealCheck-Invite-Token: $INVITE_TOKEN"} \
-      --data-binary "$body" >"$tmp_status"
-  else
-    curl -sS -o "$tmp_body" -w "%{http_code}" -X "$method" "$API_URL$path" \
-      ${INVITE_TOKEN:+-H "X-MealCheck-Invite-Token: $INVITE_TOKEN"} >"$tmp_status"
+    args+=(-H "Content-Type: application/json" --data-binary "$body")
+  fi
+  if ! curl "${args[@]}" >"$tmp_status"; then
+    echo "request failed for $method $path" >&2
+    cat "$tmp_body" >&2
+    rm -f "$tmp_body" "$tmp_status"
+    return 1
   fi
 
   local status
@@ -91,6 +100,10 @@ curl_api_expect_error() {
   fi
   cat "$tmp_body"
   rm -f "$tmp_body" "$tmp_status"
+}
+
+run_output_dir() {
+  printf "%s/local-model-%s" "$OUTPUT_DIR" "$1"
 }
 
 cleanup_runs() {
@@ -174,7 +187,7 @@ submit_local_model_run() {
   SUBMITTED_RUN_ID="$run_id"
 }
 
-poll_run() {
+poll_run_until_review() {
   local run_id="$1"
   local response status attempt
 
@@ -189,7 +202,11 @@ poll_run() {
       jq '{id:.run.id,status:.run.status,decision:.run.decision,risk_level:.run.risk_level,error:.run.error}'
 
     status="$(printf "%s\n" "$response" | jq -r '.run.status // empty')"
+    LAST_RUN_STATUS="$status"
     case "$status" in
+      awaiting_review)
+        return 0
+        ;;
       completed)
         return 0
         ;;
@@ -205,6 +222,38 @@ poll_run() {
   return 1
 }
 
+poll_run_until_completed() {
+  local run_id="$1"
+  local response status attempt
+
+  for attempt in $(seq 1 "$POLL_ATTEMPTS"); do
+    if ! response="$(curl_api_json GET "/api/runs/$run_id" 2>&1)"; then
+      echo "poll failed for $run_id" >&2
+      printf "%s\n" "$response" >&2
+      return 1
+    fi
+
+    printf "%s\n" "$response" |
+      jq '{id:.run.id,status:.run.status,decision:.run.decision,risk_level:.run.risk_level,error:.run.error}'
+
+    status="$(printf "%s\n" "$response" | jq -r '.run.status // empty')"
+    LAST_RUN_STATUS="$status"
+    case "$status" in
+      completed)
+        return 0
+        ;;
+      failed)
+        return 1
+        ;;
+    esac
+
+    sleep "$POLL_SLEEP_SECONDS"
+  done
+
+  echo "run $run_id did not complete after $POLL_ATTEMPTS polling attempts" >&2
+  return 1
+}
+
 fetch_artifact() {
   local run_id="$1"
   local artifact_path="$2"
@@ -217,19 +266,101 @@ fetch_artifact() {
     return 1
   fi
 
+  mkdir -p "$(dirname "$output_path")"
   printf "%s\n" "$response" >"$output_path"
+}
+
+inspect_review_and_confirm() {
+  local run_id="$1"
+  local run_dir review_path confirm_path response
+
+  run_dir="$(run_output_dir "$run_id")"
+  review_path="$run_dir/review/normalized-plan-review.before-confirm.json"
+  confirm_path="$run_dir/review/confirm-response.json"
+  mkdir -p "$run_dir/review"
+
+  if ! response="$(curl_api_json GET "/api/runs/$run_id/review" 2>&1)"; then
+    echo "review fetch failed for $run_id" >&2
+    printf "%s\n" "$response" >&2
+    return 1
+  fi
+  printf "%s\n" "$response" >"$review_path"
+
+  printf "normalized-plan review summary:\n"
+  jq '{
+    status,
+    requires_confirmation,
+    trust_signals,
+    rows: [.rows[] | {
+      day,
+      meal_code,
+      source_item_id,
+      source_text,
+      normalized_food,
+      quantity,
+      unit,
+      quantity_text,
+      unresolved_reason
+    }]
+  }' "$review_path"
+
+  if ! jq -e '
+    .status == "awaiting_confirmation" and
+    .trust_signals.source_item_count == 9 and
+    .trust_signals.normalized_row_count == 9 and
+    ((.rows // []) | length) == 9 and
+    ([.rows[] | select(
+      ((.source_item_id // 0) > 0) and
+      (((.source_text // "") | length) > 0) and
+      (((.normalized_food // "") | length) > 0)
+    )] | length) == 9
+  ' "$review_path" >/dev/null; then
+    echo "normalized-plan review did not include expected source-linked rows" >&2
+    jq . "$review_path" >&2
+    return 1
+  fi
+
+  if ! response="$(curl_api_json POST "/api/runs/$run_id/review/confirm" '{"reason":"Deployed operator walkthrough confirmed normalized plan."}' 2>&1)"; then
+    echo "review confirmation failed for $run_id" >&2
+    printf "%s\n" "$response" >&2
+    return 1
+  fi
+  printf "%s\n" "$response" >"$confirm_path"
+
+  printf "review confirmation response:\n"
+  jq '{id:.run.id,status:.run.status,progress:.progress}' "$confirm_path"
 }
 
 inspect_completed_run() {
   local run_id="$1"
-  local run_dir="$OUTPUT_DIR/local-model-$run_id"
+  local run_dir
+  local response
 
+  run_dir="$(run_output_dir "$run_id")"
   mkdir -p "$run_dir"
 
+  fetch_artifact "$run_id" "manifest.json" "$run_dir/manifest.json"
+  fetch_artifact "$run_id" "report.json" "$run_dir/report.json"
+  fetch_artifact "$run_id" "recommendation.json" "$run_dir/recommendation.json"
   fetch_artifact "$run_id" "optional/normalization-events.json" "$run_dir/normalization-events.json"
   fetch_artifact "$run_id" "optional/local-model-chunks.json" "$run_dir/local-model-chunks.json"
   fetch_artifact "$run_id" "normalized-plan.json" "$run_dir/normalized-plan.json"
   fetch_artifact "$run_id" "decision.json" "$run_dir/decision.json"
+  fetch_artifact "$run_id" "review/normalized-plan-review.json" "$run_dir/review/normalized-plan-review.json"
+  fetch_artifact "$run_id" "review/review-actions.jsonl" "$run_dir/review/review-actions.jsonl"
+
+  if ! response="$(curl_api_json GET "/api/runs/$run_id/artifacts" 2>&1)"; then
+    echo "artifact list fetch failed for $run_id" >&2
+    printf "%s\n" "$response" >&2
+    return 1
+  fi
+  printf "%s\n" "$response" >"$run_dir/artifacts.json"
+
+  printf "artifact list summary:\n"
+  jq '{count: (.artifacts | length), artifacts: [.artifacts[].path]}' "$run_dir/artifacts.json"
+
+  printf "manifest review and recommendation artifacts:\n"
+  jq '.artifacts | map(select(. == "recommendation.json" or . == "review/normalized-plan-review.json" or . == "review/review-actions.jsonl"))' "$run_dir/manifest.json"
 
   printf "normalization events:\n"
   jq . "$run_dir/normalization-events.json"
@@ -283,6 +414,27 @@ inspect_completed_run() {
 
   printf "decision summary:\n"
   jq '{decision, risk_level, summary}' "$run_dir/decision.json"
+
+  printf "recommendation summary:\n"
+  jq '{status, reason, source_decision, change_count: ((.changes // []) | length), projected_decision: .projected_decision.decision}' "$run_dir/recommendation.json"
+
+  printf "review action summary:\n"
+  jq -s 'map({action, reason, created_at})' "$run_dir/review/review-actions.jsonl"
+
+  if ! jq -e '
+    (.artifacts | index("recommendation.json")) and
+    (.artifacts | index("review/normalized-plan-review.json")) and
+    (.artifacts | index("review/review-actions.jsonl"))
+  ' "$run_dir/manifest.json" >/dev/null; then
+    echo "manifest did not include recommendation and review artifacts" >&2
+    jq . "$run_dir/manifest.json" >&2
+    return 1
+  fi
+  if ! jq -e -s 'any(.[]; .action == "confirmed")' "$run_dir/review/review-actions.jsonl" >/dev/null; then
+    echo "review actions did not include confirmation" >&2
+    cat "$run_dir/review/review-actions.jsonl" >&2
+    return 1
+  fi
 }
 
 check_health() {
@@ -339,6 +491,39 @@ check_rejections() {
   fi
 }
 
+delete_and_verify_runs() {
+  if [[ "$DELETE_RUNS" != "1" ]]; then
+    print_section "delete deployed runs"
+    echo "deletion skipped because MEALCHECK_DELETE_RUNS=$DELETE_RUNS"
+    return 0
+  fi
+  if ((${#created_runs[@]} == 0)); then
+    return 0
+  fi
+
+  print_section "delete deployed runs"
+  local run_id response verify_response
+  for run_id in "${created_runs[@]}"; do
+    if ! response="$(curl_api_json DELETE "/api/runs/$run_id" 2>&1)"; then
+      echo "delete failed for $run_id" >&2
+      printf "%s\n" "$response" >&2
+      failures=$((failures + 1))
+      continue
+    fi
+    printf "%s\n" "$response" | jq .
+
+    if ! verify_response="$(curl_api_expect_error GET "/api/runs/$run_id" 404 2>&1)"; then
+      echo "delete verification failed for $run_id" >&2
+      printf "%s\n" "$verify_response" >&2
+      failures=$((failures + 1))
+      continue
+    fi
+    printf "delete verified for %s:\n" "$run_id"
+    printf "%s\n" "$verify_response" | jq .
+  done
+  created_runs=()
+}
+
 require_command curl
 require_command jq
 mkdir -p "$OUTPUT_DIR"
@@ -355,7 +540,14 @@ if ! submit_local_model_run; then
 else
   run_id="$SUBMITTED_RUN_ID"
   printf "run_id=%s\n" "$run_id"
-  if ! poll_run "$run_id"; then
+  if ! poll_run_until_review "$run_id"; then
+    failures=$((failures + 1))
+  elif [[ "$LAST_RUN_STATUS" != "awaiting_review" ]]; then
+    echo "expected local-model run to pause in awaiting_review, got $LAST_RUN_STATUS" >&2
+    failures=$((failures + 1))
+  elif ! inspect_review_and_confirm "$run_id"; then
+    failures=$((failures + 1))
+  elif ! poll_run_until_completed "$run_id"; then
     failures=$((failures + 1))
   elif ! inspect_completed_run "$run_id"; then
     failures=$((failures + 1))
@@ -363,6 +555,7 @@ else
 fi
 
 check_rejections
+delete_and_verify_runs
 
 if [[ "$failures" -gt 0 ]]; then
   print_section "result"

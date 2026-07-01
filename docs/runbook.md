@@ -1,12 +1,13 @@
 # Runbook
 
-This runbook describes the development and hosted deployment shape. It becomes
-fully accepted for the MVP when the MacBook deployment has exact service,
-tunnel, log, and smoke-test commands recorded.
+This runbook describes how to validate, operate, deploy, and recover MealCheck.
+Start with the quick commands and operator walkthrough when checking the current
+service. Use the setup sections when rebuilding the MacBook deployment, and use
+the maintenance sections when changing source packs or catalog data.
 
-## Local Development Target
+## Local Development
 
-Initial development should work on a normal laptop with:
+Local development should work on a normal laptop with:
 
 - local fixture runs
 - generated artifact bundles
@@ -16,7 +17,9 @@ Initial development should work on a normal laptop with:
 
 Live model calls should be optional.
 
-## Quick Command Reference
+## Validate And Smoke
+
+### Quick Command Reference
 
 Run commands from the repository root unless a command explicitly changes into
 `ui/`.
@@ -91,7 +94,81 @@ npm run test:e2e:local
 npm run build
 ```
 
-## CI Proof Gates
+### Operator Walkthrough
+
+Use this walkthrough when a maintainer needs one evidence-producing path through
+the current hosted product shape. The output should be enough to answer:
+
+- what commit and API were checked
+- what run was created
+- whether normalization paused for review
+- what source-linked review rows were accepted
+- what final artifacts were produced
+- whether deletion removed the run and artifacts
+- which local validation commands back up the deployed behavior
+
+Record these fields at the start of the walkthrough:
+
+```bash
+git rev-parse --short HEAD
+printf "api_url=%s\n" "${MEALCHECK_DEPLOYED_API_URL:-https://api.mealcheck.dev}"
+printf "frontend_url=%s\n" "${MEALCHECK_FRONTEND_URL:-https://mealcheck.dev}"
+printf "output_dir=%s\n" "${MEALCHECK_DEPLOYED_OUTPUT_DIR:-/tmp/mealcheck-deployed-local-model-<timestamp>}"
+```
+
+Run local replay first:
+
+```bash
+go test ./...
+go run ./cmd/mealcheck local-smoke
+cd ui
+npm run test:e2e:local
+```
+
+The local smoke command verifies seeded CLI validation, hosted API run creation,
+events, report loading, artifact listing, deletion, and secret redaction. The
+local browser suite verifies the static UI against a real local Go backend with
+memory storage and a fake provider response. These local checks do not prove the
+MacBook local-model deployment, but they prove the repo contracts and browser
+workflow before using a live service.
+
+Then run the deployed local-model walkthrough:
+
+```bash
+MEALCHECK_DEPLOYED_API_URL=https://api.mealcheck.dev \
+  scripts/test-deployed-local-model-live.sh
+```
+
+The deployed script is the canonical operator walkthrough for the current public
+path. It checks deployed health, submits one bounded one-day local-model run,
+polls until `awaiting_review`, fetches the normalized-plan review artifact,
+confirms the review, polls to `completed`, fetches the final report artifacts,
+prints compact summaries, exercises local-model rejection policy, deletes the
+run, and verifies the deleted run is no longer retrievable.
+
+The local evidence bundle is written under `MEALCHECK_DEPLOYED_OUTPUT_DIR`, or a
+timestamped directory under `/tmp` by default. Preserve this directory when a
+smoke failure needs review. A healthy walkthrough should include:
+
+- `review/normalized-plan-review.before-confirm.json`
+- `review/confirm-response.json`
+- `review/normalized-plan-review.json`
+- `review/review-actions.jsonl`
+- `optional/local-model-chunks.json`
+- `optional/normalization-events.json`
+- `normalized-plan.json`
+- `decision.json`
+- `recommendation.json`
+- `report.json`
+- `manifest.json`
+- `artifacts.json`
+
+For backend-unavailable behavior, use the local browser/full-stack suite or a
+local frontend pointed at a dead API URL. Do not stop the production backend as
+part of this walkthrough. The expected product behavior is a clear unavailable
+state with disabled run actions, not broken report state or misleading health.
+
+### CI Proof Gates
 
 GitHub Actions runs `.github/workflows/ci.yml` on pushes to `main`, pull
 requests, and manual dispatch. The workflow is intentionally split into three
@@ -132,7 +209,7 @@ artifact redaction, CORS, and status-page behavior.
 The workflow uploads Playwright artifacts from `ui/test-results/` and
 `ui/playwright-report/` when browser checks fail.
 
-## Release Checks
+### Release Checks
 
 Run these checks before or immediately after a production deployment because
 they depend on the deployed tunnel, hosted local model, or live provider paths:
@@ -153,9 +230,9 @@ Use the public status page as the consumer-facing post-deploy check:
 https://mealcheck.dev/status
 ```
 
-## Fixture Validation
+### Fixture Validation
 
-Milestone 0 fixtures should validate locally with:
+Fixtures should validate locally with:
 
 ```bash
 go run ./cmd/mealcheck fixture-check
@@ -166,7 +243,7 @@ performs cross-file checks that schemas cannot express, such as case paths,
 guideline pack IDs, nutrient catalog IDs, source references, and source claim
 references.
 
-## Checker Tests
+### Checker Tests
 
 The seeded checker core should pass:
 
@@ -178,10 +255,9 @@ The current tests verify the seeded `block` decision, unresolved quantity
 visibility, sodium warning evidence, computed nutrient totals, and rejection of
 LLM-supplied nutrition totals.
 
-## Local CLI Artifact Run
+### Local CLI Artifact Run
 
-The Milestone 2 CLI writes a full local artifact bundle for the seeded proof
-case:
+The CLI writes a full local artifact bundle for the seeded proof case:
 
 ```bash
 go run ./cmd/mealcheck validate \
@@ -224,11 +300,13 @@ go run ./cmd/mealcheck compare \
   --out artifacts/latest-compare
 ```
 
-For Milestone 2, `compare` uses the same seeded evaluation path and records
-`compare` in `manifest.json`. Baseline-specific regression expansion remains a
-future checker enhancement.
+`compare` uses the same seeded evaluation path and records `compare` in
+`manifest.json`. Baseline-specific regression expansion remains a future
+checker enhancement.
 
-## MacBook Air Server Target
+## Production Runtime
+
+### MacBook Server
 
 Hardware target:
 
@@ -245,9 +323,9 @@ Operational settings:
 - enable automatic restart after power failure if available
 - keep macOS security updates current
 
-## Runtime Shape
+### Runtime Overview
 
-Initial hosted runtime:
+Hosted runtime:
 
 - Cloudflare Pages static frontend
 - API service
@@ -349,7 +427,7 @@ curl -X POST http://127.0.0.1:8080/api/runs \
   }'
 ```
 
-Avoid initially:
+Avoid for the current deployment:
 
 - Kubernetes
 - public exposure of the private llama.cpp port
@@ -357,10 +435,12 @@ Avoid initially:
 - direct router port forwarding
 - arbitrary user code execution
 
-## Frontend Hosting
+## Frontend And Deployment
 
-The first production frontend deploys the Vite/React app in `ui/` to
-Cloudflare Pages as static files.
+### Frontend Hosting
+
+The production frontend deploys the Vite/React app in `ui/` to Cloudflare Pages
+as static files.
 
 Suggested Cloudflare Pages settings:
 
@@ -390,12 +470,12 @@ The public status page is available at:
 http://localhost:4173/status.html?api=http://127.0.0.1:8080
 ```
 
-## Milestone 8 Deployment Package
+### Deployment Package
 
 The local deployment package lives in `deploy/`.
 
-Source-build deployment is enough for the MVP. MealCheck is targeting one known
-MacBook Air, so the first deployment should build binaries from the checked-out
+Source-build deployment is enough for the current MacBook deployment. MealCheck
+targets one known MacBook Air, so deployment builds binaries from the checked-out
 repository instead of producing separate release binaries.
 
 Selected deployment values:
@@ -428,7 +508,7 @@ Templates:
 - `deploy/cloudflare/pages-settings.md`
 - `deploy/cloudflare/config.json.template`
 
-## Local CLI Deployment
+### Local CLI Deployment
 
 Build the CLI binary from a clean checkout or clean build directory:
 
@@ -461,7 +541,7 @@ after writing artifacts. Inspect the decision:
   /Users/chranama-server/MealCheck-data/artifacts/cli-smoke/decision.json
 ```
 
-## MacBook First-Time Preparation
+### MacBook First-Time Preparation
 
 Install required tools:
 
@@ -553,7 +633,7 @@ Edit `/Users/chranama-server/MealCheck-data/mealcheck-server.env` and replace:
 
 Do not set `MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH` in the deployed service.
 
-## Backend Deploy Or Pull
+### Backend Deploy Or Pull
 
 First checkout:
 
@@ -591,12 +671,11 @@ set +a
   -store postgres
 ```
 
-## Backend launchd Service
+### Backend Launchd Service
 
-Milestone 10 uses a system `LaunchDaemon` so the backend can start before a
-GUI login after reboot while still running as `chranama-server`. The daemon
-waits for local Postgres to accept connections before starting
-`mealcheck-server`.
+The backend runs as a system `LaunchDaemon` so it can start before a GUI login
+after reboot while still running as `chranama-server`. The daemon waits for
+local Postgres to accept connections before starting `mealcheck-server`.
 
 Install the template:
 
@@ -646,7 +725,7 @@ deploy/macos/wait-for-mealcheck-ready.sh
 curl -fsS http://127.0.0.1:8080/api/health | jq .
 ```
 
-## Local llama launchd Service
+### Local Llama Launchd Service
 
 The local model service runs `llama-server` as a system `LaunchDaemon` with
 label `dev.mealcheck.llama`. It binds only to `127.0.0.1:11435`; do not expose
@@ -654,7 +733,7 @@ this port through Cloudflare. Unlike the backend, tunnel, and maintenance
 daemons, this service uses launchd `ProcessType=Interactive` because local
 inference is CPU-bound and latency-sensitive.
 
-The committed defaults are the first production candidate for the MacBook:
+The committed defaults are the current production candidate for the MacBook:
 
 - model: `/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf`
 - threads: `4`
@@ -731,7 +810,7 @@ checked-in normalization seed corpus and writes deterministic, per-repeat, and
 aggregate result artifacts. See the P0 live local-model regimen in
 `docs/evaluation.md`.
 
-## Backend Autodeploy Poller
+### Backend Autodeploy Poller
 
 The backend autodeploy poller is optional but recommended after the GitHub Pages
 cutover. It runs as a root-owned system `LaunchDaemon` every five minutes. The
@@ -787,7 +866,7 @@ Manual one-shot run for debugging:
 sudo /Users/chranama-server/MealCheck/deploy/macos/mealcheck-autodeploy.sh
 ```
 
-## Cloudflare Pages And Tunnel Draft
+### Cloudflare Pages And Tunnel
 
 Pages settings are in `deploy/cloudflare/pages-settings.md`.
 
@@ -896,7 +975,9 @@ Public API health:
 curl -fsS https://api.mealcheck.dev/api/health | jq .
 ```
 
-## Cleanup, Deletion, And Retention
+## Smoke Tests, Retention, And Recovery
+
+### Cleanup, Deletion, And Retention
 
 Live runs default to 7-day retention. Cleanup runs inside `mealcheck-server` on
 `MEALCHECK_CLEANUP_INTERVAL`.
@@ -914,11 +995,11 @@ curl -i https://api.mealcheck.dev/api/runs/<RUN_ID>
 curl -i https://api.mealcheck.dev/api/runs/<RUN_ID>/report
 ```
 
-## Backup Policy Draft
+### Backup Policy
 
-Back up Postgres metadata and retained artifacts. The MVP backup target is a
-local timestamped directory; move or sync that directory off-machine after the
-first real deployment policy is chosen.
+Back up Postgres metadata and retained artifacts to a local timestamped
+directory. Move or sync that directory off-machine when retaining operational
+evidence beyond the MacBook.
 
 Create a backup directory:
 
@@ -945,10 +1026,10 @@ Retention note: live artifacts are intentionally short-lived. Backups should
 not become indefinite retention for user settings or meal-plan data unless that
 policy is explicitly accepted later.
 
-## Public Smoke-Test Checklist
+### Public Smoke-Test Checklist
 
-Use the accepted production URLs once Milestone 11 Cloudflare routing is in
-place.
+Use the accepted production URLs for a manual smoke pass when the deployed
+script is not enough or a browser-specific issue is being investigated.
 
 - Open `https://mealcheck.dev` from outside the home network.
 - Confirm the page opens directly on the new meal-check workflow without an
@@ -956,7 +1037,8 @@ place.
 - Confirm the frontend shows backend health when
   `https://api.mealcheck.dev/api/health` is online.
 - Create a public local-model run through the UI or API.
-- Observe status/events until `completed` or `failed`.
+- Observe status/events through `awaiting_review`, confirm the normalized-plan
+  review, then watch the run reach `completed` or `failed`.
 - Fetch `GET /api/runs/<RUN_ID>/report`.
 - Fetch `GET /api/runs/<RUN_ID>/artifacts`.
 - Verify client-supplied provider config is rejected for `local_model` runs.
@@ -965,7 +1047,7 @@ place.
 - Verify a disallowed browser origin does not receive
   `Access-Control-Allow-Origin`.
 
-Last accepted production smoke, 2026-06-15:
+Historical production smoke record, 2026-06-15:
 
 - `https://api.mealcheck.dev/api/health` returned `status: ok`, `store:
   postgres`, `active_run_limit: 1`, `queue_size: 3`, and `retention_days: 7`.
@@ -986,7 +1068,7 @@ Last accepted production smoke, 2026-06-15:
 - CORS allowed `https://mealcheck.dev` and did not allow
   `https://not-mealcheck.example`.
 
-## Failure Modes And Recovery Draft
+### Failure Modes And Recovery
 
 Backend down:
 
@@ -1045,7 +1127,7 @@ Provider failure:
   `openai_compatible` is selected
 - do not log or ask users to send raw API keys
 
-## Milestone 7 Local Acceptance
+### Local Acceptance
 
 Run the local smoke command from the repository root:
 
@@ -1097,7 +1179,7 @@ normalization and BYOK generation. Hosted structured manual entry is no longer
 part of the public web surface; use CLI/local case files for structured JSON
 debugging.
 
-## Deployed Local-Model Live Test
+### Deployed Local-Model Live Test
 
 Run the deployed local-model test from the repository root:
 
@@ -1109,18 +1191,19 @@ MEALCHECK_DEPLOYED_API_URL=https://api.mealcheck.dev \
 The public repo script does not require model-provider API keys. It checks that
 the deployed `/api/health` endpoint reports `hosted_mode: "local_model"` with a
 ready local model, submits one short ingredient-level meal plan through
-`input_mode: "local_model"`, polls the run to completion, fetches
-`optional/normalization-events.json`, `optional/local-model-chunks.json`,
-`normalized-plan.json`, and `decision.json`, and verifies the normalized plan
-contains the expected breakfast/lunch/dinner meal structure and item count. It
-also checks that each local-model chunk includes prompt, raw compact output,
-decoded-row, source-ID, and timing evidence.
+`input_mode: "local_model"`, polls the run to `awaiting_review`, fetches the
+source-linked normalized-plan review artifact, confirms the review, polls the
+run to completion, fetches review and report artifacts, and verifies the
+normalized plan contains the expected breakfast/lunch/dinner meal structure and
+item count. It also checks that each local-model chunk includes prompt, raw
+compact output, decoded-row, source-ID, and timing evidence.
 
 The script also verifies hosted local-model policy behavior:
 
 - `provider` config is rejected for `local_model` requests
 - oversized candidate text is rejected before llama.cpp is called
-- created deployed runs are deleted by default after artifact inspection
+- created deployed runs are deleted by default after artifact inspection, and
+  the script verifies the deleted run is no longer retrievable
 
 Optional knobs:
 
@@ -1147,7 +1230,7 @@ curl -fsS http://127.0.0.1:11435/v1/models | jq .
 The restart command uses `sudo` internally and may prompt for the server user
 password.
 
-## Deployed BYOK Live Test
+### Deployed BYOK Live Test
 
 This is now an advanced provider-regression test for repo/API/self-hosted BYOK
 behavior, not the primary hosted `mealcheck.dev` product smoke test.
@@ -1202,7 +1285,9 @@ Operational knobs:
 The artifact key scan proves that keys are not exposed through retrievable run
 artifacts. It does not inspect the deployed server filesystem directly.
 
-## Public Access Policy
+## Public Policy And Guardrails
+
+### Public Access Policy
 
 Public visitors should be able to:
 
@@ -1219,7 +1304,7 @@ Public visitors should not be able to:
 - view user-provided API keys or unredacted configs
 - receive medical advice from the service
 
-## Hosted Resource Defaults
+### Hosted Resource Defaults
 
 Initial defaults:
 
@@ -1232,7 +1317,7 @@ Initial defaults:
 
 These defaults should be enforced in code, not only documented.
 
-## BYOK Operational Guardrails
+### BYOK Operational Guardrails
 
 Hosted BYOK is a convenience test surface for technical users, not managed
 secret storage. Provider API keys are one-run bearer secrets. They transit the
@@ -1258,10 +1343,10 @@ Deployment requirements:
 For the strongest key-control posture, clone the repository and run MealCheck
 locally from the terminal, then submit BYOK requests to the local backend.
 
-## Web MVP Operations Required
+### Operational Records And Web Smoke Coverage
 
-The MVP is not accepted until MealCheck is running as a long-standing web
-deployment, not just as local code.
+Keep these records current for the long-standing web deployment, not just local
+code.
 
 Required deployment records:
 
@@ -1299,11 +1384,14 @@ Required web smoke tests:
 - verify the frontend shows backend health when the API is online
 - submit one public local-model run through the web UI or documented API command
 - verify provider config and oversized input are rejected for local-model runs
-- observe run events through completion or failure
+- observe run events through `awaiting_review`, confirm the normalized-plan
+  review, and watch the run reach `completed` or `failed`
 - fetch the report and artifact list for the live run
 - delete the live run and verify the report/artifacts are no longer available
 
-## Source-Pack Update Process
+## Data Maintenance
+
+### Source-Pack Update Process
 
 Guideline source-pack changes should be reviewed as data changes, not ad hoc
 runtime edits.
@@ -1335,7 +1423,7 @@ go test ./...
 
 6. Rebuild the frontend if the seeded public demo artifacts are updated.
 
-## Nutrient Catalog Update Process
+### Nutrient Catalog Update Process
 
 The current catalog is a fixture-scale catalog for the seeded proof and first
 manual-input scope. Treat catalog expansion as product-scope work because it
