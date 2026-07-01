@@ -1,6 +1,6 @@
 {
   "schema_version": "0.1",
-  "case_id": "seeded-3-day-peanut-allergy",
+  "case_id": "seeded-one-day-peanut-allergy",
   "decision": "block",
   "summary": "The candidate plan has blocking issues and should be revised before use.",
   "risk_level": "high",
@@ -14,7 +14,7 @@
   ],
   "unresolved_items": [
     {
-      "day": 2,
+      "day": 1,
       "meal": "lunch",
       "food": "seasoning blend",
       "quantity_text": "some",
@@ -25,9 +25,9 @@
   "recommended_action": "Revise blocking violations and rerun MealCheck.",
   "guideline_pack_id": "dga-2025-2030-us-adult-general-v1",
   "artifact_paths": {
-    "baseline_plan": "examples/seeded-3-day-peanut-allergy/plans/baseline.json",
-    "candidate_plan": "examples/seeded-3-day-peanut-allergy/plans/candidate.json",
-    "case": "examples/seeded-3-day-peanut-allergy/case.json",
+    "baseline_plan": "examples/seeded-one-day-peanut-allergy/plans/baseline.json",
+    "candidate_plan": "examples/seeded-one-day-peanut-allergy/plans/candidate.json",
+    "case": "examples/seeded-one-day-peanut-allergy/case.json",
     "guideline_pack_path": "data/guidelines/dga-2025-2030-us-adult-general-v1/guideline-pack.json",
     "nutrient_catalog_path": "data/nutrients/fixture-catalog-v1.json",
     "recommendation": "recommendation.json"
@@ -52,20 +52,28 @@
       "message": "The candidate includes unresolved food quantities or units.",
       "evidence": [
         {
-          "day": 2,
+          "day": 1,
           "food": "seasoning blend",
           "meal": "lunch",
+          "quantity": null,
           "quantity_text": "some",
+          "source_food_code": "",
           "unit": "",
           "unresolved_reason": "vague_quantity"
         }
       ],
       "affected_days": [
-        2
+        1
       ],
       "affected_meals": [
         "lunch"
       ]
+    },
+    {
+      "check_id": "estimated_or_decomposed_foods",
+      "status": "pass",
+      "severity": "info",
+      "message": "No estimated or decomposed food representations were used."
     },
     {
       "check_id": "allergens_absent",
@@ -74,7 +82,7 @@
       "message": "The candidate includes a declared allergen.",
       "evidence": [
         {
-          "day": 2,
+          "day": 1,
           "food": "peanut sauce",
           "matched_allergen": "peanuts",
           "meal": "lunch"
@@ -84,7 +92,7 @@
         "fda-food-allergies"
       ],
       "affected_days": [
-        2
+        1
       ],
       "affected_meals": [
         "lunch"
@@ -103,14 +111,8 @@
       "message": "One or more days are outside the configured calorie tolerance.",
       "evidence": [
         {
-          "day": 2,
+          "day": 1,
           "energy_kcal": 1275,
-          "target_kcal": 2000,
-          "tolerance_pct": 15
-        },
-        {
-          "day": 3,
-          "energy_kcal": 1430.2,
           "target_kcal": 2000,
           "tolerance_pct": 15
         }
@@ -125,26 +127,14 @@
         {
           "day": 1,
           "limit_mg": 2300,
-          "sodium_mg": 2392.8
-        },
-        {
-          "day": 2,
-          "limit_mg": 2300,
           "sodium_mg": 5052.9
-        },
-        {
-          "day": 3,
-          "limit_mg": 2300,
-          "sodium_mg": 3077.3
         }
       ],
       "source_refs": [
         "dga-2025-2030"
       ],
       "affected_days": [
-        1,
-        2,
-        3
+        1
       ]
     },
     {
@@ -166,7 +156,7 @@
       "message": "One or more days are below the configured protein minimum.",
       "evidence": [
         {
-          "day": 2,
+          "day": 1,
           "minimum_g": 98,
           "protein_g": 90.5
         }

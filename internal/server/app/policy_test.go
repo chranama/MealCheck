@@ -17,7 +17,7 @@ func TestHostedQueueLimit(t *testing.T) {
 	store := NewMemoryStore()
 	server := NewServer(config, store)
 
-	body := `{"case_path":"examples/seeded-3-day-peanut-allergy/case.json"}`
+	body := `{"case_path":"examples/seeded-one-day-peanut-allergy/case.json"}`
 	first := doRequest(t, server, http.MethodPost, "/api/runs", body)
 	if first.Code != http.StatusAccepted {
 		t.Fatalf("first create status = %d body=%s", first.Code, first.Body.String())
@@ -60,7 +60,7 @@ func TestPublicDailyRunLimit(t *testing.T) {
 	store := NewMemoryStore()
 	server := NewServer(config, store)
 
-	body := `{"case_path":"examples/seeded-3-day-peanut-allergy/case.json"}`
+	body := `{"case_path":"examples/seeded-one-day-peanut-allergy/case.json"}`
 	first := doRequest(t, server, http.MethodPost, "/api/runs", body)
 	if first.Code != http.StatusAccepted {
 		t.Fatalf("first create status = %d, want 202 body=%s", first.Code, first.Body.String())
@@ -161,7 +161,7 @@ func TestInviteTokenGate(t *testing.T) {
 	config.InviteToken = "invite-secret"
 	server := NewServer(config, NewMemoryStore())
 
-	body := `{"case_path":"examples/seeded-3-day-peanut-allergy/case.json"}`
+	body := `{"case_path":"examples/seeded-one-day-peanut-allergy/case.json"}`
 	unauthorized := doRequest(t, server, http.MethodPost, "/api/runs", body)
 	if unauthorized.Code != http.StatusUnauthorized {
 		t.Fatalf("unauthorized status = %d, want 401 body=%s", unauthorized.Code, unauthorized.Body.String())
@@ -193,7 +193,7 @@ func TestPerUserInviteTokenGate(t *testing.T) {
 	}
 	server := NewServer(config, store)
 
-	body := `{"case_path":"examples/seeded-3-day-peanut-allergy/case.json"}`
+	body := `{"case_path":"examples/seeded-one-day-peanut-allergy/case.json"}`
 	missing := doRequest(t, server, http.MethodPost, "/api/runs", body)
 	if missing.Code != http.StatusUnauthorized {
 		t.Fatalf("missing invite status = %d, want 401 body=%s", missing.Code, missing.Body.String())

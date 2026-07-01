@@ -107,7 +107,7 @@ func TestStatusReportsUserVisibleOperationalComponents(t *testing.T) {
 			t.Fatalf("%s state = %q, want operational", id, component.State)
 		}
 	}
-	if status.Links.SampleReport != "/api/demo-runs/seeded-3-day-peanut-allergy/report" {
+	if status.Links.SampleReport != "/api/demo-runs/seeded-one-day-peanut-allergy/report" {
 		t.Fatalf("sample report link = %q", status.Links.SampleReport)
 	}
 	for _, rawField := range []string{"queue_size", "store", "local_model", "public_request_limit", "Qwen3"} {
@@ -124,7 +124,7 @@ func TestStatusReportsQueueCapacityAsDegradedPerformance(t *testing.T) {
 	store := NewMemoryStore()
 	server := NewServer(config, store)
 
-	body := `{"case_path":"examples/seeded-3-day-peanut-allergy/case.json"}`
+	body := `{"case_path":"examples/seeded-one-day-peanut-allergy/case.json"}`
 	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
 	if createResp.Code != http.StatusAccepted {
 		t.Fatalf("create status = %d, want 202 body=%s", createResp.Code, createResp.Body.String())

@@ -1,0 +1,13 @@
+{
+  "case_id": "seeded-one-day-peanut-allergy",
+  "decision": "block",
+  "resolved_items": 9,
+  "exact_resolved_items": 9,
+  "estimated_items": 0,
+  "decomposed_items": 0,
+  "unresolved_items": 1,
+  "excluded_unresolved_items": 0,
+  "check_count": 13,
+  "block_count": 2,
+  "warn_count": 4
+}

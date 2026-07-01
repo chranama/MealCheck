@@ -20,7 +20,7 @@ func TestProfileGenerationUsesBYOKProviderAndRedactsSecret(t *testing.T) {
 	pending := NewPendingInputs()
 	server := NewServer(config, store, pending)
 	seeded := seededCase(t, root)
-	provider := &fakeProvider{responses: []string{string(readFile(t, filepath.Join(root, "examples/seeded-3-day-peanut-allergy/plans/candidate.json")))}}
+	provider := &fakeProvider{responses: []string{string(readFile(t, filepath.Join(root, "examples/seeded-one-day-peanut-allergy/plans/candidate.json")))}}
 	secret := "sk-test-secret"
 
 	body := marshalJSON(t, CreateRunRequest{
@@ -87,7 +87,7 @@ func TestProfileGenerationRedactsSuccessfulLLMOutputArtifact(t *testing.T) {
 	server := NewServer(config, store, pending)
 	seeded := seededCase(t, root)
 	secret := "sk-success-output-secret"
-	candidate := string(readFile(t, filepath.Join(root, "examples/seeded-3-day-peanut-allergy/plans/candidate.json")))
+	candidate := string(readFile(t, filepath.Join(root, "examples/seeded-one-day-peanut-allergy/plans/candidate.json")))
 	provider := &fakeProvider{responses: []string{secret + "\n" + candidate}}
 
 	body := marshalJSON(t, CreateRunRequest{
@@ -170,7 +170,7 @@ func TestPromptGenerationAllowsOneBoundedRepair(t *testing.T) {
 	seeded := seededCase(t, root)
 	provider := &fakeProvider{responses: []string{
 		"this is not json",
-		string(readFile(t, filepath.Join(root, "examples/seeded-3-day-peanut-allergy/plans/candidate.json"))),
+		string(readFile(t, filepath.Join(root, "examples/seeded-one-day-peanut-allergy/plans/candidate.json"))),
 	}}
 
 	body := marshalJSON(t, CreateRunRequest{

@@ -29,7 +29,7 @@ Example:
 
 ```json
 {
-  "case_id": "seeded-3-day-peanut-allergy",
+  "case_id": "seeded-one-day-peanut-allergy",
   "input_mode": "manual_structured",
   "settings": {
     "nutrition_targets": {
@@ -37,7 +37,7 @@ Example:
       "protein_target_g": 98
     },
     "verification_constraints": {
-      "days": 3,
+      "days": 1,
       "meals_per_day": 3,
       "allergies": ["peanut"],
       "excluded_foods": ["shellfish"],
@@ -489,7 +489,7 @@ Checked-in demo or fixture case:
 
 ```json
 {
-  "case_path": "examples/seeded-3-day-peanut-allergy/case.json"
+  "case_path": "examples/seeded-one-day-peanut-allergy/case.json"
 }
 ```
 
@@ -530,7 +530,7 @@ Targets-only BYOK generation:
       "protein_target_g": 98
     },
     "verification_constraints": {
-      "days": 3,
+      "days": 1,
       "meals_per_day": 3,
       "allergies": ["peanuts"],
       "excluded_foods": ["shellfish"],
@@ -561,7 +561,7 @@ Prompt-based BYOK generation:
       "protein_target_g": 98
     },
     "verification_constraints": {
-      "days": 3,
+      "days": 1,
       "meals_per_day": 3,
       "allergies": ["peanuts"],
       "excluded_foods": ["shellfish"],
@@ -572,7 +572,7 @@ Prompt-based BYOK generation:
       "requires_prep_safety_notes": true
     }
   },
-  "generation_prompt": "Create a simple 3 day high-protein meal plan.",
+  "generation_prompt": "Create a simple one-day high-protein meal plan.",
   "provider": {
     "type": "anthropic",
     "model": "claude-example",

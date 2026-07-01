@@ -12,7 +12,7 @@ endobj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 5 0 obj
-<< /Length 1220 >>
+<< /Length 1158 >>
 stream
 BT
 /F1 12 Tf
@@ -50,7 +50,7 @@ T*
 T*
 (Unresolved Foods) Tj
 T*
-(Day 2 lunch: seasoning blend \(vague_quantity\)) Tj
+(Day 1 lunch: seasoning blend \(vague_quantity\)) Tj
 T*
 () Tj
 T*
@@ -60,13 +60,15 @@ T*
 T*
 () Tj
 T*
+(Estimated And Decomposed Foods) Tj
+T*
+(None.) Tj
+T*
+() Tj
+T*
 (Daily Totals) Tj
 T*
-(Day 1: 1741.3 kcal, 138.3 g protein, 2392.8 mg sodium) Tj
-T*
-(Day 2: 1275.0 kcal, 90.5 g protein, 5052.9 mg sodium) Tj
-T*
-(Day 3: 1430.2 kcal, 119.3 g protein, 3077.3 mg sodium) Tj
+(Day 1: 1275.0 kcal, 90.5 g protein, 5052.9 mg sodium) Tj
 T*
 () Tj
 T*
@@ -90,5 +92,5 @@ xref
 trailer
 << /Size 6 /Root 1 0 R >>
 startxref
-1582
+1520
 %%EOF

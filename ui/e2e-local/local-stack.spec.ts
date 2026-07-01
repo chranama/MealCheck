@@ -24,7 +24,7 @@ test("renders the live run homepage without an API base", async ({ page }) => {
   await expect(page.getByText("Model Provider", { exact: true })).toBeVisible();
   await expect(page.getByText("Verification Settings")).toBeVisible();
   await expect(page.getByText("Advanced constraints")).toBeHidden();
-  await expect(page.getByRole("button", { name: /Three-day peanut allergy check/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /One-day peanut allergy check/ })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Checks" })).toHaveCount(0);
 });
 

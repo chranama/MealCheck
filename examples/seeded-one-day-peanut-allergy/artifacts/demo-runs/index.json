@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.1",
+  "demo_runs": [
+    {
+      "id": "seeded-one-day-peanut-allergy",
+      "title": "One-day peanut allergy check",
+      "summary": "One-day seeded plan with allergen, sodium, unresolved quantity, and prep-safety findings.",
+      "base_path": "demo-runs/seeded-one-day-peanut-allergy"
+    }
+  ]
+}

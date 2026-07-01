@@ -1688,7 +1688,7 @@ Consequences:
 - The React app no longer loads `demo-runs/index.json` during boot.
 - The sidebar has one active action: `New meal check`.
 - The seeded bundle lives under
-  `examples/seeded-3-day-peanut-allergy/artifacts/demo-runs` for backend
+  `examples/seeded-one-day-peanut-allergy/artifacts/demo-runs` for backend
   compatibility and fixture checks.
 - Checked-in seeded artifacts can remain for tests, backend compatibility, and
   developer workflows.
@@ -2049,3 +2049,33 @@ Consequences:
   qualification, then source-span and source-item-cap validation.
 - Documentation and UI copy must describe one day of meal-labeled ingredient
   text with the configured source-item cap as the hosted input contract.
+
+## 2026-07-01: Seeded Sample Report Is One Day
+
+Status: Accepted
+
+Decision:
+
+The checked-in seeded proof fixture and public sample report are rescoped from
+the earlier three-day fixture to a one-day fixture. The canonical case ID is
+`seeded-one-day-peanut-allergy`, and its demo bundle lives under
+`examples/seeded-one-day-peanut-allergy/artifacts/demo-runs`.
+
+The seeded candidate still intentionally demonstrates blocking findings and
+warnings: a peanut allergen, a vague quantity, high sodium, low calories, low
+protein, and missing prep-safety language.
+
+Reason:
+
+The public hosted local-model product shape is explicitly one day at a time.
+The sample report should model that contract directly instead of teaching or
+preserving a multi-day success path.
+
+Consequences:
+
+- Status, demo-run, fixture-check, local-smoke, and frontend tests reference the
+  one-day seeded bundle.
+- `docs/seeded-report.html` mirrors the one-day report totals and unresolved
+  item evidence.
+- Multi-day examples remain only where they exercise rejection, robustness, or
+  legacy checker behavior.

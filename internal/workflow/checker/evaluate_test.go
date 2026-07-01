@@ -10,7 +10,7 @@ import (
 
 func TestSeededCaseEvaluatesToExpectedDecision(t *testing.T) {
 	root := repoRoot(t)
-	c, plan, catalog, err := LoadCase(root, "examples/seeded-3-day-peanut-allergy/case.json")
+	c, plan, catalog, err := LoadCase(root, "examples/seeded-one-day-peanut-allergy/case.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestSeededCaseEvaluatesToExpectedDecision(t *testing.T) {
 	}
 
 	var expected DecisionDocument
-	if err := readJSON(filepath.Join(root, "examples/seeded-3-day-peanut-allergy/expected-decision.json"), &expected); err != nil {
+	if err := readJSON(filepath.Join(root, "examples/seeded-one-day-peanut-allergy/expected-decision.json"), &expected); err != nil {
 		t.Fatal(err)
 	}
 	if doc.Decision != expected.Decision {
@@ -57,19 +57,19 @@ func TestSeededCaseEvaluatesToExpectedDecision(t *testing.T) {
 		t.Fatalf("unexpected unresolved item: %+v", unresolved)
 	}
 
-	day2 := dailyTotal(t, got.DailyTotals, 2)
-	if day2.Nutrients.SodiumMG <= float64(c.Settings.VerificationConstraints.MaxSodiumMGPerDay) {
-		t.Fatalf("day 2 sodium = %.1f, want above %d", day2.Nutrients.SodiumMG, c.Settings.VerificationConstraints.MaxSodiumMGPerDay)
+	day1 := dailyTotal(t, got.DailyTotals, 1)
+	if day1.Nutrients.SodiumMG <= float64(c.Settings.VerificationConstraints.MaxSodiumMGPerDay) {
+		t.Fatalf("day 1 sodium = %.1f, want above %d", day1.Nutrients.SodiumMG, c.Settings.VerificationConstraints.MaxSodiumMGPerDay)
 	}
-	if day2.Nutrients.EnergyKcal <= 0 {
-		t.Fatalf("day 2 energy = %.1f, want positive computed calories", day2.Nutrients.EnergyKcal)
+	if day1.Nutrients.EnergyKcal <= 0 {
+		t.Fatalf("day 1 energy = %.1f, want positive computed calories", day1.Nutrients.EnergyKcal)
 	}
 }
 
 func TestLoadCaseRejectsLLMSuppliedNutrientTotals(t *testing.T) {
 	root := repoRoot(t)
 	temp := t.TempDir()
-	c, _, _, err := LoadCase(root, "examples/seeded-3-day-peanut-allergy/case.json")
+	c, _, _, err := LoadCase(root, "examples/seeded-one-day-peanut-allergy/case.json")
 	if err != nil {
 		t.Fatal(err)
 	}

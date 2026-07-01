@@ -156,7 +156,7 @@ Example response:
   ],
   "recent_incidents": [],
   "links": {
-    "sample_report": "/api/demo-runs/seeded-3-day-peanut-allergy/report"
+    "sample_report": "/api/demo-runs/seeded-one-day-peanut-allergy/report"
   }
 }
 ```
@@ -498,7 +498,7 @@ curl -fsS -X POST "http://127.0.0.1:8080/api/runs" \
         "protein_target_g": 98
       },
       "verification_constraints": {
-        "days": 3,
+        "days": 1,
         "meals_per_day": 3,
         "allergies": ["peanuts"],
         "excluded_foods": ["shellfish"],
@@ -545,7 +545,7 @@ Generation rules:
       "protein_target_g": 98
     },
     "verification_constraints": {
-      "days": 3,
+      "days": 1,
       "meals_per_day": 3,
       "allergies": ["peanuts"],
       "excluded_foods": ["shellfish"],
@@ -556,7 +556,7 @@ Generation rules:
       "requires_prep_safety_notes": true
     }
   },
-  "generation_prompt": "Create a simple 3 day high-protein meal plan.",
+  "generation_prompt": "Create a simple one-day high-protein meal plan.",
   "provider": {
     "type": "gemini",
     "model": "gemini-example",
@@ -574,7 +574,7 @@ This mode exists for developer smoke tests and checked-in examples:
 
 ```json
 {
-  "case_path": "examples/seeded-3-day-peanut-allergy/case.json"
+  "case_path": "examples/seeded-one-day-peanut-allergy/case.json"
 }
 ```
 
@@ -669,14 +669,14 @@ Example shape:
   "schema_version": "0.1",
   "demo_runs": [
     {
-      "id": "seeded-3-day-peanut-allergy",
-      "title": "Seeded 3-day peanut allergy report",
-      "summary": "Example report with blocking findings.",
-      "base_path": "demo-runs/seeded-3-day-peanut-allergy",
+      "id": "seeded-one-day-peanut-allergy",
+      "title": "One-day peanut allergy check",
+      "summary": "One-day seeded plan with allergen, sodium, unresolved quantity, and prep-safety findings.",
+      "base_path": "demo-runs/seeded-one-day-peanut-allergy",
       "links": {
-        "self": "/api/demo-runs/seeded-3-day-peanut-allergy",
-        "report": "/api/demo-runs/seeded-3-day-peanut-allergy/report",
-        "artifacts": "/api/demo-runs/seeded-3-day-peanut-allergy/artifacts"
+        "self": "/api/demo-runs/seeded-one-day-peanut-allergy",
+        "report": "/api/demo-runs/seeded-one-day-peanut-allergy/report",
+        "artifacts": "/api/demo-runs/seeded-one-day-peanut-allergy/artifacts"
       }
     }
   ]

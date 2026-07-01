@@ -1,13 +1,13 @@
 {
   "schema_version": "0.1",
-  "case_id": "seeded-3-day-peanut-allergy",
+  "case_id": "seeded-one-day-peanut-allergy",
   "decision": "block",
   "profile_summary": {
     "calorie_target_kcal": 2000,
     "protein_target_g": 98
   },
   "constraint_summary": {
-    "days": 3,
+    "days": 1,
     "meals_per_day": 3,
     "allergies": [
       "peanuts"
@@ -75,11 +75,12 @@
       "body": "1 unresolved food or quantity items.",
       "items": [
         {
-          "day": 2,
+          "day": 1,
           "food": "seasoning blend",
           "meal": "lunch",
           "quantity": null,
           "quantity_text": "some",
+          "source_food_code": "",
           "unit": "",
           "unresolved_reason": "vague_quantity"
         }
@@ -90,28 +91,16 @@
       "body": "0 de minimis unresolved items excluded from nutrition totals."
     },
     {
+      "title": "Estimated And Decomposed Foods",
+      "body": "0 estimated or decomposed food items."
+    },
+    {
       "title": "Daily Totals",
-      "body": "Calculated from the fixture nutrient catalog.",
+      "body": "Calculated from resolved, estimated, and decomposed food items.",
       "items": [
         {
           "added_sugar_g": 0,
           "day": 1,
-          "energy_kcal": 1741.315,
-          "protein_g": 138.2596,
-          "resolved_food_groups_present": {
-            "dairy": true,
-            "fats": true,
-            "fruits": true,
-            "protein": true,
-            "vegetables": true,
-            "whole_grains": true
-          },
-          "saturated_fat_pct_calories": 6.942391238805157,
-          "sodium_mg": 2392.7940000000003
-        },
-        {
-          "added_sugar_g": 0,
-          "day": 2,
           "energy_kcal": 1274.9510000000002,
           "protein_g": 90.47120000000001,
           "resolved_food_groups_present": {
@@ -125,22 +114,6 @@
           },
           "saturated_fat_pct_calories": 8.91761330435444,
           "sodium_mg": 5052.93
-        },
-        {
-          "added_sugar_g": 0,
-          "day": 3,
-          "energy_kcal": 1430.241,
-          "protein_g": 119.3142,
-          "resolved_food_groups_present": {
-            "dairy": true,
-            "fats": true,
-            "fruits": true,
-            "protein": true,
-            "vegetables": true,
-            "whole_grains": true
-          },
-          "saturated_fat_pct_calories": 4.189517710651563,
-          "sodium_mg": 3077.3
         }
       ]
     }

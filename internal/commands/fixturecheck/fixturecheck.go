@@ -46,15 +46,15 @@ func run(root string) error {
 	}
 
 	targets := []validationTarget{
-		{"schemas/case.schema.json", "examples/seeded-3-day-peanut-allergy/case.json"},
-		{"schemas/meal-plan.schema.json", "examples/seeded-3-day-peanut-allergy/plans/baseline.json"},
-		{"schemas/meal-plan.schema.json", "examples/seeded-3-day-peanut-allergy/plans/candidate.json"},
+		{"schemas/case.schema.json", "examples/seeded-one-day-peanut-allergy/case.json"},
+		{"schemas/meal-plan.schema.json", "examples/seeded-one-day-peanut-allergy/plans/baseline.json"},
+		{"schemas/meal-plan.schema.json", "examples/seeded-one-day-peanut-allergy/plans/candidate.json"},
 		{"schemas/source-registry.schema.json", "data/guidelines/dga-2025-2030-us-adult-general-v1/source-registry.json"},
 		{"schemas/guideline-pack.schema.json", "data/guidelines/dga-2025-2030-us-adult-general-v1/guideline-pack.json"},
 		{"schemas/nutrient-catalog.schema.json", "data/nutrients/fixture-catalog-v1.json"},
-		{"schemas/decision.schema.json", "examples/seeded-3-day-peanut-allergy/expected-decision.json"},
-		{"schemas/decision.schema.json", "examples/seeded-3-day-peanut-allergy/artifacts/demo-runs/seeded-3-day-peanut-allergy/decision.json"},
-		{"schemas/report.schema.json", "examples/seeded-3-day-peanut-allergy/artifacts/demo-runs/seeded-3-day-peanut-allergy/report.json"},
+		{"schemas/decision.schema.json", "examples/seeded-one-day-peanut-allergy/expected-decision.json"},
+		{"schemas/decision.schema.json", "examples/seeded-one-day-peanut-allergy/artifacts/demo-runs/seeded-one-day-peanut-allergy/decision.json"},
+		{"schemas/report.schema.json", "examples/seeded-one-day-peanut-allergy/artifacts/demo-runs/seeded-one-day-peanut-allergy/report.json"},
 	}
 
 	for _, target := range targets {
@@ -121,7 +121,7 @@ func validateAgainstSchema(root string, target validationTarget) error {
 }
 
 func validateCaseLinks(root string) error {
-	caseDoc, err := readObject(filepath.Join(root, "examples/seeded-3-day-peanut-allergy/case.json"))
+	caseDoc, err := readObject(filepath.Join(root, "examples/seeded-one-day-peanut-allergy/case.json"))
 	if err != nil {
 		return err
 	}
@@ -204,11 +204,11 @@ func validateGuidelineReferences(root string) error {
 }
 
 func validateExpectedDecision(root string) error {
-	caseDoc, err := readObject(filepath.Join(root, "examples/seeded-3-day-peanut-allergy/case.json"))
+	caseDoc, err := readObject(filepath.Join(root, "examples/seeded-one-day-peanut-allergy/case.json"))
 	if err != nil {
 		return err
 	}
-	expected, err := readObject(filepath.Join(root, "examples/seeded-3-day-peanut-allergy/expected-decision.json"))
+	expected, err := readObject(filepath.Join(root, "examples/seeded-one-day-peanut-allergy/expected-decision.json"))
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func validateExpectedDecision(root string) error {
 }
 
 func validateStaticDemo(root string) error {
-	index, err := readObject(filepath.Join(root, "examples/seeded-3-day-peanut-allergy/artifacts/demo-runs/index.json"))
+	index, err := readObject(filepath.Join(root, "examples/seeded-one-day-peanut-allergy/artifacts/demo-runs/index.json"))
 	if err != nil {
 		return err
 	}
@@ -264,11 +264,11 @@ func validateStaticDemo(root string) error {
 	}
 
 	demo := demos[0]
-	if id := mustString(demo, "id"); id != "seeded-3-day-peanut-allergy" {
+	if id := mustString(demo, "id"); id != "seeded-one-day-peanut-allergy" {
 		return fmt.Errorf("unexpected UI demo id %q", id)
 	}
 	basePath := mustString(demo, "base_path")
-	repoBasePath := filepath.Join("examples", "seeded-3-day-peanut-allergy", "artifacts", basePath)
+	repoBasePath := filepath.Join("examples", "seeded-one-day-peanut-allergy", "artifacts", basePath)
 	requiredFiles := []string{
 		"decision.json",
 		"report.json",

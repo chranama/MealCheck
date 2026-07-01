@@ -1,0 +1,105 @@
+{
+  "schema_version": "0.1",
+  "plan_id": "seeded-one-day-peanut-allergy-baseline",
+  "description": "Baseline one-day plan with resolved foods and prep-safety notes.",
+  "days": [
+    {
+      "day": 1,
+      "meals": [
+        {
+          "name": "breakfast",
+          "items": [
+            {
+              "food": "cooked oatmeal",
+              "quantity": 1,
+              "unit": "cup",
+              "preparation": "plain"
+            },
+            {
+              "food": "blueberries",
+              "quantity": 0.5,
+              "unit": "cup"
+            },
+            {
+              "food": "plain Greek yogurt",
+              "quantity": 1,
+              "unit": "cup"
+            }
+          ]
+        },
+        {
+          "name": "lunch",
+          "items": [
+            {
+              "food": "black beans",
+              "quantity": 1,
+              "unit": "cup"
+            },
+            {
+              "food": "brown rice",
+              "quantity": 1,
+              "unit": "cup"
+            },
+            {
+              "food": "spinach",
+              "quantity": 2,
+              "unit": "cup"
+            }
+          ]
+        },
+        {
+          "name": "dinner",
+          "items": [
+            {
+              "food": "chicken breast",
+              "quantity": 6,
+              "unit": "oz"
+            },
+            {
+              "food": "broccoli",
+              "quantity": 1,
+              "unit": "cup"
+            },
+            {
+              "food": "sweet potato",
+              "quantity": 1,
+              "unit": "serving"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "shopping_list": [
+    {
+      "food": "cooked oatmeal",
+      "quantity": 1,
+      "unit": "cup"
+    },
+    {
+      "food": "plain Greek yogurt",
+      "quantity": 1,
+      "unit": "cup"
+    },
+    {
+      "food": "chicken breast",
+      "quantity": 6,
+      "unit": "oz"
+    },
+    {
+      "food": "brown rice",
+      "quantity": 1,
+      "unit": "cup"
+    },
+    {
+      "food": "broccoli",
+      "quantity": 1,
+      "unit": "cup"
+    }
+  ],
+  "prep_notes": [
+    "Cook proteins to safe internal temperatures.",
+    "Refrigerate leftovers promptly within 2 hours.",
+    "Store raw meat separately from ready-to-eat foods."
+  ]
+}

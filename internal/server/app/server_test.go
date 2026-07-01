@@ -18,7 +18,7 @@ func TestHostedRunLifecycle(t *testing.T) {
 	store := NewMemoryStore()
 	server := NewServer(config, store)
 
-	createBody := `{"case_path":"examples/seeded-3-day-peanut-allergy/case.json"}`
+	createBody := `{"case_path":"examples/seeded-one-day-peanut-allergy/case.json"}`
 	createResp := doRequest(t, server, http.MethodPost, "/api/runs", createBody)
 	if createResp.Code != http.StatusAccepted {
 		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
@@ -114,7 +114,7 @@ func (s failingStatsStore) Stats(context.Context) (StoreStats, error) {
 func seededPlan(t *testing.T, root string) checker.Plan {
 	t.Helper()
 	var plan checker.Plan
-	decodeJSON(t, readFile(t, filepath.Join(root, "examples/seeded-3-day-peanut-allergy/plans/candidate.json")), &plan)
+	decodeJSON(t, readFile(t, filepath.Join(root, "examples/seeded-one-day-peanut-allergy/plans/candidate.json")), &plan)
 	return plan
 }
 

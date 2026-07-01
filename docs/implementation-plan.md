@@ -99,7 +99,7 @@ Current flow:
 
 ```bash
 go run ./cmd/mealcheck validate \
-  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --case examples/seeded-one-day-peanut-allergy/case.json \
   --out artifacts/latest
 go run ./cmd/mealcheck decision artifacts/latest/decision.json
 ```
@@ -459,7 +459,7 @@ Current status:
 - fixture nutrient catalog exists in `data/nutrients/`
 - seeded baseline, candidate, case, expected decision, and expected evidence
   exist in
-  `examples/seeded-3-day-peanut-allergy/`
+  `examples/seeded-one-day-peanut-allergy/`
 - the fixture catalog is intentionally scoped to the seeded case for Milestone 0
 - artifact filenames are fixed in `docs/contracts.md`
 - a native Go fixture validator is available as `mealcheck fixture-check`
@@ -551,7 +551,7 @@ Current status:
   superseded by the Milestone 6 Vite/React frontend and the Milestone 29
   hosted example removal
 - seeded artifact bundle exists under
-  `examples/seeded-3-day-peanut-allergy/artifacts/demo-runs/`
+  `examples/seeded-one-day-peanut-allergy/artifacts/demo-runs/`
 - `docs/seeded-report.html` renders the seeded decision, check details,
   nutrition totals, unresolved foods, and disclaimer as a standalone repo
   artifact
@@ -989,7 +989,7 @@ Milestone 8 verification:
 - `go build -o /private/tmp/mealcheck-m8-bin/mealcheck-server ./cmd/mealcheck-server`
 - `/private/tmp/mealcheck-m8-bin/mealcheck help`
 - `/private/tmp/mealcheck-m8-bin/mealcheck validate --case
-  examples/seeded-3-day-peanut-allergy/case.json --out
+  examples/seeded-one-day-peanut-allergy/case.json --out
   /private/tmp/mealcheck-m8-artifacts/seeded` returned the expected `block`
   policy exit after writing artifacts
 - `go test ./...`
@@ -2475,7 +2475,7 @@ Implemented:
    no longer loads the demo index.
 2. Simplified `Sidebar` to a single active `New meal check` entry.
 3. Moved the seeded artifact bundle from `ui/public/demo-runs` to
-   `examples/seeded-3-day-peanut-allergy/artifacts/demo-runs` so Cloudflare
+   `examples/seeded-one-day-peanut-allergy/artifacts/demo-runs` so Cloudflare
    Pages no longer publishes it as a website asset.
 4. Added `docs/seeded-report.html` as a self-contained static HTML report for
    the seeded proof case.

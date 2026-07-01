@@ -102,7 +102,7 @@ exits according to the decision policy.
 
 ```bash
 go run ./cmd/mealcheck validate \
-  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --case examples/seeded-one-day-peanut-allergy/case.json \
   --out artifacts/latest
 ```
 
@@ -110,7 +110,7 @@ Equivalent binary form:
 
 ```bash
 bin/mealcheck validate \
-  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --case examples/seeded-one-day-peanut-allergy/case.json \
   --out artifacts/latest
 ```
 
@@ -127,7 +127,7 @@ Options:
 Typical output:
 
 ```text
-case: seeded-3-day-peanut-allergy
+case: seeded-one-day-peanut-allergy
 decision: block
 risk: high
 summary: Peanut allergy conflict detected.
@@ -147,7 +147,7 @@ future baseline-versus-candidate regression checks.
 
 ```bash
 go run ./cmd/mealcheck compare \
-  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --case examples/seeded-one-day-peanut-allergy/case.json \
   --out artifacts/latest-compare
 ```
 
@@ -379,7 +379,7 @@ old top-level `profile` and `constraints` fields are rejected as unknown fields.
 The seeded proof case is:
 
 ```text
-examples/seeded-3-day-peanut-allergy/case.json
+examples/seeded-one-day-peanut-allergy/case.json
 ```
 
 Use `--root` when running the binary outside the repository root:
@@ -387,7 +387,7 @@ Use `--root` when running the binary outside the repository root:
 ```bash
 /Users/chranama-server/MealCheck/bin/mealcheck validate \
   --root /Users/chranama-server/MealCheck \
-  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --case examples/seeded-one-day-peanut-allergy/case.json \
   --out /Users/chranama-server/MealCheck-data/artifacts/cli-smoke
 ```
 

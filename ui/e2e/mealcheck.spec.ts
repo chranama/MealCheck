@@ -110,7 +110,7 @@ async function mockMealCheckApi(page: Page, options: MockMealCheckApiOptions = {
         ],
         recent_incidents: [],
         links: {
-          sample_report: "/api/demo-runs/seeded-3-day-peanut-allergy/report",
+          sample_report: "/api/demo-runs/seeded-one-day-peanut-allergy/report",
         },
       },
     });
@@ -253,7 +253,7 @@ test("loads the live run homepage without seeded demo navigation", async ({ page
   await expect(page.getByText("Model Provider", { exact: true })).toBeVisible();
   await expect(page.getByText("Verification Settings")).toBeVisible();
   await expect(page.getByText("Advanced constraints")).toBeHidden();
-  await expect(page.getByRole("button", { name: /Three-day peanut allergy check/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /One-day peanut allergy check/ })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Nutrition" })).toHaveCount(0);
   await expect(page.getByText("Ready")).toHaveCount(0);
   await expect(page.getByText("Not started")).toHaveCount(0);

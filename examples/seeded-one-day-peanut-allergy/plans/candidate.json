@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.1",
+  "plan_id": "seeded-one-day-peanut-allergy-candidate",
+  "description": "One-day candidate plan with deliberate failures for the deterministic checker.",
+  "days": [
+    {
+      "day": 1,
+      "meals": [
+        {
+          "name": "breakfast",
+          "items": [
+            {
+              "food": "egg",
+              "quantity": 1,
+              "unit": "serving"
+            },
+            {
+              "food": "whole wheat bread",
+              "quantity": 1,
+              "unit": "serving"
+            },
+            {
+              "food": "apple",
+              "quantity": 1,
+              "unit": "serving"
+            }
+          ]
+        },
+        {
+          "name": "lunch",
+          "items": [
+            {
+              "food": "instant ramen",
+              "quantity": 2,
+              "unit": "serving"
+            },
+            {
+              "food": "soy sauce",
+              "quantity": 2,
+              "unit": "tbsp"
+            },
+            {
+              "food": "peanut sauce",
+              "quantity": 2,
+              "unit": "tbsp"
+            },
+            {
+              "food": "seasoning blend",
+              "quantity_text": "some",
+              "resolution_status": "unresolved",
+              "unresolved_reason": "vague_quantity"
+            }
+          ]
+        },
+        {
+          "name": "dinner",
+          "items": [
+            {
+              "food": "chicken breast",
+              "quantity": 6,
+              "unit": "oz"
+            },
+            {
+              "food": "broccoli",
+              "quantity": 1,
+              "unit": "cup"
+            },
+            {
+              "food": "sweet potato",
+              "quantity": 1,
+              "unit": "serving"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "shopping_list": [
+    {
+      "food": "instant ramen",
+      "quantity": 2,
+      "unit": "serving"
+    },
+    {
+      "food": "soy sauce",
+      "quantity": 2,
+      "unit": "tbsp"
+    },
+    {
+      "food": "peanut sauce",
+      "quantity": 2,
+      "unit": "tbsp"
+    },
+    {
+      "food": "seasoning blend",
+      "quantity_text": "some",
+      "resolution_status": "unresolved",
+      "unresolved_reason": "vague_quantity"
+    }
+  ],
+  "prep_notes": [
+    "Meal prep on Sunday and pack lunch in a container."
+  ]
+}

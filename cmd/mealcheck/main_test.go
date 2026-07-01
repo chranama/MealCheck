@@ -18,7 +18,7 @@ func TestValidateWritesArtifactsAndReturnsBlockExit(t *testing.T) {
 	code := run([]string{
 		"validate",
 		"--root", root,
-		"--case", "examples/seeded-3-day-peanut-allergy/case.json",
+		"--case", "examples/seeded-one-day-peanut-allergy/case.json",
 		"--out", out,
 	}, &bytes.Buffer{}, &bytes.Buffer{})
 
@@ -40,7 +40,7 @@ func TestValidateWritesArtifactsAndReturnsBlockExit(t *testing.T) {
 	if decision.Decision != "block" {
 		t.Fatalf("decision = %q, want block", decision.Decision)
 	}
-	if got := decision.ArtifactPaths["case"]; got != "examples/seeded-3-day-peanut-allergy/case.json" {
+	if got := decision.ArtifactPaths["case"]; got != "examples/seeded-one-day-peanut-allergy/case.json" {
 		t.Fatalf("decision case artifact path = %q", got)
 	}
 	validateAgainstSchema(t, filepath.Join(root, "schemas/decision.schema.json"), filepath.Join(out, "decision.json"))
@@ -66,7 +66,7 @@ func TestCompareWritesCompareManifestAndReturnsBlockExit(t *testing.T) {
 	code := run([]string{
 		"compare",
 		"--root", root,
-		"--case", "examples/seeded-3-day-peanut-allergy/case.json",
+		"--case", "examples/seeded-one-day-peanut-allergy/case.json",
 		"--out", out,
 	}, &bytes.Buffer{}, &bytes.Buffer{})
 
@@ -90,7 +90,7 @@ func TestDecisionCommandReturnsDecisionExit(t *testing.T) {
 	validateCode := run([]string{
 		"validate",
 		"--root", root,
-		"--case", "examples/seeded-3-day-peanut-allergy/case.json",
+		"--case", "examples/seeded-one-day-peanut-allergy/case.json",
 		"--out", out,
 	}, &bytes.Buffer{}, &bytes.Buffer{})
 	if validateCode != 1 {

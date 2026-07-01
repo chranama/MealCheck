@@ -1,6 +1,6 @@
 {
   "schema_version": "0.1",
-  "case_id": "seeded-3-day-peanut-allergy",
+  "case_id": "seeded-one-day-peanut-allergy",
   "input_mode": "manual_structured",
   "settings": {
     "nutrition_targets": {
@@ -8,28 +8,23 @@
       "protein_target_g": 98
     },
     "verification_constraints": {
-      "days": 3,
+      "days": 1,
       "meals_per_day": 3,
-      "allergies": [
-        "peanuts"
-      ],
-      "excluded_foods": [
-        "shellfish"
-      ],
+      "allergies": ["peanuts"],
+      "excluded_foods": ["shellfish"],
       "max_sodium_mg_per_day": 2300,
       "max_added_sugar_g_per_meal": 10,
       "max_saturated_fat_pct_calories": 10,
       "calorie_tolerance_pct": 15,
-      "requires_prep_safety_notes": true,
-      "unresolved_policy": {}
+      "requires_prep_safety_notes": true
     }
   },
   "guideline_pack_id": "dga-2025-2030-us-adult-general-v1",
   "guideline_pack_path": "data/guidelines/dga-2025-2030-us-adult-general-v1/guideline-pack.json",
   "nutrient_catalog_id": "fixture-catalog-v1",
   "nutrient_catalog_path": "data/nutrients/fixture-catalog-v1.json",
-  "baseline_plan": "examples/seeded-3-day-peanut-allergy/plans/baseline.json",
-  "candidate_plan": "examples/seeded-3-day-peanut-allergy/plans/candidate.json",
+  "baseline_plan": "examples/seeded-one-day-peanut-allergy/plans/baseline.json",
+  "candidate_plan": "examples/seeded-one-day-peanut-allergy/plans/candidate.json",
   "expectations": {
     "expected_decision": "block",
     "expected_block_checks": [
@@ -43,10 +38,5 @@
       "prep_safety_mentions_present"
     ]
   },
-  "tags": [
-    "seeded",
-    "mvp",
-    "healthy_adult",
-    "peanut_allergy"
-  ]
+  "tags": ["seeded", "mvp", "healthy_adult", "peanut_allergy", "one_day"]
 }

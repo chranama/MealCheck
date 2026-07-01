@@ -554,7 +554,7 @@ func (e Evaluation) DecisionDocument(c Case) DecisionDocument {
 		RecommendedAction:       e.RecommendedAction,
 		GuidelinePackID:         c.GuidelinePackID,
 		ArtifactPaths: map[string]string{
-			"case":                  "examples/seeded-3-day-peanut-allergy/case.json",
+			"case":                  "examples/seeded-one-day-peanut-allergy/case.json",
 			"baseline_plan":         c.BaselinePlan,
 			"candidate_plan":        c.CandidatePlan,
 			"guideline_pack_path":   c.GuidelinePackPath,

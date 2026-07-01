@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	seededCasePath = "examples/seeded-3-day-peanut-allergy/case.json"
-	seededPlanPath = "examples/seeded-3-day-peanut-allergy/plans/candidate.json"
+	seededCasePath = "examples/seeded-one-day-peanut-allergy/case.json"
+	seededPlanPath = "examples/seeded-one-day-peanut-allergy/plans/candidate.json"
 	inviteToken    = "local-smoke-invite-token"
 	allowedOrigin  = "http://127.0.0.1:4173"
 	providerSecret = "local-smoke-provider-key"
@@ -300,8 +300,8 @@ func smokeConfig(root, workDir string) core.Config {
 		Retention:        7 * 24 * time.Hour,
 		WorkerPoll:       time.Millisecond,
 		CleanupInterval:  time.Hour,
-		DemoIndexPath:    filepath.Join(root, "examples", "seeded-3-day-peanut-allergy", "artifacts", "demo-runs", "index.json"),
-		DemoArtifactRoot: filepath.Join(root, "examples", "seeded-3-day-peanut-allergy", "artifacts"),
+		DemoIndexPath:    filepath.Join(root, "examples", "seeded-one-day-peanut-allergy", "artifacts", "demo-runs", "index.json"),
+		DemoArtifactRoot: filepath.Join(root, "examples", "seeded-one-day-peanut-allergy", "artifacts"),
 	}
 }
 

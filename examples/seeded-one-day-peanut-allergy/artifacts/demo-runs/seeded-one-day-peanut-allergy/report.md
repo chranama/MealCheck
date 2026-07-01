@@ -1,6 +1,6 @@
 # MealCheck Report
 
-- Case: `seeded-3-day-peanut-allergy`
+- Case: `seeded-one-day-peanut-allergy`
 - Decision: `block`
 - Guideline pack: `dga-2025-2030-us-adult-general-v1`
 
@@ -19,17 +19,19 @@ The candidate plan has blocking issues and should be revised before use.
 
 ## Unresolved Foods
 
-- Day 2 lunch: `seasoning blend` (vague_quantity)
+- Day 1 lunch: `seasoning blend` (vague_quantity)
 
 ## Excluded Unresolved Foods
 
 None.
 
+## Estimated And Decomposed Foods
+
+None.
+
 ## Daily Totals
 
-- Day 1: 1741.3 kcal, 138.3 g protein, 2392.8 mg sodium
-- Day 2: 1275.0 kcal, 90.5 g protein, 5052.9 mg sodium
-- Day 3: 1430.2 kcal, 119.3 g protein, 3077.3 mg sodium
+- Day 1: 1275.0 kcal, 90.5 g protein, 5052.9 mg sodium
 
 ## Disclaimer
 

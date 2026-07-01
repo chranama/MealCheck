@@ -102,6 +102,10 @@
         "brand": {
           "type": "string"
         },
+        "source_food_code": {
+          "type": "string",
+          "minLength": 1
+        },
         "resolution_status": {
           "type": "string",
           "enum": ["pending", "unresolved"]

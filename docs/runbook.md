@@ -37,7 +37,7 @@ Run the seeded checker and artifact bundle:
 
 ```bash
 go run ./cmd/mealcheck validate \
-  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --case examples/seeded-one-day-peanut-allergy/case.json \
   --out artifacts/latest
 ```
 
@@ -185,7 +185,7 @@ case:
 
 ```bash
 go run ./cmd/mealcheck validate \
-  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --case examples/seeded-one-day-peanut-allergy/case.json \
   --out artifacts/latest
 ```
 
@@ -220,7 +220,7 @@ Use `compare` when exercising the baseline/candidate CLI surface:
 
 ```bash
 go run ./cmd/mealcheck compare \
-  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --case examples/seeded-one-day-peanut-allergy/case.json \
   --out artifacts/latest-compare
 ```
 
@@ -284,7 +284,7 @@ curl http://127.0.0.1:8080/api/status
 curl http://127.0.0.1:8080/api/demo-runs
 curl -X POST http://127.0.0.1:8080/api/runs \
   -H 'Content-Type: application/json' \
-  -d '{"case_path":"examples/seeded-3-day-peanut-allergy/case.json"}'
+  -d '{"case_path":"examples/seeded-one-day-peanut-allergy/case.json"}'
 ```
 
 The queued seeded run is expected to complete with a `block` decision because
@@ -449,7 +449,7 @@ Run the seeded validation:
 ```bash
 /Users/chranama-server/MealCheck/bin/mealcheck validate \
   --root /Users/chranama-server/MealCheck \
-  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --case examples/seeded-one-day-peanut-allergy/case.json \
   --out /Users/chranama-server/MealCheck-data/artifacts/cli-smoke
 ```
 
@@ -1082,7 +1082,7 @@ MEALCHECK_STORE=memory
 MEALCHECK_ACCESS_MODE=public_byok
 MEALCHECK_INVITE_TOKEN=invite-1
 MEALCHECK_ALLOWED_ORIGIN=http://127.0.0.1:4173
-MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH=../examples/seeded-3-day-peanut-allergy/plans/candidate.json
+MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH=../examples/seeded-one-day-peanut-allergy/plans/candidate.json
 ```
 
 The local browser suite uses public BYOK mode. Private deployments can set
@@ -1323,7 +1323,7 @@ go run ./cmd/mealcheck fixture-check
 
 ```bash
 go run ./cmd/mealcheck validate \
-  --case examples/seeded-3-day-peanut-allergy/case.json \
+  --case examples/seeded-one-day-peanut-allergy/case.json \
   --out artifacts/latest
 ```
 

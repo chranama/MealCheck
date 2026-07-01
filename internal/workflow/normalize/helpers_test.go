@@ -66,6 +66,6 @@ func decodeJSON(t *testing.T, data []byte, out any) {
 func seededCase(t *testing.T, root string) checker.Case {
 	t.Helper()
 	var c checker.Case
-	decodeJSON(t, readFile(t, filepath.Join(root, "examples/seeded-3-day-peanut-allergy/case.json")), &c)
+	decodeJSON(t, readFile(t, filepath.Join(root, "examples/seeded-one-day-peanut-allergy/case.json")), &c)
 	return c
 }

@@ -1,0 +1,25 @@
+[
+  {
+    "day": 1,
+    "nutrients": {
+      "energy_kcal": 1274.9510000000002,
+      "protein_g": 90.47120000000001,
+      "carbohydrate_g": 134.529,
+      "fat_g": 39.6555,
+      "saturated_fat_g": 12.6328,
+      "sodium_mg": 5052.93,
+      "added_sugar_g": 0,
+      "fiber_g": 18.002000000000002
+    },
+    "saturated_fat_pct_calories": 8.91761330435444,
+    "food_groups": {
+      "condiments": true,
+      "fats": true,
+      "fruits": true,
+      "protein": true,
+      "refined_grains": true,
+      "vegetables": true,
+      "whole_grains": true
+    }
+  }
+]

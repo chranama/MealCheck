@@ -45,15 +45,15 @@ qualification through the fake provider, BYOK fake-provider creation/redaction,
 and CORS headers.
 
 Seeded artifacts live under
-`../examples/seeded-3-day-peanut-allergy/artifacts/demo-runs/`. They are kept
+`../examples/seeded-one-day-peanut-allergy/artifacts/demo-runs/`. They are kept
 out of `public/` so the production frontend does not publish example-run
 navigation or static demo bundles. Refresh the current repo artifact bundle from
 the repository root with:
 
 ```bash
 go run ./cmd/mealcheck validate \
-  --case examples/seeded-3-day-peanut-allergy/case.json \
-  --out examples/seeded-3-day-peanut-allergy/artifacts/demo-runs/seeded-3-day-peanut-allergy
+  --case examples/seeded-one-day-peanut-allergy/case.json \
+  --out examples/seeded-one-day-peanut-allergy/artifacts/demo-runs/seeded-one-day-peanut-allergy
 ```
 
 The refresh command exits `1` because the seeded plan intentionally produces a

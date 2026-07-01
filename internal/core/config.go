@@ -85,8 +85,8 @@ func ConfigFromEnv(root string) Config {
 		Retention:                 getenvDuration("MEALCHECK_RETENTION", 7*24*time.Hour),
 		WorkerPoll:                getenvDuration("MEALCHECK_WORKER_POLL", time.Second),
 		CleanupInterval:           getenvDuration("MEALCHECK_CLEANUP_INTERVAL", time.Hour),
-		DemoIndexPath:             filepath.Join(root, "examples", "seeded-3-day-peanut-allergy", "artifacts", "demo-runs", "index.json"),
-		DemoArtifactRoot:          filepath.Join(root, "examples", "seeded-3-day-peanut-allergy", "artifacts"),
+		DemoIndexPath:             filepath.Join(root, "examples", "seeded-one-day-peanut-allergy", "artifacts", "demo-runs", "index.json"),
+		DemoArtifactRoot:          filepath.Join(root, "examples", "seeded-one-day-peanut-allergy", "artifacts"),
 		FNDDSFallbackPath:         os.Getenv("MEALCHECK_FNDDS_FALLBACK_PATH"),
 	}
 }

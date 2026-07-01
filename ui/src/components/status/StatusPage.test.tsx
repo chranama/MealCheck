@@ -25,7 +25,7 @@ describe("StatusPage", () => {
         ],
         recent_incidents: [],
         links: {
-          sample_report: "/api/demo-runs/seeded-3-day-peanut-allergy/report",
+          sample_report: "/api/demo-runs/seeded-one-day-peanut-allergy/report",
         },
       }),
       { status: 200 },
@@ -39,7 +39,7 @@ describe("StatusPage", () => {
     expect(screen.getByText("No incidents reported in the past 7 days.")).toBeVisible();
     expect(screen.getByRole("link", { name: "Open sample report" })).toHaveAttribute(
       "href",
-      "http://api/api/demo-runs/seeded-3-day-peanut-allergy/report",
+      "http://api/api/demo-runs/seeded-one-day-peanut-allergy/report",
     );
 
     const aiRow = screen.getByText("AI Meal Normalization").closest("article");

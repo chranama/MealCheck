@@ -66,7 +66,7 @@ func readFile(t *testing.T, path string) []byte {
 func seededCase(t *testing.T, root string) checker.Case {
 	t.Helper()
 	var c checker.Case
-	decodeJSON(t, readFile(t, filepath.Join(root, "examples/seeded-3-day-peanut-allergy/case.json")), &c)
+	decodeJSON(t, readFile(t, filepath.Join(root, "examples/seeded-one-day-peanut-allergy/case.json")), &c)
 	return c
 }
 
@@ -203,8 +203,8 @@ func testConfig(t *testing.T, root string) Config {
 		Retention:                7 * 24 * time.Hour,
 		WorkerPoll:               time.Millisecond,
 		CleanupInterval:          time.Hour,
-		DemoIndexPath:            filepath.Join(root, "examples", "seeded-3-day-peanut-allergy", "artifacts", "demo-runs", "index.json"),
-		DemoArtifactRoot:         filepath.Join(root, "examples", "seeded-3-day-peanut-allergy", "artifacts"),
+		DemoIndexPath:            filepath.Join(root, "examples", "seeded-one-day-peanut-allergy", "artifacts", "demo-runs", "index.json"),
+		DemoArtifactRoot:         filepath.Join(root, "examples", "seeded-one-day-peanut-allergy", "artifacts"),
 	}
 }
 
