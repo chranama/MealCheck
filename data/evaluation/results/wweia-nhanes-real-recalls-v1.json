@@ -2,69 +2,68 @@
   "schema_version": "0.1",
   "dataset_id": "wweia-nhanes-real-recalls-v1",
   "catalog_id": "fixture-catalog-v1",
-  "catalog_food_count": 151,
+  "catalog_food_count": 159,
   "fndds_fallback_enabled": false,
   "expected_comparison": "strict",
   "total_cases": 100,
   "total_food_items": 815,
-  "resolved_items": 496,
-  "unresolved_items": 319,
-  "resolved_rate": 0.6086,
+  "resolved_items": 550,
+  "exact_resolved_items": 550,
+  "estimated_items": 0,
+  "decomposed_items": 0,
+  "unresolved_items": 265,
+  "resolved_rate": 0.6748,
   "cases_with_mismatches": 0,
   "category_summary": [
     {
       "category": "wweia_common_recall_day",
       "cases": 30,
       "food_items": 314,
-      "resolved_items": 246,
-      "unresolved_items": 68,
-      "resolved_rate": 0.7834
+      "resolved_items": 255,
+      "exact_resolved_items": 255,
+      "estimated_items": 0,
+      "decomposed_items": 0,
+      "unresolved_items": 59,
+      "resolved_rate": 0.8121
     },
     {
       "category": "wweia_high_sodium",
       "cases": 20,
       "food_items": 310,
-      "resolved_items": 104,
-      "unresolved_items": 206,
-      "resolved_rate": 0.3355
+      "resolved_items": 148,
+      "exact_resolved_items": 148,
+      "estimated_items": 0,
+      "decomposed_items": 0,
+      "unresolved_items": 162,
+      "resolved_rate": 0.4774
     },
     {
       "category": "wweia_low_protein",
       "cases": 10,
       "food_items": 100,
-      "resolved_items": 55,
-      "unresolved_items": 45,
-      "resolved_rate": 0.55
+      "resolved_items": 56,
+      "exact_resolved_items": 56,
+      "estimated_items": 0,
+      "decomposed_items": 0,
+      "unresolved_items": 44,
+      "resolved_rate": 0.56
     },
     {
       "category": "wweia_resolved_eating_occasion",
       "cases": 40,
       "food_items": 91,
       "resolved_items": 91,
+      "exact_resolved_items": 91,
+      "estimated_items": 0,
+      "decomposed_items": 0,
       "unresolved_items": 0,
       "resolved_rate": 1
     }
   ],
   "top_unresolved_foods": [
     {
-      "value": "water, tap",
-      "count": 16
-    },
-    {
-      "value": "coffee, instant, reconstituted",
-      "count": 12
-    },
-    {
-      "value": "apple juice, 100%",
-      "count": 7
-    },
-    {
       "value": "wine, white",
       "count": 7
-    },
-    {
-      "value": "water, carbonated, plain",
-      "count": 6
     },
     {
       "value": "pasta with tomato-based sauce and meat, home recipe",
@@ -75,19 +74,11 @@
       "count": 4
     },
     {
-      "value": "sugar, white, granulated or lump",
-      "count": 4
-    },
-    {
       "value": "wine, red",
       "count": 4
     },
     {
       "value": "beer",
-      "count": 3
-    },
-    {
-      "value": "bread, white, toasted",
       "count": 3
     },
     {
@@ -103,15 +94,7 @@
       "count": 3
     },
     {
-      "value": "green peas, frozen, cooked, no added fat",
-      "count": 3
-    },
-    {
       "value": "ham sandwich on white, with cheese",
-      "count": 3
-    },
-    {
-      "value": "rice, white, cooked, no added fat",
       "count": 3
     },
     {
@@ -125,12 +108,44 @@
     {
       "value": "cheese flavored corn snacks (cheetos)",
       "count": 2
+    },
+    {
+      "value": "cheese, parmesan, dry grated",
+      "count": 2
+    },
+    {
+      "value": "cheeseburger, on white bun, 1 medium patty",
+      "count": 2
+    },
+    {
+      "value": "chicken or turkey with teriyaki",
+      "count": 2
+    },
+    {
+      "value": "chicken or turkey, noodles, and vegetables including carrots, broccoli, and/or dark-green leafy; no sauce",
+      "count": 2
+    },
+    {
+      "value": "cookie, chocolate chip, made from home recipe or purchased at a bakery",
+      "count": 2
+    },
+    {
+      "value": "cookie, chocolate sandwich",
+      "count": 2
+    },
+    {
+      "value": "crackers, sandwich, peanut butter filled",
+      "count": 2
+    },
+    {
+      "value": "cream cheese, regular, plain",
+      "count": 2
     }
   ],
   "top_unresolved_units": [
     {
       "value": "g",
-      "count": 319
+      "count": 265
     }
   ]
 }

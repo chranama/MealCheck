@@ -390,6 +390,62 @@ func TestResolverUsesReviewedCatalogForSlicesAndSlicedOrangeAlias(t *testing.T) 
 	}
 }
 
+func TestResolverUsesReviewedCatalogForP1WWEIAGapBatch(t *testing.T) {
+	var catalog NutrientCatalog
+	if err := readJSON(filepath.Join(repoRoot(t), "data/nutrients/fixture-catalog-v1.json"), &catalog); err != nil {
+		t.Fatalf("read catalog: %v", err)
+	}
+	quantity := 100.0
+	tests := []struct {
+		food   string
+		foodID string
+	}{
+		{food: "Water, tap", foodID: "tap_water"},
+		{food: "Water, carbonated, plain", foodID: "carbonated_water_plain"},
+		{food: "Coffee, instant, reconstituted", foodID: "coffee_instant"},
+		{food: "Apple juice, 100%", foodID: "apple_juice"},
+		{food: "Sugar, white, granulated or lump", foodID: "white_sugar"},
+		{food: "Bread, white, toasted", foodID: "white_bread_toasted"},
+		{food: "Green peas, frozen, cooked, no added fat", foodID: "green_peas_frozen_cooked"},
+		{food: "Rice, white, cooked, no added fat", foodID: "white_rice_no_added_fat"},
+	}
+	meal := Meal{Name: "meal"}
+	for _, tc := range tests {
+		meal.Items = append(meal.Items, FoodItem{
+			Food:             tc.food,
+			Quantity:         &quantity,
+			Unit:             "g",
+			ResolutionStatus: "unresolved",
+			UnresolvedReason: unresolvedUnknownFood,
+		})
+	}
+	plan := Plan{Days: []PlanDay{{Day: 1, Meals: []Meal{meal}}}}
+
+	resolved, unresolved, err := newResolver(catalog).resolvePlanWithError(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(unresolved) != 0 {
+		t.Fatalf("unresolved = %+v, want none", unresolved)
+	}
+	if len(resolved) != len(tests) {
+		t.Fatalf("len(resolved) = %d, want %d", len(resolved), len(tests))
+	}
+	resolvedByID := map[string]ResolvedItem{}
+	for _, item := range resolved {
+		resolvedByID[item.FoodID] = item
+	}
+	for _, tc := range tests {
+		item, ok := resolvedByID[tc.foodID]
+		if !ok {
+			t.Fatalf("%s did not resolve to %s; resolved=%+v", tc.food, tc.foodID, resolved)
+		}
+		if item.ResolutionMethod != "exact" || item.Confidence != "high" {
+			t.Fatalf("%s resolved as method/confidence %s/%s, want exact/high", tc.food, item.ResolutionMethod, item.Confidence)
+		}
+	}
+}
+
 func TestResolverUsesFNDDSFallbackForEligibleExactMatch(t *testing.T) {
 	ref := openTestFNDDSReference(t)
 	qty := 100.0

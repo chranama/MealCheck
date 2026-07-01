@@ -99,8 +99,6 @@
                     "food": "Water, tap",
                     "quantity": 1080,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -155,7 +153,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 6,
+        "unresolved_count": 5,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -176,15 +174,15 @@
         "seqn": 132446,
         "recall_day": 1,
         "food_items": 10,
-        "known_local_items": 4,
-        "unresolved_expected_items": 6,
-        "known_local_rate": 0.4,
+        "known_local_items": 5,
+        "unresolved_expected_items": 5,
+        "known_local_rate": 0.5,
         "source_energy_kcal": 3281,
         "source_protein_g": 133.6,
         "source_sodium_mg": 7018,
-        "resolved_source_energy_kcal": 1735,
-        "resolved_source_protein_g": 116.5,
-        "resolved_source_sodium_mg": 6302,
+        "resolved_source_energy_kcal": 1733.8,
+        "resolved_source_protein_g": 116.3,
+        "resolved_source_sodium_mg": 6344,
         "source_food_codes": [
           "22311000",
           "31105040",
@@ -202,8 +200,7 @@
           "53206020",
           "63135140",
           "75330060",
-          "93401020",
-          "94000100"
+          "93401020"
         ],
         "unresolved_source_foods": [
           {
@@ -225,10 +222,6 @@
           {
             "source_food_code": "93401020",
             "description": "Wine, white"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -278,8 +271,6 @@
                     "food": "Water, tap",
                     "quantity": 1035,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -297,8 +288,6 @@
                     "food": "Sugar, white, granulated or lump",
                     "quantity": 8.33,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "91101010"
                   }
                 ]
@@ -508,7 +497,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 19,
+        "unresolved_count": 17,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -529,15 +518,15 @@
         "seqn": 135087,
         "recall_day": 2,
         "food_items": 25,
-        "known_local_items": 6,
-        "unresolved_expected_items": 19,
-        "known_local_rate": 0.24,
+        "known_local_items": 8,
+        "unresolved_expected_items": 17,
+        "known_local_rate": 0.32,
         "source_energy_kcal": 6715,
         "source_protein_g": 270.2,
         "source_sodium_mg": 13181,
-        "resolved_source_energy_kcal": 2613,
-        "resolved_source_protein_g": 194.0,
-        "resolved_source_sodium_mg": 6302,
+        "resolved_source_energy_kcal": 2647.4,
+        "resolved_source_protein_g": 193.6,
+        "resolved_source_sodium_mg": 6342.9,
         "source_food_codes": [
           "12220200",
           "14301010",
@@ -578,11 +567,9 @@
           "75510010",
           "75649010",
           "81101010",
-          "91101010",
           "91501020",
           "92410710",
-          "93102000",
-          "94000100"
+          "93102000"
         ],
         "unresolved_source_foods": [
           {
@@ -638,10 +625,6 @@
             "description": "Butter, tub"
           },
           {
-            "source_food_code": "91101010",
-            "description": "Sugar, white, granulated or lump"
-          },
-          {
             "source_food_code": "91501020",
             "description": "Gelatin dessert with fruit"
           },
@@ -652,10 +635,6 @@
           {
             "source_food_code": "93102000",
             "description": "Beer, light"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -952,9 +931,9 @@
         "source_energy_kcal": 2193,
         "source_protein_g": 61.7,
         "source_sodium_mg": 6793,
-        "resolved_source_energy_kcal": 747,
-        "resolved_source_protein_g": 16.0,
-        "resolved_source_sodium_mg": 5306,
+        "resolved_source_energy_kcal": 747.5,
+        "resolved_source_protein_g": 15.6,
+        "resolved_source_sodium_mg": 5307.6,
         "source_food_codes": [
           "12210210",
           "27510241",
@@ -1141,8 +1120,6 @@
                     "food": "Green peas, frozen, cooked, no added fat",
                     "quantity": 53.33,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "75224022"
                   },
                   {
@@ -1194,7 +1171,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 7,
+        "unresolved_count": 6,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -1215,15 +1192,15 @@
         "seqn": 137952,
         "recall_day": 2,
         "food_items": 10,
-        "known_local_items": 3,
-        "unresolved_expected_items": 7,
-        "known_local_rate": 0.3,
+        "known_local_items": 4,
+        "unresolved_expected_items": 6,
+        "known_local_rate": 0.4,
         "source_energy_kcal": 3203,
         "source_protein_g": 148.2,
         "source_sodium_mg": 8785,
-        "resolved_source_energy_kcal": 803,
-        "resolved_source_protein_g": 29.3,
-        "resolved_source_sodium_mg": 5297,
+        "resolved_source_energy_kcal": 844.7,
+        "resolved_source_protein_g": 31.9,
+        "resolved_source_sodium_mg": 5397.2,
         "source_food_codes": [
           "11113000",
           "11541135",
@@ -1241,7 +1218,6 @@
           "24198736",
           "32130170",
           "56205018",
-          "75224022",
           "92410320",
           "95120010"
         ],
@@ -1261,10 +1237,6 @@
           {
             "source_food_code": "56205018",
             "description": "Rice, brown, cooked, no added fat"
-          },
-          {
-            "source_food_code": "75224022",
-            "description": "Green peas, frozen, cooked, no added fat"
           },
           {
             "source_food_code": "92410320",
@@ -1351,8 +1323,6 @@
                     "food": "Water, tap",
                     "quantity": 435,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -1456,7 +1426,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 12,
+        "unresolved_count": 11,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -1477,15 +1447,15 @@
         "seqn": 132331,
         "recall_day": 1,
         "food_items": 13,
-        "known_local_items": 1,
-        "unresolved_expected_items": 12,
-        "known_local_rate": 0.0769,
+        "known_local_items": 2,
+        "unresolved_expected_items": 11,
+        "known_local_rate": 0.1538,
         "source_energy_kcal": 5268,
         "source_protein_g": 174.3,
         "source_sodium_mg": 8350,
-        "resolved_source_energy_kcal": 3049,
-        "resolved_source_protein_g": 118.5,
-        "resolved_source_sodium_mg": 4891,
+        "resolved_source_energy_kcal": 3045.4,
+        "resolved_source_protein_g": 118.8,
+        "resolved_source_sodium_mg": 4906.4,
         "source_food_codes": [
           "12120100",
           "13220120",
@@ -1512,8 +1482,7 @@
           "92305090",
           "92410320",
           "92552010",
-          "93502000",
-          "94000100"
+          "93502000"
         ],
         "unresolved_source_foods": [
           {
@@ -1559,10 +1528,6 @@
           {
             "source_food_code": "93502000",
             "description": "Whiskey"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -1653,8 +1618,6 @@
                     "food": "Water, tap",
                     "quantity": 1920,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -1714,7 +1677,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 7,
+        "unresolved_count": 6,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -1735,15 +1698,15 @@
         "seqn": 136634,
         "recall_day": 1,
         "food_items": 11,
-        "known_local_items": 4,
-        "unresolved_expected_items": 7,
-        "known_local_rate": 0.3636,
+        "known_local_items": 5,
+        "unresolved_expected_items": 6,
+        "known_local_rate": 0.4545,
         "source_energy_kcal": 2282,
         "source_protein_g": 187.2,
         "source_sodium_mg": 5828,
-        "resolved_source_energy_kcal": 1558,
-        "resolved_source_protein_g": 167.5,
-        "resolved_source_sodium_mg": 4877,
+        "resolved_source_energy_kcal": 1556.2,
+        "resolved_source_protein_g": 167.1,
+        "resolved_source_sodium_mg": 4953.5,
         "source_food_codes": [
           "21500310",
           "22311000",
@@ -1763,8 +1726,7 @@
           "52403000",
           "71403020",
           "91303000",
-          "93502000",
-          "94000100"
+          "93502000"
         ],
         "unresolved_source_foods": [
           {
@@ -1790,10 +1752,6 @@
           {
             "source_food_code": "93502000",
             "description": "Whiskey"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -1870,8 +1828,6 @@
                     "food": "Water, tap",
                     "quantity": 3840,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   },
                   {
@@ -1981,7 +1937,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 11,
+        "unresolved_count": 10,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -2002,15 +1958,15 @@
         "seqn": 137722,
         "recall_day": 2,
         "food_items": 14,
-        "known_local_items": 3,
-        "unresolved_expected_items": 11,
-        "known_local_rate": 0.2143,
+        "known_local_items": 4,
+        "unresolved_expected_items": 10,
+        "known_local_rate": 0.2857,
         "source_energy_kcal": 2175,
         "source_protein_g": 128.7,
         "source_sodium_mg": 6181,
-        "resolved_source_energy_kcal": 581,
-        "resolved_source_protein_g": 81.1,
-        "resolved_source_sodium_mg": 4708,
+        "resolved_source_energy_kcal": 580.9,
+        "resolved_source_protein_g": 80.8,
+        "resolved_source_sodium_mg": 4861.8,
         "source_food_codes": [
           "11434010",
           "12210210",
@@ -2035,8 +1991,7 @@
           "58163380",
           "75205051",
           "93101000",
-          "93401010",
-          "94000100"
+          "93401010"
         ],
         "unresolved_source_foods": [
           {
@@ -2074,10 +2029,6 @@
           {
             "source_food_code": "93401010",
             "description": "Wine, red"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -2127,8 +2078,6 @@
                     "food": "Water, tap",
                     "quantity": 195,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -2287,7 +2236,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 12,
+        "unresolved_count": 11,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -2308,15 +2257,15 @@
         "seqn": 130387,
         "recall_day": 2,
         "food_items": 19,
-        "known_local_items": 7,
-        "unresolved_expected_items": 12,
-        "known_local_rate": 0.3684,
+        "known_local_items": 8,
+        "unresolved_expected_items": 11,
+        "known_local_rate": 0.4211,
         "source_energy_kcal": 3156,
         "source_protein_g": 133.6,
         "source_sodium_mg": 7901,
-        "resolved_source_energy_kcal": 1143,
+        "resolved_source_energy_kcal": 1142.9,
         "resolved_source_protein_g": 85.5,
-        "resolved_source_sodium_mg": 4482,
+        "resolved_source_sodium_mg": 4488.9,
         "source_food_codes": [
           "24201120",
           "27510241",
@@ -2345,8 +2294,7 @@
           "83114000",
           "89902020",
           "89902070",
-          "92410360",
-          "94000100"
+          "92410360"
         ],
         "unresolved_source_foods": [
           {
@@ -2384,10 +2332,6 @@
           {
             "source_food_code": "92410360",
             "description": "Soft drink, pepper type"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -2468,8 +2412,6 @@
                     "food": "Rice, white, cooked, no added fat",
                     "quantity": 88.88,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "56205008"
                   },
                   {
@@ -2524,7 +2466,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 5,
+        "unresolved_count": 4,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -2545,15 +2487,15 @@
         "seqn": 139123,
         "recall_day": 1,
         "food_items": 10,
-        "known_local_items": 5,
-        "unresolved_expected_items": 5,
-        "known_local_rate": 0.5,
+        "known_local_items": 6,
+        "unresolved_expected_items": 4,
+        "known_local_rate": 0.6,
         "source_energy_kcal": 1877,
         "source_protein_g": 57.4,
         "source_sodium_mg": 6255,
-        "resolved_source_energy_kcal": 1103,
-        "resolved_source_protein_g": 34.6,
-        "resolved_source_sodium_mg": 4244,
+        "resolved_source_energy_kcal": 1217.8,
+        "resolved_source_protein_g": 36.6,
+        "resolved_source_sodium_mg": 4467.2,
         "source_food_codes": [
           "31103010",
           "56205008",
@@ -2565,17 +2507,12 @@
           "94100100"
         ],
         "unresolved_source_food_codes": [
-          "56205008",
           "71200300",
           "75221030",
           "75652010",
           "92309500"
         ],
         "unresolved_source_foods": [
-          {
-            "source_food_code": "56205008",
-            "description": "Rice, white, cooked, no added fat"
-          },
           {
             "source_food_code": "71200300",
             "description": "Potato chips, restructured, plain"
@@ -2648,8 +2585,6 @@
                     "food": "Bread, white, toasted",
                     "quantity": 50,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "51101010"
                   },
                   {
@@ -2664,8 +2599,6 @@
                     "food": "Apple juice, 100%",
                     "quantity": 325.5,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "64104010"
                   }
                 ]
@@ -2685,8 +2618,6 @@
                     "food": "Apple juice, 100%",
                     "quantity": 325.5,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "64104010"
                   }
                 ]
@@ -2704,8 +2635,6 @@
                     "food": "Apple juice, 100%",
                     "quantity": 325.5,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "64104010"
                   }
                 ]
@@ -2723,8 +2652,6 @@
                     "food": "Apple juice, 100%",
                     "quantity": 449.5,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "64104010"
                   }
                 ]
@@ -2738,7 +2665,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 8,
+        "unresolved_count": 3,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -2759,15 +2686,15 @@
         "seqn": 132699,
         "recall_day": 1,
         "food_items": 10,
-        "known_local_items": 2,
-        "unresolved_expected_items": 8,
-        "known_local_rate": 0.2,
+        "known_local_items": 7,
+        "unresolved_expected_items": 3,
+        "known_local_rate": 0.7,
         "source_energy_kcal": 2047,
-        "source_protein_g": 61.0,
+        "source_protein_g": 61,
         "source_sodium_mg": 5321,
-        "resolved_source_energy_kcal": 662,
-        "resolved_source_protein_g": 37.4,
-        "resolved_source_sodium_mg": 4197,
+        "resolved_source_energy_kcal": 1492.5,
+        "resolved_source_protein_g": 44.4,
+        "resolved_source_sodium_mg": 4524.1,
         "source_food_codes": [
           "32130000",
           "51101010",
@@ -2778,8 +2705,6 @@
         ],
         "unresolved_source_food_codes": [
           "32130000",
-          "51101010",
-          "64104010",
           "71402500",
           "81102010"
         ],
@@ -2787,14 +2712,6 @@
           {
             "source_food_code": "32130000",
             "description": "Egg omelet or scrambled egg, made with margarine"
-          },
-          {
-            "source_food_code": "51101010",
-            "description": "Bread, white, toasted"
-          },
-          {
-            "source_food_code": "64104010",
-            "description": "Apple juice, 100%"
           },
           {
             "source_food_code": "71402500",
@@ -2852,8 +2769,6 @@
                     "food": "Water, tap",
                     "quantity": 2028.9,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -2977,8 +2892,6 @@
                     "food": "Apple juice, 100%",
                     "quantity": 155,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "64104010"
                   },
                   {
@@ -3006,7 +2919,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 11,
+        "unresolved_count": 9,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -3027,15 +2940,15 @@
         "seqn": 133576,
         "recall_day": 1,
         "food_items": 15,
-        "known_local_items": 4,
-        "unresolved_expected_items": 11,
-        "known_local_rate": 0.2667,
+        "known_local_items": 6,
+        "unresolved_expected_items": 9,
+        "known_local_rate": 0.4,
         "source_energy_kcal": 3322,
         "source_protein_g": 88.4,
         "source_sodium_mg": 7282,
-        "resolved_source_energy_kcal": 892,
-        "resolved_source_protein_g": 12.3,
-        "resolved_source_sodium_mg": 4059,
+        "resolved_source_energy_kcal": 967.7,
+        "resolved_source_protein_g": 12.4,
+        "resolved_source_sodium_mg": 4147,
         "source_food_codes": [
           "27343010",
           "27540121",
@@ -3060,10 +2973,8 @@
           "53720200",
           "62114050",
           "63311170",
-          "64104010",
           "78101000",
           "93401010",
-          "94000100",
           "95311000"
         ],
         "unresolved_source_foods": [
@@ -3092,20 +3003,12 @@
             "description": "Fruit cocktail, canned, juice pack"
           },
           {
-            "source_food_code": "64104010",
-            "description": "Apple juice, 100%"
-          },
-          {
             "source_food_code": "78101000",
             "description": "Vegetable and fruit juice, 100% juice, with high vitamin C"
           },
           {
             "source_food_code": "93401010",
             "description": "Wine, red"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           },
           {
             "source_food_code": "95311000",
@@ -3159,8 +3062,6 @@
                     "food": "Bread, white, toasted",
                     "quantity": 25,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "51101010"
                   },
                   {
@@ -3239,7 +3140,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 5,
+        "unresolved_count": 4,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -3260,15 +3161,15 @@
         "seqn": 131671,
         "recall_day": 2,
         "food_items": 8,
-        "known_local_items": 3,
-        "unresolved_expected_items": 5,
-        "known_local_rate": 0.375,
+        "known_local_items": 4,
+        "unresolved_expected_items": 4,
+        "known_local_rate": 0.5,
         "source_energy_kcal": 3382,
         "source_protein_g": 171.5,
         "source_sodium_mg": 5595,
-        "resolved_source_energy_kcal": 2503,
-        "resolved_source_protein_g": 142.6,
-        "resolved_source_sodium_mg": 4036,
+        "resolved_source_energy_kcal": 2576.3,
+        "resolved_source_protein_g": 145.2,
+        "resolved_source_sodium_mg": 4161,
         "source_food_codes": [
           "14104100",
           "51101010",
@@ -3279,17 +3180,12 @@
           "94100100"
         ],
         "unresolved_source_food_codes": [
-          "51101010",
           "51121035",
           "58145117",
           "58146322",
           "92305900"
         ],
         "unresolved_source_foods": [
-          {
-            "source_food_code": "51101010",
-            "description": "Bread, white, toasted"
-          },
           {
             "source_food_code": "51121035",
             "description": "Garlic bread, from frozen"
@@ -3393,8 +3289,6 @@
                     "food": "Water, tap",
                     "quantity": 1440,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -3460,7 +3354,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 6,
+        "unresolved_count": 5,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -3481,15 +3375,15 @@
         "seqn": 131583,
         "recall_day": 1,
         "food_items": 12,
-        "known_local_items": 6,
-        "unresolved_expected_items": 6,
-        "known_local_rate": 0.5,
+        "known_local_items": 7,
+        "unresolved_expected_items": 5,
+        "known_local_rate": 0.5833,
         "source_energy_kcal": 2607,
         "source_protein_g": 95.6,
         "source_sodium_mg": 6662,
-        "resolved_source_energy_kcal": 1350,
-        "resolved_source_protein_g": 52.6,
-        "resolved_source_sodium_mg": 4021,
+        "resolved_source_energy_kcal": 1350.7,
+        "resolved_source_protein_g": 52.7,
+        "resolved_source_sodium_mg": 4079,
         "source_food_codes": [
           "12100100",
           "22101010",
@@ -3508,8 +3402,7 @@
           "22101010",
           "27520240",
           "51153000",
-          "56205007",
-          "94000100"
+          "56205007"
         ],
         "unresolved_source_foods": [
           {
@@ -3531,10 +3424,6 @@
           {
             "source_food_code": "56205007",
             "description": "Rice, white, cooked, fat added, NS as to fat type"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -3628,8 +3517,6 @@
                     "food": "Water, tap",
                     "quantity": 960,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -3777,8 +3664,6 @@
                     "food": "Water, tap",
                     "quantity": 720,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -3792,7 +3677,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 17,
+        "unresolved_count": 15,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -3813,15 +3698,15 @@
         "seqn": 138871,
         "recall_day": 1,
         "food_items": 22,
-        "known_local_items": 5,
-        "unresolved_expected_items": 17,
-        "known_local_rate": 0.2273,
+        "known_local_items": 7,
+        "unresolved_expected_items": 15,
+        "known_local_rate": 0.3182,
         "source_energy_kcal": 5828,
         "source_protein_g": 387.6,
         "source_sodium_mg": 16130,
-        "resolved_source_energy_kcal": 722,
-        "resolved_source_protein_g": 28.1,
-        "resolved_source_sodium_mg": 4006,
+        "resolved_source_energy_kcal": 725.2,
+        "resolved_source_protein_g": 29.1,
+        "resolved_source_sodium_mg": 4073.7,
         "source_food_codes": [
           "11112110",
           "11830400",
@@ -3858,8 +3743,7 @@
           "58110130",
           "91705080",
           "92305910",
-          "92410550",
-          "94000100"
+          "92410550"
         ],
         "unresolved_source_foods": [
           {
@@ -3917,10 +3801,6 @@
           {
             "source_food_code": "92410550",
             "description": "Soft drink, fruit flavored, caffeine containing"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -3970,8 +3850,6 @@
                     "food": "Coffee, instant, reconstituted",
                     "quantity": 360,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92103000"
                   },
                   {
@@ -3989,8 +3867,6 @@
                     "food": "Coffee, instant, reconstituted",
                     "quantity": 360,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92103000"
                   },
                   {
@@ -4008,8 +3884,6 @@
                     "food": "Coffee, instant, reconstituted",
                     "quantity": 360,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92103000"
                   },
                   {
@@ -4060,8 +3934,6 @@
                     "food": "Coffee, instant, reconstituted",
                     "quantity": 360,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92103000"
                   },
                   {
@@ -4085,8 +3957,6 @@
                     "food": "Green peas, frozen, cooked, no added fat",
                     "quantity": 160,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "75224022"
                   },
                   {
@@ -4113,8 +3983,6 @@
                     "food": "Water, carbonated, plain",
                     "quantity": 360,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92410210"
                   }
                 ]
@@ -4134,8 +4002,6 @@
                     "food": "Water, carbonated, plain",
                     "quantity": 360,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92410210"
                   }
                 ]
@@ -4162,7 +4028,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 12,
+        "unresolved_count": 5,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -4183,15 +4049,15 @@
         "seqn": 138000,
         "recall_day": 2,
         "food_items": 21,
-        "known_local_items": 9,
-        "unresolved_expected_items": 12,
-        "known_local_rate": 0.4286,
+        "known_local_items": 16,
+        "unresolved_expected_items": 5,
+        "known_local_rate": 0.7619,
         "source_energy_kcal": 2035,
         "source_protein_g": 82.7,
         "source_sodium_mg": 4867,
-        "resolved_source_energy_kcal": 1281,
-        "resolved_source_protein_g": 40.4,
-        "resolved_source_sodium_mg": 3995,
+        "resolved_source_energy_kcal": 1450.1,
+        "resolved_source_protein_g": 49.9,
+        "resolved_source_sodium_mg": 4506.9,
         "source_food_codes": [
           "11112110",
           "11434010",
@@ -4211,9 +4077,6 @@
           "11434010",
           "11435020",
           "51186010",
-          "75224022",
-          "92103000",
-          "92410210",
           "93401020"
         ],
         "unresolved_source_foods": [
@@ -4228,18 +4091,6 @@
           {
             "source_food_code": "51186010",
             "description": "Muffin, English"
-          },
-          {
-            "source_food_code": "75224022",
-            "description": "Green peas, frozen, cooked, no added fat"
-          },
-          {
-            "source_food_code": "92103000",
-            "description": "Coffee, instant, reconstituted"
-          },
-          {
-            "source_food_code": "92410210",
-            "description": "Water, carbonated, plain"
           },
           {
             "source_food_code": "93401020",
@@ -4312,8 +4163,6 @@
                     "food": "Sugar, white, granulated or lump",
                     "quantity": 12.5,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "91101010"
                   },
                   {
@@ -4334,8 +4183,6 @@
                     "food": "Apple juice, 100%",
                     "quantity": 108.5,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "64104010"
                   }
                 ]
@@ -4405,7 +4252,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 7,
+        "unresolved_count": 5,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -4426,15 +4273,15 @@
         "seqn": 141037,
         "recall_day": 2,
         "food_items": 11,
-        "known_local_items": 4,
-        "unresolved_expected_items": 7,
-        "known_local_rate": 0.3636,
+        "known_local_items": 6,
+        "unresolved_expected_items": 5,
+        "known_local_rate": 0.5455,
         "source_energy_kcal": 3178,
         "source_protein_g": 114.8,
         "source_sodium_mg": 5347,
-        "resolved_source_energy_kcal": 2074,
-        "resolved_source_protein_g": 88.8,
-        "resolved_source_sodium_mg": 3917,
+        "resolved_source_energy_kcal": 2174.7,
+        "resolved_source_protein_g": 89.2,
+        "resolved_source_sodium_mg": 3921.8,
         "source_food_codes": [
           "13120500",
           "22600200",
@@ -4453,8 +4300,6 @@
           "32130110",
           "53209015",
           "56201220",
-          "64104010",
-          "91101010",
           "92552030"
         ],
         "unresolved_source_foods": [
@@ -4473,14 +4318,6 @@
           {
             "source_food_code": "56201220",
             "description": "Grits, instant, made with water, fat added"
-          },
-          {
-            "source_food_code": "64104010",
-            "description": "Apple juice, 100%"
-          },
-          {
-            "source_food_code": "91101010",
-            "description": "Sugar, white, granulated or lump"
           },
           {
             "source_food_code": "92552030",
@@ -4547,8 +4384,6 @@
                     "food": "Rice, white, cooked, no added fat",
                     "quantity": 283.5,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "56205008"
                   },
                   {
@@ -4596,8 +4431,6 @@
                     "food": "Water, tap",
                     "quantity": 3840,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -4609,8 +4442,6 @@
                     "food": "Rice, white, cooked, no added fat",
                     "quantity": 283.5,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "56205008"
                   },
                   {
@@ -4748,7 +4579,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 19,
+        "unresolved_count": 16,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -4769,15 +4600,15 @@
         "seqn": 141442,
         "recall_day": 1,
         "food_items": 24,
-        "known_local_items": 5,
-        "unresolved_expected_items": 19,
-        "known_local_rate": 0.2083,
+        "known_local_items": 8,
+        "unresolved_expected_items": 16,
+        "known_local_rate": 0.3333,
         "source_energy_kcal": 3945,
-        "source_protein_g": 147.0,
+        "source_protein_g": 147,
         "source_sodium_mg": 10939,
-        "resolved_source_energy_kcal": 54,
-        "resolved_source_protein_g": 5.9,
-        "resolved_source_sodium_mg": 3874,
+        "resolved_source_energy_kcal": 784.7,
+        "resolved_source_protein_g": 21.2,
+        "resolved_source_sodium_mg": 5415.8,
         "source_food_codes": [
           "24154020",
           "26119110",
@@ -4810,7 +4641,6 @@
           "53239050",
           "54401011",
           "54401081",
-          "56205008",
           "64204010",
           "72201223",
           "74506000",
@@ -4818,8 +4648,7 @@
           "92161002",
           "92303010",
           "92513000",
-          "93401010",
-          "94000100"
+          "93401010"
         ],
         "unresolved_source_foods": [
           {
@@ -4855,10 +4684,6 @@
             "description": "Cheese flavored corn snacks (Cheetos)"
           },
           {
-            "source_food_code": "56205008",
-            "description": "Rice, white, cooked, no added fat"
-          },
-          {
             "source_food_code": "64204010",
             "description": "Mango nectar"
           },
@@ -4889,10 +4714,6 @@
           {
             "source_food_code": "93401010",
             "description": "Wine, red"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -4942,8 +4763,6 @@
                     "food": "Water, tap",
                     "quantity": 3840,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -5025,7 +4844,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 4,
+        "unresolved_count": 3,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -5046,15 +4865,15 @@
         "seqn": 132064,
         "recall_day": 2,
         "food_items": 8,
-        "known_local_items": 4,
-        "unresolved_expected_items": 4,
-        "known_local_rate": 0.5,
+        "known_local_items": 5,
+        "unresolved_expected_items": 3,
+        "known_local_rate": 0.625,
         "source_energy_kcal": 4158,
         "source_protein_g": 276.4,
         "source_sodium_mg": 9567,
-        "resolved_source_energy_kcal": 2088,
-        "resolved_source_protein_g": 120.2,
-        "resolved_source_sodium_mg": 3808,
+        "resolved_source_energy_kcal": 2088.9,
+        "resolved_source_protein_g": 119.8,
+        "resolved_source_sodium_mg": 3962.7,
         "source_food_codes": [
           "14104100",
           "27111406",
@@ -5068,8 +4887,7 @@
         "unresolved_source_food_codes": [
           "27111406",
           "51121035",
-          "91108000",
-          "94000100"
+          "91108000"
         ],
         "unresolved_source_foods": [
           {
@@ -5083,10 +4901,6 @@
           {
             "source_food_code": "91108000",
             "description": "Sugar substitute, stevia, powder"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -5136,8 +4950,6 @@
                     "food": "Water, tap",
                     "quantity": 1800,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -5275,7 +5087,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 8,
+        "unresolved_count": 7,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -5296,15 +5108,15 @@
         "seqn": 137730,
         "recall_day": 2,
         "food_items": 16,
-        "known_local_items": 8,
-        "unresolved_expected_items": 8,
-        "known_local_rate": 0.5,
+        "known_local_items": 9,
+        "unresolved_expected_items": 7,
+        "known_local_rate": 0.5625,
         "source_energy_kcal": 2248,
         "source_protein_g": 105.3,
         "source_sodium_mg": 6226,
-        "resolved_source_energy_kcal": 970,
-        "resolved_source_protein_g": 53.6,
-        "resolved_source_sodium_mg": 3706,
+        "resolved_source_energy_kcal": 970.2,
+        "resolved_source_protein_g": 53.5,
+        "resolved_source_sodium_mg": 3776.8,
         "source_food_codes": [
           "11114330",
           "14010000",
@@ -5330,8 +5142,7 @@
           "51150000",
           "54325000",
           "57237100",
-          "81102010",
-          "94000100"
+          "81102010"
         ],
         "unresolved_source_foods": [
           {
@@ -5361,10 +5172,6 @@
           {
             "source_food_code": "81102010",
             "description": "Margarine, stick"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -5414,8 +5221,6 @@
                     "food": "Water, carbonated, plain",
                     "quantity": 240,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92410210"
                   },
                   {
@@ -5435,8 +5240,6 @@
                     "food": "Water, carbonated, plain",
                     "quantity": 240,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92410210"
                   },
                   {
@@ -5451,8 +5254,6 @@
                     "food": "Coffee, instant, reconstituted",
                     "quantity": 360,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92103000"
                   },
                   {
@@ -5470,8 +5271,6 @@
                     "food": "Coffee, instant, reconstituted",
                     "quantity": 240,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92103000"
                   },
                   {
@@ -5489,8 +5288,6 @@
                     "food": "Coffee, instant, reconstituted",
                     "quantity": 240,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92103000"
                   },
                   {
@@ -5508,8 +5305,6 @@
                     "food": "Coffee, instant, reconstituted",
                     "quantity": 240,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92103000"
                   },
                   {
@@ -5547,8 +5342,6 @@
                     "food": "Coffee, instant, reconstituted",
                     "quantity": 240,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92103000"
                   },
                   {
@@ -5579,8 +5372,6 @@
                     "food": "Water, carbonated, plain",
                     "quantity": 240,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92410210"
                   },
                   {
@@ -5613,8 +5404,6 @@
                     "food": "Green peas, frozen, cooked, no added fat",
                     "quantity": 240,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "75224022"
                   }
                 ]
@@ -5626,8 +5415,6 @@
                     "food": "Water, carbonated, plain",
                     "quantity": 150,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92410210"
                   },
                   {
@@ -5649,7 +5436,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 16,
+        "unresolved_count": 6,
         "allow_extra_warnings": true,
         "warn_checks": [
           "sodium_under_limit"
@@ -5670,15 +5457,15 @@
         "seqn": 138000,
         "recall_day": 1,
         "food_items": 26,
-        "known_local_items": 10,
-        "unresolved_expected_items": 16,
-        "known_local_rate": 0.3846,
+        "known_local_items": 20,
+        "unresolved_expected_items": 6,
+        "known_local_rate": 0.7692,
         "source_energy_kcal": 2034,
         "source_protein_g": 83.4,
         "source_sodium_mg": 4745,
-        "resolved_source_energy_kcal": 1230,
-        "resolved_source_protein_g": 37.1,
-        "resolved_source_sodium_mg": 3694,
+        "resolved_source_energy_kcal": 1455.7,
+        "resolved_source_protein_g": 50.6,
+        "resolved_source_sodium_mg": 4382.5,
         "source_food_codes": [
           "11112110",
           "11434010",
@@ -5696,9 +5483,6 @@
         "unresolved_source_food_codes": [
           "11434010",
           "51186010",
-          "75224022",
-          "92103000",
-          "92410210",
           "93401020"
         ],
         "unresolved_source_foods": [
@@ -5709,18 +5493,6 @@
           {
             "source_food_code": "51186010",
             "description": "Muffin, English"
-          },
-          {
-            "source_food_code": "75224022",
-            "description": "Green peas, frozen, cooked, no added fat"
-          },
-          {
-            "source_food_code": "92103000",
-            "description": "Coffee, instant, reconstituted"
-          },
-          {
-            "source_food_code": "92410210",
-            "description": "Water, carbonated, plain"
           },
           {
             "source_food_code": "93401020",
@@ -5855,9 +5627,9 @@
         "source_energy_kcal": 1055,
         "source_protein_g": 9.1,
         "source_sodium_mg": 480,
-        "resolved_source_energy_kcal": 880,
+        "resolved_source_energy_kcal": 880.3,
         "resolved_source_protein_g": 0,
-        "resolved_source_sodium_mg": 64,
+        "resolved_source_sodium_mg": 62.9,
         "source_food_codes": [
           "27242000",
           "92410310"
@@ -6007,9 +5779,9 @@
         "source_energy_kcal": 1226,
         "source_protein_g": 47.4,
         "source_sodium_mg": 1281,
-        "resolved_source_energy_kcal": 156,
+        "resolved_source_energy_kcal": 156.2,
         "resolved_source_protein_g": 0,
-        "resolved_source_sodium_mg": 23,
+        "resolved_source_sodium_mg": 22,
         "source_food_codes": [
           "52206010",
           "58145135",
@@ -6174,9 +5946,9 @@
         "source_energy_kcal": 3512,
         "source_protein_g": 144.2,
         "source_sodium_mg": 6037,
-        "resolved_source_energy_kcal": 312,
+        "resolved_source_energy_kcal": 312.5,
         "resolved_source_protein_g": 0,
-        "resolved_source_sodium_mg": 42,
+        "resolved_source_sodium_mg": 42.6,
         "source_food_codes": [
           "27111407",
           "54325000",
@@ -6258,8 +6030,6 @@
                     "food": "Sugar, white, granulated or lump",
                     "quantity": 4.17,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "91101010"
                   },
                   {
@@ -6407,7 +6177,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 7,
+        "unresolved_count": 6,
         "allow_extra_warnings": true,
         "warn_checks": [
           "protein_minimum_met"
@@ -6428,15 +6198,15 @@
         "seqn": 133627,
         "recall_day": 2,
         "food_items": 16,
-        "known_local_items": 9,
-        "unresolved_expected_items": 7,
-        "known_local_rate": 0.5625,
+        "known_local_items": 10,
+        "unresolved_expected_items": 6,
+        "known_local_rate": 0.625,
         "source_energy_kcal": 1480,
         "source_protein_g": 34.3,
         "source_sodium_mg": 2465,
-        "resolved_source_energy_kcal": 0,
+        "resolved_source_energy_kcal": 16.7,
         "resolved_source_protein_g": 0,
-        "resolved_source_sodium_mg": 19,
+        "resolved_source_sodium_mg": 19.2,
         "source_food_codes": [
           "42111200",
           "53105262",
@@ -6453,8 +6223,7 @@
           "53233050",
           "54328100",
           "56201210",
-          "58146323",
-          "91101010"
+          "58146323"
         ],
         "unresolved_source_foods": [
           {
@@ -6480,10 +6249,6 @@
           {
             "source_food_code": "58146323",
             "description": "Pasta with tomato-based sauce and meat, ready-to-heat"
-          },
-          {
-            "source_food_code": "91101010",
-            "description": "Sugar, white, granulated or lump"
           }
         ]
       }
@@ -6724,7 +6489,7 @@
         "source_sodium_mg": 1779,
         "resolved_source_energy_kcal": 0,
         "resolved_source_protein_g": 0,
-        "resolved_source_sodium_mg": 50,
+        "resolved_source_sodium_mg": 50.7,
         "source_food_codes": [
           "11114300",
           "11830150",
@@ -6947,7 +6712,7 @@
         "source_sodium_mg": 1257,
         "resolved_source_energy_kcal": 0,
         "resolved_source_protein_g": 0,
-        "resolved_source_sodium_mg": 60,
+        "resolved_source_sodium_mg": 60.8,
         "source_food_codes": [
           "14108010",
           "58146322",
@@ -7106,9 +6871,9 @@
         "source_energy_kcal": 1553,
         "source_protein_g": 82.4,
         "source_sodium_mg": 2093,
-        "resolved_source_energy_kcal": 371,
+        "resolved_source_energy_kcal": 371.7,
         "resolved_source_protein_g": 0,
-        "resolved_source_sodium_mg": 89,
+        "resolved_source_sodium_mg": 89.8,
         "source_food_codes": [
           "24127202",
           "58145136",
@@ -7345,9 +7110,9 @@
         "source_energy_kcal": 2316,
         "source_protein_g": 86.3,
         "source_sodium_mg": 2100,
-        "resolved_source_energy_kcal": 5,
+        "resolved_source_energy_kcal": 5.1,
         "resolved_source_protein_g": 0,
-        "resolved_source_sodium_mg": 26,
+        "resolved_source_sodium_mg": 26.7,
         "source_food_codes": [
           "27311430",
           "32103000",
@@ -7599,7 +7364,7 @@
         "source_sodium_mg": 2622,
         "resolved_source_energy_kcal": 0,
         "resolved_source_protein_g": 0,
-        "resolved_source_sodium_mg": 12,
+        "resolved_source_sodium_mg": 14.4,
         "source_food_codes": [
           "11514360",
           "27510130",
@@ -7797,7 +7562,7 @@
         "source_sodium_mg": 1241,
         "resolved_source_energy_kcal": 0,
         "resolved_source_protein_g": 0,
-        "resolved_source_sodium_mg": 20,
+        "resolved_source_sodium_mg": 19.2,
         "source_food_codes": [
           "11512005",
           "27150310",
@@ -7945,13 +7710,13 @@
         "food_items": 6,
         "known_local_items": 6,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 1896,
         "source_protein_g": 39.2,
         "source_sodium_mg": 3687,
-        "resolved_source_energy_kcal": 1896,
-        "resolved_source_protein_g": 39.2,
-        "resolved_source_sodium_mg": 3687,
+        "resolved_source_energy_kcal": 1892.4,
+        "resolved_source_protein_g": 39.6,
+        "resolved_source_sodium_mg": 3680.9,
         "source_food_codes": [
           "56205001",
           "94100100"
@@ -8114,9 +7879,9 @@
         "source_energy_kcal": 543,
         "source_protein_g": 20.3,
         "source_sodium_mg": 971,
-        "resolved_source_energy_kcal": 478,
-        "resolved_source_protein_g": 18.2,
-        "resolved_source_sodium_mg": 828,
+        "resolved_source_energy_kcal": 478.9,
+        "resolved_source_protein_g": 18,
+        "resolved_source_sodium_mg": 827,
         "source_food_codes": [
           "22101020",
           "51401010",
@@ -8283,8 +8048,8 @@
         "source_protein_g": 9.2,
         "source_sodium_mg": 194,
         "resolved_source_energy_kcal": 621,
-        "resolved_source_protein_g": 8.1,
-        "resolved_source_sodium_mg": 157,
+        "resolved_source_protein_g": 7.9,
+        "resolved_source_sodium_mg": 157.9,
         "source_food_codes": [
           "63107010",
           "63109010",
@@ -8489,9 +8254,9 @@
         "source_energy_kcal": 2030,
         "source_protein_g": 219.2,
         "source_sodium_mg": 3015,
-        "resolved_source_energy_kcal": 1863,
-        "resolved_source_protein_g": 217.2,
-        "resolved_source_sodium_mg": 2785,
+        "resolved_source_energy_kcal": 1861.3,
+        "resolved_source_protein_g": 216.9,
+        "resolved_source_sodium_mg": 2786.6,
         "source_food_codes": [
           "22101020",
           "41106020",
@@ -8647,11 +8412,11 @@
         "unresolved_expected_items": 1,
         "known_local_rate": 0.8333,
         "source_energy_kcal": 806,
-        "source_protein_g": 25.0,
+        "source_protein_g": 25,
         "source_sodium_mg": 2972,
         "resolved_source_energy_kcal": 441,
-        "resolved_source_protein_g": 25.0,
-        "resolved_source_sodium_mg": 2838,
+        "resolved_source_protein_g": 25.2,
+        "resolved_source_sodium_mg": 2844.1,
         "source_food_codes": [
           "58403010",
           "92410550",
@@ -8790,11 +8555,11 @@
         "unresolved_expected_items": 1,
         "known_local_rate": 0.8333,
         "source_energy_kcal": 1403,
-        "source_protein_g": 68.0,
+        "source_protein_g": 68,
         "source_sodium_mg": 2058,
-        "resolved_source_energy_kcal": 1362,
-        "resolved_source_protein_g": 67.7,
-        "resolved_source_sodium_mg": 2038,
+        "resolved_source_energy_kcal": 1362.7,
+        "resolved_source_protein_g": 67.6,
+        "resolved_source_sodium_mg": 2038.1,
         "source_food_codes": [
           "11111000",
           "12210200",
@@ -8938,9 +8703,9 @@
         "source_energy_kcal": 1650,
         "source_protein_g": 50.3,
         "source_sodium_mg": 1926,
-        "resolved_source_energy_kcal": 1185,
+        "resolved_source_energy_kcal": 1185.4,
         "resolved_source_protein_g": 23.5,
-        "resolved_source_sodium_mg": 908,
+        "resolved_source_sodium_mg": 908.4,
         "source_food_codes": [
           "11511200",
           "27510387",
@@ -9016,8 +8781,6 @@
                     "food": "Bread, white, toasted",
                     "quantity": 50,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "51101010"
                   },
                   {
@@ -9097,7 +8860,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 2,
+        "unresolved_count": 1,
         "allow_extra_warnings": true,
         "decision": "block",
         "block_checks": [
@@ -9115,15 +8878,15 @@
         "seqn": 139900,
         "recall_day": 1,
         "food_items": 11,
-        "known_local_items": 9,
-        "unresolved_expected_items": 2,
-        "known_local_rate": 0.8182,
+        "known_local_items": 10,
+        "unresolved_expected_items": 1,
+        "known_local_rate": 0.9091,
         "source_energy_kcal": 1415,
         "source_protein_g": 60.4,
         "source_sodium_mg": 2348,
-        "resolved_source_energy_kcal": 603,
-        "resolved_source_protein_g": 19.1,
-        "resolved_source_sodium_mg": 510,
+        "resolved_source_energy_kcal": 749.4,
+        "resolved_source_protein_g": 24.1,
+        "resolved_source_sodium_mg": 758.1,
         "source_food_codes": [
           "11111000",
           "27343010",
@@ -9135,17 +8898,12 @@
           "94100100"
         ],
         "unresolved_source_food_codes": [
-          "27343010",
-          "51101010"
+          "27343010"
         ],
         "unresolved_source_foods": [
           {
             "source_food_code": "27343010",
             "description": "Chicken or turkey, noodles, and vegetables including carrots, broccoli, and/or dark-green leafy; no sauce"
-          },
-          {
-            "source_food_code": "51101010",
-            "description": "Bread, white, toasted"
           }
         ]
       }
@@ -9278,9 +9036,9 @@
         "source_energy_kcal": 1160,
         "source_protein_g": 30.2,
         "source_sodium_mg": 3373,
-        "resolved_source_energy_kcal": 811,
-        "resolved_source_protein_g": 16.2,
-        "resolved_source_sodium_mg": 2973,
+        "resolved_source_energy_kcal": 809.2,
+        "resolved_source_protein_g": 16,
+        "resolved_source_sodium_mg": 2976.9,
         "source_food_codes": [
           "42301020",
           "58407030",
@@ -9416,7 +9174,7 @@
         "source_energy_kcal": 682,
         "source_protein_g": 22.6,
         "source_sodium_mg": 972,
-        "resolved_source_energy_kcal": 334,
+        "resolved_source_energy_kcal": 334.2,
         "resolved_source_protein_g": 0.9,
         "resolved_source_sodium_mg": 447,
         "source_food_codes": [
@@ -9589,11 +9347,11 @@
         "unresolved_expected_items": 2,
         "known_local_rate": 0.8,
         "source_energy_kcal": 858,
-        "source_protein_g": 38.0,
+        "source_protein_g": 38,
         "source_sodium_mg": 695,
-        "resolved_source_energy_kcal": 600,
+        "resolved_source_energy_kcal": 597.2,
         "resolved_source_protein_g": 32.8,
-        "resolved_source_sodium_mg": 478,
+        "resolved_source_sodium_mg": 475.7,
         "source_food_codes": [
           "31103010",
           "42202000",
@@ -9777,9 +9535,9 @@
         "source_energy_kcal": 1051,
         "source_protein_g": 35.3,
         "source_sodium_mg": 1520,
-        "resolved_source_energy_kcal": 798,
+        "resolved_source_energy_kcal": 798.8,
         "resolved_source_protein_g": 22.5,
-        "resolved_source_sodium_mg": 695,
+        "resolved_source_sodium_mg": 693,
         "source_food_codes": [
           "41603010",
           "42202000",
@@ -9959,9 +9717,9 @@
         "source_energy_kcal": 2050,
         "source_protein_g": 183.1,
         "source_sodium_mg": 4222,
-        "resolved_source_energy_kcal": 1561,
-        "resolved_source_protein_g": 150.3,
-        "resolved_source_sodium_mg": 2152,
+        "resolved_source_energy_kcal": 1561.2,
+        "resolved_source_protein_g": 149.9,
+        "resolved_source_sodium_mg": 2152.5,
         "source_food_codes": [
           "11111000",
           "13110100",
@@ -10142,9 +9900,9 @@
         "source_energy_kcal": 2380,
         "source_protein_g": 71.1,
         "source_sodium_mg": 2009,
-        "resolved_source_energy_kcal": 1208,
-        "resolved_source_protein_g": 3.8,
-        "resolved_source_sodium_mg": 355,
+        "resolved_source_energy_kcal": 1208.5,
+        "resolved_source_protein_g": 3.7,
+        "resolved_source_sodium_mg": 355.1,
         "source_food_codes": [
           "21101180",
           "71200100",
@@ -10385,9 +10143,9 @@
         "source_energy_kcal": 1454,
         "source_protein_g": 42.6,
         "source_sodium_mg": 2570,
-        "resolved_source_energy_kcal": 586,
-        "resolved_source_protein_g": 2.6,
-        "resolved_source_sodium_mg": 642,
+        "resolved_source_energy_kcal": 588.3,
+        "resolved_source_protein_g": 2.5,
+        "resolved_source_sodium_mg": 641,
         "source_food_codes": [
           "12120100",
           "14410110",
@@ -10670,9 +10428,9 @@
         "source_energy_kcal": 2313,
         "source_protein_g": 151.9,
         "source_sodium_mg": 4678,
-        "resolved_source_energy_kcal": 524,
-        "resolved_source_protein_g": 25.9,
-        "resolved_source_sodium_mg": 1997,
+        "resolved_source_energy_kcal": 523.6,
+        "resolved_source_protein_g": 26,
+        "resolved_source_sodium_mg": 1996.5,
         "source_food_codes": [
           "11350020",
           "14010000",
@@ -10857,8 +10615,8 @@
         "source_protein_g": 34.2,
         "source_sodium_mg": 1186,
         "resolved_source_energy_kcal": 782,
-        "resolved_source_protein_g": 22.8,
-        "resolved_source_sodium_mg": 902,
+        "resolved_source_protein_g": 22.7,
+        "resolved_source_sodium_mg": 900.9,
         "source_food_codes": [
           "24100020",
           "31103010",
@@ -11033,9 +10791,9 @@
         "source_energy_kcal": 563,
         "source_protein_g": 21.6,
         "source_sodium_mg": 779,
-        "resolved_source_energy_kcal": 252,
+        "resolved_source_energy_kcal": 252.5,
         "resolved_source_protein_g": 7.9,
-        "resolved_source_sodium_mg": 109,
+        "resolved_source_sodium_mg": 109.9,
         "source_food_codes": [
           "11111000",
           "27564300",
@@ -11198,8 +10956,8 @@
         "source_protein_g": 39.5,
         "source_sodium_mg": 1882,
         "resolved_source_energy_kcal": 663,
-        "resolved_source_protein_g": 11.4,
-        "resolved_source_sodium_mg": 743,
+        "resolved_source_protein_g": 11.5,
+        "resolved_source_sodium_mg": 742.2,
         "source_food_codes": [
           "11111000",
           "27550720",
@@ -11367,11 +11125,11 @@
         "unresolved_expected_items": 2,
         "known_local_rate": 0.75,
         "source_energy_kcal": 1192,
-        "source_protein_g": 44.0,
+        "source_protein_g": 44,
         "source_sodium_mg": 1287,
-        "resolved_source_energy_kcal": 870,
-        "resolved_source_protein_g": 28.7,
-        "resolved_source_sodium_mg": 1046,
+        "resolved_source_energy_kcal": 868.5,
+        "resolved_source_protein_g": 28.8,
+        "resolved_source_sodium_mg": 1046.6,
         "source_food_codes": [
           "11411400",
           "14107030",
@@ -11550,9 +11308,9 @@
         "source_energy_kcal": 1526,
         "source_protein_g": 90.7,
         "source_sodium_mg": 3640,
-        "resolved_source_energy_kcal": 410,
-        "resolved_source_protein_g": 2.8,
-        "resolved_source_sodium_mg": 292,
+        "resolved_source_energy_kcal": 410.1,
+        "resolved_source_protein_g": 2.6,
+        "resolved_source_sodium_mg": 292.5,
         "source_food_codes": [
           "27311410",
           "27520240",
@@ -11758,9 +11516,9 @@
         "source_energy_kcal": 2682,
         "source_protein_g": 77.8,
         "source_sodium_mg": 3768,
-        "resolved_source_energy_kcal": 1410,
-        "resolved_source_protein_g": 17.0,
-        "resolved_source_sodium_mg": 1419,
+        "resolved_source_energy_kcal": 1410.8,
+        "resolved_source_protein_g": 16.8,
+        "resolved_source_sodium_mg": 1418.2,
         "source_food_codes": [
           "55101000",
           "58106736",
@@ -11901,8 +11659,6 @@
                     "food": "Water, tap",
                     "quantity": 300,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -11948,7 +11704,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 3,
+        "unresolved_count": 2,
         "allow_extra_warnings": true,
         "decision": "block",
         "block_checks": [
@@ -11966,15 +11722,15 @@
         "seqn": 131296,
         "recall_day": 1,
         "food_items": 12,
-        "known_local_items": 9,
-        "unresolved_expected_items": 3,
-        "known_local_rate": 0.75,
+        "known_local_items": 10,
+        "unresolved_expected_items": 2,
+        "known_local_rate": 0.8333,
         "source_energy_kcal": 934,
         "source_protein_g": 29.2,
         "source_sodium_mg": 1369,
-        "resolved_source_energy_kcal": 152,
-        "resolved_source_protein_g": 3.2,
-        "resolved_source_sodium_mg": 351,
+        "resolved_source_energy_kcal": 150,
+        "resolved_source_protein_g": 3.1,
+        "resolved_source_sodium_mg": 362.8,
         "source_food_codes": [
           "58102340",
           "72116000",
@@ -11989,8 +11745,7 @@
         ],
         "unresolved_source_food_codes": [
           "58102340",
-          "93101000",
-          "94000100"
+          "93101000"
         ],
         "unresolved_source_foods": [
           {
@@ -12000,10 +11755,6 @@
           {
             "source_food_code": "93101000",
             "description": "Beer"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -12053,8 +11804,6 @@
                     "food": "Coffee, instant, reconstituted",
                     "quantity": 345,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92103000"
                   },
                   {
@@ -12158,7 +11907,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 3,
+        "unresolved_count": 2,
         "allow_extra_warnings": true,
         "decision": "block",
         "block_checks": [
@@ -12176,15 +11925,15 @@
         "seqn": 131937,
         "recall_day": 2,
         "food_items": 12,
-        "known_local_items": 9,
-        "unresolved_expected_items": 3,
-        "known_local_rate": 0.75,
+        "known_local_items": 10,
+        "unresolved_expected_items": 2,
+        "known_local_rate": 0.8333,
         "source_energy_kcal": 1586,
         "source_protein_g": 116.5,
         "source_sodium_mg": 1568,
-        "resolved_source_energy_kcal": 763,
-        "resolved_source_protein_g": 30.5,
-        "resolved_source_sodium_mg": 638,
+        "resolved_source_energy_kcal": 774,
+        "resolved_source_protein_g": 30.7,
+        "resolved_source_sodium_mg": 652.2,
         "source_food_codes": [
           "11111000",
           "14109010",
@@ -12200,8 +11949,7 @@
         ],
         "unresolved_source_food_codes": [
           "14109010",
-          "26151120",
-          "92103000"
+          "26151120"
         ],
         "unresolved_source_foods": [
           {
@@ -12211,10 +11959,6 @@
           {
             "source_food_code": "26151120",
             "description": "Fish, trout, baked or broiled"
-          },
-          {
-            "source_food_code": "92103000",
-            "description": "Coffee, instant, reconstituted"
           }
         ]
       }
@@ -12388,9 +12132,9 @@
         "source_energy_kcal": 949,
         "source_protein_g": 28.9,
         "source_sodium_mg": 1548,
-        "resolved_source_energy_kcal": 810,
+        "resolved_source_energy_kcal": 810.5,
         "resolved_source_protein_g": 26.5,
-        "resolved_source_sodium_mg": 1471,
+        "resolved_source_sodium_mg": 1472.6,
         "source_food_codes": [
           "14301010",
           "51180010",
@@ -12469,8 +12213,6 @@
                     "food": "Water, tap",
                     "quantity": 1365,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -12574,7 +12316,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 3,
+        "unresolved_count": 2,
         "allow_extra_warnings": true,
         "decision": "block",
         "block_checks": [
@@ -12592,15 +12334,15 @@
         "seqn": 142132,
         "recall_day": 1,
         "food_items": 12,
-        "known_local_items": 9,
-        "unresolved_expected_items": 3,
-        "known_local_rate": 0.75,
+        "known_local_items": 10,
+        "unresolved_expected_items": 2,
+        "known_local_rate": 0.8333,
         "source_energy_kcal": 882,
         "source_protein_g": 76.9,
         "source_sodium_mg": 1411,
-        "resolved_source_energy_kcal": 595,
-        "resolved_source_protein_g": 60,
-        "resolved_source_sodium_mg": 678,
+        "resolved_source_energy_kcal": 593.1,
+        "resolved_source_protein_g": 59.9,
+        "resolved_source_sodium_mg": 734.4,
         "source_food_codes": [
           "26137120",
           "26155110",
@@ -12615,8 +12357,7 @@
         ],
         "unresolved_source_food_codes": [
           "32130430",
-          "75649110",
-          "94000100"
+          "75649110"
         ],
         "unresolved_source_foods": [
           {
@@ -12626,10 +12367,6 @@
           {
             "source_food_code": "75649110",
             "description": "Soup, vegetable"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -12696,8 +12433,6 @@
                     "food": "Water, tap",
                     "quantity": 1920,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "94000100"
                   }
                 ]
@@ -12789,7 +12524,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 3,
+        "unresolved_count": 2,
         "allow_extra_warnings": true,
         "decision": "block",
         "block_checks": [
@@ -12807,15 +12542,15 @@
         "seqn": 142280,
         "recall_day": 1,
         "food_items": 12,
-        "known_local_items": 9,
-        "unresolved_expected_items": 3,
-        "known_local_rate": 0.75,
+        "known_local_items": 10,
+        "unresolved_expected_items": 2,
+        "known_local_rate": 0.8333,
         "source_energy_kcal": 1844,
         "source_protein_g": 58.9,
         "source_sodium_mg": 3640,
-        "resolved_source_energy_kcal": 1246,
-        "resolved_source_protein_g": 19.2,
-        "resolved_source_sodium_mg": 1663,
+        "resolved_source_energy_kcal": 1245.5,
+        "resolved_source_protein_g": 19.1,
+        "resolved_source_sodium_mg": 1741.7,
         "source_food_codes": [
           "14104100",
           "27540040",
@@ -12826,17 +12561,12 @@
           "94000100"
         ],
         "unresolved_source_food_codes": [
-          "27540040",
-          "94000100"
+          "27540040"
         ],
         "unresolved_source_foods": [
           {
             "source_food_code": "27540040",
             "description": "Turkey sandwich on wheat, with cheese"
-          },
-          {
-            "source_food_code": "94000100",
-            "description": "Water, tap"
           }
         ]
       }
@@ -12921,8 +12651,6 @@
                     "food": "Coffee, instant, reconstituted",
                     "quantity": 1920,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92103000"
                   }
                 ]
@@ -12954,8 +12682,6 @@
                     "food": "Apple juice, 100%",
                     "quantity": 124,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "64104010"
                   },
                   {
@@ -12991,8 +12717,6 @@
                     "food": "Coffee, instant, reconstituted",
                     "quantity": 240,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "92103000"
                   },
                   {
@@ -13012,7 +12736,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 4,
+        "unresolved_count": 1,
         "allow_extra_warnings": true,
         "decision": "block",
         "block_checks": [
@@ -13030,15 +12754,15 @@
         "seqn": 137515,
         "recall_day": 1,
         "food_items": 16,
-        "known_local_items": 12,
-        "unresolved_expected_items": 4,
-        "known_local_rate": 0.75,
+        "known_local_items": 15,
+        "unresolved_expected_items": 1,
+        "known_local_rate": 0.9375,
         "source_energy_kcal": 1194,
         "source_protein_g": 51.7,
         "source_sodium_mg": 1445,
-        "resolved_source_energy_kcal": 641,
-        "resolved_source_protein_g": 24.9,
-        "resolved_source_sodium_mg": 800,
+        "resolved_source_energy_kcal": 766.2,
+        "resolved_source_protein_g": 27.2,
+        "resolved_source_sodium_mg": 891.6,
         "source_food_codes": [
           "11112110",
           "26137140",
@@ -13053,22 +12777,12 @@
           "94100100"
         ],
         "unresolved_source_food_codes": [
-          "26137140",
-          "64104010",
-          "92103000"
+          "26137140"
         ],
         "unresolved_source_foods": [
           {
             "source_food_code": "26137140",
             "description": "Fish, salmon, fried"
-          },
-          {
-            "source_food_code": "64104010",
-            "description": "Apple juice, 100%"
-          },
-          {
-            "source_food_code": "92103000",
-            "description": "Coffee, instant, reconstituted"
           }
         ]
       }
@@ -13273,9 +12987,9 @@
         "source_energy_kcal": 1154,
         "source_protein_g": 43.6,
         "source_sodium_mg": 2162,
-        "resolved_source_energy_kcal": 361,
-        "resolved_source_protein_g": 14.5,
-        "resolved_source_sodium_mg": 526,
+        "resolved_source_energy_kcal": 361.4,
+        "resolved_source_protein_g": 14.4,
+        "resolved_source_sodium_mg": 523.9,
         "source_food_codes": [
           "11111000",
           "27520220",
@@ -13367,8 +13081,6 @@
                     "food": "Sugar, white, granulated or lump",
                     "quantity": 12.5,
                     "unit": "g",
-                    "resolution_status": "unresolved",
-                    "unresolved_reason": "unknown_food",
                     "source_food_code": "91101010"
                   },
                   {
@@ -13512,7 +13224,7 @@
         ]
       },
       "expected": {
-        "unresolved_count": 4,
+        "unresolved_count": 3,
         "allow_extra_warnings": true,
         "decision": "block",
         "block_checks": [
@@ -13530,15 +13242,15 @@
         "seqn": 140347,
         "recall_day": 2,
         "food_items": 16,
-        "known_local_items": 12,
-        "unresolved_expected_items": 4,
-        "known_local_rate": 0.75,
+        "known_local_items": 13,
+        "unresolved_expected_items": 3,
+        "known_local_rate": 0.8125,
         "source_energy_kcal": 2020,
         "source_protein_g": 44.2,
         "source_sodium_mg": 2139,
-        "resolved_source_energy_kcal": 1331,
-        "resolved_source_protein_g": 37.7,
-        "resolved_source_sodium_mg": 1596,
+        "resolved_source_energy_kcal": 1380.6,
+        "resolved_source_protein_g": 37.6,
+        "resolved_source_sodium_mg": 1594.6,
         "source_food_codes": [
           "12210210",
           "54401075",
@@ -13554,8 +13266,7 @@
         "unresolved_source_food_codes": [
           "12210210",
           "54401075",
-          "63409015",
-          "91101010"
+          "63409015"
         ],
         "unresolved_source_foods": [
           {
@@ -13569,10 +13280,6 @@
           {
             "source_food_code": "63409015",
             "description": "Guacamole with tomatoes"
-          },
-          {
-            "source_food_code": "91101010",
-            "description": "Sugar, white, granulated or lump"
           }
         ]
       }
@@ -13663,13 +13370,13 @@
         "food_items": 3,
         "known_local_items": 3,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 369,
         "source_protein_g": 11.2,
         "source_sodium_mg": 349,
-        "resolved_source_energy_kcal": 369,
-        "resolved_source_protein_g": 11.2,
-        "resolved_source_sodium_mg": 349,
+        "resolved_source_energy_kcal": 371.5,
+        "resolved_source_protein_g": 11.1,
+        "resolved_source_sodium_mg": 349.6,
         "source_food_codes": [
           "56203056",
           "63107010",
@@ -13759,13 +13466,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 125,
         "source_protein_g": 2.1,
         "source_sodium_mg": 15,
-        "resolved_source_energy_kcal": 125,
-        "resolved_source_protein_g": 2.1,
-        "resolved_source_sodium_mg": 15,
+        "resolved_source_energy_kcal": 124.8,
+        "resolved_source_protein_g": 2,
+        "resolved_source_sodium_mg": 14.9,
         "source_food_codes": [
           "63105010",
           "92101000"
@@ -13866,13 +13573,13 @@
         "food_items": 4,
         "known_local_items": 4,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 708,
         "source_protein_g": 35.1,
         "source_sodium_mg": 1940,
-        "resolved_source_energy_kcal": 708,
-        "resolved_source_protein_g": 35.1,
-        "resolved_source_sodium_mg": 1940,
+        "resolved_source_energy_kcal": 706.3,
+        "resolved_source_protein_g": 35.2,
+        "resolved_source_sodium_mg": 1939.3,
         "source_food_codes": [
           "58102650",
           "74101000",
@@ -13969,13 +13676,13 @@
         "food_items": 3,
         "known_local_items": 3,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 333,
-        "source_protein_g": 10.0,
+        "source_protein_g": 10,
         "source_sodium_mg": 214,
-        "resolved_source_energy_kcal": 333,
-        "resolved_source_protein_g": 10.0,
-        "resolved_source_sodium_mg": 214,
+        "resolved_source_energy_kcal": 333.6,
+        "resolved_source_protein_g": 10,
+        "resolved_source_sodium_mg": 213.6,
         "source_food_codes": [
           "11111000",
           "57123000",
@@ -14065,13 +13772,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 69,
         "source_protein_g": 3.9,
         "source_sodium_mg": 48,
-        "resolved_source_energy_kcal": 69,
+        "resolved_source_energy_kcal": 68.7,
         "resolved_source_protein_g": 3.9,
-        "resolved_source_sodium_mg": 48,
+        "resolved_source_sodium_mg": 47.8,
         "source_food_codes": [
           "11111000",
           "92101000"
@@ -14160,13 +13867,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 177,
         "source_protein_g": 1.7,
         "source_sodium_mg": 7,
-        "resolved_source_energy_kcal": 177,
+        "resolved_source_energy_kcal": 177.6,
         "resolved_source_protein_g": 1.7,
-        "resolved_source_sodium_mg": 7,
+        "resolved_source_sodium_mg": 6.2,
         "source_food_codes": [
           "61119010",
           "63101000"
@@ -14255,13 +13962,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 177,
         "source_protein_g": 1.7,
         "source_sodium_mg": 7,
-        "resolved_source_energy_kcal": 177,
+        "resolved_source_energy_kcal": 177.6,
         "resolved_source_protein_g": 1.7,
-        "resolved_source_sodium_mg": 7,
+        "resolved_source_sodium_mg": 6.2,
         "source_food_codes": [
           "61119010",
           "63101000"
@@ -14350,7 +14057,7 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 147,
         "source_protein_g": 1.6,
         "source_sodium_mg": 5,
@@ -14445,13 +14152,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 189,
         "source_protein_g": 2.1,
         "source_sodium_mg": 8,
-        "resolved_source_energy_kcal": 189,
+        "resolved_source_energy_kcal": 188.5,
         "resolved_source_protein_g": 2.1,
-        "resolved_source_sodium_mg": 8,
+        "resolved_source_sodium_mg": 7.5,
         "source_food_codes": [
           "63123000",
           "63203010"
@@ -14540,13 +14247,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 14,
         "source_protein_g": 1.7,
         "source_sodium_mg": 34,
-        "resolved_source_energy_kcal": 14,
-        "resolved_source_protein_g": 1.7,
-        "resolved_source_sodium_mg": 34,
+        "resolved_source_energy_kcal": 14.4,
+        "resolved_source_protein_g": 1.4,
+        "resolved_source_sodium_mg": 33.6,
         "source_food_codes": [
           "92101000",
           "94100100"
@@ -14635,13 +14342,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 73,
         "source_protein_g": 0,
         "source_sodium_mg": 114,
-        "resolved_source_energy_kcal": 73,
+        "resolved_source_energy_kcal": 72.5,
         "resolved_source_protein_g": 0,
-        "resolved_source_sodium_mg": 114,
+        "resolved_source_sodium_mg": 114.2,
         "source_food_codes": [
           "94100100",
           "95320200"
@@ -14730,11 +14437,11 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 13,
         "source_protein_g": 0.9,
         "source_sodium_mg": 13,
-        "resolved_source_energy_kcal": 13,
+        "resolved_source_energy_kcal": 12.9,
         "resolved_source_protein_g": 0.9,
         "resolved_source_sodium_mg": 13,
         "source_food_codes": [
@@ -14825,13 +14532,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 112,
         "source_protein_g": 1.1,
         "source_sodium_mg": 4,
-        "resolved_source_energy_kcal": 112,
+        "resolved_source_energy_kcal": 111.8,
         "resolved_source_protein_g": 1.1,
-        "resolved_source_sodium_mg": 4,
+        "resolved_source_sodium_mg": 3.8,
         "source_food_codes": [
           "63123000",
           "63141010"
@@ -14932,13 +14639,13 @@
         "food_items": 4,
         "known_local_items": 4,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 291,
         "source_protein_g": 7.9,
         "source_sodium_mg": 193,
-        "resolved_source_energy_kcal": 291,
-        "resolved_source_protein_g": 7.9,
-        "resolved_source_sodium_mg": 193,
+        "resolved_source_energy_kcal": 292.6,
+        "resolved_source_protein_g": 7.7,
+        "resolved_source_sodium_mg": 191.9,
         "source_food_codes": [
           "11113000",
           "56203056",
@@ -15029,13 +14736,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 122,
         "source_protein_g": 0.9,
         "source_sodium_mg": 7,
-        "resolved_source_energy_kcal": 122,
+        "resolved_source_energy_kcal": 122.2,
         "resolved_source_protein_g": 0.9,
-        "resolved_source_sodium_mg": 7,
+        "resolved_source_sodium_mg": 7.2,
         "source_food_codes": [
           "63107010",
           "94100100"
@@ -15124,13 +14831,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 54,
         "source_protein_g": 2.3,
         "source_sodium_mg": 63,
-        "resolved_source_energy_kcal": 54,
+        "resolved_source_energy_kcal": 54.4,
         "resolved_source_protein_g": 2.3,
-        "resolved_source_sodium_mg": 63,
+        "resolved_source_sodium_mg": 62.5,
         "source_food_codes": [
           "14104100",
           "63101000"
@@ -15225,13 +14932,13 @@
         "food_items": 3,
         "known_local_items": 3,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 166,
         "source_protein_g": 1.9,
         "source_sodium_mg": 15,
-        "resolved_source_energy_kcal": 166,
+        "resolved_source_energy_kcal": 165.6,
         "resolved_source_protein_g": 1.9,
-        "resolved_source_sodium_mg": 15,
+        "resolved_source_sodium_mg": 15.8,
         "source_food_codes": [
           "61204010",
           "64134015",
@@ -15321,13 +15028,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 1,
         "source_protein_g": 0.1,
         "source_sodium_mg": 11,
-        "resolved_source_energy_kcal": 1,
+        "resolved_source_energy_kcal": 0.6,
         "resolved_source_protein_g": 0.1,
-        "resolved_source_sodium_mg": 11,
+        "resolved_source_sodium_mg": 11.3,
         "source_food_codes": [
           "92101000",
           "94100100"
@@ -15416,13 +15123,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 430,
         "source_protein_g": 11.6,
         "source_sodium_mg": 339,
-        "resolved_source_energy_kcal": 430,
+        "resolved_source_energy_kcal": 432.6,
         "resolved_source_protein_g": 11.6,
-        "resolved_source_sodium_mg": 339,
+        "resolved_source_sodium_mg": 339.5,
         "source_food_codes": [
           "56203056",
           "63107010"
@@ -15511,13 +15218,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 123,
         "source_protein_g": 0.3,
         "source_sodium_mg": 10,
-        "resolved_source_energy_kcal": 123,
-        "resolved_source_protein_g": 0.3,
-        "resolved_source_sodium_mg": 10,
+        "resolved_source_energy_kcal": 122,
+        "resolved_source_protein_g": 0.4,
+        "resolved_source_sodium_mg": 10.2,
         "source_food_codes": [
           "63101000",
           "94100100"
@@ -15606,13 +15313,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 385,
-        "source_protein_g": 15.0,
+        "source_protein_g": 15,
         "source_sodium_mg": 628,
-        "resolved_source_energy_kcal": 385,
-        "resolved_source_protein_g": 15.0,
-        "resolved_source_sodium_mg": 628,
+        "resolved_source_energy_kcal": 384.7,
+        "resolved_source_protein_g": 15,
+        "resolved_source_sodium_mg": 627.2,
         "source_food_codes": [
           "58145110",
           "94100100"
@@ -15701,13 +15408,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 177,
         "source_protein_g": 2.1,
         "source_sodium_mg": 7,
-        "resolved_source_energy_kcal": 177,
+        "resolved_source_energy_kcal": 176.2,
         "resolved_source_protein_g": 2.1,
-        "resolved_source_sodium_mg": 7,
+        "resolved_source_sodium_mg": 8.9,
         "source_food_codes": [
           "64134015",
           "92101000"
@@ -15796,13 +15503,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 1344,
         "source_protein_g": 49.2,
         "source_sodium_mg": 2037,
-        "resolved_source_energy_kcal": 1344,
-        "resolved_source_protein_g": 49.2,
-        "resolved_source_sodium_mg": 2037,
+        "resolved_source_energy_kcal": 1342.5,
+        "resolved_source_protein_g": 49.3,
+        "resolved_source_sodium_mg": 2035.4,
         "source_food_codes": [
           "58145110",
           "92410310"
@@ -15891,13 +15598,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 123,
         "source_protein_g": 0.3,
         "source_sodium_mg": 10,
-        "resolved_source_energy_kcal": 123,
-        "resolved_source_protein_g": 0.3,
-        "resolved_source_sodium_mg": 10,
+        "resolved_source_energy_kcal": 122,
+        "resolved_source_protein_g": 0.4,
+        "resolved_source_sodium_mg": 9.6,
         "source_food_codes": [
           "63101000",
           "94100100"
@@ -15986,11 +15693,11 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 20,
         "source_protein_g": 1.1,
         "source_sodium_mg": 14,
-        "resolved_source_energy_kcal": 20,
+        "resolved_source_energy_kcal": 19.8,
         "resolved_source_protein_g": 1.1,
         "resolved_source_sodium_mg": 14,
         "source_food_codes": [
@@ -16081,13 +15788,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 976,
         "source_protein_g": 9.4,
         "source_sodium_mg": 246,
-        "resolved_source_energy_kcal": 976,
-        "resolved_source_protein_g": 9.4,
-        "resolved_source_sodium_mg": 246,
+        "resolved_source_energy_kcal": 975.5,
+        "resolved_source_protein_g": 9.5,
+        "resolved_source_sodium_mg": 245.8,
         "source_food_codes": [
           "13110100",
           "92410310"
@@ -16176,13 +15883,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 317,
         "source_protein_g": 11.4,
         "source_sodium_mg": 122,
-        "resolved_source_energy_kcal": 317,
-        "resolved_source_protein_g": 11.4,
-        "resolved_source_sodium_mg": 122,
+        "resolved_source_energy_kcal": 317.6,
+        "resolved_source_protein_g": 11.5,
+        "resolved_source_sodium_mg": 121.7,
         "source_food_codes": [
           "11111000",
           "63107010"
@@ -16271,13 +15978,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 392,
         "source_protein_g": 15.4,
         "source_sodium_mg": 168,
-        "resolved_source_energy_kcal": 392,
-        "resolved_source_protein_g": 15.4,
-        "resolved_source_sodium_mg": 168,
+        "resolved_source_energy_kcal": 391.8,
+        "resolved_source_protein_g": 15.5,
+        "resolved_source_sodium_mg": 167.9,
         "source_food_codes": [
           "11111000",
           "63107010"
@@ -16372,13 +16079,13 @@
         "food_items": 3,
         "known_local_items": 3,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 888,
         "source_protein_g": 28.8,
         "source_sodium_mg": 551,
-        "resolved_source_energy_kcal": 888,
+        "resolved_source_energy_kcal": 887.4,
         "resolved_source_protein_g": 28.8,
-        "resolved_source_sodium_mg": 551,
+        "resolved_source_sodium_mg": 551.3,
         "source_food_codes": [
           "42202000",
           "63101000",
@@ -16468,13 +16175,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 41,
         "source_protein_g": 0.4,
         "source_sodium_mg": 7,
-        "resolved_source_energy_kcal": 41,
+        "resolved_source_energy_kcal": 40.7,
         "resolved_source_protein_g": 0.4,
-        "resolved_source_sodium_mg": 7,
+        "resolved_source_sodium_mg": 7.5,
         "source_food_codes": [
           "63123000",
           "94100100"
@@ -16563,13 +16270,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 149,
         "source_protein_g": 3.6,
         "source_sodium_mg": 74,
-        "resolved_source_energy_kcal": 149,
+        "resolved_source_energy_kcal": 148.9,
         "resolved_source_protein_g": 3.6,
-        "resolved_source_sodium_mg": 74,
+        "resolved_source_sodium_mg": 74.2,
         "source_food_codes": [
           "42202000",
           "91401000"
@@ -16658,13 +16365,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 50,
         "source_protein_g": 1.2,
         "source_sodium_mg": 25,
-        "resolved_source_energy_kcal": 50,
+        "resolved_source_energy_kcal": 49.6,
         "resolved_source_protein_g": 1.2,
-        "resolved_source_sodium_mg": 25,
+        "resolved_source_sodium_mg": 24.7,
         "source_food_codes": [
           "42202000",
           "91401000"
@@ -16753,13 +16460,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 271,
         "source_protein_g": 7.2,
         "source_sodium_mg": 145,
-        "resolved_source_energy_kcal": 271,
-        "resolved_source_protein_g": 7.2,
-        "resolved_source_sodium_mg": 145,
+        "resolved_source_energy_kcal": 271.2,
+        "resolved_source_protein_g": 7.1,
+        "resolved_source_sodium_mg": 145.3,
         "source_food_codes": [
           "42202000",
           "91401000"
@@ -16848,13 +16555,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 447,
         "source_protein_g": 15.9,
         "source_sodium_mg": 13,
-        "resolved_source_energy_kcal": 447,
-        "resolved_source_protein_g": 15.9,
-        "resolved_source_sodium_mg": 13,
+        "resolved_source_energy_kcal": 447.6,
+        "resolved_source_protein_g": 15.7,
+        "resolved_source_sodium_mg": 12.6,
         "source_food_codes": [
           "42101000",
           "92101000"
@@ -16955,13 +16662,13 @@
         "food_items": 4,
         "known_local_items": 4,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 982,
-        "source_protein_g": 26.0,
+        "source_protein_g": 26,
         "source_sodium_mg": 7,
-        "resolved_source_energy_kcal": 982,
-        "resolved_source_protein_g": 26.0,
-        "resolved_source_sodium_mg": 7,
+        "resolved_source_energy_kcal": 983.4,
+        "resolved_source_protein_g": 25.8,
+        "resolved_source_sodium_mg": 6.2,
         "source_food_codes": [
           "42101000",
           "61119010",
@@ -17057,13 +16764,13 @@
         "food_items": 3,
         "known_local_items": 3,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 1274,
         "source_protein_g": 18.9,
         "source_sodium_mg": 460,
         "resolved_source_energy_kcal": 1274,
         "resolved_source_protein_g": 18.9,
-        "resolved_source_sodium_mg": 460,
+        "resolved_source_sodium_mg": 460.6,
         "source_food_codes": [
           "13110100",
           "92410310",
@@ -17153,13 +16860,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 378,
         "source_protein_g": 0,
         "source_sodium_mg": 37,
-        "resolved_source_energy_kcal": 378,
+        "resolved_source_energy_kcal": 377.6,
         "resolved_source_protein_g": 0,
-        "resolved_source_sodium_mg": 37,
+        "resolved_source_sodium_mg": 36.6,
         "source_food_codes": [
           "92410310",
           "94100100"
@@ -17248,7 +16955,7 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 310,
         "source_protein_g": 3.2,
         "source_sodium_mg": 201,
@@ -17343,13 +17050,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 417,
         "source_protein_g": 0,
         "source_sodium_mg": 40,
-        "resolved_source_energy_kcal": 417,
+        "resolved_source_energy_kcal": 416.6,
         "resolved_source_protein_g": 0,
-        "resolved_source_sodium_mg": 40,
+        "resolved_source_sodium_mg": 39.9,
         "source_food_codes": [
           "92410310",
           "94100100"
@@ -17438,13 +17145,13 @@
         "food_items": 2,
         "known_local_items": 2,
         "unresolved_expected_items": 0,
-        "known_local_rate": 1.0,
+        "known_local_rate": 1,
         "source_energy_kcal": 123,
         "source_protein_g": 0.3,
         "source_sodium_mg": 5,
-        "resolved_source_energy_kcal": 123,
-        "resolved_source_protein_g": 0.3,
-        "resolved_source_sodium_mg": 5,
+        "resolved_source_energy_kcal": 122,
+        "resolved_source_protein_g": 0.4,
+        "resolved_source_sodium_mg": 4.8,
         "source_food_codes": [
           "63101000",
           "94100100"
@@ -17463,23 +17170,13 @@
       "wweia_resolved_eating_occasion": 40
     },
     "food_items": 815,
-    "known_local_items": 496,
-    "expected_unresolved_items": 319,
-    "known_local_rate": 0.6086,
+    "known_local_items": 550,
+    "expected_unresolved_items": 265,
+    "known_local_rate": 0.6748,
     "top_unresolved_source_food_codes": [
-      {
-        "source_food_code": "94000100",
-        "description": "Water, tap",
-        "case_count": 15
-      },
       {
         "source_food_code": "51150000",
         "description": "Roll, white, soft",
-        "case_count": 4
-      },
-      {
-        "source_food_code": "91101010",
-        "description": "Sugar, white, granulated or lump",
         "case_count": 4
       },
       {
@@ -17488,23 +17185,8 @@
         "case_count": 4
       },
       {
-        "source_food_code": "64104010",
-        "description": "Apple juice, 100%",
-        "case_count": 4
-      },
-      {
-        "source_food_code": "92103000",
-        "description": "Coffee, instant, reconstituted",
-        "case_count": 4
-      },
-      {
-        "source_food_code": "93401020",
-        "description": "Wine, white",
-        "case_count": 3
-      },
-      {
-        "source_food_code": "54325000",
-        "description": "Crackers, saltine",
+        "source_food_code": "11434010",
+        "description": "Yogurt, Greek, low fat milk, fruit",
         "case_count": 3
       },
       {
@@ -17513,8 +17195,13 @@
         "case_count": 3
       },
       {
-        "source_food_code": "75224022",
-        "description": "Green peas, frozen, cooked, no added fat",
+        "source_food_code": "27520220",
+        "description": "Ham sandwich on white, with cheese",
+        "case_count": 3
+      },
+      {
+        "source_food_code": "54325000",
+        "description": "Crackers, saltine",
         "case_count": 3
       },
       {
@@ -17523,23 +17210,18 @@
         "case_count": 3
       },
       {
-        "source_food_code": "11434010",
-        "description": "Yogurt, Greek, low fat milk, fruit",
+        "source_food_code": "93401020",
+        "description": "Wine, white",
         "case_count": 3
       },
       {
-        "source_food_code": "51101010",
-        "description": "Bread, white, toasted",
-        "case_count": 3
+        "source_food_code": "12120100",
+        "description": "Cream, half and half",
+        "case_count": 2
       },
       {
-        "source_food_code": "27520220",
-        "description": "Ham sandwich on white, with cheese",
-        "case_count": 3
-      },
-      {
-        "source_food_code": "53206020",
-        "description": "Cookie, chocolate chip, made from home recipe or purchased at a bakery",
+        "source_food_code": "14010000",
+        "description": "Cheese, NFS",
         "case_count": 2
       },
       {
@@ -17548,23 +17230,48 @@
         "case_count": 2
       },
       {
+        "source_food_code": "27343010",
+        "description": "Chicken or turkey, noodles, and vegetables including carrots, broccoli, and/or dark-green leafy; no sauce",
+        "case_count": 2
+      },
+      {
         "source_food_code": "27510241",
         "description": "Cheeseburger, on white bun, 1 medium patty",
         "case_count": 2
       },
       {
-        "source_food_code": "71401031",
-        "description": "Potato, french fries, restaurant",
+        "source_food_code": "27520240",
+        "description": "Ham sandwich on wheat, with cheese",
         "case_count": 2
       },
       {
-        "source_food_code": "75511100",
-        "description": "Pickles, NFS",
+        "source_food_code": "51121035",
+        "description": "Garlic bread, from frozen",
         "case_count": 2
       },
       {
-        "source_food_code": "89902020",
-        "description": "Lettuce, for use on a sandwich",
+        "source_food_code": "51153000",
+        "description": "Roll, white, hard",
+        "case_count": 2
+      },
+      {
+        "source_food_code": "51186010",
+        "description": "Muffin, English",
+        "case_count": 2
+      },
+      {
+        "source_food_code": "53206020",
+        "description": "Cookie, chocolate chip, made from home recipe or purchased at a bakery",
+        "case_count": 2
+      },
+      {
+        "source_food_code": "53209015",
+        "description": "Cookie, chocolate sandwich",
+        "case_count": 2
+      },
+      {
+        "source_food_code": "54328100",
+        "description": "Crackers, sandwich, peanut butter filled",
         "case_count": 2
       }
     ]

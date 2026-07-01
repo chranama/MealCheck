@@ -3995,3 +3995,55 @@ Verification:
   completed with 3 meal chunks, 9 source items, source-first prompt evidence,
   exact source-ID preservation, and 7.775 seconds of extraction timing in
   `/Users/chranama-server/MealCheck-data/p0-runs/reverse-target-20260701-123326-22f9426`.
+
+## Milestone 54: Reviewed P1 Resolver Gap Batch
+
+Status: Implemented locally in the current worktree.
+
+Purpose:
+
+Use measured P1 unresolved evidence to improve common-food coverage without
+turning the resolver into fuzzy matching. The WWEIA/NHANES no-fallback result
+showed high-frequency ordinary gaps that were safe to add as reviewed,
+source-backed catalog rows, while leaving composed foods, alcohol,
+restaurant/product-style foods, and ambiguous rows unresolved.
+
+Delivered:
+
+- Added eight reviewed FNDDS-backed local catalog foods:
+  - tap water
+  - plain carbonated water
+  - instant coffee
+  - apple juice
+  - white sugar
+  - toasted white bread
+  - frozen cooked green peas
+  - white rice with no added fat
+- Updated the FNDDS catalog generator selection so the checked-in catalog can be
+  regenerated with the same reviewed batch.
+- Refreshed the WWEIA/NHANES dataset expected unresolved flags and source
+  metrics to match the expanded reviewed catalog.
+- Regenerated P1 result artifacts for the FNDDS-grounded strict gate,
+  WWEIA/NHANES no-fallback coverage, and WWEIA/NHANES fallback coverage.
+- Added a resolver regression test proving the reviewed batch resolves through
+  the local catalog even when items arrive as explicit `unknown_food` rows.
+
+Acceptance:
+
+- Strict FNDDS-grounded P1 evaluation still has zero expected-outcome
+  mismatches.
+- WWEIA/NHANES no-fallback coverage improves from the previous 496 of 815 items
+  without introducing expected-outcome mismatches.
+- The optional FNDDS fallback remains gate-limited and is not replaced by fuzzy
+  local matching.
+- Remaining composed, alcohol, branded/product-style, and ambiguous rows remain
+  unresolved unless separately reviewed.
+
+Verification:
+
+- `GOCACHE=/private/tmp/mealcheck-gocache go run ./cmd/mealcheck eval-checker -out data/evaluation/results/fndds-grounded-catalog-v1.json` passes with 885 of 900 items resolved and zero expected-outcome mismatches.
+- `GOCACHE=/private/tmp/mealcheck-gocache go run ./cmd/mealcheck eval-checker -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -out data/evaluation/results/wweia-nhanes-real-recalls-v1.json` passes with 550 of 815 items resolved and zero expected-outcome mismatches.
+- `GOCACHE=/private/tmp/mealcheck-gocache go run ./cmd/mealcheck eval-checker -dataset data/evaluation/wweia-nhanes-real-recalls-v1.json -fndds-fallback data/reference/fndds-2021-2023/fndds.sqlite -skip-expected -out data/evaluation/results/wweia-nhanes-real-recalls-with-fndds-fallback-v1.json` passes with 774 of 815 items resolved.
+- `GOCACHE=/private/tmp/mealcheck-gocache go run ./cmd/mealcheck fixture-check` passes.
+- `GOCACHE=/private/tmp/mealcheck-gocache go test ./internal/workflow/checker` passes.
+- `python3 -m py_compile scripts/generate-fndds-evaluation.py scripts/generate-wweia-nhanes-evaluation.py` passes.

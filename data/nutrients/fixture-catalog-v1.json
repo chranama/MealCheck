@@ -2161,6 +2161,42 @@
       ]
     },
     {
+      "food_id": "white_rice_no_added_fat",
+      "name": "white rice, no added fat",
+      "aliases": [
+        "Rice, white, cooked, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 129,
+        "protein_g": 2.7,
+        "carbohydrate_g": 28,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0.1,
+        "sodium_mg": 245,
+        "added_sugar_g": 0,
+        "fiber_g": 0.4
+      },
+      "unit_conversions": {
+        "cup": 158,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 158
+      },
+      "allergens": [],
+      "food_groups": [
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "data_type": "FNDDS At A Glance",
+          "note": "4002 Rice",
+          "source": "fndds-2021-2023",
+          "source_id": "56205008"
+        }
+      ]
+    },
+    {
       "food_id": "quinoa_cooked",
       "name": "quinoa",
       "aliases": [
@@ -2394,6 +2430,45 @@
           "source_id": "51101000",
           "data_type": "FNDDS At A Glance",
           "note": "4202 Yeast breads"
+        }
+      ]
+    },
+    {
+      "food_id": "white_bread_toasted",
+      "name": "toasted white bread",
+      "aliases": [
+        "Bread, white, toasted"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 293,
+        "protein_g": 10.4,
+        "carbohydrate_g": 54.1,
+        "fat_g": 3.9,
+        "saturated_fat_g": 0.9,
+        "sodium_mg": 495,
+        "added_sugar_g": 0,
+        "fiber_g": 2.5
+      },
+      "unit_conversions": {
+        "cup": 40,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 40,
+        "slice": 12
+      },
+      "allergens": [
+        "wheat"
+      ],
+      "food_groups": [
+        "refined_grains"
+      ],
+      "source_refs": [
+        {
+          "data_type": "FNDDS At A Glance",
+          "note": "4202 Yeast breads",
+          "source": "fndds-2021-2023",
+          "source_id": "51101010"
         }
       ]
     },
@@ -3696,6 +3771,42 @@
           "source_id": "75224000",
           "data_type": "FNDDS At A Glance",
           "note": "6418 Other starchy vegetables"
+        }
+      ]
+    },
+    {
+      "food_id": "green_peas_frozen_cooked",
+      "name": "frozen cooked green peas",
+      "aliases": [
+        "Green peas, frozen, cooked, no added fat"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 78,
+        "protein_g": 5.1,
+        "carbohydrate_g": 14.2,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0,
+        "sodium_mg": 188,
+        "added_sugar_g": 0,
+        "fiber_g": 4.5
+      },
+      "unit_conversions": {
+        "cup": 160,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 160
+      },
+      "allergens": [],
+      "food_groups": [
+        "vegetables"
+      ],
+      "source_refs": [
+        {
+          "data_type": "FNDDS At A Glance",
+          "note": "6418 Other starchy vegetables",
+          "source": "fndds-2021-2023",
+          "source_id": "75224022"
         }
       ]
     },
@@ -5300,6 +5411,45 @@
       ]
     },
     {
+      "food_id": "white_sugar",
+      "name": "white sugar",
+      "aliases": [
+        "sugar",
+        "granulated sugar",
+        "Sugar, white, granulated or lump"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 401,
+        "protein_g": 0,
+        "carbohydrate_g": 99.6,
+        "fat_g": 0.3,
+        "saturated_fat_g": 0,
+        "sodium_mg": 1,
+        "added_sugar_g": 99.8,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 200,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 200,
+        "tsp": 4.2
+      },
+      "allergens": [],
+      "food_groups": [
+        "snacks"
+      ],
+      "source_refs": [
+        {
+          "data_type": "FNDDS At A Glance",
+          "note": "8802 Sugars and honey",
+          "source": "fndds-2021-2023",
+          "source_id": "91101010"
+        }
+      ]
+    },
+    {
       "food_id": "pancake_syrup",
       "name": "pancake syrup",
       "aliases": [
@@ -5415,6 +5565,42 @@
       ]
     },
     {
+      "food_id": "apple_juice",
+      "name": "apple juice",
+      "aliases": [
+        "Apple juice, 100%"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 48,
+        "protein_g": 0.1,
+        "carbohydrate_g": 11.3,
+        "fat_g": 0.2,
+        "saturated_fat_g": 0,
+        "sodium_mg": 5,
+        "added_sugar_g": 0,
+        "fiber_g": 0.2
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 310
+      },
+      "allergens": [],
+      "food_groups": [
+        "beverages",
+        "fruits"
+      ],
+      "source_refs": [
+        {
+          "data_type": "FNDDS At A Glance",
+          "note": "7004 Apple juice",
+          "source": "fndds-2021-2023",
+          "source_id": "64104010"
+        }
+      ]
+    },
+    {
       "food_id": "orange_juice",
       "name": "orange juice",
       "aliases": [
@@ -5486,6 +5672,41 @@
           "source_id": "92101000",
           "data_type": "FNDDS At A Glance",
           "note": "7302 Coffee"
+        }
+      ]
+    },
+    {
+      "food_id": "coffee_instant",
+      "name": "instant coffee",
+      "aliases": [
+        "Coffee, instant, reconstituted"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 3,
+        "protein_g": 0.1,
+        "carbohydrate_g": 0.6,
+        "fat_g": 0,
+        "saturated_fat_g": 0,
+        "sodium_mg": 4,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 240
+      },
+      "allergens": [],
+      "food_groups": [
+        "beverages"
+      ],
+      "source_refs": [
+        {
+          "data_type": "FNDDS At A Glance",
+          "note": "7302 Coffee",
+          "source": "fndds-2021-2023",
+          "source_id": "92103000"
         }
       ]
     },
@@ -5599,6 +5820,79 @@
           "source_id": "94100100",
           "data_type": "FNDDS At A Glance",
           "note": "7704 Bottled water"
+        }
+      ]
+    },
+    {
+      "food_id": "tap_water",
+      "name": "tap water",
+      "aliases": [
+        "Water, tap"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 0,
+        "protein_g": 0,
+        "carbohydrate_g": 0,
+        "fat_g": 0,
+        "saturated_fat_g": 0,
+        "sodium_mg": 4,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "cup": 240,
+        "g": 1,
+        "oz": 28.35,
+        "serving": 240
+      },
+      "allergens": [],
+      "food_groups": [
+        "beverages"
+      ],
+      "source_refs": [
+        {
+          "data_type": "FNDDS At A Glance",
+          "note": "7702 Tap water",
+          "source": "fndds-2021-2023",
+          "source_id": "94000100"
+        }
+      ]
+    },
+    {
+      "food_id": "carbonated_water_plain",
+      "name": "carbonated water",
+      "aliases": [
+        "plain carbonated water",
+        "seltzer water",
+        "Water, carbonated, plain"
+      ],
+      "base_quantity_g": 100,
+      "nutrients_per_100g": {
+        "energy_kcal": 0,
+        "protein_g": 0,
+        "carbohydrate_g": 0,
+        "fat_g": 0,
+        "saturated_fat_g": 0,
+        "sodium_mg": 21,
+        "added_sugar_g": 0,
+        "fiber_g": 0
+      },
+      "unit_conversions": {
+        "g": 1,
+        "oz": 28.35,
+        "serving": 507
+      },
+      "allergens": [],
+      "food_groups": [
+        "beverages"
+      ],
+      "source_refs": [
+        {
+          "data_type": "FNDDS At A Glance",
+          "note": "7802 Flavored or carbonated water",
+          "source": "fndds-2021-2023",
+          "source_id": "92410210"
         }
       ]
     },

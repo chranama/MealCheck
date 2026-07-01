@@ -98,12 +98,14 @@ FOOD_SELECTION = [
     {"code": "42104050", "food_id": "cashews", "name": "cashews", "aliases": ["raw cashews"]},
     {"code": "42116000", "food_id": "walnuts", "name": "walnuts", "aliases": []},
     {"code": "56205001", "food_id": "white_rice_cooked", "name": "white rice", "aliases": ["cooked white rice"]},
+    {"code": "56205008", "food_id": "white_rice_no_added_fat", "name": "white rice, no added fat", "aliases": ["Rice, white, cooked, no added fat"]},
     {"code": "56204005", "food_id": "quinoa_cooked", "name": "quinoa", "aliases": ["cooked quinoa"]},
     {"code": "56130000", "food_id": "pasta_cooked", "name": "pasta", "aliases": ["cooked pasta", "spaghetti"]},
     {"code": "56132990", "food_id": "whole_grain_pasta", "name": "whole grain pasta", "aliases": ["whole wheat pasta"]},
     {"code": "56207160", "food_id": "couscous_cooked", "name": "couscous", "aliases": ["cooked couscous"]},
     {"code": "56200410", "food_id": "barley_cooked", "name": "barley", "aliases": ["cooked barley"]},
     {"code": "51101000", "food_id": "white_bread", "name": "white bread", "aliases": []},
+    {"code": "51101010", "food_id": "white_bread_toasted", "name": "toasted white bread", "aliases": ["Bread, white, toasted"]},
     {"code": "51180010", "food_id": "bagel", "name": "bagel", "aliases": []},
     {"code": "51301750", "food_id": "whole_wheat_bagel", "name": "whole wheat bagel", "aliases": []},
     {"code": "52215200", "food_id": "flour_tortilla", "name": "flour tortilla", "aliases": []},
@@ -138,6 +140,7 @@ FOOD_SELECTION = [
     {"code": "75215990", "food_id": "corn_cooked", "name": "corn", "aliases": ["cooked corn"]},
     {"code": "75205021", "food_id": "green_beans_cooked", "name": "green beans", "aliases": ["cooked green beans"]},
     {"code": "75224000", "food_id": "green_peas_cooked", "name": "green peas", "aliases": ["peas"]},
+    {"code": "75224022", "food_id": "green_peas_frozen_cooked", "name": "frozen cooked green peas", "aliases": ["Green peas, frozen, cooked, no added fat"]},
     {"code": "75214011", "food_id": "cauliflower_cooked", "name": "cauliflower", "aliases": ["cooked cauliflower"]},
     {"code": "75103000", "food_id": "cabbage_raw", "name": "cabbage", "aliases": ["raw cabbage"]},
     {"code": "75115000", "food_id": "mushrooms_raw", "name": "mushrooms", "aliases": ["raw mushrooms"]},
@@ -180,14 +183,19 @@ FOOD_SELECTION = [
     {"code": "13110100", "food_id": "vanilla_ice_cream", "name": "vanilla ice cream", "aliases": ["ice cream"]},
     {"code": "91705010", "food_id": "chocolate_candy", "name": "chocolate candy", "aliases": []},
     {"code": "91745010", "food_id": "gummy_candy", "name": "gummy candy", "aliases": ["fruit candy"]},
+    {"code": "91101010", "food_id": "white_sugar", "name": "white sugar", "aliases": ["sugar", "granulated sugar", "Sugar, white, granulated or lump"]},
     {"code": "91300100", "food_id": "pancake_syrup", "name": "pancake syrup", "aliases": ["syrup"]},
     {"code": "91401000", "food_id": "jelly", "name": "jelly", "aliases": ["jam"]},
     {"code": "92410310", "food_id": "cola", "name": "cola", "aliases": ["soft drink cola", "soda"]},
+    {"code": "64104010", "food_id": "apple_juice", "name": "apple juice", "aliases": ["Apple juice, 100%"]},
     {"code": "61210000", "food_id": "orange_juice", "name": "orange juice", "aliases": []},
     {"code": "92101000", "food_id": "coffee_brewed", "name": "coffee", "aliases": ["black coffee"]},
+    {"code": "92103000", "food_id": "coffee_instant", "name": "instant coffee", "aliases": ["Coffee, instant, reconstituted"]},
     {"code": "92302000", "food_id": "tea_black_hot", "name": "black tea", "aliases": ["tea"]},
     {"code": "92308000", "food_id": "sweet_tea", "name": "sweet tea", "aliases": []},
     {"code": "94100100", "food_id": "bottled_water", "name": "water", "aliases": ["bottled water"]},
+    {"code": "94000100", "food_id": "tap_water", "name": "tap water", "aliases": ["Water, tap"]},
+    {"code": "92410210", "food_id": "carbonated_water_plain", "name": "carbonated water", "aliases": ["plain carbonated water", "seltzer water", "Water, carbonated, plain"]},
     {"code": "95320200", "food_id": "sports_drink", "name": "sports drink", "aliases": ["gatorade"]},
     {"code": "92510960", "food_id": "lemonade", "name": "lemonade", "aliases": []},
     {"code": "64134015", "food_id": "fruit_smoothie", "name": "fruit smoothie", "aliases": ["smoothie"]},
@@ -378,6 +386,9 @@ def added_sugar_proxy(total_sugar: float, selected: dict[str, Any], source_food:
         "syrup",
         "jelly",
         "jam",
+        "white sugar",
+        "granulated sugar",
+        "sugars and honey",
         "sweetened",
         "higher sugar",
         "granola bar",
@@ -476,7 +487,7 @@ def food_groups(selected: dict[str, Any], source_food: dict[str, str]) -> list[s
     if any(term in text for term in ["sauce", "ketchup", "mustard", "salsa", "vinegar", "lemon juice", "hot sauce", "syrup", "jelly", "jam"]):
         groups.add("condiments")
     category = source_food["WWEIA Category description"].lower()
-    if any(term in category for term in ["water", "coffee", "tea", "soft drinks", "fruit drinks", "citrus juice", "sport and energy drinks", "smoothies"]) or selected["name"] in {"water", "coffee", "black tea", "sweet tea", "cola", "orange juice", "sports drink", "lemonade", "fruit smoothie"}:
+    if any(term in category for term in ["water", "coffee", "tea", "soft drinks", "fruit drinks", "citrus juice", "apple juice", "sport and energy drinks", "smoothies"]) or selected["name"] in {"water", "tap water", "carbonated water", "coffee", "instant coffee", "black tea", "sweet tea", "cola", "apple juice", "orange juice", "sports drink", "lemonade", "fruit smoothie"}:
         groups.add("beverages")
     if any(term in text for term in ["french fries", "potato chips", "pretzel", "popcorn", "granola bar", "cookie", "brownie", "cake", "candy", "chocolate"]):
         groups.add("snacks")

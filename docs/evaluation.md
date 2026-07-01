@@ -822,8 +822,8 @@ Current P1 result snapshot:
 | Evaluation layer | Resolver configuration | Resolved items | Resolver rate | Expected mismatches | Notes |
 |---|---|---:|---:|---:|---|
 | FNDDS-grounded synthetic meal plans | original 17-food catalog | 296 / 900 | 32.89% | not a current gate | MVP baseline showing the original fixture catalog limit |
-| FNDDS-grounded synthetic meal plans | expanded 151-food catalog | 885 / 900 | 98.33% | 0 | strict P1 regression gate; 15 unresolved items are intentional |
-| WWEIA/NHANES real recalls | expanded 151-food catalog | 496 / 815 | 60.86% | 0 | real-recall no-fallback coverage; exposes bounded-catalog gaps |
+| FNDDS-grounded synthetic meal plans | expanded 159-food catalog | 885 / 900 | 98.33% | 0 | strict P1 regression gate; 15 unresolved items are intentional |
+| WWEIA/NHANES real recalls | expanded 159-food catalog | 550 / 815 | 67.48% | 0 | real-recall no-fallback coverage; exposes bounded-catalog gaps |
 | WWEIA/NHANES real recalls | expanded catalog plus FNDDS fallback | 774 / 815 | 94.97% | not compared | coverage run: 690 exact, 45 estimated, and 39 decomposed resolutions |
 
 The strictest P1 pass/fail signal is not maximum coverage by itself. It is high
@@ -875,7 +875,7 @@ Regeneration expects them at:
 
 ## P1 Artifacts
 
-- `data/nutrients/fixture-catalog-v1.json`: 151-food reviewed local catalog
+- `data/nutrients/fixture-catalog-v1.json`: 159-food reviewed local catalog
   generated from FNDDS source rows.
 - `data/evaluation/fndds-grounded-meal-plans-v1.json`: 100 structured
   meal-plan cases with source-like text, normalized plan JSON, settings, tags,
@@ -943,25 +943,29 @@ are intentional:
 - 7 vague quantities that should block until the user provides a quantity/unit
 
 Against the WWEIA/NHANES real-recall dataset, the expanded catalog resolves
-496 of 815 items, a 60.86% resolver rate, with zero expected-outcome
-mismatches. This lower rate is expected: real dietary recalls include tap
-water, mixed dishes, alcohol, branded-like snack variants, condiments, and
-specific prepared-food forms that the bounded local catalog does not yet cover.
-The top gap candidates currently include tap water, white rolls, granulated
-sugar, wine, apple juice, instant coffee, saltine crackers, flavored liquid
-coffee creamer, and common mixed dishes.
+550 of 815 items, a 67.48% resolver rate, with zero expected-outcome
+mismatches. This lower rate is expected: real dietary recalls include mixed
+dishes, alcohol, branded-like snack variants, condiments, and specific
+prepared-food forms that the bounded local catalog does not yet cover. The
+latest reviewed batch added source-backed local coverage for tap water, plain
+carbonated water, instant coffee, apple juice, white sugar, toasted white bread,
+frozen cooked green peas, and white rice with no added fat. The top remaining
+gap candidates now include wine, pasta with tomato-based sauce and meat, white
+rolls, beer, cheese NFS, flavored liquid coffee creamer, saltine crackers, ham
+sandwiches, pepper-type soft drinks, and flavored Greek yogurt.
 
 With the optional FNDDS SQLite fallback enabled, the same WWEIA/NHANES
 real-recall dataset resolves 774 of 815 items, a 94.97% resolver rate. The run
-contains 690 exact fallback resolutions, 45 estimated approximation resolutions,
-and 39 decomposed resolutions. This is a coverage run, not a strict
+contains 690 exact resolutions, 45 estimated approximation resolutions, and 39
+decomposed resolutions. This is a coverage run, not a strict
 expected-outcome regression, because the checked-in WWEIA expected unresolved
 counts describe the no-fallback catalog mode. The fallback removes common
-source-backed gaps such as water, 100% juice, instant coffee, white rolls,
-granulated sugar, no-added-fat vegetables and rice, sandwich vegetable
-components, simple source-coded beverages, raw fruit, nuts, and selected
-source-coded NFS rows while leaving ambiguous composed, restaurant/product-style,
-review-required, and unsupported-unit rows unresolved.
+source-backed gaps such as white rolls, sandwich vegetable components, simple
+source-coded beverages, raw fruit, nuts, and selected source-coded NFS rows
+while leaving ambiguous composed, restaurant/product-style, review-required,
+and unsupported-unit rows unresolved. The reviewed local catalog now handles
+tap water, 100% apple juice, instant coffee, granulated sugar, no-added-fat
+vegetables and rice, and plain carbonated water before fallback.
 
 ## P1 Catalog Expansion Policy
 

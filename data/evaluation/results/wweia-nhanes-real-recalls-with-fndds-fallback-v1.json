@@ -2,99 +2,66 @@
   "schema_version": "0.1",
   "dataset_id": "wweia-nhanes-real-recalls-v1",
   "catalog_id": "fixture-catalog-v1",
-  "catalog_food_count": 151,
+  "catalog_food_count": 159,
   "fndds_fallback_enabled": true,
   "fndds_fallback_path": "data/reference/fndds-2021-2023/fndds.sqlite",
   "expected_comparison": "skipped",
   "total_cases": 100,
   "total_food_items": 815,
-  "resolved_items": 644,
-  "unresolved_items": 171,
-  "resolved_rate": 0.7902,
+  "resolved_items": 774,
+  "exact_resolved_items": 690,
+  "estimated_items": 45,
+  "decomposed_items": 39,
+  "unresolved_items": 41,
+  "resolved_rate": 0.9497,
   "cases_with_mismatches": 0,
   "category_summary": [
     {
       "category": "wweia_common_recall_day",
       "cases": 30,
       "food_items": 314,
-      "resolved_items": 276,
-      "unresolved_items": 38,
-      "resolved_rate": 0.879
+      "resolved_items": 306,
+      "exact_resolved_items": 284,
+      "estimated_items": 10,
+      "decomposed_items": 12,
+      "unresolved_items": 8,
+      "resolved_rate": 0.9745
     },
     {
       "category": "wweia_high_sodium",
       "cases": 20,
       "food_items": 310,
-      "resolved_items": 204,
-      "unresolved_items": 106,
-      "resolved_rate": 0.6581
+      "resolved_items": 284,
+      "exact_resolved_items": 237,
+      "estimated_items": 31,
+      "decomposed_items": 16,
+      "unresolved_items": 26,
+      "resolved_rate": 0.9161
     },
     {
       "category": "wweia_low_protein",
       "cases": 10,
       "food_items": 100,
-      "resolved_items": 73,
-      "unresolved_items": 27,
-      "resolved_rate": 0.73
+      "resolved_items": 93,
+      "exact_resolved_items": 78,
+      "estimated_items": 4,
+      "decomposed_items": 11,
+      "unresolved_items": 7,
+      "resolved_rate": 0.93
     },
     {
       "category": "wweia_resolved_eating_occasion",
       "cases": 40,
       "food_items": 91,
       "resolved_items": 91,
+      "exact_resolved_items": 91,
+      "estimated_items": 0,
+      "decomposed_items": 0,
       "unresolved_items": 0,
       "resolved_rate": 1
     }
   ],
   "top_unresolved_foods": [
-    {
-      "value": "coffee, instant, reconstituted",
-      "count": 12
-    },
-    {
-      "value": "pasta with tomato-based sauce and meat, home recipe",
-      "count": 4
-    },
-    {
-      "value": "roll, white, soft",
-      "count": 4
-    },
-    {
-      "value": "sugar, white, granulated or lump",
-      "count": 4
-    },
-    {
-      "value": "wine, red",
-      "count": 4
-    },
-    {
-      "value": "beer",
-      "count": 3
-    },
-    {
-      "value": "bread, white, toasted",
-      "count": 3
-    },
-    {
-      "value": "cheese, nfs",
-      "count": 3
-    },
-    {
-      "value": "crackers, saltine",
-      "count": 3
-    },
-    {
-      "value": "green peas, frozen, cooked, no added fat",
-      "count": 3
-    },
-    {
-      "value": "ham sandwich on white, with cheese",
-      "count": 3
-    },
-    {
-      "value": "rice, white, cooked, no added fat",
-      "count": 3
-    },
     {
       "value": "cheeseburger, on white bun, 1 medium patty",
       "count": 2
@@ -116,22 +83,70 @@
       "count": 2
     },
     {
-      "value": "ham sandwich on wheat, with cheese",
+      "value": "potato, french fries, restaurant",
       "count": 2
     },
     {
-      "value": "lettuce, for use on a sandwich",
-      "count": 2
+      "value": "barbecue chicken",
+      "count": 1
     },
     {
-      "value": "onions, for use on a sandwich",
-      "count": 2
+      "value": "bread, white, made from home recipe or purchased at a bakery",
+      "count": 1
+    },
+    {
+      "value": "broccoli and cauliflower, cooked, fat added",
+      "count": 1
+    },
+    {
+      "value": "broccoli, cooked, from restaurant",
+      "count": 1
+    },
+    {
+      "value": "chicken thigh, grilled with sauce, skin eaten",
+      "count": 1
+    },
+    {
+      "value": "cookie, oatmeal sandwich, with creme filling",
+      "count": 1
+    },
+    {
+      "value": "double cheeseburger (mcdonalds)",
+      "count": 1
+    },
+    {
+      "value": "doughnut, yeast type",
+      "count": 1
+    },
+    {
+      "value": "egg omelet or scrambled egg, with dark-green vegetables, fat added",
+      "count": 1
+    },
+    {
+      "value": "egg roll, with beef and/or pork",
+      "count": 1
+    },
+    {
+      "value": "egg salad, made with mayonnaise",
+      "count": 1
+    },
+    {
+      "value": "flavored rice and pasta mixture",
+      "count": 1
+    },
+    {
+      "value": "grits, instant, made with water, fat added",
+      "count": 1
+    },
+    {
+      "value": "hot dog sandwich, reduced fat, on white bun",
+      "count": 1
     }
   ],
   "top_unresolved_units": [
     {
       "value": "g",
-      "count": 171
+      "count": 41
     }
   ]
 }

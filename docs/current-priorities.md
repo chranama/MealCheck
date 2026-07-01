@@ -151,13 +151,30 @@ Good enough:
 - Ambiguous, mixed-dish, branded, vague, unclear-preparation, unsupported-unit,
   and non-food entries remain unresolved with specific reasons.
 
+Current evidence:
+
+- The reviewed local catalog now contains 159 foods. The latest P1 batch added
+  exact source-backed coverage for tap water, plain carbonated water, instant
+  coffee, apple juice, white sugar, toasted white bread, frozen cooked green
+  peas, and white rice with no added fat.
+- Strict FNDDS-grounded evaluation still passes with 885 of 900 items resolved,
+  a 98.33% resolver rate, and zero expected-outcome mismatches.
+- WWEIA/NHANES no-fallback coverage improved from 496 of 815 items to 550 of
+  815 items, raising the reviewed local-catalog resolver rate from 60.86% to
+  67.48% with zero expected-outcome mismatches.
+- WWEIA/NHANES with the optional FNDDS fallback remains 774 of 815 items
+  resolved, a 94.97% resolver rate. The local catalog now handles more of
+  those items before fallback.
+
 Near-term engineering slices:
 
-1. Mine unresolved items from live reports, robustness fixtures, and WWEIA/NHANES
-   evaluation results.
-2. Rank gaps by commonness and user-facing credibility, not by raw catalog
-   completeness.
-3. Add reviewed aliases and conversions for high-frequency safe cases.
+1. Keep mining unresolved items from live reports, robustness fixtures, and
+   WWEIA/NHANES evaluation results after each catalog batch.
+2. Review the next remaining high-frequency gap cluster, but keep composed
+   foods, alcohol, branded/product-style foods, and fuzzy substitutions out of
+   the reviewed catalog unless there is a specific policy decision.
+3. Add only source-backed aliases, conversions, or rows for high-frequency safe
+   cases.
 4. Keep the FNDDS fallback match-key based and gate-limited; do not turn it
    into fuzzy food search.
 5. Improve report labels and recovery copy for unresolved reasons so users know
