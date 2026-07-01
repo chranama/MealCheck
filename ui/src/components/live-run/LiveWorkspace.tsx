@@ -13,6 +13,7 @@ import type {
   BackendState,
   GenerationMode,
   LiveState,
+  NormalizedPlanCorrectionPayload,
   NormalizedPlanReviewState,
   ProviderConfig,
   QualificationState,
@@ -40,6 +41,7 @@ export function LiveWorkspace({
   onQualify,
   onDeleteRun,
   onConfirmReview,
+  onCorrectReviewRow,
   onRejectReview,
   onRequestRewrite,
   onError,
@@ -53,6 +55,7 @@ export function LiveWorkspace({
   onQualify: (base: string, inviteToken: string, payload: QualifyMealPlanPayload) => Promise<void>;
   onDeleteRun: () => Promise<void>;
   onConfirmReview: () => Promise<void>;
+  onCorrectReviewRow: (payload: NormalizedPlanCorrectionPayload) => Promise<void>;
   onRejectReview: () => Promise<void>;
   onRequestRewrite: () => Promise<void>;
   onError: (error: unknown) => void;
@@ -221,6 +224,7 @@ export function LiveWorkspace({
       <NormalizedPlanReviewPanel
         review={review}
         onConfirm={() => onConfirmReview().catch(onError)}
+        onCorrectRow={(payload) => onCorrectReviewRow(payload).catch(onError)}
         onReject={() => onRejectReview().catch(onError)}
         onRequestRewrite={() => onRequestRewrite().catch(onError)}
       />

@@ -94,6 +94,41 @@ func publicRunMessage(message string) string {
 func runFailureRecovery(message string) *core.RecoveryNotice {
 	lower := strings.ToLower(message)
 	switch {
+	case strings.Contains(lower, "source text rewrite requested before checking"):
+		return &core.RecoveryNotice{
+			Title:   "Rewrite the meal-plan text",
+			Message: "MealCheck stopped before checking so the source text can be revised.",
+			Tone:    "info",
+			Steps: []string{
+				"Edit the meal-plan text that produced the reviewed rows.",
+				"Use clear meal labels, food names, numeric quantities, and supported units.",
+				"Create a new report when the source text reflects the intended plan.",
+			},
+			Action: &core.RecoveryAction{Label: "Edit meal-plan text", Href: "#candidate-text-section"},
+		}
+	case strings.Contains(lower, "normalized plan rejected before checking"):
+		return &core.RecoveryNotice{
+			Title:   "Review rejected before checking",
+			Message: "MealCheck stopped before verification because the normalized rows were not accepted.",
+			Tone:    "warn",
+			Steps: []string{
+				"Edit the meal-plan text if the source was ambiguous.",
+				"Create a new report after the source text names the intended foods, amounts, and meals.",
+				"Use row correction during review when only one normalized row needs a bounded fix.",
+			},
+			Action: &core.RecoveryAction{Label: "Edit meal-plan text", Href: "#candidate-text-section"},
+		}
+	case strings.Contains(lower, "checking failed after review confirmation"):
+		return &core.RecoveryNotice{
+			Title:   "Confirmed plan could not be checked",
+			Message: message,
+			Tone:    "block",
+			Steps: []string{
+				"Review corrected rows for unsupported units, missing quantities, or empty meals.",
+				"Use row correction for bounded source-linked fixes before checking.",
+				"Rewrite the meal-plan text and create a new report if the normalized structure is wrong.",
+			},
+		}
 	case strings.Contains(lower, "timed out") || strings.Contains(lower, "deadline exceeded"):
 		return &core.RecoveryNotice{
 			Title:   "Report timed out",

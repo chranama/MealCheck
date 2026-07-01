@@ -58,6 +58,7 @@ const (
 	EventPlanNormalized  = core.EventPlanNormalized
 	EventReviewReady     = core.EventReviewReady
 	EventReviewConfirmed = core.EventReviewConfirmed
+	EventReviewCorrected = core.EventReviewCorrected
 	EventReviewRejected  = core.EventReviewRejected
 	EventReviewRewrite   = core.EventReviewRewrite
 	EventArtifactWritten = core.EventArtifactWritten

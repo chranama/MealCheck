@@ -182,7 +182,10 @@ describe("ReportSurface", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Unresolved Foods" })).toBeVisible();
-    expect(screen.getByText("Break this mixed dish into ingredients.")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Unresolved Summary" })).toBeVisible();
+    expect(screen.getAllByText("a mixed dish that needs ingredient details").length).toBeGreaterThan(0);
+    expect(screen.getByText("Day 1 Lunch")).toBeVisible();
+    expect(screen.getAllByText("Break this mixed dish into ingredients.").length).toBeGreaterThan(0);
     expect(screen.getAllByText("ham sandwich").length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Excluded From Totals" })).toBeVisible();
     expect(screen.getByText("sumac")).toBeVisible();
@@ -275,6 +278,18 @@ describe("ReportSurface", () => {
           ],
           reviewActions: [
             { schema_version: "0.1", run_id: "run-review", action: "confirmed", reason: "User confirmed normalized plan for checking.", created_at: "2026-07-01T12:01:00Z" },
+            {
+              schema_version: "0.1",
+              run_id: "run-review",
+              action: "corrected",
+              reason: "Normalized row corrected before checking.",
+              row_index: 1,
+              source_item_id: 2,
+              source_text: "a bowl berries",
+              before: { food: "berries", quantity_text: "a bowl", resolution_status: "unresolved", unresolved_reason: "vague_quantity" },
+              after: { food: "blueberries", quantity: 0.5, unit: "cup" },
+              created_at: "2026-07-01T12:00:30Z",
+            },
           ],
         })}
         setActiveTab={vi.fn()}
@@ -288,6 +303,9 @@ describe("ReportSurface", () => {
     expect(screen.getByText("a vague quantity")).toBeVisible();
     expect(screen.getByText("Unit Alias")).toBeVisible();
     expect(screen.getByText("Confirmed")).toBeVisible();
+    expect(screen.getByText("Corrected")).toBeVisible();
+    expect(screen.getAllByText("a bowl berries").length).toBeGreaterThan(0);
+    expect(screen.getByText("blueberries (0.5 cup)")).toBeVisible();
     expect(screen.getByText("Json Decoded")).toBeVisible();
   });
 });

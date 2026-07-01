@@ -348,6 +348,99 @@ func TestLocalModelRunAcceptsMissingQuantitiesAsUnresolvedRows(t *testing.T) {
 	}
 }
 
+func TestLocalModelReviewCorrectionUpdatesPlanAndArtifacts(t *testing.T) {
+	root := repoRoot(t)
+	config := testConfig(t, root)
+	config.HostedMode = HostedModeLocalModel
+	config.LocalModelEnabled = true
+	config.LocalModelBaseURL = "http://127.0.0.1:11435/v1"
+	config.LocalModelName = "/Users/chranama-server/MealCheck-data/models/Qwen3-0.6B-Q4_K_M.gguf"
+	store := NewMemoryStore()
+	pending := NewPendingInputs()
+	server := NewServer(config, store, pending)
+	provider := &fakeProvider{responses: []string{
+		`{"i":[[1,"oatmeal",null,"","missing quantity","missing_quantity"]]}`,
+		`{"i":[[2,"chicken breast",4,"oz","",""]]}`,
+		`{"i":[[3,"broccoli",1,"cup","",""]]}`,
+	}}
+	settings := localModelTestSettings(seededCase(t, root).Settings)
+
+	body := marshalJSON(t, CreateRunRequest{
+		InputMode:     InputModeLocalModel,
+		Settings:      settings,
+		CandidateText: "Breakfast: oatmeal\nLunch: 4 oz chicken breast\nDinner: 1 cup broccoli",
+	})
+	createResp := doRequest(t, server, http.MethodPost, "/api/runs", body)
+	if createResp.Code != http.StatusAccepted {
+		t.Fatalf("create status = %d body=%s", createResp.Code, createResp.Body.String())
+	}
+	var created CreateRunResponse
+	decodeJSON(t, createResp.Body.Bytes(), &created)
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+		return provider, nil
+	}).ProcessOne(context.Background())
+	if err != nil {
+		t.Fatalf("process run: %v", err)
+	}
+	if !processed {
+		t.Fatal("expected worker to process one run")
+	}
+
+	badCorrectionResp := doRequest(t, server, http.MethodPost, "/api/runs/"+created.RunID+"/review/correction", marshalJSON(t, reviewCorrectionRequest{
+		RowIndex:     ptr(0),
+		SourceItemID: 99,
+		Food:         "cooked oatmeal",
+		Quantity:     ptr(1.0),
+		Unit:         "cup",
+	}))
+	if badCorrectionResp.Code != http.StatusBadRequest {
+		t.Fatalf("bad correction status = %d body=%s, want 400", badCorrectionResp.Code, badCorrectionResp.Body.String())
+	}
+	var badCorrection ErrorResponse
+	decodeJSON(t, badCorrectionResp.Body.Bytes(), &badCorrection)
+	if badCorrection.Error.Code != "invalid_correction_target" {
+		t.Fatalf("bad correction error = %+v, want invalid_correction_target", badCorrection.Error)
+	}
+
+	quantity := 1.0
+	correctionResp := doRequest(t, server, http.MethodPost, "/api/runs/"+created.RunID+"/review/correction", marshalJSON(t, reviewCorrectionRequest{
+		RowIndex:     ptr(0),
+		SourceItemID: 1,
+		Food:         "cooked oatmeal",
+		Quantity:     &quantity,
+		Unit:         "cup",
+		Reason:       "Correct oatmeal quantity from source review.",
+	}))
+	if correctionResp.Code != http.StatusOK {
+		t.Fatalf("correction status = %d body=%s", correctionResp.Code, correctionResp.Body.String())
+	}
+	var correctedReview NormalizedPlanReviewArtifact
+	decodeJSON(t, correctionResp.Body.Bytes(), &correctedReview)
+	if correctedReview.TrustSignals.UnresolvedItemCount != 0 || correctedReview.RequiresConfirmation {
+		t.Fatalf("corrected review signals = %+v requires=%t, want no unresolved confirmation", correctedReview.TrustSignals, correctedReview.RequiresConfirmation)
+	}
+	if correctedReview.Rows[0].NormalizedFood != "cooked oatmeal" || correctedReview.Rows[0].Quantity == nil || *correctedReview.Rows[0].Quantity != 1 || correctedReview.Rows[0].Unit != "cup" || !correctedReview.Rows[0].Resolved {
+		t.Fatalf("corrected review row = %+v, want resolved 1 cup cooked oatmeal", correctedReview.Rows[0])
+	}
+
+	run, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get run: %v", err)
+	}
+	actions := string(readFile(t, filepath.Join(run.ArtifactDir, "review", "review-actions.jsonl")))
+	if !strings.Contains(actions, `"action":"corrected"`) || !strings.Contains(actions, `"source_item_id":1`) || !strings.Contains(actions, "Correct oatmeal quantity") {
+		t.Fatalf("review actions missing correction detail:\n%s", actions)
+	}
+
+	run = confirmReviewRun(t, server, store, created.RunID)
+	var plan checker.Plan
+	decodeJSON(t, readFile(t, filepath.Join(run.ArtifactDir, "normalized-plan.json")), &plan)
+	item := plan.Days[0].Meals[0].Items[0]
+	if item.Food != "cooked oatmeal" || item.Quantity == nil || *item.Quantity != 1 || item.Unit != "cup" || item.UnresolvedReason != "" {
+		t.Fatalf("confirmed corrected item = %+v, want resolved 1 cup cooked oatmeal", item)
+	}
+}
+
 func TestLocalModelRunRejectsClearMultiDayInputBeforeQueue(t *testing.T) {
 	root := repoRoot(t)
 	config := testConfig(t, root)

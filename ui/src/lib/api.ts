@@ -2,6 +2,7 @@ import type {
   ArtifactListResponse,
   CreateRunResponse,
   HealthResponse,
+  NormalizedPlanCorrectionPayload,
   MealPlanQualificationResult,
   NormalizedPlanReviewArtifact,
   LocalModelExtractionArtifact,
@@ -236,6 +237,14 @@ export async function requestNormalizedPlanRewrite(base: string, runID: string, 
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ reason }),
+  });
+}
+
+export async function submitNormalizedPlanCorrection(base: string, runID: string, payload: NormalizedPlanCorrectionPayload): Promise<NormalizedPlanReviewArtifact> {
+  return requestJSON<NormalizedPlanReviewArtifact>(base, `/api/runs/${runID}/review/correction`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
 }
 

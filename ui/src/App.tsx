@@ -13,6 +13,7 @@ import {
   qualificationFromApiError,
   rejectNormalizedPlanReview,
   requestNormalizedPlanRewrite,
+  submitNormalizedPlanCorrection,
 } from "./lib/api";
 import { recoveryFromError } from "./lib/recovery";
 import type { RecoveryNotice } from "./lib/recovery";
@@ -26,6 +27,7 @@ import type {
   BackendState,
   LiveState,
   MealPlanQualificationResult,
+  NormalizedPlanCorrectionPayload,
   NormalizedPlanReviewState,
   QualificationState,
   QualifyMealPlanPayload,
@@ -363,6 +365,41 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
     }
   }
 
+  async function correctNormalizedPlanRow(payload: NormalizedPlanCorrectionPayload) {
+    if (!live.runID) {
+      showError(new Error("No normalized plan is selected."));
+      return;
+    }
+    setReview((current) => ({
+      ...current,
+      status: "submitting",
+      message: "Saving normalized row correction.",
+    }));
+    try {
+      const artifact = await submitNormalizedPlanCorrection(apiBase, live.runID, payload);
+      setReview({
+        status: "ready",
+        message: artifact.requires_confirmation
+          ? "Review remaining unresolved or repaired rows before checking."
+          : "Corrected rows are ready for checking.",
+        artifact,
+      });
+      const events = await fetchEvents(apiBase, live.runID, live.events);
+      setLive((current) => ({
+        ...current,
+        events,
+        message: "Normalized row correction saved.",
+      }));
+    } catch (error) {
+      setReview((current) => ({
+        ...current,
+        status: "failed",
+        message: "Row correction failed.",
+      }));
+      throw error;
+    }
+  }
+
   async function applyRunDocument(base: string, runID: string, runDoc: Awaited<ReturnType<typeof fetchRun>>) {
     const events = await fetchEvents(base, runID, live.events);
     const run = runDoc.run;
@@ -418,6 +455,7 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
             onQualify={qualifyCandidate}
             onDeleteRun={deleteLiveRun}
             onConfirmReview={confirmNormalizedPlan}
+            onCorrectReviewRow={correctNormalizedPlanRow}
             onRejectReview={rejectNormalizedPlan}
             onRequestRewrite={requestSourceRewrite}
             onError={showError}

@@ -344,6 +344,18 @@ export type NormalizedPlanReviewRow = {
   unresolved_reason?: string;
 };
 
+export type NormalizedPlanCorrectionPayload = {
+  row_index: number;
+  source_item_id: number;
+  food: string;
+  quantity?: number;
+  unit?: string;
+  quantity_text?: string;
+  resolution_status?: "unresolved";
+  unresolved_reason?: string;
+  reason?: string;
+};
+
 export type NormalizedPlanReviewArtifact = {
   schema_version: string;
   run_id: string;
@@ -373,6 +385,11 @@ export type ReviewActionArtifact = {
   action: string;
   reason?: string;
   created_at: string;
+  row_index?: number;
+  source_item_id?: number;
+  source_text?: string;
+  before?: Record<string, unknown>;
+  after?: Record<string, unknown>;
 };
 
 export type LocalModelExtractionArtifact = {

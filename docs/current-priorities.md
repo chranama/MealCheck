@@ -406,6 +406,15 @@ Implemented slices:
   food, quantity, unit, and unresolved reason.
 - `Check now` confirms the normalized plan and runs the checker; `Reject` and
   `Rewrite input` end the run before checking and leave review action artifacts.
+- Rejected and rewrite-requested review runs return users to the meal-plan text
+  with recovery guidance instead of leaving the failure as a generic stopped
+  run.
+- Review rows can be corrected while the run is awaiting review; corrections
+  are strictly validated, preserve source-item identity, update the candidate
+  normalized plan used by `Check now`, and recalculate review trust signals.
+- Review correction actions record the source row, before value, after value,
+  reason, and timestamp, and completed reports show those details in the
+  normalization trace.
 - Completed confirmed runs keep review artifacts, local-model chunks,
   normalization events, and redacted provider details in the final manifest.
 - Completed live reports now include a `Normalization` tab when trace artifacts
@@ -413,6 +422,8 @@ Implemented slices:
   actions, and normalization events.
 - Report unresolved-food rows now include source item IDs and source text when
   they can be matched back to normalized-plan review rows.
+- Report unresolved foods now include a summary grouped by unresolved reason,
+  count, affected day/meal, and product recovery action.
 - Completed live reports now load `recommendation.json` as an optional artifact
   and include a `Recommendation` tab with status, reason, source decision,
   projected decision, and change count.
@@ -427,13 +438,8 @@ Implemented slices:
 
 Near-term engineering slices:
 
-1. Start with confirm/rewrite recovery; add direct normalized-plan editing after
-   strict validation and clear source preservation are in place.
-2. Capture user rejections, rewrites, and corrections as review artifacts that
-   can be promoted into P0 cases when they expose real in-bound failures.
-3. Make unresolved items easier to scan by reason and affected day/meal.
-4. Keep deterministic recommendations conservative and verification-gated.
-5. Add generative explanation after deterministic facts and unresolved-state UX
+1. Keep deterministic recommendations conservative and verification-gated.
+2. Add generative explanation after deterministic facts and unresolved-state UX
    are reliable.
 
 Metrics to track:

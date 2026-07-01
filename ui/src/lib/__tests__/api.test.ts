@@ -14,6 +14,7 @@ import {
   rejectNormalizedPlanReview,
   requestNormalizedPlanRewrite,
   requestJSON,
+  submitNormalizedPlanCorrection,
 } from "../api";
 import { DEFAULT_SETTINGS } from "../../constants";
 import type { RunPayload } from "../../types";
@@ -196,6 +197,31 @@ describe("api", () => {
           rows: [],
         }), { status: 200 });
       }
+      if (url.endsWith("/review/correction")) {
+        return new Response(JSON.stringify({
+          schema_version: "0.1",
+          run_id: "run-review",
+          created_at: "2026-07-01T12:00:00Z",
+          status: "awaiting_confirmation",
+          requires_confirmation: true,
+          trust_signals: {
+            source_item_count: 1,
+            normalized_row_count: 1,
+            unresolved_item_count: 0,
+            repair_count: 0,
+            failed_chunk_count: 0,
+          },
+          normalized_plan: {
+            schema_version: "0.1",
+            plan_id: "plan-review",
+            description: "Review plan",
+            days: [],
+            shopping_list: [],
+            prep_notes: [],
+          },
+          rows: [],
+        }), { status: 200 });
+      }
       return new Response(JSON.stringify({
         run: { status: "completed" },
         links: {},
@@ -215,6 +241,15 @@ describe("api", () => {
     await expect(confirmNormalizedPlanReview("http://api", "run-review")).resolves.toMatchObject({
       run: { status: "completed" },
     });
+    await expect(submitNormalizedPlanCorrection("http://api", "run-review", {
+      row_index: 0,
+      source_item_id: 1,
+      food: "cooked oatmeal",
+      quantity: 1,
+      unit: "cup",
+    })).resolves.toMatchObject({
+      requires_confirmation: true,
+    });
     await rejectNormalizedPlanReview("http://api", "run-review", "bad rows");
     await requestNormalizedPlanRewrite("http://api", "run-review", "rewrite source");
 
@@ -223,6 +258,16 @@ describe("api", () => {
     }));
     expect(fetchMock).toHaveBeenCalledWith("http://api/api/runs/run-review/review/confirm", expect.objectContaining({
       method: "POST",
+    }));
+    expect(fetchMock).toHaveBeenCalledWith("http://api/api/runs/run-review/review/correction", expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({
+        row_index: 0,
+        source_item_id: 1,
+        food: "cooked oatmeal",
+        quantity: 1,
+        unit: "cup",
+      }),
     }));
     expect(fetchMock).toHaveBeenCalledWith("http://api/api/runs/run-review/review/reject", expect.objectContaining({
       method: "POST",

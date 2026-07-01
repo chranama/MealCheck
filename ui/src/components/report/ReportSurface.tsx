@@ -3,6 +3,7 @@ import type {
   NormalizedPlanReviewRow,
   RecommendationChange,
   RecommendationFoodItem,
+  ReviewActionArtifact,
   ReportArtifacts,
   ReportTab,
   UnresolvedFood,
@@ -138,6 +139,7 @@ function FoodsPanel({ artifacts }: { artifacts: ReportArtifacts }) {
     ...unresolvedSourceLink(item, reviewRows),
     recovery_action: unresolvedRecoveryAction(item.unresolved_reason),
   }));
+  const unresolvedSummaryRows = unresolvedSummary(unresolved);
   const unresolvedFields = reviewRows.length
     ? ["day", "meal", "source_item_id", "source_text", "food", "quantity", "unit", "quantity_text", "unresolved_reason", "recovery_action"]
     : ["day", "meal", "food", "quantity", "unit", "quantity_text", "unresolved_reason", "recovery_action"];
@@ -162,6 +164,17 @@ function FoodsPanel({ artifacts }: { artifacts: ReportArtifacts }) {
     <>
       <h2>Food Resolution</h2>
       <div className="food-sections">
+        <article className="food-card">
+          <header>
+            <h3 className="food-title">Unresolved Summary</h3>
+            <span className="status-pill status-pill--info">{unresolvedSummaryRows.length}</span>
+          </header>
+          {unresolvedSummaryRows.length === 0 ? (
+            <p className="empty-state">None.</p>
+          ) : (
+            <DataTable rows={unresolvedSummaryRows} fields={["reason", "count", "affected", "recovery_action"]} />
+          )}
+        </article>
         <article className="food-card">
           <header>
             <h3 className="food-title">Unresolved Foods</h3>
@@ -344,6 +357,10 @@ function NormalizationPanel({ artifacts }: { artifacts: ReportArtifacts }) {
   }));
   const actionRows = actions.map((action) => ({
     action: readableID(action.action),
+    source_item_id: action.source_item_id ?? "-",
+    source_text: action.source_text || "-",
+    before: reviewActionItemText(action.before),
+    after: reviewActionItemText(action.after),
     reason: action.reason || "-",
     created_at: action.created_at,
   }));
@@ -382,7 +399,7 @@ function NormalizationPanel({ artifacts }: { artifacts: ReportArtifacts }) {
         </TraceSection>
         <TraceSection title="Review Actions" count={actionRows.length}>
           {actionRows.length ? (
-            <DataTable rows={actionRows} fields={["action", "reason", "created_at"]} />
+            <DataTable rows={actionRows} fields={["action", "source_item_id", "source_text", "before", "after", "reason", "created_at"]} />
           ) : (
             <p className="empty-state">None.</p>
           )}
@@ -397,6 +414,19 @@ function NormalizationPanel({ artifacts }: { artifacts: ReportArtifacts }) {
       </div>
     </>
   );
+}
+
+function reviewActionItemText(item: ReviewActionArtifact["before"]): string {
+  if (!item) return "-";
+  const food = String(item.food || "").trim();
+  const quantityText = String(item.quantity_text || "").trim();
+  const quantity = item.quantity;
+  const unit = String(item.unit || "").trim();
+  const amount = quantityText || (quantity !== undefined && quantity !== null ? [valueText(quantity), unit].filter(Boolean).join(" ") : "");
+  const status = String(item.unresolved_reason || item.resolution_status || "").trim();
+  const parts = [food || "-", amount ? `(${amount})` : ""].filter(Boolean);
+  if (status) parts.push(reasonLabel(status));
+  return parts.join(" ");
 }
 
 function TraceSection({ title, count, children }: { title: string; count: number; children: ReactNode }) {
@@ -522,6 +552,30 @@ function unresolvedRecoveryAction(reason: unknown): string {
     vague_quantity: "Add a measured quantity and unit.",
   };
   return actions[id] || "Clarify this item and rerun MealCheck.";
+}
+
+function unresolvedSummary(items: UnresolvedFood[]): Record<string, unknown>[] {
+  const groups = new Map<string, { reason: string; count: number; affected: Set<string>; recovery: string }>();
+  for (const item of items) {
+    const reason = String(item.unresolved_reason || "unresolved");
+    const group = groups.get(reason) || {
+      reason,
+      count: 0,
+      affected: new Set<string>(),
+      recovery: unresolvedRecoveryAction(reason),
+    };
+    group.count += 1;
+    group.affected.add([`Day ${item.day}`, readableID(item.meal)].filter(Boolean).join(" "));
+    groups.set(reason, group);
+  }
+  return [...groups.values()]
+    .sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason))
+    .map((group) => ({
+      reason: reasonLabel(group.reason),
+      count: group.count,
+      affected: [...group.affected].sort().join(", "),
+      recovery_action: group.recovery,
+    }));
 }
 
 function SourcesPanel({ artifacts }: { artifacts: ReportArtifacts }) {

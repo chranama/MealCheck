@@ -63,6 +63,7 @@ function renderWorkspace(overrides: Partial<Parameters<typeof LiveWorkspace>[0]>
       onQualify={vi.fn(async () => undefined)}
       onDeleteRun={vi.fn(async () => undefined)}
       onConfirmReview={vi.fn(async () => undefined)}
+      onCorrectReviewRow={vi.fn(async () => undefined)}
       onRejectReview={vi.fn(async () => undefined)}
       onRequestRewrite={vi.fn(async () => undefined)}
       onError={vi.fn()}
@@ -169,6 +170,7 @@ describe("LiveWorkspace", () => {
   it("renders source-linked normalized-plan review actions", async () => {
     const user = userEvent.setup();
     const onConfirmReview = vi.fn(async () => undefined);
+    const onCorrectReviewRow = vi.fn(async () => undefined);
     const onRejectReview = vi.fn(async () => undefined);
     const onRequestRewrite = vi.fn(async () => undefined);
     renderWorkspace({
@@ -229,6 +231,7 @@ describe("LiveWorkspace", () => {
         },
       },
       onConfirmReview,
+      onCorrectReviewRow,
       onRejectReview,
       onRequestRewrite,
     });
@@ -238,10 +241,26 @@ describe("LiveWorkspace", () => {
     expect(screen.getByText("cooked oatmeal")).toBeInTheDocument();
     expect(screen.getByText("a vague quantity")).toBeInTheDocument();
 
+    await user.click(screen.getAllByRole("button", { name: "Correct" })[1]);
+    const correctionForm = screen.getByRole("form", { name: "Correct normalized row" });
+    await user.clear(within(correctionForm).getByLabelText("Food"));
+    await user.type(within(correctionForm).getByLabelText("Food"), "blueberries");
+    await user.type(within(correctionForm).getByLabelText("Quantity"), "0.5");
+    await user.selectOptions(within(correctionForm).getByLabelText("Unit"), "cup");
+    await user.click(within(correctionForm).getByRole("button", { name: "Save correction" }));
+
     await user.click(screen.getByRole("button", { name: "Check now" }));
     await user.click(screen.getByRole("button", { name: "Rewrite input" }));
     await user.click(screen.getByRole("button", { name: "Reject" }));
 
+    expect(onCorrectReviewRow).toHaveBeenCalledWith({
+      row_index: 1,
+      source_item_id: 2,
+      food: "blueberries",
+      quantity: 0.5,
+      unit: "cup",
+      reason: "Normalized row corrected before checking.",
+    });
     expect(onConfirmReview).toHaveBeenCalledTimes(1);
     expect(onRequestRewrite).toHaveBeenCalledTimes(1);
     expect(onRejectReview).toHaveBeenCalledTimes(1);

@@ -15,6 +15,7 @@ const (
 	EventPlanNormalized  = "plan_normalized"
 	EventReviewReady     = "review_ready"
 	EventReviewConfirmed = "review_confirmed"
+	EventReviewCorrected = "review_corrected"
 	EventReviewRejected  = "review_rejected"
 	EventReviewRewrite   = "review_rewrite_requested"
 	EventArtifactWritten = "artifact_written"
