@@ -2,7 +2,7 @@
 
 This document is MealCheck's active engineering-priority surface. The
 implementation plan records milestone history; this document ranks the next
-work by user impact, observed failure modes, and proof value.
+work by user impact, observed failure modes, and operational value.
 
 Last reviewed: 2026-07-01.
 
@@ -42,6 +42,36 @@ When a priority has no standing discrete task, do not invent one just because it
 is P0 or P1. Let observed failures, evaluation gaps, or missing operator tooling
 promote an operating-loop item into an implementation slice.
 
+## Product Boundary
+
+New work should preserve this run path:
+
+```text
+concise meal-plan text
+  -> bounded local-model normalization
+  -> source-linked normalized plan
+  -> deterministic food, nutrient, allergen, and guideline checks
+  -> report artifacts
+  -> repeatable validation
+```
+
+Do not reshape the project to chase pure ML research, model training,
+GPU-inference optimization, distributed model serving, or broad agent/RAG demos.
+Those directions can support development experiments, but they should not
+outrank product work that makes runs easier to inspect, reproduce, and recover.
+
+The best near-term improvements are therefore:
+
+- make model normalization inspectable and correctable by users
+- turn existing timing and chunk artifacts into compact operator summaries
+- compare local-model quality and latency only after artifact summaries exist
+- make the deployed workflow reproducible enough to debug outages and release
+  changes
+- export evaluation summaries in a portable format without rewriting the core
+  verifier
+- add source inspection only when it helps users understand completed
+  reports and preserves deterministic source-pack authority
+
 ## P0: In-Bound Normalization Reliability
 
 Goal:
@@ -49,8 +79,9 @@ Goal:
 MealCheck should reliably normalize concise ingredient-level meal plans that
 match the public input guidance. The preloaded example and a small regression
 corpus of natural rewrites must work before broader feature work gets priority.
-The immediate proof is that the new one-day, per-meal, SLM-critical path works
-on the serving MacBook with enough artifacts to explain failures.
+The immediate release condition is that the new one-day, per-meal,
+SLM-critical path works on the serving MacBook with enough artifacts to explain
+failures.
 
 Why this is first:
 
@@ -257,6 +288,9 @@ Goal:
 MealCheck should feel alive and bounded while the MacBook-local model works.
 The product does not need SaaS-like latency, but users should understand whether
 their run is queued, normalizing, checking, writing a report, failed, or ready.
+Operators should also be able to inspect compact timing, decode, repair,
+timeout, and queue evidence without reading raw chunk artifacts one run at a
+time.
 
 Why this is third:
 
@@ -272,22 +306,31 @@ Good enough:
 - The UI shows a useful state quickly after submission.
 - Queue-full, rate-limit, model-unavailable, timeout, and failed-run states have
   distinct recovery guidance.
-- Stage timing is visible to operators through logs or artifacts.
+- Stage timing, decode failures, repair counts, timeout counts, and queue
+  behavior are visible to operators through a compact summary, not only raw
+  logs or artifacts.
 - Accepted one-day inputs stay within configured timeout limits under normal
   load.
 
 Near-term engineering slices:
 
-1. Convert P0 stage timings and failure stages into clear user/operator states
+1. Add an operator timing and failure summary over local-model chunk artifacts,
+   grouped by run, source-item count, meal chunk, model, commit, stage, repair
+   count, decode failure count, timeout, and final status.
+2. Convert P0 stage timings and failure stages into clear user/operator states
    without leaking user secrets or internal host paths.
-2. Add distinct recovery guidance for queue-full, rate-limit, model-unavailable,
+3. Add distinct recovery guidance for queue-full, rate-limit, model-unavailable,
    timeout, failed-normalization, and report-loading failures.
-3. Use measured data before raising model limits again.
-4. Keep one active local-model run unless measurements show safe headroom.
-5. Keep hosted local-model input bounded to one day and the configured source
+4. Use measured data before raising model limits again.
+5. Keep one active local-model run unless measurements show safe headroom.
+6. Keep hosted local-model input bounded to one day and the configured source
    item cap before revisiting larger scopes.
-6. Compare the production `Qwen3-0.6B-Q4_K_M` model against one larger local
-   candidate only after P0 stage timing and live-regimen artifacts are recorded.
+7. Compare the production `Qwen3-0.6B-Q4_K_M` model against one larger local
+   candidate only after the operator timing summary exists. Record quality,
+   latency, timeout, memory, repair rate, decode failures, and user-visible
+   tradeoffs.
+8. Add a small load/smoke harness for queue capacity, timeout behavior, artifact
+   writes, and local-model unavailability.
 
 Metrics to track:
 
@@ -297,6 +340,9 @@ Metrics to track:
 - Timeout count.
 - Queue-full count.
 - Local-model unavailable count.
+- Decode failure count by meal code and source-item count.
+- Source-measurement repair count by model and input pattern.
+- Artifact-summary coverage for completed and failed local-model runs.
 
 ## P3: Normalized-Plan Review And Report Trust
 
@@ -314,14 +360,16 @@ Why this follows the earlier priorities:
 - Normalized-plan review is the right trust layer for SLM risk: the model stays
   critical to the happy path, but the user can catch semantic errors before the
   checker turns them into authoritative-looking findings.
-- The current artifact and report system already carries strong evidence; the
-  next improvements should focus on unresolved-item clarity and practical
-  recovery.
+- The current artifact and report system already carries the facts needed to
+  explain decisions; the next improvements should make those facts easier to
+  find and act on.
+- A correction loop turns user-visible SLM mistakes into review artifacts that
+  can later become regression cases.
 
 Near-term engineering slices:
 
 1. Add a normalized-plan review step between local-model normalization and
-   checker execution after the expanded P0 live regimen passes.
+   checker execution.
 2. Keep the review step efficient for broad users: make `Check now` the obvious
    action for clean normalizations, but require explicit confirmation when
    unresolved items, source repairs, vague quantities, or other trust signals
@@ -330,10 +378,16 @@ Near-term engineering slices:
    unit, and unresolved reason so the user can see exactly what the SLM changed.
 4. Start with confirm/rewrite recovery; add direct normalized-plan editing only
    with strict validation and clear source preservation.
-5. Make unresolved items easier to scan by reason and affected day/meal.
-6. Surface concrete edit guidance where deterministic and safe.
-7. Keep deterministic recommendations conservative and verification-gated.
-8. Avoid adding generative explanation until the deterministic evidence and
+5. Add a source-linked normalization inspection panel to the live report flow so
+   users can trace source inventory, normalized rows, repairs, and unresolved
+   items from the product surface.
+6. Capture user rejections, rewrites, and corrections as review artifacts, not
+   as automatic training data. Promote reviewed examples into P0 cases when
+   they expose real in-bound failures.
+7. Make unresolved items easier to scan by reason and affected day/meal.
+8. Surface concrete edit guidance where deterministic and safe.
+9. Keep deterministic recommendations conservative and verification-gated.
+10. Avoid adding generative explanation until the deterministic facts and
    unresolved-state UX are boringly reliable.
 
 Metrics to track:
@@ -341,10 +395,57 @@ Metrics to track:
 - normalized-plan review completion rate.
 - normalized-plan rejection or rewrite rate by reason.
 - report failures prevented by review-stage user correction.
+- Correction artifacts reviewed and promoted into fixtures.
 - User-visible unresolved reason coverage.
 - Recommendation availability for supported deterministic edit classes.
 - Reports with missing or confusing artifact links.
 - Reports whose final decision cannot be reproduced from artifacts.
+
+## P4: Operations, Replay, And Source Inspection
+
+Goal:
+
+Make MealCheck easier to operate, replay, and explain without changing the core
+product scope. A maintainer should be able to reproduce the hosted workflow,
+inspect a completed run, compare evaluation outputs, and verify that reports
+trace back to deterministic sources.
+
+Why this follows the earlier priorities:
+
+- Production issues are harder to diagnose when the run path exists only as
+  scattered docs, scripts, artifacts, and live outputs.
+- Replayable operations improve release confidence without taking authority
+  away from the deterministic verifier.
+- Portable evaluation outputs and source inspection help maintainers compare
+  changes, review unresolved cases, and explain final report decisions.
+
+Near-term engineering slices:
+
+1. Add an end-to-end operator walkthrough that submits a sample run, watches
+   progress, opens normalization details, checks the final report, inspects
+   artifacts, verifies deletion, exercises backend-unavailable behavior, and
+   names the local validation commands.
+2. Add a reproducible deployment profile for API, Postgres, artifact storage,
+   and mocked or local model endpoint. Keep the MacBook/Cloudflare production
+   deployment documented, but make local production behavior easier to replay.
+3. Add a portable eval/reporting export, such as JSONL or CSV, so normalization
+   and resolver changes can be compared across commits and reviewed without
+   parsing raw command output.
+4. Add a compact source and citation inspection surface only if it
+   helps users trace report findings to source facts, guideline references,
+   normalized foods, quantities, and unresolved reasons. It must not make
+   open-ended RAG the source of verification truth.
+5. Keep product copy focused on checking a bounded meal plan against declared
+   constraints, not planning meals or chatting about nutrition.
+
+Metrics to track:
+
+- Operator walkthrough coverage for live product, local commands, validation,
+  deletion, outage behavior, and artifact inspection.
+- Reproducible deployment smoke success.
+- Portable eval summary freshness and parity with canonical eval outputs.
+- Source inspection coverage for reports and guideline references.
+- Public/docs claims that overstate medical, ML-training, or model-infra scope.
 
 ## Not First Right Now
 
@@ -358,12 +459,15 @@ observed failure changes the priority calculation:
 - fuzzy food matching
 - FoodData Central live search as a required runtime dependency
 - adding a dynamic frontend server
+- pure ML research, model training, or fine-tuning as a primary direction
+- GPU inference, distributed serving, batching, KV-cache, or accelerator work as
+  a primary direction
+- open-ended RAG or agent tooling that controls verification truth
 - expanding deterministic recommendation classes before unresolved and
   normalization reliability improve
 - promoting NYT/TASTEset-generated P0 cases before product-shaped reviewed cases
   and manual review
-- comparing larger models before serving-MacBook P0 artifacts and stage timing
-  exist
+- comparing larger models before operator timing summaries exist
 - raising local-model limits without stage timing evidence
 
 ## Operating Loop
@@ -377,13 +481,13 @@ Use this loop when choosing the next engineering task:
    boundary.
 4. If in-bound, add or update a regression fixture before or with the fix.
 5. Fix the smallest deterministic layer that owns the problem.
-6. Run the relevant proof gate.
+6. Run the relevant validation gate.
 7. Update this document only when priority order, target metrics, or the active
    next slices change.
 
-## Proof Gates By Priority
+## Validation Gates By Priority
 
-P0 proof should include:
+P0 validation should include:
 
 - robustness corpus normalization checks
 - serving-MacBook live P0 regimen for the per-meal local-model path
@@ -391,24 +495,35 @@ P0 proof should include:
 - backend tests for source-item preservation and unsupported-unit handling
 - frontend tests for actionable recovery messages
 
-P1 proof should include:
+P1 validation should include:
 
 - `go run ./cmd/mealcheck fixture-check`
 - `go run ./cmd/mealcheck eval-checker`
 - WWEIA/NHANES evaluation when changing catalog or fallback behavior
 - resolver tests for new unresolved reasons or conversions
 
-P2 proof should include:
+P2 validation should include:
 
 - local and deployed smoke tests
 - timing summaries from representative one-day inputs, derived from the P0
   instrumentation path
+- operator summaries over local-model chunk artifacts
 - queue, timeout, and model-unavailable recovery checks
+- load/smoke coverage for queue behavior, artifact writes, and model outage
 
-P3 proof should include:
+P3 validation should include:
 
 - artifact bundle validation
 - frontend tests for source-linked normalized-plan review and confirmation
+- frontend tests for source-linked normalization inspection
 - report rendering tests
 - frontend tests for unresolved-item labels and recovery actions
+- correction artifact validation and promotion checks
 - recommendation tests when deterministic edits change
+
+P4 validation should include:
+
+- operator walkthrough verification against the current product
+- reproducible deployment smoke test
+- portable eval summary generation
+- source inspection tests when that surface changes
