@@ -39,7 +39,8 @@ func TestLocalModelExtractionMessagesIncludeResolvedItemCount(t *testing.T) {
 		"Meal: day=1 meal_code=b meal_label=breakfast.",
 		"The full request contains exactly 3 distinct meal chunk(s) for the day.",
 		"This meal chunk contains exactly 3 numbered source item(s); return exactly 3 row(s).",
-		"Meal text:\nBreakfast:",
+		"Authoritative source items (return exactly one row for each line):",
+		"Context-only meal text (use only to clarify listed source items; do not extract rows from this section):\nBreakfast:",
 		"Convert every numbered source item into exactly one row.",
 		"The server already knows day and meal_code; do not output day or meal_code.",
 		"1 | status=resolved | source_text=1 cup oatmeal",
@@ -72,7 +73,7 @@ func TestLocalModelExtractionMessagesNumberInlineMealItems(t *testing.T) {
 	userPrompt := messages[1].Content
 	for _, want := range []string{
 		"This meal chunk contains exactly 3 numbered source item(s); return exactly 3 row(s).",
-		"Meal text:\nDay 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.",
+		"Context-only meal text (use only to clarify listed source items; do not extract rows from this section):\nDay 1 breakfast: 1 cup cooked oatmeal, 1 cup blueberries, and 1 cup plain Greek yogurt.",
 		"1 | status=resolved | source_text=1 cup cooked oatmeal",
 		"2 | status=resolved | source_text=1 cup blueberries",
 		"3 | status=resolved | source_text=1 cup plain Greek yogurt",
@@ -111,7 +112,7 @@ func TestLocalModelExtractionMessagesNumberParagraphMealItems(t *testing.T) {
 	userPrompt := messages[1].Content
 	for _, want := range []string{
 		"This meal chunk contains exactly 3 numbered source item(s); return exactly 3 row(s).",
-		"Meal text:\nFor breakfast I will have 1 cup oatmeal with 0.5 cup blueberries and 1 cup plain Greek yogurt.",
+		"Context-only meal text (use only to clarify listed source items; do not extract rows from this section):\nFor breakfast I will have 1 cup oatmeal with 0.5 cup blueberries and 1 cup plain Greek yogurt.",
 		"1 | status=resolved | source_text=1 cup oatmeal",
 		"2 | status=resolved | source_text=0.5 cup blueberries",
 		"3 | status=resolved | source_text=1 cup plain Greek yogurt",

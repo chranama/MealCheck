@@ -119,8 +119,8 @@ func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
 	if got := fmt.Sprint(breakfast.SourceItemIDs); got != "[1 2 3]" {
 		t.Fatalf("breakfast source ids = %s, want [1 2 3]", got)
 	}
-	if breakfast.Prompt.MessageCount != 2 || !strings.Contains(breakfast.Prompt.Messages[1].Content, "Meal text:") {
-		t.Fatalf("breakfast prompt artifact = %+v, want system/user prompt with meal text", breakfast.Prompt)
+	if breakfast.Prompt.MessageCount != 2 || !strings.Contains(breakfast.Prompt.Messages[1].Content, "Context-only meal text") {
+		t.Fatalf("breakfast prompt artifact = %+v, want system/user prompt with context-only meal text", breakfast.Prompt)
 	}
 	if !strings.Contains(breakfast.RawOutput, `"cooked oatmeal"`) {
 		t.Fatalf("breakfast raw compact output = %q, want cooked oatmeal row", breakfast.RawOutput)
@@ -464,7 +464,7 @@ func TestLocalModelRunReportsFriendlyPostModelNormalizationFailure(t *testing.T)
 	if failedChunk.FailureStage != "decode" || !strings.Contains(failedChunk.RawOutput, "this is not compact json") {
 		t.Fatalf("failed chunk artifact = %+v, want decode failure with raw output", failedChunk)
 	}
-	if failedChunk.Prompt.MessageCount != 2 || !strings.Contains(failedChunk.Prompt.Messages[1].Content, "Source items:") {
+	if failedChunk.Prompt.MessageCount != 2 || !strings.Contains(failedChunk.Prompt.Messages[1].Content, "Authoritative source items") {
 		t.Fatalf("failed chunk prompt artifact = %+v, want meal prompt evidence", failedChunk.Prompt)
 	}
 }

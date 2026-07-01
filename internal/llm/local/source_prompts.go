@@ -25,12 +25,12 @@ func localLlamaSourceItemsPromptBlock(text string) string {
 
 func localLlamaMealChunkPromptBlock(chunk localLlamaMealChunk) string {
 	var b strings.Builder
-	b.WriteString("Meal text:\n")
-	b.WriteString(strings.TrimSpace(chunk.MealText))
-	b.WriteString("\n\nSource items:\n")
+	b.WriteString("Authoritative source items (return exactly one row for each line):\n")
 	for _, item := range chunk.Items {
 		fmt.Fprintf(&b, "%d | status=%s | source_text=%s\n", item.ID, item.ParseStatus, item.Text)
 	}
+	b.WriteString("\n\nContext-only meal text (use only to clarify listed source items; do not extract rows from this section):\n")
+	b.WriteString(strings.TrimSpace(chunk.MealText))
 	return strings.TrimRight(b.String(), "\n")
 }
 
