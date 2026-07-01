@@ -8,6 +8,7 @@ import {
   fetchHealth,
   fetchPublicStatus,
   joinUrl,
+  loadLiveArtifacts,
   qualifyMealPlan,
   qualificationFromApiError,
   rejectNormalizedPlanReview,
@@ -231,6 +232,92 @@ describe("api", () => {
       method: "POST",
       body: JSON.stringify({ reason: "rewrite source" }),
     }));
+  });
+
+  it("loads optional completed-run normalization trace artifacts", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      const path = new URL(url).pathname;
+      const json = (value: unknown) => new Response(JSON.stringify(value), { status: 200 });
+      if (path.endsWith("/decision.json")) return json({ decision: "warn", risk_level: "medium", summary: "reviewed" });
+      if (path.endsWith("/report.json")) return json({ guideline_pack_id: "dga-2025-2030-us-adult-general-v1", constraint_summary: {}, profile_summary: {} });
+      if (path.endsWith("/daily-totals.json")) return json([]);
+      if (path.endsWith("/resolved-foods.json")) return json([]);
+      if (path.endsWith("/unresolved-foods.json")) return json([]);
+      if (path.endsWith("/excluded-unresolved-foods.json")) return json([]);
+      if (path.endsWith("/manifest.json")) return json({
+        mode: "hosted",
+        artifacts: [
+          "decision.json",
+          "review/normalized-plan-review.json",
+          "review/review-actions.jsonl",
+          "optional/local-model-chunks.json",
+          "optional/normalization-events.json",
+        ],
+      });
+      if (path.endsWith("/guideline-pack/citations.json")) return json({ sources: [] });
+      if (path.endsWith("/artifacts")) return json({ artifacts: [] });
+      if (path.endsWith("/review/normalized-plan-review.json")) return json({
+        schema_version: "0.1",
+        run_id: "run-review",
+        created_at: "2026-07-01T12:00:00Z",
+        status: "confirmed",
+        requires_confirmation: false,
+        trust_signals: {
+          source_item_count: 1,
+          normalized_row_count: 1,
+          unresolved_item_count: 0,
+          repair_count: 0,
+          failed_chunk_count: 0,
+        },
+        normalized_plan: {
+          schema_version: "0.1",
+          plan_id: "plan-review",
+          description: "Review plan",
+          days: [],
+          shopping_list: [],
+          prep_notes: [],
+        },
+        rows: [],
+      });
+      if (path.endsWith("/optional/normalization-events.json")) return json([
+        { type: "json_decoded", message: "decoded", created_at: "2026-07-01T12:00:00Z" },
+      ]);
+      if (path.endsWith("/optional/local-model-chunks.json")) return json({
+        schema_version: "0.1",
+        created_at: "2026-07-01T12:00:00Z",
+        plan_id: "plan-review",
+        chunk_count: 1,
+        source_item_count: 1,
+        stage_timings: { total_ms: 100 },
+        chunks: [],
+      });
+      if (path.endsWith("/review/review-actions.jsonl")) {
+        return new Response(JSON.stringify({
+          schema_version: "0.1",
+          run_id: "run-review",
+          action: "confirmed",
+          reason: "ok",
+          created_at: "2026-07-01T12:01:00Z",
+        }) + "\n", { status: 200 });
+      }
+      return new Response("not found", { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadLiveArtifacts("http://api", "run-review")).resolves.toMatchObject({
+      normalizationReview: {
+        run_id: "run-review",
+      },
+      normalizationEvents: [
+        { type: "json_decoded" },
+      ],
+      localModelExtraction: {
+        chunk_count: 1,
+      },
+      reviewActions: [
+        { action: "confirmed" },
+      ],
+    });
   });
 
   it("loads health metadata", async () => {

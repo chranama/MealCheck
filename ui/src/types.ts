@@ -11,7 +11,7 @@ export type QualificationStatus =
   | "eligible_for_verification"
   | "eligible_with_unresolved_items"
   | string;
-export type ReportTab = "checks" | "nutrition" | "foods" | "sources" | "report";
+export type ReportTab = "checks" | "nutrition" | "foods" | "normalization" | "sources" | "report";
 export type RunStatus = "idle" | "queued" | "running" | "completed" | "failed" | "deleted" | string;
 export type CheckStatus = "pass" | "warn" | "block" | string;
 export type AccessMode = "public_byok" | "invite_required" | string;
@@ -236,6 +236,10 @@ export type ReportArtifacts = {
   pack?: unknown;
   citations: Citations;
   artifactItems?: ArtifactItem[] | null;
+  normalizationReview?: NormalizedPlanReviewArtifact | null;
+  normalizationEvents?: NormalizationEvent[] | null;
+  localModelExtraction?: LocalModelExtractionArtifact | null;
+  reviewActions?: ReviewActionArtifact[] | null;
 };
 
 export type RunEvent = {
@@ -313,6 +317,92 @@ export type NormalizedPlanReviewState = {
   status: "idle" | "loading" | "ready" | "submitting" | "failed";
   message: string;
   artifact: NormalizedPlanReviewArtifact | null;
+};
+
+export type NormalizationEvent = {
+  type: string;
+  message: string;
+  created_at: string;
+};
+
+export type ReviewActionArtifact = {
+  schema_version: string;
+  run_id: string;
+  action: string;
+  reason?: string;
+  created_at: string;
+};
+
+export type LocalModelExtractionArtifact = {
+  schema_version: string;
+  created_at: string;
+  plan_id: string;
+  chunk_count: number;
+  source_item_count: number;
+  stage_timings: LocalModelExtractionStageTimings;
+  repeat_run_instability?: {
+    measured: boolean;
+    reason?: string;
+  };
+  failure_stage?: string;
+  error?: string;
+  chunks: LocalModelChunkArtifact[];
+};
+
+export type LocalModelExtractionStageTimings = {
+  chunking_ms?: number;
+  expansion_ms?: number;
+  completeness_check_ms?: number;
+  total_ms?: number;
+};
+
+export type LocalModelChunkArtifact = {
+  index: number;
+  day: number;
+  meal_code: string;
+  meal_label?: string;
+  meal_text: string;
+  source_item_ids?: number[];
+  source_items: LocalModelChunkSourceItemArtifact[];
+  decoded_rows?: LocalModelChunkDecodedRowArtifact[];
+  reconciliation: LocalModelChunkReconciliationArtifact;
+  stage_timings?: Record<string, number>;
+  failure_stage?: string;
+  error?: string;
+};
+
+export type LocalModelChunkSourceItemArtifact = {
+  id: number;
+  day: number;
+  meal_code: string;
+  text: string;
+  parse_status: string;
+};
+
+export type LocalModelChunkDecodedRowArtifact = {
+  source_item_id: number;
+  day: number;
+  meal_code: string;
+  food: string;
+  resolved: boolean;
+  quantity?: number;
+  unit?: string;
+  quantity_text?: string;
+  unresolved_reason?: string;
+};
+
+export type LocalModelChunkReconciliationArtifact = {
+  decoded_source_item_ids?: number[];
+  repair_count: number;
+  repairs?: LocalLlamaNormalizationRepair[];
+};
+
+export type LocalLlamaNormalizationRepair = {
+  source_item_id: number;
+  field: string;
+  from?: string;
+  to?: string;
+  reason: string;
 };
 
 export type QualificationState = {

@@ -4166,3 +4166,43 @@ Verification:
 - `npm run typecheck` passes in `ui/`.
 - `npm run build` passes in `ui/`.
 - `GOCACHE=/private/tmp/mealcheck-gocache go run ./cmd/mealcheck local-smoke --root /Users/chranama/career/MealCheck --work-dir /private/tmp/mealcheck-local-smoke-p3` passes.
+
+## Milestone 57: P3 Completed-Report Normalization Trace
+
+Status: Implemented locally in the current worktree.
+
+Purpose:
+
+Carry the normalized-plan review evidence into the completed report surface so
+users can trace the final checker decision back to the same source-linked
+interpretation they confirmed before checking.
+
+Delivered:
+
+- Extended live artifact loading to fetch optional completed-run normalization
+  artifacts:
+  - `review/normalized-plan-review.json`
+  - `review/review-actions.jsonl`
+  - `optional/local-model-chunks.json`
+  - `optional/normalization-events.json`
+- Added a `Normalization` report tab for completed reports with trace artifacts.
+- Rendered source inventory, normalized rows, repair rows, review actions, and
+  normalization events from retained artifacts.
+- Matched report unresolved-food rows back to normalized-plan review rows and
+  displayed source item IDs and source text when available.
+- Kept static/demo reports tolerant of missing normalization artifacts.
+
+Acceptance:
+
+- Confirmed local-model reports expose the normalization trace after report
+  generation.
+- Users can inspect source text, normalized rows, repairs, unresolved reasons,
+  review action history, and normalization events from the completed report.
+- Unresolved foods in the report can be traced back to source-linked review
+  rows when matching evidence exists.
+- Reports without normalization artifacts continue to render.
+
+Verification:
+
+- `npm test -- --run` passes in `ui/`.
+- `npm run typecheck` passes in `ui/`.

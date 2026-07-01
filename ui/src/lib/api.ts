@@ -4,10 +4,13 @@ import type {
   HealthResponse,
   MealPlanQualificationResult,
   NormalizedPlanReviewArtifact,
+  LocalModelExtractionArtifact,
+  NormalizationEvent,
   PublicStatusResponse,
   QualifyMealPlanPayload,
   QualifyMealPlanResponse,
   ReportArtifacts,
+  ReviewActionArtifact,
   RunDocument,
   RunEvent,
   RunPayload,
@@ -114,6 +117,24 @@ export async function requestJSON<T>(base: string, path: string, options: Reques
   if (!bodyText.trim()) return {} as T;
   if (parsedJSON) return bodyJson as T;
   throw new ApiError(response.status, `Non-JSON response: ${preview}`, null);
+}
+
+export async function requestText(base: string, path: string, options: RequestInit = {}): Promise<string> {
+  if (!cleanApiBase(base) && path.startsWith("/api/")) {
+    throw new Error("API base URL is required.");
+  }
+  const response = await fetch(joinUrl(base, path), {
+    ...options,
+    headers: {
+      accept: "text/plain, application/jsonl, */*",
+      ...(options.headers || {}),
+    },
+  });
+  const bodyText = await response.text();
+  if (!response.ok) {
+    throw new ApiError(response.status, bodyText.slice(0, 4000), null);
+  }
+  return bodyText;
 }
 
 export async function checkHealth(base: string): Promise<boolean> {
@@ -226,8 +247,30 @@ async function fetchOptionalArtifact<T>(base: string, runID: string, path: strin
   }
 }
 
+async function fetchOptionalArtifactText(base: string, runID: string, path: string, fallback: string): Promise<string> {
+  try {
+    return await requestText(base, `/api/runs/${runID}/artifacts/${path}`);
+  } catch {
+    return fallback;
+  }
+}
+
 export async function loadLiveArtifacts(base: string, runID: string): Promise<ReportArtifacts> {
-  const [decision, report, totals, resolved, unresolved, excludedUnresolved, manifest, citations, artifactList] = await Promise.all([
+  const [
+    decision,
+    report,
+    totals,
+    resolved,
+    unresolved,
+    excludedUnresolved,
+    manifest,
+    citations,
+    artifactList,
+    normalizationReview,
+    normalizationEvents,
+    localModelExtraction,
+    reviewActionsText,
+  ] = await Promise.all([
     fetchArtifact(base, runID, "decision.json"),
     fetchArtifact(base, runID, "report.json"),
     fetchArtifact(base, runID, "daily-totals.json"),
@@ -237,6 +280,10 @@ export async function loadLiveArtifacts(base: string, runID: string): Promise<Re
     fetchArtifact(base, runID, "manifest.json"),
     fetchArtifact(base, runID, "guideline-pack/citations.json"),
     requestJSON<ArtifactListResponse>(base, `/api/runs/${runID}/artifacts`),
+    fetchOptionalArtifact<NormalizedPlanReviewArtifact | null>(base, runID, "review/normalized-plan-review.json", null),
+    fetchOptionalArtifact<NormalizationEvent[] | null>(base, runID, "optional/normalization-events.json", null),
+    fetchOptionalArtifact<LocalModelExtractionArtifact | null>(base, runID, "optional/local-model-chunks.json", null),
+    fetchOptionalArtifactText(base, runID, "review/review-actions.jsonl", ""),
   ]);
   const artifactItems = artifactList.artifacts || [];
   return {
@@ -252,7 +299,28 @@ export async function loadLiveArtifacts(base: string, runID: string): Promise<Re
     pack: null,
     citations,
     artifactItems,
+    normalizationReview,
+    normalizationEvents,
+    localModelExtraction,
+    reviewActions: parseReviewActions(reviewActionsText),
   } as ReportArtifacts;
+}
+
+function parseReviewActions(text: string): ReviewActionArtifact[] | null {
+  const rows = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (rows.length === 0) return null;
+  const actions: ReviewActionArtifact[] = [];
+  for (const row of rows) {
+    try {
+      const parsed = JSON.parse(row) as ReviewActionArtifact;
+      if (parsed && typeof parsed.action === "string") {
+        actions.push(parsed);
+      }
+    } catch {
+      return null;
+    }
+  }
+  return actions;
 }
 
 export async function deleteRun(base: string, runID: string): Promise<void> {

@@ -6,6 +6,34 @@ public expectations.
 Use this log instead of separate ADR and RFC files until a decision becomes too
 large to keep readable here.
 
+## 2026-07-01: Completed Reports Include Normalization Trace When Present
+
+Status: Accepted
+
+Decision:
+
+Completed local-model reports should surface retained normalization artifacts in
+the product report view. The report should load normalized-plan review rows,
+local-model chunk artifacts, normalization events, and review action JSONL when
+those artifacts exist, then render source inventory, normalized rows, repairs,
+review actions, and normalization events from the completed report surface.
+
+Reason:
+
+The pre-check review step prevents the checker from acting on unseen semantic
+interpretation, but trust also depends on post-check traceability. After report
+generation, users should still be able to connect unresolved foods and final
+checker findings back to the source text and normalized rows they confirmed.
+
+Consequences:
+
+- The completed report artifact loader tolerates optional normalization
+  artifacts and missing artifacts.
+- The report surface includes a `Normalization` tab for trace artifacts.
+- Unresolved-food rows can show matched source item IDs and source text.
+- Richer correction and P0-promotion workflows can build on the same retained
+  review/action artifacts instead of introducing a separate trace format.
+
 ## 2026-07-01: Local-Model Runs Pause For Normalized-Plan Review
 
 Status: Accepted

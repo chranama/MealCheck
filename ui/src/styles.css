@@ -444,6 +444,11 @@ h1 {
   gap: 12px;
 }
 
+.normalization-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  margin-bottom: 14px;
+}
+
 .metric {
   min-width: 0;
   min-height: 78px;

@@ -1,4 +1,5 @@
-import type { ReportArtifacts, ReportTab } from "../../types";
+import type { ReactNode } from "react";
+import type { NormalizedPlanReviewRow, ReportArtifacts, ReportTab, UnresolvedFood } from "../../types";
 import { TABS } from "../../constants";
 import {
   checkLabel,
@@ -11,6 +12,7 @@ import {
   sourceClaimLabel,
   valueText,
 } from "../../lib/format";
+import { Metric } from "../common/FormControls";
 
 export function ReportSurface({
   activeTab,
@@ -42,6 +44,7 @@ export function ReportSurface({
         {activeTab === "checks" ? <ChecksPanel artifacts={artifacts} /> : null}
         {activeTab === "nutrition" ? <NutritionPanel artifacts={artifacts} /> : null}
         {activeTab === "foods" ? <FoodsPanel artifacts={artifacts} /> : null}
+        {activeTab === "normalization" ? <NormalizationPanel artifacts={artifacts} /> : null}
         {activeTab === "sources" ? <SourcesPanel artifacts={artifacts} /> : null}
         {activeTab === "report" ? <ReportDownloadPanel artifacts={artifacts} /> : null}
       </section>
@@ -121,10 +124,15 @@ function NutritionPanel({ artifacts }: { artifacts: ReportArtifacts }) {
 
 function FoodsPanel({ artifacts }: { artifacts: ReportArtifacts }) {
   const { resolved, unresolved, excludedUnresolved } = artifacts;
+  const reviewRows = artifacts.normalizationReview?.rows || [];
   const unresolvedRows = unresolved.map((item) => ({
     ...item,
+    ...unresolvedSourceLink(item, reviewRows),
     recovery_action: unresolvedRecoveryAction(item.unresolved_reason),
   }));
+  const unresolvedFields = reviewRows.length
+    ? ["day", "meal", "source_item_id", "source_text", "food", "quantity", "unit", "quantity_text", "unresolved_reason", "recovery_action"]
+    : ["day", "meal", "food", "quantity", "unit", "quantity_text", "unresolved_reason", "recovery_action"];
   const excludedRows = (excludedUnresolved || []).map((item) => ({
     day: item.day,
     meal: item.meal,
@@ -154,7 +162,7 @@ function FoodsPanel({ artifacts }: { artifacts: ReportArtifacts }) {
           {unresolved.length === 0 ? (
             <p className="empty-state">None.</p>
           ) : (
-            <DataTable rows={unresolvedRows as Record<string, unknown>[]} fields={["day", "meal", "food", "quantity", "unit", "quantity_text", "unresolved_reason", "recovery_action"]} />
+            <DataTable rows={unresolvedRows as Record<string, unknown>[]} fields={unresolvedFields} />
           )}
         </article>
         <article className="food-card">
@@ -178,6 +186,200 @@ function FoodsPanel({ artifacts }: { artifacts: ReportArtifacts }) {
       </div>
     </>
   );
+}
+
+function NormalizationPanel({ artifacts }: { artifacts: ReportArtifacts }) {
+  const review = artifacts.normalizationReview || null;
+  const extraction = artifacts.localModelExtraction || null;
+  const events = artifacts.normalizationEvents || [];
+  const actions = artifacts.reviewActions || [];
+  if (!review && !extraction && events.length === 0 && actions.length === 0) {
+    return (
+      <>
+        <h2>Normalization Trace</h2>
+        <p className="empty-state">No normalization trace artifacts are available for this report.</p>
+      </>
+    );
+  }
+
+  const sourceRows = sourceInventoryRows(artifacts);
+  const normalizedRows = (review?.rows || []).map((row) => ({
+    day: row.day,
+    meal: readableID(row.meal_label || row.meal_code),
+    source_item_id: row.source_item_id,
+    source_text: row.source_text,
+    normalized_food: row.normalized_food || "-",
+    quantity: reviewQuantityText(row),
+    status: row.resolved ? "Resolved" : reasonLabel(row.unresolved_reason || "unresolved"),
+  }));
+  const repairRows = normalizationRepairRows(artifacts);
+  const eventRows = events.map((event) => ({
+    event: readableID(event.type),
+    message: event.message,
+    created_at: event.created_at,
+  }));
+  const actionRows = actions.map((action) => ({
+    action: readableID(action.action),
+    reason: action.reason || "-",
+    created_at: action.created_at,
+  }));
+
+  return (
+    <>
+      <h2>Normalization Trace</h2>
+      <div className="metric-grid normalization-metrics">
+        <Metric label="Source items" value={String(review?.trust_signals.source_item_count ?? extraction?.source_item_count ?? sourceRows.length)} />
+        <Metric label="Normalized rows" value={String(review?.trust_signals.normalized_row_count ?? normalizedRows.length)} />
+        <Metric label="Unresolved" value={String(review?.trust_signals.unresolved_item_count ?? unresolvedReviewRowCount(review?.rows || []))} />
+        <Metric label="Repairs" value={String(review?.trust_signals.repair_count ?? repairRows.length)} />
+        <Metric label="Chunks" value={String(extraction?.chunk_count ?? extraction?.chunks?.length ?? 0)} />
+      </div>
+      <div className="food-sections normalization-sections">
+        <TraceSection title="Source Inventory" count={sourceRows.length}>
+          {sourceRows.length ? (
+            <DataTable rows={sourceRows} fields={["day", "meal", "source_item_id", "source_text", "parse_status"]} />
+          ) : (
+            <p className="empty-state">None.</p>
+          )}
+        </TraceSection>
+        <TraceSection title="Normalized Rows" count={normalizedRows.length}>
+          {normalizedRows.length ? (
+            <DataTable rows={normalizedRows} fields={["day", "meal", "source_item_id", "source_text", "normalized_food", "quantity", "status"]} />
+          ) : (
+            <p className="empty-state">None.</p>
+          )}
+        </TraceSection>
+        <TraceSection title="Repairs" count={repairRows.length}>
+          {repairRows.length ? (
+            <DataTable rows={repairRows} fields={["day", "meal", "source_item_id", "source_text", "field", "from", "to", "reason"]} />
+          ) : (
+            <p className="empty-state">None.</p>
+          )}
+        </TraceSection>
+        <TraceSection title="Review Actions" count={actionRows.length}>
+          {actionRows.length ? (
+            <DataTable rows={actionRows} fields={["action", "reason", "created_at"]} />
+          ) : (
+            <p className="empty-state">None.</p>
+          )}
+        </TraceSection>
+        <TraceSection title="Normalization Events" count={eventRows.length}>
+          {eventRows.length ? (
+            <DataTable rows={eventRows} fields={["event", "message", "created_at"]} />
+          ) : (
+            <p className="empty-state">None.</p>
+          )}
+        </TraceSection>
+      </div>
+    </>
+  );
+}
+
+function TraceSection({ title, count, children }: { title: string; count: number; children: ReactNode }) {
+  return (
+    <article className="food-card trace-card">
+      <header>
+        <h3 className="food-title">{title}</h3>
+        <span className="status-pill status-pill--info">{count}</span>
+      </header>
+      {children}
+    </article>
+  );
+}
+
+function sourceInventoryRows(artifacts: ReportArtifacts): Record<string, unknown>[] {
+  const rows = new Map<number, Record<string, unknown>>();
+  for (const row of artifacts.normalizationReview?.rows || []) {
+    if (rows.has(row.source_item_id)) continue;
+    rows.set(row.source_item_id, {
+      day: row.day,
+      meal: readableID(row.meal_label || row.meal_code),
+      source_item_id: row.source_item_id,
+      source_text: row.source_text,
+      parse_status: row.source_parse_status || "-",
+    });
+  }
+  for (const chunk of artifacts.localModelExtraction?.chunks || []) {
+    for (const source of chunk.source_items || []) {
+      if (rows.has(source.id)) continue;
+      rows.set(source.id, {
+        day: source.day || chunk.day,
+        meal: readableID(chunk.meal_label || source.meal_code || chunk.meal_code),
+        source_item_id: source.id,
+        source_text: source.text,
+        parse_status: source.parse_status || "-",
+      });
+    }
+  }
+  return [...rows.values()].sort((a, b) => Number(a.source_item_id) - Number(b.source_item_id));
+}
+
+function normalizationRepairRows(artifacts: ReportArtifacts): Record<string, unknown>[] {
+  const sourceRows = sourceInventoryRows(artifacts);
+  const sourceByID = new Map(sourceRows.map((row) => [Number(row.source_item_id), row]));
+  const rows: Record<string, unknown>[] = [];
+  for (const chunk of artifacts.localModelExtraction?.chunks || []) {
+    for (const repair of chunk.reconciliation?.repairs || []) {
+      const source = sourceByID.get(repair.source_item_id);
+      rows.push({
+        day: source?.day || chunk.day,
+        meal: source?.meal || readableID(chunk.meal_label || chunk.meal_code),
+        source_item_id: repair.source_item_id,
+        source_text: source?.source_text || "-",
+        field: readableID(repair.field),
+        from: repair.from || "-",
+        to: repair.to || "-",
+        reason: readableID(repair.reason),
+      });
+    }
+  }
+  return rows;
+}
+
+function unresolvedSourceLink(item: UnresolvedFood, rows: NormalizedPlanReviewRow[]): Record<string, unknown> {
+  const row = matchReviewRowForUnresolved(item, rows);
+  if (!row) return {};
+  return {
+    source_item_id: row.source_item_id,
+    source_text: row.source_text,
+  };
+}
+
+function matchReviewRowForUnresolved(item: UnresolvedFood, rows: NormalizedPlanReviewRow[]): NormalizedPlanReviewRow | null {
+  const candidates = rows.filter((row) => {
+    if (row.resolved) return false;
+    if (row.day !== item.day) return false;
+    if (!mealMatches(row, item.meal)) return false;
+    if (lower(row.normalized_food) !== lower(item.food)) return false;
+    if (item.unresolved_reason && row.unresolved_reason !== item.unresolved_reason) return false;
+    return true;
+  });
+  if (candidates.length <= 1) return candidates[0] || null;
+  return candidates.find((row) => row.quantity_text === item.quantity_text)
+    || candidates.find((row) => row.unit === item.unit && row.quantity === item.quantity)
+    || candidates[0]
+    || null;
+}
+
+function mealMatches(row: NormalizedPlanReviewRow, meal: string): boolean {
+  const target = lower(meal);
+  return [row.meal_label, row.meal_code, readableID(row.meal_code)].some((value) => lower(value) === target);
+}
+
+function lower(value: unknown): string {
+  return String(value || "").trim().toLowerCase();
+}
+
+function unresolvedReviewRowCount(rows: NormalizedPlanReviewRow[]): number {
+  return rows.filter((row) => !row.resolved || row.unresolved_reason).length;
+}
+
+function reviewQuantityText(row: NormalizedPlanReviewRow): string {
+  if (row.quantity_text) return row.quantity_text;
+  if (row.quantity !== undefined && row.quantity !== null) {
+    return [valueText(row.quantity), row.unit].filter(Boolean).join(" ");
+  }
+  return "-";
 }
 
 function unresolvedRecoveryAction(reason: unknown): string {
