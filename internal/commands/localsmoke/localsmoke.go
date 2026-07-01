@@ -243,6 +243,45 @@ func (r *runner) p2OperationalSmoke() error {
 		return err
 	}
 
+	r.logf("p2: verify one active local-model claim")
+	activeConfig := localModelSmokeConfig(r.root, filepath.Join(r.workDir, "p2-active-local-model"))
+	activeStore := store.NewMemoryStore()
+	activePending := app.NewPendingInputs()
+	activeServer := httptest.NewServer(app.NewServer(activeConfig, activeStore, activePending).Handler())
+	defer activeServer.Close()
+	firstLocalRunID, err := r.createRun(activeServer.Client(), activeServer.URL, localModelRunRequest(seeded.Settings))
+	if err != nil {
+		return err
+	}
+	secondLocalRunID, err := r.createRun(activeServer.Client(), activeServer.URL, localModelRunRequest(seeded.Settings))
+	if err != nil {
+		return err
+	}
+	claimed, ok, err := activeStore.ClaimNextRun(context.Background(), "local-smoke-worker-1", time.Now().Add(time.Minute))
+	if err != nil {
+		return err
+	}
+	if !ok || claimed.ID != firstLocalRunID {
+		return fmt.Errorf("first active local-model claim = %s ok=%t, want %s", claimed.ID, ok, firstLocalRunID)
+	}
+	blocked, ok, err := activeStore.ClaimNextRun(context.Background(), "local-smoke-worker-2", time.Now().Add(time.Minute))
+	if err != nil {
+		return err
+	}
+	if ok {
+		return fmt.Errorf("second active local-model claim = %s, want blocked while %s is running", blocked.ID, firstLocalRunID)
+	}
+	if err := activeStore.FailRun(context.Background(), firstLocalRunID, "local-smoke released active local model", time.Now().UTC()); err != nil {
+		return err
+	}
+	claimed, ok, err = activeStore.ClaimNextRun(context.Background(), "local-smoke-worker-3", time.Now().Add(time.Minute))
+	if err != nil {
+		return err
+	}
+	if !ok || claimed.ID != secondLocalRunID {
+		return fmt.Errorf("released local-model claim = %s ok=%t, want %s", claimed.ID, ok, secondLocalRunID)
+	}
+
 	r.logf("p2: verify timeout failure progress")
 	timeoutConfig := localModelSmokeConfig(r.root, filepath.Join(r.workDir, "p2-timeout"))
 	timeoutConfig.RunTimeout = 20 * time.Millisecond

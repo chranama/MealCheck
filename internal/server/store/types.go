@@ -13,4 +13,6 @@ const (
 	StatusCompleted = core.StatusCompleted
 	StatusFailed    = core.StatusFailed
 	StatusDeleted   = core.StatusDeleted
+
+	InputModeLocalModel = core.InputModeLocalModel
 )

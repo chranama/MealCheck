@@ -6,6 +6,37 @@ public expectations.
 Use this log instead of separate ADR and RFC files until a decision becomes too
 large to keep readable here.
 
+## 2026-07-01: Local Model Capacity Is Enforced In Store Claims
+
+Status: Accepted
+
+Decision:
+
+Hosted dynamic runs should persist their `input_mode` on the durable run record.
+The memory and Postgres store claim paths should enforce the local-model
+capacity policy by skipping queued `local_model` runs while another
+`local_model` run is already running. Non-local queued work can still be claimed
+while the local model is busy.
+
+Reason:
+
+The MacBook-hosted local model is the scarce resource. A single worker process
+limits concurrency only inside one server process, but deployment drift,
+restarts, or a second worker can bypass that assumption. The capacity rule needs
+to live at the durable claim boundary, where every worker process competes for
+work.
+
+Consequences:
+
+- Run records expose `input_mode` for hosted dynamic work.
+- A second local-model run remains queued until the active local-model run
+  completes, fails, expires, or is deleted.
+- Postgres claims serialize through a transaction advisory lock before
+  evaluating local-model capacity.
+- `mealcheck local-smoke` exercises active local-model claim gating.
+- Model-limit increases and larger-model comparisons still depend on
+  summarized timing and failure evidence.
+
 ## 2026-07-01: P2 Progress Uses Redacted Product States And Artifact Summaries
 
 Status: Accepted
@@ -47,8 +78,8 @@ Consequences:
   summary generation.
 - Future model-limit increases and model comparisons should use summarized
   timing and failure evidence rather than one-off run inspection.
-- A remaining P2 hardening slice should enforce the one-active-local-model-run
-  policy below process topology, in the worker/store claim path.
+- The follow-on local-model capacity decision records store-level claim
+  enforcement for one active local-model run.
 
 ## 2026-07-01: Unsupported Portion Units Fail Qualification
 

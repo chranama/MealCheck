@@ -16,6 +16,8 @@ type PostgresStore struct {
 	db *sql.DB
 }
 
+const localModelClaimAdvisoryLockKey int64 = 0x4d434c4d4f44454c
+
 func OpenPostgresStore(ctx context.Context, databaseURL string) (*PostgresStore, error) {
 	if databaseURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL is required for postgres store")
@@ -89,11 +91,11 @@ func (s *PostgresStore) CreateRun(ctx context.Context, run Run, queueSize int, i
 
 	_, err = tx.ExecContext(ctx, `
 		insert into runs (
-			id, case_path, status, decision, risk_level, summary, artifact_dir,
+			id, case_path, input_mode, status, decision, risk_level, summary, artifact_dir,
 			error_message, created_at, updated_at, started_at, completed_at, expires_at
 		)
-		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-	`, run.ID, run.CasePath, run.Status, nullString(run.Decision), nullString(run.RiskLevel),
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+	`, run.ID, run.CasePath, run.InputMode, run.Status, nullString(run.Decision), nullString(run.RiskLevel),
 		nullString(run.Summary), run.ArtifactDir, nullString(run.Error), run.CreatedAt, run.UpdatedAt,
 		run.StartedAt, run.CompletedAt, run.ExpiresAt)
 	if err != nil {
@@ -104,7 +106,7 @@ func (s *PostgresStore) CreateRun(ctx context.Context, run Run, queueSize int, i
 
 func (s *PostgresStore) GetRun(ctx context.Context, id string) (Run, error) {
 	row := s.db.QueryRowContext(ctx, `
-		select id, case_path, status, coalesce(decision, ''), coalesce(risk_level, ''),
+		select id, case_path, coalesce(input_mode, ''), status, coalesce(decision, ''), coalesce(risk_level, ''),
 			coalesce(summary, ''), artifact_dir, coalesce(error_message, ''),
 			created_at, updated_at, started_at, completed_at, expires_at
 		from runs
@@ -121,6 +123,9 @@ func (s *PostgresStore) ClaimNextRun(ctx context.Context, workerID string, lease
 	defer tx.Rollback()
 
 	now := time.Now().UTC()
+	if _, err := tx.ExecContext(ctx, `select pg_advisory_xact_lock($1)`, localModelClaimAdvisoryLockKey); err != nil {
+		return Run{}, false, err
+	}
 	row := tx.QueryRowContext(ctx, `
 		update runs
 		set status = $1,
@@ -132,14 +137,23 @@ func (s *PostgresStore) ClaimNextRun(ctx context.Context, workerID string, lease
 			select id
 			from runs
 			where status = $5
+				and (
+					coalesce(input_mode, '') <> $6
+					or not exists (
+						select 1
+						from runs active
+						where active.status = $1
+							and coalesce(active.input_mode, '') = $6
+					)
+				)
 			order by created_at
 			for update skip locked
 			limit 1
 		)
-		returning id, case_path, status, coalesce(decision, ''), coalesce(risk_level, ''),
+		returning id, case_path, coalesce(input_mode, ''), status, coalesce(decision, ''), coalesce(risk_level, ''),
 			coalesce(summary, ''), artifact_dir, coalesce(error_message, ''),
 			created_at, updated_at, started_at, completed_at, expires_at
-	`, StatusRunning, now, workerID, leaseUntil, StatusQueued)
+	`, StatusRunning, now, workerID, leaseUntil, StatusQueued, InputModeLocalModel)
 	run, err := scanRun(row)
 	if errors.Is(err, ErrNotFound) {
 		return Run{}, false, nil
@@ -210,7 +224,7 @@ func (s *PostgresStore) ExpiredRuns(ctx context.Context, now time.Time, limit in
 			order by expires_at
 			limit $3
 		)
-		returning id, case_path, status, coalesce(decision, ''), coalesce(risk_level, ''),
+		returning id, case_path, coalesce(input_mode, ''), status, coalesce(decision, ''), coalesce(risk_level, ''),
 			coalesce(summary, ''), artifact_dir, coalesce(error_message, ''),
 			created_at, updated_at, started_at, completed_at, expires_at
 	`, StatusDeleted, now, limit)
@@ -360,6 +374,7 @@ func scanRun(scanner runScanner) (Run, error) {
 	err := scanner.Scan(
 		&run.ID,
 		&run.CasePath,
+		&run.InputMode,
 		&run.Status,
 		&run.Decision,
 		&run.RiskLevel,
@@ -453,6 +468,7 @@ const postgresSchema = `
 create table if not exists runs (
 	id text primary key,
 	case_path text not null,
+	input_mode text not null default '',
 	status text not null,
 	decision text,
 	risk_level text,
@@ -468,7 +484,10 @@ create table if not exists runs (
 	lease_expires_at timestamptz
 );
 
+alter table runs add column if not exists input_mode text not null default '';
+
 create index if not exists runs_status_created_idx on runs (status, created_at);
+create index if not exists runs_status_input_mode_created_idx on runs (status, input_mode, created_at);
 create index if not exists runs_expires_at_idx on runs (expires_at);
 
 create table if not exists run_events (

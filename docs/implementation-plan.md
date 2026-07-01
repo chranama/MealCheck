@@ -4076,9 +4076,14 @@ Delivered:
 - Added `mealcheck local-model-summary` to summarize completed and failed
   local-model artifact evidence from `optional/local-model-chunks.json` and
   `debug/normalization-failure.json`.
+- Persisted hosted dynamic run `input_mode` on run records so queued
+  `local_model` jobs can be distinguished below worker process memory.
+- Hard-enforced one active local-model run in the memory and Postgres store
+  claim paths. A queued local-model run is skipped while another local-model run
+  is already running; non-local queued work remains claimable.
 - Extended `mealcheck local-smoke` with P2 checks for queue capacity, timeout
-  failure progress, local-model unavailable responses, artifact writes, and
-  local-model summary generation.
+  failure progress, local-model unavailable responses, active local-model claim
+  gating, artifact writes, and local-model summary generation.
 - Documented the new local-model summary command and expanded smoke coverage in
   the CLI docs.
 
@@ -4090,14 +4095,13 @@ Acceptance:
 - Expected capacity and outage failures have distinct recovery guidance.
 - Operators can summarize local-model timing, repair, decode-failure, timeout,
   source-count, chunk-count, model, and final-status data from artifact roots.
-- Local smoke coverage proves queue, timeout, local-model outage, artifact, and
-  summary behavior without a live llama.cpp service.
+- Store-level claims prevent two local-model runs from being active at once
+  across worker/process topology.
+- Local smoke coverage proves queue, timeout, local-model outage, active-claim,
+  artifact, and summary behavior without a live llama.cpp service.
 
 Remaining P2 Work:
 
-- Hard-enforce the one-active-local-model-run policy in the worker/store claim
-  path so a second worker process cannot run another local-model job at the same
-  time.
 - Run `mealcheck local-model-summary` on representative hosted artifacts after
   deployments, prompt changes, and model changes.
 - Use measured timing and failure data before raising local-model limits or
@@ -4106,8 +4110,13 @@ Remaining P2 Work:
 Verification:
 
 - `go test ./...` passes.
+- `go test ./internal/server/store ./internal/server/app ./internal/commands/localsmoke`
+  passes.
 - `npm test -- --run` passes in `ui/`.
 - `npm run build` passes in `ui/`.
 - `go run ./cmd/mealcheck local-smoke` passes with localhost listener access.
 - `go run ./cmd/mealcheck local-model-summary -artifact-root .mealcheck-data/artifacts -format json` passes.
+- `go run ./cmd/mealcheck local-model-summary` over a kept local-smoke
+  local-model artifact root reports one completed run, three chunks, zero
+  failed runs, zero timeouts, zero decode failures, and zero repairs.
 - `git diff --check` passes.

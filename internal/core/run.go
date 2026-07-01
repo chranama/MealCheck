@@ -5,6 +5,7 @@ import "time"
 type Run struct {
 	ID          string     `json:"id"`
 	CasePath    string     `json:"case_path"`
+	InputMode   string     `json:"input_mode,omitempty"`
 	Status      string     `json:"status"`
 	Decision    string     `json:"decision,omitempty"`
 	RiskLevel   string     `json:"risk_level,omitempty"`

@@ -96,6 +96,7 @@ func (s *Server) createRun(w http.ResponseWriter, r *http.Request) {
 
 	run := newRun(s.Config, casePath)
 	if hasPending {
+		run.InputMode = pendingInput.Mode
 		run.CasePath = runtimeCasePath(s.Config, run.ID)
 		s.Pending.Put(run.ID, pendingInput, pendingInputExpiresAt(s.Config, run))
 	}

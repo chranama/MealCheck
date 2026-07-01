@@ -326,33 +326,37 @@ Current evidence:
   counts, repair counts, decode failures, timeout flags, model metadata, and
   final status.
 - `mealcheck local-smoke` now exercises queue-full behavior, timeout failure
-  progress, local-model unavailable responses, local-model artifact writes, and
-  local-model summary generation.
+  progress, local-model unavailable responses, the one-active-local-model claim
+  gate, local-model artifact writes, and local-model summary generation.
 - Hosted local-model creation returns `503 local_model_unavailable` before
   queueing when the server-owned local model is not configured.
-- Validation passed on 2026-07-01 with `go test ./...`,
+- Hosted dynamic runs now persist their `input_mode`, and the memory and
+  Postgres store claim paths skip queued `local_model` runs while another
+  `local_model` run is active.
+- Foundation validation on 2026-07-01 included `go test ./...`,
   `npm test -- --run`, `npm run build`, `mealcheck local-smoke`, and
   `mealcheck local-model-summary`.
+- Active-run hardening validation on 2026-07-01 included `go test ./...`,
+  `mealcheck local-smoke`, and `mealcheck local-model-summary` against both
+  the default artifact root and a kept local-smoke artifact root.
 
 Current implementation state:
 
 The main P2 foundation slices are complete in the current implementation:
 operator summaries exist, product progress states are redacted and surfaced,
 recovery guidance distinguishes the expected failure classes, and smoke
-coverage exercises queue, timeout, artifact, and local-model outage behavior.
-P2 now moves into active-run hardening and measurement.
+coverage exercises queue, timeout, artifact, local-model outage, and active
+local-model claim behavior. P2 now moves into deployment measurement and
+model-limit tuning.
 
 Near-term engineering slices:
 
-1. Hard-enforce the one-active-local-model-run policy in the worker/store claim
-   path so a second server worker or process cannot run another local-model job
-   at the same time.
-2. Run `mealcheck local-model-summary` against representative hosted artifacts
+1. Run `mealcheck local-model-summary` against representative hosted artifacts
    after each local-model deployment or prompt/model change.
-3. Use measured data before raising model limits again.
-4. Keep hosted local-model input bounded to one day and the configured source
+2. Use measured data before raising model limits again.
+3. Keep hosted local-model input bounded to one day and the configured source
    item cap before revisiting larger scopes.
-5. Compare the production `Qwen3-0.6B-Q4_K_M` model against one larger local
+4. Compare the production `Qwen3-0.6B-Q4_K_M` model against one larger local
    candidate after the operator timing summary exists. Record quality,
    latency, timeout, memory, repair rate, decode failures, and user-visible
    tradeoffs.

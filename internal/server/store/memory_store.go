@@ -77,8 +77,15 @@ func (s *MemoryStore) ClaimNextRun(_ context.Context, _ string, _ time.Time) (Ru
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var queued []Run
+	localModelRunning := false
 	for _, run := range s.runs {
-		if run.Status == StatusQueued {
+		if run.Status == StatusRunning && run.InputMode == InputModeLocalModel {
+			localModelRunning = true
+			break
+		}
+	}
+	for _, run := range s.runs {
+		if run.Status == StatusQueued && (!localModelRunning || run.InputMode != InputModeLocalModel) {
 			queued = append(queued, run)
 		}
 	}

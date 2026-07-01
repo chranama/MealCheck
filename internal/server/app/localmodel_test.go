@@ -40,6 +40,13 @@ func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
 	}
 	var created CreateRunResponse
 	decodeJSON(t, createResp.Body.Bytes(), &created)
+	queuedRun, err := store.GetRun(context.Background(), created.RunID)
+	if err != nil {
+		t.Fatalf("get queued run: %v", err)
+	}
+	if queuedRun.InputMode != InputModeLocalModel {
+		t.Fatalf("queued run input mode = %q, want %q", queuedRun.InputMode, InputModeLocalModel)
+	}
 
 	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
 		if config.Type != ProviderTypeLocalLlama {
