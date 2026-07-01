@@ -21,26 +21,24 @@ or production logs. Confidence means how sure we are that the proposed change
 will reduce the failure. Implementation cost includes code complexity,
 operational risk, and risk to the deterministic trust boundary.
 
-The highest-priority failure class is not a correct `block` decision. Correct
-blocks are the product working. The highest-priority failure class is a
-reasonable in-bound meal plan failing for an arbitrary, opaque, or
+Correct `block` decisions are the product working. The highest-priority failure
+class is a reasonable in-bound meal plan failing for an arbitrary, opaque, or
 self-inflicted reason before the verifier can do useful work.
 
 ## How To Read The Priority Sections
 
 Each priority area separates three different kinds of work:
 
-- Current implementation state: what is already built and should not be
-  re-litigated without new evidence.
+- Current implementation state: what is already built and should remain stable
+  until new evidence changes the priority.
 - Discrete engineering work now: concrete implementation tasks that should be
   scheduled immediately.
 - Ongoing operating loop: recurring review, corpus, evaluation, and monitoring
-  work that keeps the priority healthy but is not itself a one-time feature
-  slice.
+  work that keeps the priority healthy as a standing loop.
 
-When a priority has no standing discrete task, do not invent one just because it
-is P0 or P1. Let observed failures, evaluation gaps, or missing operator tooling
-promote an operating-loop item into an implementation slice.
+When a priority is in operating-loop mode, use observed failures, evaluation
+gaps, or missing operator tooling to promote an operating-loop item into an
+implementation slice.
 
 ## Product Boundary
 
@@ -55,22 +53,33 @@ concise meal-plan text
   -> repeatable validation
 ```
 
-Do not reshape the project to chase pure ML research, model training,
-GPU-inference optimization, distributed model serving, or broad agent/RAG demos.
-Those directions can support development experiments, but they should not
-outrank product work that makes runs easier to inspect, reproduce, and recover.
+New architecture work should strengthen the verifier path, run inspection,
+replay, and recovery. Go remains the authoritative service path for validation,
+run state, artifacts, privacy policy, and report contracts. Additional runtimes
+own distinct product or operational jobs:
+
+- Python owns evaluation generation, result exports, run-artifact analysis,
+  unresolved-item clustering, model-comparison summaries, and other data-heavy
+  operator tools.
+- TypeScript owns frontend contracts, UI state, runtime config validation,
+  typed API clients, and narrowly scoped edge or backend-for-frontend adapters
+  when they reduce frontend/backend friction.
+- Secondary services consume explicit contracts or artifacts from the
+  authoritative verifier.
 
 The best near-term improvements are therefore:
 
 - make model normalization inspectable and correctable by users
 - turn existing timing and chunk artifacts into compact operator summaries
-- compare local-model quality and latency only after artifact summaries exist
+- compare local-model quality and latency after artifact summaries exist
 - make the deployed workflow reproducible enough to debug outages and release
   changes
-- export evaluation summaries in a portable format without rewriting the core
-  verifier
-- add source inspection only when it helps users understand completed
-  reports and preserves deterministic source-pack authority
+- export evaluation summaries in a portable format from canonical verifier
+  outputs
+- keep Python and TypeScript work attached to evaluation, operations, UI, or
+  edge-integration needs
+- add source inspection when it helps users understand completed reports and
+  preserves deterministic source-pack authority
 
 ## P0: In-Bound Normalization Reliability
 
@@ -94,7 +103,7 @@ Why this is first:
 Good enough:
 
 - The reviewed robustness corpus succeeds through the hosted per-meal
-  local-model path on the serving MacBook, not only in deterministic or
+  local-model path on the serving MacBook and in deterministic or
   prototyping-laptop tests.
 - The preloaded hosted example succeeds locally and on the deployed path.
 - The acceptable-input robustness corpus succeeds for normalization correctness,
@@ -103,10 +112,9 @@ Good enough:
   source-inventory, model-output, decode, reconciliation, and timing failures.
 - Common natural rewrites of the example either normalize successfully or fail
   before queueing with specific, actionable guidance.
-- Source item preservation is exact: every resolved source item appears once,
-  with no omissions or duplicates.
-- No hidden default setting imposes a day count or meal count that is not
-  deliberately exposed to the user.
+- Source item preservation is exact: every resolved source item appears once.
+- Every default day-count and meal-count setting is deliberately exposed to the
+  user.
 
 Current evidence:
 
@@ -133,7 +141,7 @@ Current evidence:
 - A deployed reverse-measurement run on 2026-07-01 completed through the
   refreshed backend with 3 meal chunks, 9 source items, exact source-ID
   preservation, and the source-first prompt visible in chunk artifacts. Breakfast
-  and lunch decoded without repairs; dinner required 11 deterministic
+  and lunch decoded directly; dinner required 11 deterministic
   source-measurement repairs but preserved every source ID and produced the
   correct normalized rows. The collected artifact directory is
   `/Users/chranama-server/MealCheck-data/p0-runs/reverse-target-20260701-123326-22f9426`.
@@ -144,19 +152,18 @@ The main P0 implementation slices for the current product shape are complete:
 the hosted one-day contract is explicit, normalization runs through the
 per-meal local-model path, source preservation is checked, chunk-level model
 artifacts exist, and the serving MacBook live regimen has passed. Treat P0 as a
-reliability and regression discipline unless new evidence shows a reasonable
+reliability and regression discipline until new evidence shows a reasonable
 in-bound input failing for an arbitrary, opaque, or self-inflicted reason.
 
 Discrete engineering work now:
 
-There is no standing P0 feature task at the moment. Promote work into P0 only
-when one of these triggers appears:
+P0 implementation work is trigger-based. Promote work into P0 when one of these
+signals appears:
 
 1. An observed in-bound natural rewrite passes the public input contract but
    fails normalization, source preservation, decode, or report generation.
 2. Chunk artifacts show recurring omissions, duplicates, decode failures, or
-   source-measurement repairs that are no longer merely source-preserving
-   cleanup.
+   source-measurement repairs that exceed source-preserving cleanup.
 3. A user-facing qualification or failure message exposes model/parser internals
    or gives guidance that is too vague to recover from.
 4. Adding and reviewing P0 regression cases becomes manual enough that a small
@@ -167,17 +174,16 @@ Ongoing operating loop:
 1. Add observed in-bound natural rewrites to the reviewed corpus before using
    broad generated external data as a release signal.
 2. Keep deterministic unit normalization conservative: normalize supported
-   units only when the conversion is visible and preserve or reject vague and
-   genuinely unsupported quantities rather than inventing serving equivalents.
+   units when the conversion is visible, and handle vague or genuinely
+   unsupported quantities through preservation, rejection, and recovery guidance.
 3. Watch repair-heavy reverse-measurement chunk artifacts for recurrence and
    preserve the evidence when repair remains source-preserving.
-4. Keep user-facing failure messages guidance-oriented and avoid exposing compact
-   row, schema, model-path, or parser internals.
+4. Keep user-facing failure messages guidance-oriented, with compact row,
+   schema, model-path, and parser details reserved for artifacts.
 5. Generate and manually review small NYT Ingredient Phrase Tagger and TASTEset
-   exploratory slices only after source/license review and after the
-   product-shaped reviewed corpus has exposed the obvious gaps; promote no
-   external subset to strict until expected rows and failure categories have
-   been inspected.
+   exploratory slices after source/license review and after the product-shaped
+   reviewed corpus has exposed the obvious gaps; promote external subsets to
+   strict after expected rows and failure categories have been inspected.
 
 Metrics to track:
 
@@ -205,18 +211,18 @@ Why this is second:
 - A report with too many ordinary unresolved foods feels pedantic and loses
   trust.
 - The resolver now has a measured evaluation framework and an optional FNDDS
-  fallback, so improvements can be targeted rather than hand-waved.
-- Resolution work should follow normalization reliability because the resolver
-  cannot help if the plan never becomes canonical MealCheck JSON.
+  fallback, so improvements can be targeted from evidence.
+- Resolution work follows normalization reliability because the resolver
+  operates after the plan becomes canonical MealCheck JSON.
 
 Good enough:
 
 - Strict FNDDS-grounded evaluation continues to pass with zero expected-outcome
   mismatches.
-- Common user-facing gaps are addressed in reviewed batches, not by fuzzy
-  matching.
-- Household unit conversions are added only when source-backed or
-  policy-reviewed for that food.
+- Common user-facing gaps are addressed through reviewed source-backed batches
+  and recovery copy.
+- Household unit conversions are added when source-backed or policy-reviewed
+  for that food.
 - Ambiguous, mixed-dish, branded, vague, unclear-preparation, unsupported-unit,
   and non-food entries remain unresolved with specific reasons.
 
@@ -240,19 +246,17 @@ Current implementation state:
 The resolver has the basic implementation shape it needs for the current
 product: a reviewed local catalog, strict gates with zero expected-outcome
 mismatches, optional gate-limited FNDDS fallback, and measured WWEIA/NHANES
-coverage. P1 is now primarily a curation and evaluation loop, not a single
-feature backlog.
+coverage. P1 is now primarily a curation and evaluation loop.
 
 Discrete engineering work now:
 
-There is no mandatory P1 implementation slice until a specific high-frequency
-gap cluster or copy problem is selected. Promote work into P1 when one of these
-triggers appears:
+P1 implementation work starts when a specific high-frequency gap cluster or copy
+problem is selected. Promote work into P1 when one of these triggers appears:
 
 1. A mined unresolved cluster contains high-frequency ordinary foods or units
    that can be resolved with source-backed rows, aliases, or conversions.
-2. The remaining unresolved items are technically correct but the report copy
-   does not tell users how to recover.
+2. The remaining unresolved items are technically correct and need clearer
+   report copy for user recovery.
 3. Mining unresolved foods from live reports, robustness fixtures, or
    WWEIA/NHANES outputs is too manual and needs a reusable summary artifact.
 4. A policy decision explicitly admits a currently deferred class such as a
@@ -262,13 +266,12 @@ Ongoing operating loop:
 
 1. Mine unresolved items from live reports, robustness fixtures, and
    WWEIA/NHANES evaluation results after each catalog batch.
-2. Review the next remaining high-frequency gap cluster, while keeping composed
-   foods, alcohol, branded/product-style foods, and fuzzy substitutions out of
-   the reviewed catalog unless there is a specific policy decision.
-3. Add only source-backed aliases, conversions, or rows for high-frequency safe
+2. Review the next remaining high-frequency gap cluster, and include composed
+   foods, alcohol, branded/product-style foods, and fuzzy substitutions after a
+   specific policy decision.
+3. Add source-backed aliases, conversions, or rows for high-frequency safe
    cases.
-4. Keep the FNDDS fallback match-key based and gate-limited; do not turn it
-   into fuzzy food search.
+4. Keep the FNDDS fallback match-key based, gate-limited, and exact.
 5. Improve report labels and recovery copy for unresolved reasons so users know
    whether to rename a food, use grams, decompose a dish, or add a measured
    quantity.
@@ -286,11 +289,10 @@ Metrics to track:
 Goal:
 
 MealCheck should feel alive and bounded while the MacBook-local model works.
-The product does not need SaaS-like latency, but users should understand whether
-their run is queued, normalizing, checking, writing a report, failed, or ready.
-Operators should also be able to inspect compact timing, decode, repair,
-timeout, and queue evidence without reading raw chunk artifacts one run at a
-time.
+The product can tolerate MVP latency when users understand whether their run is
+queued, normalizing, checking, writing a report, failed, or ready. Operators
+should also be able to inspect compact timing, decode, repair, timeout, and
+queue evidence from a summary surface.
 
 Why this is third:
 
@@ -307,8 +309,8 @@ Good enough:
 - Queue-full, rate-limit, model-unavailable, timeout, and failed-run states have
   distinct recovery guidance.
 - Stage timing, decode failures, repair counts, timeout counts, and queue
-  behavior are visible to operators through a compact summary, not only raw
-  logs or artifacts.
+  behavior are visible to operators through a compact summary as the default
+  review surface.
 - Accepted one-day inputs stay within configured timeout limits under normal
   load.
 
@@ -318,15 +320,15 @@ Near-term engineering slices:
    grouped by run, source-item count, meal chunk, model, commit, stage, repair
    count, decode failure count, timeout, and final status.
 2. Convert P0 stage timings and failure stages into clear user/operator states
-   without leaking user secrets or internal host paths.
+   with redacted labels for secrets and internal host paths.
 3. Add distinct recovery guidance for queue-full, rate-limit, model-unavailable,
    timeout, failed-normalization, and report-loading failures.
 4. Use measured data before raising model limits again.
-5. Keep one active local-model run unless measurements show safe headroom.
+5. Keep one active local-model run until measurements show safe headroom.
 6. Keep hosted local-model input bounded to one day and the configured source
    item cap before revisiting larger scopes.
 7. Compare the production `Qwen3-0.6B-Q4_K_M` model against one larger local
-   candidate only after the operator timing summary exists. Record quality,
+   candidate after the operator timing summary exists. Record quality,
    latency, timeout, memory, repair rate, decode failures, and user-visible
    tradeoffs.
 8. Add a small load/smoke harness for queue capacity, timeout behavior, artifact
@@ -356,7 +358,7 @@ verifier's conclusion easy to trust and easy to act on.
 
 Why this follows the earlier priorities:
 
-- Report polish matters only after users can reliably get reports.
+- Report polish matters after users can reliably get reports.
 - Normalized-plan review is the right trust layer for SLM risk: the model stays
   critical to the happy path, but the user can catch semantic errors before the
   checker turns them into authoritative-looking findings.
@@ -376,19 +378,18 @@ Near-term engineering slices:
    are present.
 3. Preserve source links by day, meal, source text, normalized food, quantity,
    unit, and unresolved reason so the user can see exactly what the SLM changed.
-4. Start with confirm/rewrite recovery; add direct normalized-plan editing only
-   with strict validation and clear source preservation.
+4. Start with confirm/rewrite recovery; add direct normalized-plan editing after
+   strict validation and clear source preservation are in place.
 5. Add a source-linked normalization inspection panel to the live report flow so
    users can trace source inventory, normalized rows, repairs, and unresolved
    items from the product surface.
-6. Capture user rejections, rewrites, and corrections as review artifacts, not
-   as automatic training data. Promote reviewed examples into P0 cases when
-   they expose real in-bound failures.
+6. Capture user rejections, rewrites, and corrections as review artifacts that
+   can be promoted into P0 cases when they expose real in-bound failures.
 7. Make unresolved items easier to scan by reason and affected day/meal.
 8. Surface concrete edit guidance where deterministic and safe.
 9. Keep deterministic recommendations conservative and verification-gated.
-10. Avoid adding generative explanation until the deterministic facts and
-   unresolved-state UX are boringly reliable.
+10. Add generative explanation after deterministic facts and unresolved-state UX
+   are reliable.
 
 Metrics to track:
 
@@ -399,25 +400,28 @@ Metrics to track:
 - User-visible unresolved reason coverage.
 - Recommendation availability for supported deterministic edit classes.
 - Reports with missing or confusing artifact links.
-- Reports whose final decision cannot be reproduced from artifacts.
+- Reports needing artifact reconciliation to reproduce the final decision.
 
 ## P4: Operations, Replay, And Source Inspection
 
 Goal:
 
-Make MealCheck easier to operate, replay, and explain without changing the core
+Make MealCheck easier to operate, replay, and explain within the current core
 product scope. A maintainer should be able to reproduce the hosted workflow,
 inspect a completed run, compare evaluation outputs, and verify that reports
 trace back to deterministic sources.
 
 Why this follows the earlier priorities:
 
-- Production issues are harder to diagnose when the run path exists only as
-  scattered docs, scripts, artifacts, and live outputs.
-- Replayable operations improve release confidence without taking authority
-  away from the deterministic verifier.
+- Production issues are harder to diagnose when the run path is scattered across
+  docs, scripts, artifacts, and live outputs.
+- Replayable operations improve release confidence while keeping the
+  deterministic verifier authoritative.
 - Portable evaluation outputs and source inspection help maintainers compare
   changes, review unresolved cases, and explain final report decisions.
+- Runtime boundaries keep implementation ownership clear: Go remains the
+  authoritative verifier/API, while Python and TypeScript are added for
+  evaluation, operations, UI, or narrow edge integration needs.
 
 Near-term engineering slices:
 
@@ -429,14 +433,19 @@ Near-term engineering slices:
    and mocked or local model endpoint. Keep the MacBook/Cloudflare production
    deployment documented, but make local production behavior easier to replay.
 3. Add a portable eval/reporting export, such as JSONL or CSV, so normalization
-   and resolver changes can be compared across commits and reviewed without
-   parsing raw command output.
-4. Add a compact source and citation inspection surface only if it
-   helps users trace report findings to source facts, guideline references,
-   normalized foods, quantities, and unresolved reasons. It must not make
-   open-ended RAG the source of verification truth.
-5. Keep product copy focused on checking a bounded meal plan against declared
-   constraints, not planning meals or chatting about nutrition.
+   and resolver changes can be compared across commits from structured outputs.
+4. Add Python operator tooling that consumes run artifacts or eval datasets to
+   produce summaries, clusters, comparisons, and review queues tied back to
+   canonical Go report/eval artifacts.
+5. Add TypeScript backend-adjacent code for the static UI or edge path, such as
+   typed API clients, runtime config validation, report preflight, or a narrow
+   Cloudflare Worker adapter backed by the Go API contract.
+6. Add a compact source and citation inspection surface when it helps users
+   trace report findings to source facts, guideline references, normalized
+   foods, quantities, and unresolved reasons. Deterministic source packs remain
+   the source of verification truth.
+7. Keep product copy focused on checking a bounded meal plan against declared
+   constraints, source-backed findings, and concrete recovery guidance.
 
 Metrics to track:
 
@@ -444,31 +453,40 @@ Metrics to track:
   deletion, outage behavior, and artifact inspection.
 - Reproducible deployment smoke success.
 - Portable eval summary freshness and parity with canonical eval outputs.
+- Python operator outputs reconcile to canonical Go eval/report artifacts.
+- TypeScript API/config/report helpers stay contract-compatible with the Go API.
 - Source inspection coverage for reports and guideline references.
 - Public/docs claims that overstate medical, ML-training, or model-infra scope.
 
-## Not First Right Now
+## Deferred Work Triggers
 
-The following work may be valuable, but should not outrank P0/P1 unless a new
-observed failure changes the priority calculation:
+Promote these areas when the named product evidence appears:
 
-- broad recipe decomposition
-- open-ended meal planning or chatbot flows
-- disease-specific or clinical nutrition support
-- full account history dashboards
-- fuzzy food matching
-- FoodData Central live search as a required runtime dependency
-- adding a dynamic frontend server
-- pure ML research, model training, or fine-tuning as a primary direction
-- GPU inference, distributed serving, batching, KV-cache, or accelerator work as
-  a primary direction
-- open-ended RAG or agent tooling that controls verification truth
-- expanding deterministic recommendation classes before unresolved and
-  normalization reliability improve
-- promoting NYT/TASTEset-generated P0 cases before product-shaped reviewed cases
-  and manual review
-- comparing larger models before operator timing summaries exist
-- raising local-model limits without stage timing evidence
+- Add recipe decomposition after repeated in-bound users paste ingredient-level
+  recipes that fail for decomposition reasons and reviewed decomposition rules
+  can preserve source traceability.
+- Add meal-planning or chat-style flows after verification, review, correction,
+  and report recovery are reliable enough to support generation safely.
+- Add clinical or disease-specific surfaces after the privacy, safety,
+  regulatory, and professional-review requirements are explicitly redesigned.
+- Add account history after users need persistent run retrieval, comparison, or
+  deletion beyond unguessable run IDs.
+- Add fuzzy food matching when reviewed exact aliases, FNDDS fallback, and
+  unresolved recovery copy leave common ordinary-food failures unresolved.
+- Add FoodData Central live lookup after source-backed cache policy, failure
+  behavior, rate limits, and key management are designed.
+- Add a dynamic frontend server after static hosting blocks a concrete user,
+  operations, or security requirement.
+- Add model-training, fine-tuning, or GPU-serving experiments when they answer a
+  specific MealCheck model-quality, latency, or cost question.
+- Add agent or RAG tooling when it helps source inspection or operator analysis
+  while preserving deterministic source packs as verification authority.
+- Expand deterministic recommendation classes after unresolved-state UX and
+  normalization reliability are stable.
+- Promote NYT/TASTEset-generated P0 cases after product-shaped reviewed cases
+  expose the gap and manual review classifies expected rows and failures.
+- Compare larger models after operator timing summaries exist.
+- Raise local-model limits after stage timing shows enough headroom.
 
 ## Operating Loop
 
@@ -482,8 +500,8 @@ Use this loop when choosing the next engineering task:
 4. If in-bound, add or update a regression fixture before or with the fix.
 5. Fix the smallest deterministic layer that owns the problem.
 6. Run the relevant validation gate.
-7. Update this document only when priority order, target metrics, or the active
-   next slices change.
+7. Update this document when priority order, target metrics, or the active next
+   slices change.
 
 ## Validation Gates By Priority
 
