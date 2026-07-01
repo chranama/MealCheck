@@ -418,25 +418,46 @@ Serving MacBook live local-model result before the strict one-day gate split:
 
 Most recent serving MacBook strict one-day live local-model result:
 
-- Run date: 2026-06-30.
-- MealCheck commit: `8a3a395ab4712c9bf08471bfb45ef655d9c164c5`.
+- Run date: 2026-07-01.
+- MealCheck commit: `22f942679c30aa1d59a250159418cde337597e10`.
 - Model: `Qwen3-0.6B-Q4_K_M.gguf`.
 - Model SHA-256:
   `18ea1f301079bba6391ab6d455c0c8565fd5a3214075eb2cd9daf351dedc719b`.
 - llama.cpp commit: `7c082bc417bbe53210a83df4ba5b49e18ce6193c`.
 - Output directory:
-  `/Users/chranama-server/MealCheck-data/p0-runs/p0-live-local-model-20260630-8a3a395`.
-- Deterministic baseline passed: 11 of 11 strict cases, zero mismatches, 76 of
-  76 source items preserved.
+  `/Users/chranama-server/MealCheck-data/p0-runs/p0-live-local-model-20260701-122257-`.
+- Deterministic baseline passed: 14 of 14 strict cases, zero mismatches, 85 of
+  85 source items preserved.
 - Live gate passed: 3 of 3 repeats completed, zero mismatches, zero provider
   failures, zero compact-output decode failures.
+- Live local-model scoring covered 27 accepted one-day runs and 255 expected
+  source rows across repeats.
 - Minimum row, food, quantity, and unit accuracy were each 1.0.
-- Source-grounded reconciliation made 77 deterministic field repairs across the
-  three repeats and 24 repair-case observations.
-- Maximum run duration was 235 seconds.
-- The checked-in strict corpus has since expanded with reverse-measurement and
-  unsupported-unit boundary cases, so the expanded corpus needs a fresh live
-  regimen before it becomes serving-MacBook evidence.
+- Source-grounded reconciliation made 126 deterministic field repairs across
+  the three repeats and 26 repair-case observations.
+- Maximum run duration was 272 seconds.
+- A previous run at commit `d509577d7045558c3575739a710781c0ba0195f0`
+  exposed a stochastic reverse-measurement omission in one breakfast chunk. The
+  current passing run followed source-first prompt hardening.
+
+Reverse-measurement deployed artifact inspection:
+
+- Run date: 2026-07-01.
+- Deployed run: `run_d7e150060a2632e0911d1867`.
+- Collected artifact directory:
+  `/Users/chranama-server/MealCheck-data/p0-runs/reverse-target-20260701-123326-22f9426`.
+- The chunk artifact showed the refreshed source-first prompt:
+  "Authoritative source items" before "Context-only meal text".
+- The run completed with 3 meal chunks, 9 source items, exact source-ID
+  preservation, and 7.775 seconds of recorded local-model extraction time.
+- Breakfast and lunch raw compact outputs matched without repairs. Dinner
+  preserved all three source IDs but emitted unresolved comma food placeholders;
+  deterministic reconciliation repaired salmon, sweet potato, and olive oil from
+  the source measurements with 11 field repairs.
+- This is acceptable for the current strict gate because the SLM preserved row
+  identity and the deterministic harness repaired fields grounded in source
+  text. It remains a watch item if similar repair-heavy outputs become frequent
+  or turn into omissions.
 
 Previous P0 live local-model seed result before per-meal chunking:
 

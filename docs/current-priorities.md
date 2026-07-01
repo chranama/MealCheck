@@ -63,11 +63,12 @@ Good enough:
 
 Current evidence:
 
-- The serving MacBook strict one-day P0 live regimen passed on 2026-06-30 at
-  commit `8a3a395ab4712c9bf08471bfb45ef655d9c164c5`: 3 of 3 repeats, zero
-  mismatches, zero provider failures, zero decode failures, and minimum
-  row/food/quantity/unit accuracy of 1.0. The artifact directory is
-  `/Users/chranama-server/MealCheck-data/p0-runs/p0-live-local-model-20260630-8a3a395`.
+- The serving MacBook strict one-day P0 live regimen passed on 2026-07-01 at
+  commit `22f942679c30aa1d59a250159418cde337597e10`: 3 of 3 repeats, zero
+  mismatches, zero provider failures, zero decode failures, 255 of 255 live
+  rows matched, and minimum row/food/quantity/unit accuracy of 1.0. The artifact
+  directory is
+  `/Users/chranama-server/MealCheck-data/p0-runs/p0-live-local-model-20260701-122257-`.
 - Hosted local-model runs now write `optional/local-model-chunks.json` with
   per-meal prompt messages, source IDs, raw compact output, decoded rows,
   reconciliation repairs, and stage timings. Post-model normalization failures
@@ -82,24 +83,25 @@ Current evidence:
   `chicken, 100 g`. It passes with 14 of 14 strict cases, 9 accepted one-day
   success cases, 5 qualification failures, and 85 of 85 expected source items
   preserved.
-- The chunk-artifact change was deployed and smoke-verified on 2026-06-30 at
-  commit `4482f8f0c5e0c1f0a34a3cefe95b8d63bd553abb`. Live run
-  `run_a0363caa5080a7ede2d01d90` completed through the deployed path with 3
-  meal chunks, 9 source items, exact source-ID preservation, 2 deterministic
-  source-measurement repairs, and about 6.0 seconds of recorded local-model
-  extraction time. The server artifact directory is
-  `/Users/chranama-server/MealCheck-data/artifacts/run_a0363caa5080a7ede2d01d90`.
+- A deployed reverse-measurement run on 2026-07-01 completed through the
+  refreshed backend with 3 meal chunks, 9 source items, exact source-ID
+  preservation, and the source-first prompt visible in chunk artifacts. Breakfast
+  and lunch decoded without repairs; dinner required 11 deterministic
+  source-measurement repairs but preserved every source ID and produced the
+  correct normalized rows. The collected artifact directory is
+  `/Users/chranama-server/MealCheck-data/p0-runs/reverse-target-20260701-123326-22f9426`.
 
 Near-term engineering slices:
 
-1. Run the expanded strict P0 corpus through the serving MacBook live local-model
-   regimen and inspect chunk artifacts for the new reverse-measurement success
-   case.
-2. Keep adding observed in-bound natural rewrites to the reviewed corpus before
+1. Keep adding observed in-bound natural rewrites to the reviewed corpus before
    using broad generated external data as a release signal.
-3. Keep deterministic unit normalization conservative: normalize supported
+2. Keep deterministic unit normalization conservative: normalize supported
    units only when the conversion is visible and preserve or reject vague and
    genuinely unsupported quantities rather than inventing serving equivalents.
+3. Watch repair-heavy reverse-measurement chunk artifacts for recurrence. If
+   source-preserving deterministic repair remains the only issue, keep it as
+   evidence; if omissions or decode failures recur, add a focused prompt/parser
+   slice before expanding scope.
 4. Keep user-facing failure messages guidance-oriented and avoid exposing compact
    row, schema, model-path, or parser internals.
 5. Generate and manually review small NYT Ingredient Phrase Tagger and TASTEset

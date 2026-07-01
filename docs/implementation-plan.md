@@ -3937,3 +3937,61 @@ Verification:
 - `npm run typecheck` passes in `ui/`.
 - `python3 -m py_compile scripts/generate-p0-normalization-evaluation.py` passes.
 - `git diff --check` passes.
+
+## Milestone 53: Source-First Local-Model Prompt Evidence
+
+Status: Implemented and deployed.
+
+Purpose:
+
+Make the reverse-measurement success case stable on the serving MacBook while
+keeping the SLM as the critical normalization component. The expanded strict
+P0 live regimen exposed a stochastic row omission when the meal paragraph
+appeared before the source inventory in the model prompt. The fix should keep
+the model task semantic, but make the deterministic source inventory visibly
+authoritative.
+
+Delivered:
+
+- Reordered the per-meal local-model prompt so authoritative source items appear
+  before the context-only meal text.
+- Updated prompt wording to say the context-only meal text may clarify listed
+  source items but must not be used as an independent extraction source.
+- Added an explicit instruction that `source_text` overrides meal-text wording
+  and order.
+- Updated local prompt and hosted chunk-artifact tests for the new source-first
+  prompt labels.
+- Rebuilt and restarted the deployed backend on the serving MacBook from commit
+  `22f942679c30aa1d59a250159418cde337597e10`.
+- Ran the expanded strict P0 local-model regimen on the serving MacBook and
+  inspected deployed reverse-measurement chunk artifacts.
+
+Acceptance:
+
+- The expanded strict P0 live regimen passes on the serving MacBook with zero
+  mismatches, zero provider failures, zero decode failures, and exact row,
+  food, quantity, and unit accuracy.
+- Deployed chunk artifacts show the source-first prompt labels.
+- The reverse-measurement run preserves all source IDs. Deterministic
+  reconciliation may repair source-grounded fields when all rows are present,
+  but source-row omissions remain failures.
+
+Verification:
+
+- `GOCACHE=/private/tmp/mealcheck-gocache go test ./internal/llm/local` passes.
+- `GOCACHE=/private/tmp/mealcheck-gocache go test ./internal/server/app` passes
+  outside the sandbox because app tests need local `httptest` ports.
+- `GOCACHE=/private/tmp/mealcheck-gocache go test ./...` passes outside the
+  sandbox.
+- Server checkout fast-forwarded to `22f942679c30aa1d59a250159418cde337597e10`.
+- Deployed backend was rebuilt and relaunched as PID `23958`; `/api/health`
+  returned `hosted_mode: "local_model"` with the local model ready.
+- Strict P0 live regimen artifact:
+  `/Users/chranama-server/MealCheck-data/p0-runs/p0-live-local-model-20260701-122257-`.
+- Strict P0 live regimen result: 3 of 3 repeats completed, zero mismatches,
+  zero provider failures, zero decode failures, 255 of 255 live rows matched,
+  minimum row/food/quantity/unit accuracy 1.0, and max duration 272 seconds.
+- Targeted deployed reverse-measurement run `run_d7e150060a2632e0911d1867`
+  completed with 3 meal chunks, 9 source items, source-first prompt evidence,
+  exact source-ID preservation, and 7.775 seconds of extraction timing in
+  `/Users/chranama-server/MealCheck-data/p0-runs/reverse-target-20260701-123326-22f9426`.
