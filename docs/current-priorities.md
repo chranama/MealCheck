@@ -26,6 +26,22 @@ blocks are the product working. The highest-priority failure class is a
 reasonable in-bound meal plan failing for an arbitrary, opaque, or
 self-inflicted reason before the verifier can do useful work.
 
+## How To Read The Priority Sections
+
+Each priority area separates three different kinds of work:
+
+- Current implementation state: what is already built and should not be
+  re-litigated without new evidence.
+- Discrete engineering work now: concrete implementation tasks that should be
+  scheduled immediately.
+- Ongoing operating loop: recurring review, corpus, evaluation, and monitoring
+  work that keeps the priority healthy but is not itself a one-time feature
+  slice.
+
+When a priority has no standing discrete task, do not invent one just because it
+is P0 or P1. Let observed failures, evaluation gaps, or missing operator tooling
+promote an operating-loop item into an implementation slice.
+
 ## P0: In-Bound Normalization Reliability
 
 Goal:
@@ -91,17 +107,39 @@ Current evidence:
   correct normalized rows. The collected artifact directory is
   `/Users/chranama-server/MealCheck-data/p0-runs/reverse-target-20260701-123326-22f9426`.
 
-Near-term engineering slices:
+Current implementation state:
 
-1. Keep adding observed in-bound natural rewrites to the reviewed corpus before
-   using broad generated external data as a release signal.
+The main P0 implementation slices for the current product shape are complete:
+the hosted one-day contract is explicit, normalization runs through the
+per-meal local-model path, source preservation is checked, chunk-level model
+artifacts exist, and the serving MacBook live regimen has passed. Treat P0 as a
+reliability and regression discipline unless new evidence shows a reasonable
+in-bound input failing for an arbitrary, opaque, or self-inflicted reason.
+
+Discrete engineering work now:
+
+There is no standing P0 feature task at the moment. Promote work into P0 only
+when one of these triggers appears:
+
+1. An observed in-bound natural rewrite passes the public input contract but
+   fails normalization, source preservation, decode, or report generation.
+2. Chunk artifacts show recurring omissions, duplicates, decode failures, or
+   source-measurement repairs that are no longer merely source-preserving
+   cleanup.
+3. A user-facing qualification or failure message exposes model/parser internals
+   or gives guidance that is too vague to recover from.
+4. Adding and reviewing P0 regression cases becomes manual enough that a small
+   corpus or artifact-summary tooling slice would pay for itself.
+
+Ongoing operating loop:
+
+1. Add observed in-bound natural rewrites to the reviewed corpus before using
+   broad generated external data as a release signal.
 2. Keep deterministic unit normalization conservative: normalize supported
    units only when the conversion is visible and preserve or reject vague and
    genuinely unsupported quantities rather than inventing serving equivalents.
-3. Watch repair-heavy reverse-measurement chunk artifacts for recurrence. If
-   source-preserving deterministic repair remains the only issue, keep it as
-   evidence; if omissions or decode failures recur, add a focused prompt/parser
-   slice before expanding scope.
+3. Watch repair-heavy reverse-measurement chunk artifacts for recurrence and
+   preserve the evidence when repair remains source-preserving.
 4. Keep user-facing failure messages guidance-oriented and avoid exposing compact
    row, schema, model-path, or parser internals.
 5. Generate and manually review small NYT Ingredient Phrase Tagger and TASTEset
@@ -166,11 +204,34 @@ Current evidence:
   resolved, a 94.97% resolver rate. The local catalog now handles more of
   those items before fallback.
 
-Near-term engineering slices:
+Current implementation state:
 
-1. Keep mining unresolved items from live reports, robustness fixtures, and
+The resolver has the basic implementation shape it needs for the current
+product: a reviewed local catalog, strict gates with zero expected-outcome
+mismatches, optional gate-limited FNDDS fallback, and measured WWEIA/NHANES
+coverage. P1 is now primarily a curation and evaluation loop, not a single
+feature backlog.
+
+Discrete engineering work now:
+
+There is no mandatory P1 implementation slice until a specific high-frequency
+gap cluster or copy problem is selected. Promote work into P1 when one of these
+triggers appears:
+
+1. A mined unresolved cluster contains high-frequency ordinary foods or units
+   that can be resolved with source-backed rows, aliases, or conversions.
+2. The remaining unresolved items are technically correct but the report copy
+   does not tell users how to recover.
+3. Mining unresolved foods from live reports, robustness fixtures, or
+   WWEIA/NHANES outputs is too manual and needs a reusable summary artifact.
+4. A policy decision explicitly admits a currently deferred class such as a
+   composed food, alcohol, branded/product-style food, or fuzzy substitution.
+
+Ongoing operating loop:
+
+1. Mine unresolved items from live reports, robustness fixtures, and
    WWEIA/NHANES evaluation results after each catalog batch.
-2. Review the next remaining high-frequency gap cluster, but keep composed
+2. Review the next remaining high-frequency gap cluster, while keeping composed
    foods, alcohol, branded/product-style foods, and fuzzy substitutions out of
    the reviewed catalog unless there is a specific policy decision.
 3. Add only source-backed aliases, conversions, or rows for high-frequency safe
