@@ -413,6 +413,17 @@ Implemented slices:
   actions, and normalization events.
 - Report unresolved-food rows now include source item IDs and source text when
   they can be matched back to normalized-plan review rows.
+- Completed live reports now load `recommendation.json` as an optional artifact
+  and include a `Recommendation` tab with status, reason, source decision,
+  projected decision, and change count.
+- Available recommendation rows show day, meal, source item when traceable,
+  original item, replacement or addition, addressed checks, and recommendation
+  reason.
+- Unavailable recommendation rows show the artifact reason and remaining
+  blocking checks.
+- Frontend report fixtures cover available and unavailable recommendation
+  states, and backend recommendation tests cover the supported missing-vegetable
+  edit class.
 
 Near-term engineering slices:
 
@@ -421,9 +432,8 @@ Near-term engineering slices:
 2. Capture user rejections, rewrites, and corrections as review artifacts that
    can be promoted into P0 cases when they expose real in-bound failures.
 3. Make unresolved items easier to scan by reason and affected day/meal.
-4. Surface concrete edit guidance where deterministic and safe.
-5. Keep deterministic recommendations conservative and verification-gated.
-6. Add generative explanation after deterministic facts and unresolved-state UX
+4. Keep deterministic recommendations conservative and verification-gated.
+5. Add generative explanation after deterministic facts and unresolved-state UX
    are reliable.
 
 Metrics to track:
@@ -433,6 +443,8 @@ Metrics to track:
 - report failures prevented by review-stage user correction.
 - Correction artifacts reviewed and promoted into fixtures.
 - User-visible unresolved reason coverage.
+- Recommendation visibility in completed reports for available and unavailable
+  states.
 - Recommendation availability for supported deterministic edit classes.
 - Reports with missing or confusing artifact links.
 - Reports needing artifact reconciliation to reproduce the final decision.
@@ -571,6 +583,7 @@ P3 validation should include:
 - frontend tests for source-linked normalization inspection
 - report rendering tests
 - frontend tests for unresolved-item labels and recovery actions
+- frontend tests for available and unavailable recommendation report states
 - correction artifact validation and promotion checks
 - recommendation tests when deterministic edits change
 

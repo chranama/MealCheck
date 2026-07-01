@@ -11,7 +11,7 @@ export type QualificationStatus =
   | "eligible_for_verification"
   | "eligible_with_unresolved_items"
   | string;
-export type ReportTab = "checks" | "nutrition" | "foods" | "normalization" | "sources" | "report";
+export type ReportTab = "checks" | "nutrition" | "foods" | "recommendation" | "normalization" | "sources" | "report";
 export type RunStatus = "idle" | "queued" | "running" | "completed" | "failed" | "deleted" | string;
 export type CheckStatus = "pass" | "warn" | "block" | string;
 export type AccessMode = "public_byok" | "invite_required" | string;
@@ -128,6 +128,10 @@ export type Decision = {
   decision: string;
   risk_level: string;
   summary: string;
+  failed_checks?: string[];
+  recommended_action?: string;
+  guideline_pack_id?: string;
+  artifact_paths?: Record<string, string>;
   unresolved_items?: UnresolvedFood[];
   excluded_unresolved_items?: ExcludedUnresolvedFood[];
   checks?: DecisionCheck[];
@@ -223,6 +227,43 @@ export type ArtifactItem = {
   url: string;
 };
 
+export type RecommendationStatus = "available" | "unavailable" | string;
+
+export type RecommendationFoodItem = {
+  food: string;
+  quantity?: number;
+  unit?: string;
+  quantity_text?: string;
+  preparation?: string;
+  brand?: string;
+  resolution_status?: string;
+  unresolved_reason?: string;
+  [key: string]: unknown;
+};
+
+export type RecommendationChange = {
+  operation: string;
+  day?: number;
+  meal?: string;
+  from?: RecommendationFoodItem;
+  to?: RecommendationFoodItem;
+  prep_note?: string;
+  reason: string;
+  addresses_checks: string[];
+};
+
+export type RecommendationDocument = {
+  schema_version: string;
+  status: RecommendationStatus;
+  reason: string;
+  source_decision: string;
+  source_plan_id: string;
+  blocking_checks?: string[];
+  changes?: RecommendationChange[];
+  modified_plan?: MealPlan;
+  projected_decision?: Decision;
+};
+
 export type ReportArtifacts = {
   apiBase?: string;
   base: string;
@@ -236,6 +277,7 @@ export type ReportArtifacts = {
   pack?: unknown;
   citations: Citations;
   artifactItems?: ArtifactItem[] | null;
+  recommendation?: RecommendationDocument | null;
   normalizationReview?: NormalizedPlanReviewArtifact | null;
   normalizationEvents?: NormalizationEvent[] | null;
   localModelExtraction?: LocalModelExtractionArtifact | null;

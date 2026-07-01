@@ -4,6 +4,118 @@ import { reportArtifacts } from "../../test/factories/report";
 import { ReportSurface } from "./ReportSurface";
 
 describe("ReportSurface", () => {
+  it("shows available verified recommendation changes", () => {
+    render(
+      <ReportSurface
+        activeTab="recommendation"
+        artifacts={reportArtifacts({
+          recommendation: {
+            schema_version: "0.1",
+            status: "available",
+            reason: "A deterministic modified meal plan passed the configured checks.",
+            source_decision: "block",
+            source_plan_id: "plan-source",
+            changes: [
+              {
+                operation: "replace_item",
+                day: 1,
+                meal: "lunch",
+                from: { food: "peanut sauce", quantity: 1, unit: "tbsp" },
+                to: { food: "olive oil", quantity: 1, unit: "tbsp" },
+                reason: "Replace peanut sauce with a catalog item that avoids configured allergies and exclusions.",
+                addresses_checks: ["allergens_absent"],
+              },
+            ],
+            modified_plan: {
+              schema_version: "0.1",
+              plan_id: "plan-source-recommended",
+              description: "Recommended plan",
+              days: [],
+              shopping_list: [],
+              prep_notes: [],
+            },
+            projected_decision: {
+              decision: "pass",
+              risk_level: "low",
+              summary: "Plan fits the configured checks.",
+            },
+          },
+          normalizationReview: {
+            schema_version: "0.1",
+            run_id: "run-review",
+            created_at: "2026-07-01T12:00:00Z",
+            status: "confirmed",
+            requires_confirmation: true,
+            trust_signals: {
+              source_item_count: 1,
+              normalized_row_count: 1,
+              unresolved_item_count: 0,
+              repair_count: 0,
+              failed_chunk_count: 0,
+            },
+            normalized_plan: {
+              schema_version: "0.1",
+              plan_id: "plan-source",
+              description: "Review plan",
+              days: [],
+              shopping_list: [],
+              prep_notes: [],
+            },
+            rows: [
+              {
+                day: 1,
+                meal_code: "l",
+                meal_label: "lunch",
+                source_item_id: 9,
+                source_text: "1 tbsp peanut sauce",
+                normalized_food: "peanut sauce",
+                resolved: true,
+                quantity: 1,
+                unit: "tbsp",
+              },
+            ],
+          },
+        })}
+        setActiveTab={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Recommendation" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Verified Changes" })).toBeVisible();
+    expect(screen.getAllByText("Available").length).toBeGreaterThan(0);
+    expect(screen.getByText("Pass")).toBeVisible();
+    expect(screen.getByText("Replace Item")).toBeVisible();
+    expect(screen.getByText("1 tbsp peanut sauce")).toBeVisible();
+    expect(screen.getByText("peanut sauce (1 tbsp)")).toBeVisible();
+    expect(screen.getByText("olive oil (1 tbsp)")).toBeVisible();
+    expect(screen.getByText("Declared allergens are absent")).toBeVisible();
+  });
+
+  it("shows unavailable recommendation reasons and blocking checks", () => {
+    render(
+      <ReportSurface
+        activeTab="recommendation"
+        artifacts={reportArtifacts({
+          recommendation: {
+            schema_version: "0.1",
+            status: "unavailable",
+            reason: "No deterministic recommendation is available because one or more food quantities or units are unresolved.",
+            source_decision: "block",
+            source_plan_id: "plan-source",
+            blocking_checks: ["quantities_resolvable", "food_group_coverage"],
+          },
+        })}
+        setActiveTab={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "No Verified Change" })).toBeVisible();
+    expect(screen.getAllByText("Unavailable").length).toBeGreaterThan(0);
+    expect(screen.getByText("No deterministic recommendation is available because one or more food quantities or units are unresolved.")).toBeVisible();
+    expect(screen.getByText("Food quantities are clear")).toBeVisible();
+    expect(screen.getByText("Food group coverage is present")).toBeVisible();
+  });
+
   it("shows unresolved recovery actions and excluded unresolved foods", () => {
     render(
       <ReportSurface

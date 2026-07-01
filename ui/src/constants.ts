@@ -52,7 +52,7 @@ export const MVP_FOODS = [
 
 export const MEALS = ["breakfast", "lunch", "dinner", "snack"] as const;
 export const UNITS = ["g", "oz", "cup", "tbsp", "tsp", "slice", "serving"] as const;
-export const TABS: ReportTab[] = ["checks", "nutrition", "foods", "normalization", "sources", "report"];
+export const TABS: ReportTab[] = ["checks", "nutrition", "foods", "recommendation", "normalization", "sources", "report"];
 
 export const INITIAL_MANUAL_ITEMS: ManualItem[] = [
   { id: "item-1", day: 1, meal: "breakfast", food: "cooked oatmeal", quantity: 1, unit: "cup" },

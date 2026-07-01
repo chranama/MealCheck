@@ -79,6 +79,32 @@ func TestGenerateReplacesAllergenWhenItMakesPlanPass(t *testing.T) {
 	}
 }
 
+func TestGenerateAddsMissingVegetableWhenItMakesPlanPass(t *testing.T) {
+	c := testCase()
+	plan := passingPlan()
+	plan.Days[0].Meals[1].Items = nil
+	catalog := testCatalog()
+	evaluation := checker.Evaluate(c, plan, catalog)
+	if evaluation.Decision != "warn" {
+		t.Fatalf("setup decision = %q, want warn", evaluation.Decision)
+	}
+
+	got := Generate(c, plan, catalog, evaluation)
+	if got.Status != "available" {
+		t.Fatalf("Status = %q, want available: %s", got.Status, got.Reason)
+	}
+	if got.ProjectedDecision == nil || got.ProjectedDecision.Decision != "pass" {
+		t.Fatalf("projected decision = %#v, want pass", got.ProjectedDecision)
+	}
+	if len(got.Changes) != 1 || got.Changes[0].Operation != "add_item" {
+		t.Fatalf("changes = %#v, want one add_item", got.Changes)
+	}
+	added := got.Changes[0].To
+	if added == nil || added.Food != "broccoli" || added.Quantity == nil || *added.Quantity != 1 || added.Unit != "cup" {
+		t.Fatalf("added item = %#v, want 1 cup broccoli", added)
+	}
+}
+
 func TestGenerateRefusesUnresolvedQuantities(t *testing.T) {
 	c := testCase()
 	plan := passingPlan()

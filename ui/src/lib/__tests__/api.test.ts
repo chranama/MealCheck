@@ -234,7 +234,7 @@ describe("api", () => {
     }));
   });
 
-  it("loads optional completed-run normalization trace artifacts", async () => {
+  it("loads optional completed-run review and recommendation artifacts", async () => {
     const fetchMock = vi.fn(async (url: string) => {
       const path = new URL(url).pathname;
       const json = (value: unknown) => new Response(JSON.stringify(value), { status: 200 });
@@ -248,6 +248,7 @@ describe("api", () => {
         mode: "hosted",
         artifacts: [
           "decision.json",
+          "recommendation.json",
           "review/normalized-plan-review.json",
           "review/review-actions.jsonl",
           "optional/local-model-chunks.json",
@@ -256,6 +257,14 @@ describe("api", () => {
       });
       if (path.endsWith("/guideline-pack/citations.json")) return json({ sources: [] });
       if (path.endsWith("/artifacts")) return json({ artifacts: [] });
+      if (path.endsWith("/recommendation.json")) return json({
+        schema_version: "0.1",
+        status: "unavailable",
+        reason: "No supported deterministic edit matched the failed checks.",
+        source_decision: "warn",
+        source_plan_id: "plan-review",
+        blocking_checks: ["sodium_under_limit"],
+      });
       if (path.endsWith("/review/normalized-plan-review.json")) return json({
         schema_version: "0.1",
         run_id: "run-review",
@@ -317,6 +326,10 @@ describe("api", () => {
       reviewActions: [
         { action: "confirmed" },
       ],
+      recommendation: {
+        status: "unavailable",
+        blocking_checks: ["sodium_under_limit"],
+      },
     });
   });
 

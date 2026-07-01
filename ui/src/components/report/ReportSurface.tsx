@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
-import type { NormalizedPlanReviewRow, ReportArtifacts, ReportTab, UnresolvedFood } from "../../types";
+import type {
+  NormalizedPlanReviewRow,
+  RecommendationChange,
+  RecommendationFoodItem,
+  ReportArtifacts,
+  ReportTab,
+  UnresolvedFood,
+} from "../../types";
 import { TABS } from "../../constants";
 import {
   checkLabel,
@@ -44,6 +51,7 @@ export function ReportSurface({
         {activeTab === "checks" ? <ChecksPanel artifacts={artifacts} /> : null}
         {activeTab === "nutrition" ? <NutritionPanel artifacts={artifacts} /> : null}
         {activeTab === "foods" ? <FoodsPanel artifacts={artifacts} /> : null}
+        {activeTab === "recommendation" ? <RecommendationPanel artifacts={artifacts} /> : null}
         {activeTab === "normalization" ? <NormalizationPanel artifacts={artifacts} /> : null}
         {activeTab === "sources" ? <SourcesPanel artifacts={artifacts} /> : null}
         {activeTab === "report" ? <ReportDownloadPanel artifacts={artifacts} /> : null}
@@ -186,6 +194,122 @@ function FoodsPanel({ artifacts }: { artifacts: ReportArtifacts }) {
       </div>
     </>
   );
+}
+
+function RecommendationPanel({ artifacts }: { artifacts: ReportArtifacts }) {
+  const recommendation = artifacts.recommendation || null;
+  if (!recommendation) {
+    return (
+      <>
+        <h2>Recommendation</h2>
+        <p className="empty-state">No recommendation artifact is available for this report.</p>
+      </>
+    );
+  }
+
+  const changes = recommendation.changes || [];
+  const projectedDecision = recommendation.projected_decision?.decision || "-";
+  const statusTone = recommendationStatusTone(recommendation.status);
+  const rows = recommendationChangeRows(changes, artifacts.normalizationReview?.rows || []);
+  const blockingRows = (recommendation.blocking_checks || []).map((checkID) => ({
+    check: checkLabel(checkID),
+    check_id: checkID,
+  }));
+
+  return (
+    <>
+      <h2>Recommendation</h2>
+      <div className="metric-grid recommendation-metrics">
+        <Metric label="Status" value={readableID(recommendation.status)} />
+        <Metric label="Source decision" value={readableID(recommendation.source_decision)} />
+        <Metric label="Projected decision" value={projectedDecision === "-" ? "-" : readableID(projectedDecision)} />
+        <Metric label="Changes" value={String(changes.length)} />
+      </div>
+      <div className="food-sections recommendation-sections">
+        <article className="food-card recommendation-card">
+          <header>
+            <h3 className="food-title">{recommendation.status === "available" ? "Verified Changes" : "No Verified Change"}</h3>
+            <span className={`status-pill status-pill--${statusTone}`}>{readableID(recommendation.status)}</span>
+          </header>
+          <p className="check-message">{recommendation.reason}</p>
+          <ChipRow values={[`Source plan ${recommendation.source_plan_id}`]} />
+        </article>
+        {recommendation.status === "available" ? (
+          <article className="food-card recommendation-card">
+            <header>
+              <h3 className="food-title">Change List</h3>
+              <span className="status-pill status-pill--pass">{changes.length}</span>
+            </header>
+            {rows.length ? (
+              <DataTable rows={rows} fields={["operation", "day", "meal", "source_item_id", "source_text", "from", "to", "prep_note", "reason", "addresses_checks"]} />
+            ) : (
+              <p className="empty-state">None.</p>
+            )}
+          </article>
+        ) : (
+          <article className="food-card recommendation-card">
+            <header>
+              <h3 className="food-title">Blocking Checks</h3>
+              <span className="status-pill status-pill--info">{blockingRows.length}</span>
+            </header>
+            {blockingRows.length ? (
+              <DataTable rows={blockingRows} fields={["check", "check_id"]} />
+            ) : (
+              <p className="empty-state">None.</p>
+            )}
+          </article>
+        )}
+      </div>
+    </>
+  );
+}
+
+function recommendationChangeRows(changes: RecommendationChange[], reviewRows: NormalizedPlanReviewRow[]): Record<string, unknown>[] {
+  return changes.map((change) => {
+    const source = recommendationSourceLink(change, reviewRows);
+    return {
+      operation: readableID(change.operation),
+      day: change.day ? `Day ${change.day}` : "-",
+      meal: change.meal ? readableID(change.meal) : "-",
+      source_item_id: source.source_item_id || "-",
+      source_text: source.source_text || "-",
+      from: recommendationFoodText(change.from),
+      to: recommendationFoodText(change.to),
+      prep_note: change.prep_note || "-",
+      reason: change.reason,
+      addresses_checks: (change.addresses_checks || []).map(checkLabel).join(", ") || "-",
+    };
+  });
+}
+
+function recommendationSourceLink(change: RecommendationChange, rows: NormalizedPlanReviewRow[]): Record<string, unknown> {
+  if (!change.from || !change.day || !change.meal) return {};
+  const candidates = rows.filter((row) => (
+    row.day === change.day
+    && mealMatches(row, change.meal || "")
+    && lower(row.normalized_food) === lower(change.from?.food)
+  ));
+  const row = candidates[0];
+  if (!row) return {};
+  return {
+    source_item_id: row.source_item_id,
+    source_text: row.source_text,
+  };
+}
+
+function recommendationFoodText(item?: RecommendationFoodItem): string {
+  if (!item) return "-";
+  const quantity = item.quantity !== undefined && item.quantity !== null
+    ? [valueText(item.quantity), item.unit].filter(Boolean).join(" ")
+    : item.quantity_text || "";
+  const details = [quantity, item.preparation, item.brand].filter(Boolean).join(", ");
+  return details ? `${item.food} (${details})` : item.food;
+}
+
+function recommendationStatusTone(status: string): string {
+  if (status === "available") return "pass";
+  if (status === "unavailable") return "info";
+  return "warn";
 }
 
 function NormalizationPanel({ artifacts }: { artifacts: ReportArtifacts }) {

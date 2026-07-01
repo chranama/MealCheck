@@ -59,6 +59,7 @@ export function manifest(): Manifest {
       "decision.json",
       "report.json",
       "report.pdf",
+      "recommendation.json",
       "daily-totals.json",
       "resolved-foods.json",
       "unresolved-foods.json",
@@ -105,6 +106,7 @@ export function reportArtifacts(overrides: Partial<ReportArtifacts> = {}): Repor
     manifest: manifest(),
     pack: null,
     citations: citations(),
+    recommendation: null,
     artifactItems: [
       {
         path: "report.pdf",
