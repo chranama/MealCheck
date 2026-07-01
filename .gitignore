@@ -1,7 +1,7 @@
 .mealcheck-data/
 .DS_Store
 .wrangler/
-artifacts/
+/artifacts/
 bin/
 ui/dist/
 ui/node_modules/

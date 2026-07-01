@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1",
+  "status": "unavailable",
+  "reason": "No deterministic recommendation is available because one or more food quantities or units are unresolved.",
+  "source_decision": "block",
+  "source_plan_id": "seeded-3-day-peanut-allergy-candidate",
+  "blocking_checks": [
+    "quantities_resolvable",
+    "allergens_absent",
+    "calories_within_tolerance",
+    "sodium_under_limit",
+    "protein_minimum_met",
+    "prep_safety_mentions_present"
+  ]
+}
