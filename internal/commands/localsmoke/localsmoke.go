@@ -17,8 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chranama/MealCheck/internal/checker"
-	"github.com/chranama/MealCheck/internal/hosted"
+	"github.com/chranama/MealCheck/internal/core"
+	llm "github.com/chranama/MealCheck/internal/llm/external"
+	"github.com/chranama/MealCheck/internal/server/app"
+	"github.com/chranama/MealCheck/internal/server/store"
+	"github.com/chranama/MealCheck/internal/workflow/checker"
 )
 
 const (
@@ -138,9 +141,9 @@ func (r *runner) cliDeploymentSmoke() error {
 func (r *runner) hostedSmoke() error {
 	r.logf("hosted: start in-memory API harness")
 	config := smokeConfig(r.root, r.workDir)
-	store := hosted.NewMemoryStore()
-	pending := hosted.NewPendingInputs()
-	server := hosted.NewServer(config, store, pending)
+	store := store.NewMemoryStore()
+	pending := app.NewPendingInputs()
+	server := app.NewServer(config, store, pending)
 	httpServer := httptest.NewServer(server.Handler())
 	defer httpServer.Close()
 	client := httpServer.Client()
@@ -159,14 +162,14 @@ func (r *runner) hostedSmoke() error {
 	if err := readJSON(filepath.Join(r.root, seededCasePath), &seeded); err != nil {
 		return err
 	}
-	seededRunID, err := r.createRun(client, httpServer.URL, hosted.CreateRunRequest{
+	seededRunID, err := r.createRun(client, httpServer.URL, core.CreateRunRequest{
 		CasePath: seededCasePath,
 	})
 	if err != nil {
 		return err
 	}
 	r.logf("hosted: process checked-in seeded run")
-	if err := processOne(config, store, pending, hosted.DefaultProviderFactory); err != nil {
+	if err := processOne(config, store, pending, llm.DefaultProviderFactory); err != nil {
 		return err
 	}
 	if err := verifyCompletedRun(client, httpServer.URL, seededRunID); err != nil {
@@ -181,10 +184,10 @@ func (r *runner) hostedSmoke() error {
 	if err != nil {
 		return err
 	}
-	byokRunID, err := r.createRun(client, httpServer.URL, hosted.CreateRunRequest{
+	byokRunID, err := r.createRun(client, httpServer.URL, core.CreateRunRequest{
 		InputMode: "profile_generation",
 		Settings:  seeded.Settings,
-		Provider: hosted.ProviderConfig{
+		Provider: core.ProviderConfig{
 			Type:    "openai_compatible",
 			BaseURL: "https://fake-provider.local/v1",
 			Model:   "fake-meal-plan",
@@ -194,7 +197,7 @@ func (r *runner) hostedSmoke() error {
 	if err != nil {
 		return err
 	}
-	if err := processOne(config, store, pending, hosted.StaticResponseProviderFactory(string(response))); err != nil {
+	if err := processOne(config, store, pending, llm.StaticResponseProviderFactory(string(response))); err != nil {
 		return err
 	}
 	if err := verifyCompletedRun(client, httpServer.URL, byokRunID); err != nil {
@@ -246,7 +249,7 @@ func (r *runner) verifyCORS(client *http.Client, baseURL string) error {
 	return nil
 }
 
-func (r *runner) createRun(client *http.Client, baseURL string, body hosted.CreateRunRequest) (string, error) {
+func (r *runner) createRun(client *http.Client, baseURL string, body core.CreateRunRequest) (string, error) {
 	payload, err := json.Marshal(body)
 	if err != nil {
 		return "", err
@@ -270,7 +273,7 @@ func (r *runner) createRun(client *http.Client, baseURL string, body hosted.Crea
 	if resp.StatusCode != http.StatusAccepted {
 		return "", fmt.Errorf("create run status = %d body=%s", resp.StatusCode, string(data))
 	}
-	var created hosted.CreateRunResponse
+	var created core.CreateRunResponse
 	if err := json.Unmarshal(data, &created); err != nil {
 		return "", err
 	}
@@ -280,9 +283,9 @@ func (r *runner) createRun(client *http.Client, baseURL string, body hosted.Crea
 	return created.RunID, nil
 }
 
-func smokeConfig(root, workDir string) hosted.Config {
+func smokeConfig(root, workDir string) core.Config {
 	dataDir := filepath.Join(workDir, "hosted-data")
-	return hosted.Config{
+	return core.Config{
 		Root:             root,
 		DataDir:          dataDir,
 		ArtifactDir:      filepath.Join(dataDir, "artifacts"),
@@ -302,8 +305,8 @@ func smokeConfig(root, workDir string) hosted.Config {
 	}
 }
 
-func processOne(config hosted.Config, store hosted.Store, pending *hosted.PendingInputs, providerFactory hosted.ProviderFactory) error {
-	processed, err := hosted.NewWorker(config, store, pending, providerFactory).ProcessOne(context.Background())
+func processOne(config core.Config, store store.Store, pending *app.PendingInputs, providerFactory llm.ProviderFactory) error {
+	processed, err := app.NewWorker(config, store, pending, providerFactory).ProcessOne(context.Background())
 	if err != nil {
 		return err
 	}
@@ -319,12 +322,12 @@ func verifyCompletedRun(client *http.Client, baseURL, runID string) error {
 		return err
 	}
 	var runDoc struct {
-		Run hosted.Run `json:"run"`
+		Run core.Run `json:"run"`
 	}
 	if err := json.Unmarshal(runBody, &runDoc); err != nil {
 		return err
 	}
-	if runDoc.Run.Status != hosted.StatusCompleted {
+	if runDoc.Run.Status != core.StatusCompleted {
 		return fmt.Errorf("run %s status = %q, want completed", runID, runDoc.Run.Status)
 	}
 
@@ -364,7 +367,7 @@ func verifyRedaction(client *http.Client, baseURL, dataDir, runID string) error 
 	if err != nil {
 		return err
 	}
-	var redacted hosted.RedactedProviderConfig
+	var redacted core.RedactedProviderConfig
 	if err := json.Unmarshal(redactedBody, &redacted); err != nil {
 		return err
 	}

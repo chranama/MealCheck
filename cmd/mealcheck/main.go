@@ -10,13 +10,15 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/chranama/MealCheck/internal/artifacts"
-	"github.com/chranama/MealCheck/internal/checker"
 	"github.com/chranama/MealCheck/internal/commands/evalchecker"
 	"github.com/chranama/MealCheck/internal/commands/evalnormalization"
 	"github.com/chranama/MealCheck/internal/commands/fixturecheck"
 	"github.com/chranama/MealCheck/internal/commands/localsmoke"
-	"github.com/chranama/MealCheck/internal/hosted"
+	localmodel "github.com/chranama/MealCheck/internal/llm/local"
+	"github.com/chranama/MealCheck/internal/server/access"
+	"github.com/chranama/MealCheck/internal/server/store"
+	"github.com/chranama/MealCheck/internal/workflow/artifacts"
+	"github.com/chranama/MealCheck/internal/workflow/checker"
 )
 
 func main() {
@@ -97,7 +99,7 @@ func runLocalLlamaNormalizeCommand(args []string, stdout, stderr io.Writer) int 
 		fmt.Fprintf(stderr, "local-llama normalize failed: %v\n", err)
 		return 2
 	}
-	plan, err := hosted.DecodeLocalLlamaCompactPlan(string(input), *planID)
+	plan, err := localmodel.DecodeLocalLlamaCompactPlan(string(input), *planID)
 	if err != nil {
 		fmt.Fprintf(stderr, "local-llama normalize failed: %v\n", err)
 		return 2
@@ -126,7 +128,7 @@ func runLocalLlamaSchemaCommand(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "local-llama schema does not accept positional arguments")
 		return 2
 	}
-	if err := writeJSON(stdout, hosted.LocalLlamaCompactResponseSchema()); err != nil {
+	if err := writeJSON(stdout, localmodel.LocalLlamaCompactResponseSchema()); err != nil {
 		fmt.Fprintf(stderr, "local-llama schema failed: %v\n", err)
 		return 2
 	}
@@ -189,7 +191,7 @@ func runInviteCreateCommand(args []string, stdout, stderr io.Writer) int {
 	if *maxRuns > 0 {
 		max = maxRuns
 	}
-	generated, err := hosted.GenerateInviteToken(*label, expiry, max, now)
+	generated, err := access.GenerateInviteToken(*label, expiry, max, now)
 	if err != nil {
 		fmt.Fprintf(stderr, "invite create failed: %v\n", err)
 		return 2
@@ -284,8 +286,8 @@ func runInviteRevokeCommand(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-func openInviteStore(databaseURL string) (hosted.Store, error) {
-	return hosted.OpenPostgresStore(context.Background(), databaseURL)
+func openInviteStore(databaseURL string) (store.Store, error) {
+	return store.OpenPostgresStore(context.Background(), databaseURL)
 }
 
 func parseInviteExpiry(value string, duration time.Duration, now time.Time) (*time.Time, error) {

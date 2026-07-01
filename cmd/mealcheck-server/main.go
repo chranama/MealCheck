@@ -11,7 +11,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/chranama/MealCheck/internal/hosted"
+	"github.com/chranama/MealCheck/internal/core"
+	llm "github.com/chranama/MealCheck/internal/llm/external"
+	"github.com/chranama/MealCheck/internal/server/app"
+	"github.com/chranama/MealCheck/internal/server/store"
 )
 
 func main() {
@@ -36,7 +39,7 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	config := hosted.ConfigFromEnv(root)
+	config := core.ConfigFromEnv(root)
 	if *addrFlag != "" {
 		config.Addr = *addrFlag
 	}
@@ -59,24 +62,24 @@ func run(args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	store, err := hosted.OpenStore(ctx, config)
+	store, err := store.OpenStore(ctx, config)
 	if err != nil {
 		return err
 	}
 	defer store.Close()
 
-	pendingInputs := hosted.NewPendingInputs()
-	providerFactory := hosted.DefaultProviderFactory
+	pendingInputs := app.NewPendingInputs()
+	providerFactory := llm.DefaultProviderFactory
 	if path := os.Getenv("MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH"); path != "" {
-		factory, err := hosted.StaticResponseProviderFactoryFromFile(path)
+		factory, err := llm.StaticResponseProviderFactoryFromFile(path)
 		if err != nil {
 			return fmt.Errorf("load fake provider response: %w", err)
 		}
 		providerFactory = factory
 	}
-	worker := hosted.NewWorker(config, store, pendingInputs, providerFactory)
-	cleanup := hosted.CleanupJob{Config: config, Store: store, Pending: pendingInputs}
-	hostedServer := hosted.NewServer(config, store, pendingInputs)
+	worker := app.NewWorker(config, store, pendingInputs, providerFactory)
+	cleanup := app.CleanupJob{Config: config, Store: store, Pending: pendingInputs}
+	hostedServer := app.NewServer(config, store, pendingInputs)
 	hostedServer.ProviderFactory = providerFactory
 	go worker.Run(ctx)
 	go cleanup.Run(ctx)

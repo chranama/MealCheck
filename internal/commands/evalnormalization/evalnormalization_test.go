@@ -6,7 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/chranama/MealCheck/internal/hosted"
+	"github.com/chranama/MealCheck/internal/core"
+	llm "github.com/chranama/MealCheck/internal/llm/external"
 )
 
 func TestRunLocalLlamaModeScoresProviderOutput(t *testing.T) {
@@ -35,11 +36,11 @@ func TestRunLocalLlamaModeScoresProviderOutput(t *testing.T) {
 		DatasetPath:  datasetPath,
 		FailurePath:  failurePath,
 		Mode:         "local-llama",
-		ProviderConfig: hosted.ProviderConfig{
-			Type:  hosted.ProviderTypeLocalLlama,
+		ProviderConfig: core.ProviderConfig{
+			Type:  llm.ProviderTypeLocalLlama,
 			Model: "test-model",
 		},
-		ProviderFactory: hosted.StaticResponseProviderFactory(`{"i":[[1,1,"b","oatmeal",1,"cup"]]}`),
+		ProviderFactory: llm.StaticResponseProviderFactory(`{"i":[[1,1,"b","oatmeal",1,"cup"]]}`),
 	})
 	if err != nil {
 		t.Fatalf("run local llama eval: %v", err)
@@ -93,8 +94,8 @@ func TestRunLocalLlamaModeSupportsRepeats(t *testing.T) {
 		FailurePath:       failurePath,
 		Mode:              "local-llama",
 		LocalModelRepeats: 3,
-		ProviderConfig: hosted.ProviderConfig{
-			Type:  hosted.ProviderTypeLocalLlama,
+		ProviderConfig: core.ProviderConfig{
+			Type:  llm.ProviderTypeLocalLlama,
 			Model: "test-model",
 		},
 		ProviderFactory: providerFactory.Factory,
@@ -164,11 +165,11 @@ func TestRunLocalLlamaModeRecordsSourceRepairs(t *testing.T) {
 		DatasetPath:  datasetPath,
 		FailurePath:  failurePath,
 		Mode:         "local-llama",
-		ProviderConfig: hosted.ProviderConfig{
-			Type:  hosted.ProviderTypeLocalLlama,
+		ProviderConfig: core.ProviderConfig{
+			Type:  llm.ProviderTypeLocalLlama,
 			Model: "test-model",
 		},
-		ProviderFactory: hosted.StaticResponseProviderFactory(`{"i":[[2,1,"b","1 tbsp olive oil",1,"tsp"],[1,1,"b","1/2 cup blueberries",1,"cup"]]}`),
+		ProviderFactory: llm.StaticResponseProviderFactory(`{"i":[[2,1,"b","1 tbsp olive oil",1,"tsp"],[1,1,"b","1/2 cup blueberries",1,"cup"]]}`),
 	})
 	if err != nil {
 		t.Fatalf("run local llama eval: %v", err)
@@ -269,7 +270,7 @@ type sequenceProviderFactory struct {
 	calls     int
 }
 
-func (f *sequenceProviderFactory) Factory(hosted.ProviderConfig) (hosted.Provider, error) {
+func (f *sequenceProviderFactory) Factory(core.ProviderConfig) (llm.Provider, error) {
 	return sequenceProvider{factory: f}, nil
 }
 
@@ -277,7 +278,7 @@ type sequenceProvider struct {
 	factory *sequenceProviderFactory
 }
 
-func (p sequenceProvider) Complete(context.Context, hosted.ProviderConfig, []hosted.ProviderMessage) (string, error) {
+func (p sequenceProvider) Complete(context.Context, core.ProviderConfig, []llm.ProviderMessage) (string, error) {
 	p.factory.calls++
 	index := p.factory.calls - 1
 	if index >= len(p.factory.responses) {

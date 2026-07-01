@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/chranama/MealCheck/internal/checker"
+	"github.com/chranama/MealCheck/internal/workflow/checker"
 )
 
 type evalDataset struct {
