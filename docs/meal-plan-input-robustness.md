@@ -100,6 +100,9 @@ Qualification failure classes:
   quantities or supported units needed for verification.
 - `recipe_or_menu_needs_decomposition`: text is recipe-like, but is not
   decomposed into day, meal, ingredient, quantity, and unit fields.
+- `meal_plan_unsupported_units`: text includes explicit portion units that
+  MealCheck does not normalize reliably, such as bowl, plate, handful, scoop,
+  packet, can, jar, bottle, loaf, piece, box, or bag.
 - `meal_plan_outside_hosted_contract`: text may be food-related, but is outside
   the hosted one-day local-model contract, such as weekly plans, multi-day
   plans, grocery lists, or source inventories over the configured source-item
@@ -127,6 +130,7 @@ It includes:
 - one-day numbered-list input
 - one-day paragraph input
 - one-day mixed paragraph and inline input
+- one-day reverse-measurement input, such as `chicken, 100 g`
 - one-day snack-inclusive input
 - one-day snack-inclusive paragraph input
 - exploratory multi-day inputs retained for local/self-hosted comparison, not
@@ -142,6 +146,8 @@ examples/meal-plan-input-robustness/failure-manifest.json
 ```
 
 That set is for pre-model refusal behavior, not successful normalization.
+It includes not-a-meal, vague meal-outline, recipe-like, and unsupported-unit
+examples.
 
 ## Evaluation Expectations
 

@@ -54,6 +54,19 @@ describe("recovery", () => {
     expect(notice.steps?.join(" ")).toContain("source-item cap");
   });
 
+  it("maps unsupported portion-unit qualification to unit guidance", () => {
+    const notice = recoveryFromQualification({
+      schema_version: "0.1",
+      status: "meal_plan_unsupported_units",
+      reason: "MealCheck found unsupported portion units: bowl.",
+      provider_used: false,
+    });
+
+    expect(notice.title).toBe("Use supported portion units");
+    expect(notice.steps?.join(" ")).toContain("grams");
+    expect(notice.steps?.join(" ")).toContain("bowl");
+  });
+
   it("maps local-model normalization failures to rewrite guidance", () => {
     const notice = recoveryFromRunFailure(
       "failed",

@@ -122,11 +122,15 @@ func localLlamaShouldMergeReverseMeasurementParts(foodPart string, measurementPa
 	if localLlamaParagraphQuantityStart.MatchString(foodPart) {
 		return false
 	}
-	return localLlamaMeasurementOnlyPattern.MatchString(strings.Trim(measurementPart, " .;"))
+	measurementPart = strings.Trim(measurementPart, " .;")
+	return localLlamaMeasurementOnlyPattern.MatchString(measurementPart) || localLlamaUnsupportedMeasurementOnlyPattern.MatchString(measurementPart)
 }
 
 func localLlamaNormalizeInlineItemPhrase(phrase string) (string, bool) {
 	if sourceText, ok := localLlamaNormalizeReverseItemPhrase(phrase); ok {
+		return sourceText, true
+	}
+	if sourceText, ok := localLlamaNormalizeUnsupportedInlineItemPhrase(phrase); ok {
 		return sourceText, true
 	}
 	matches := localLlamaInlineItemPattern.FindStringSubmatch(strings.TrimSpace(phrase))
@@ -150,7 +154,38 @@ func localLlamaNormalizeInlineItemPhrase(phrase string) (string, bool) {
 }
 
 func localLlamaNormalizeReverseItemPhrase(phrase string) (string, bool) {
-	matches := localLlamaReverseItemPattern.FindStringSubmatch(strings.TrimSpace(strings.Trim(phrase, " \t\r\n.;")))
+	phrase = strings.TrimSpace(strings.Trim(phrase, " \t\r\n.;"))
+	matches := localLlamaReverseItemPattern.FindStringSubmatch(phrase)
+	if len(matches) != 4 {
+		return localLlamaNormalizeUnsupportedReverseItemPhrase(phrase)
+	}
+	food := localLlamaCleanMealContextPrefix(matches[1])
+	food = strings.TrimSpace(strings.Trim(food, " \t\r\n.;:-()"))
+	if food == "" {
+		return "", false
+	}
+	quantity := strings.Join(strings.Fields(matches[2]), " ")
+	unit := localLlamaNormalizeSourceUnit(matches[3])
+	return strings.TrimSpace(quantity + " " + unit + " " + food), true
+}
+
+func localLlamaNormalizeUnsupportedInlineItemPhrase(phrase string) (string, bool) {
+	matches := localLlamaUnsupportedInlineItemPattern.FindStringSubmatch(strings.TrimSpace(strings.Trim(phrase, " \t\r\n.;")))
+	if len(matches) != 4 {
+		return "", false
+	}
+	quantity := strings.Join(strings.Fields(matches[1]), " ")
+	unit := localLlamaNormalizeUnsupportedSourceUnit(matches[2])
+	food := localLlamaCleanMealContextPrefix(strings.TrimSpace(matches[3]))
+	food = strings.TrimSpace(localLlamaLeadingOf.ReplaceAllString(food, ""))
+	if quantity == "" || unit == "" || food == "" {
+		return "", false
+	}
+	return strings.TrimSpace(quantity + " " + unit + " " + food), true
+}
+
+func localLlamaNormalizeUnsupportedReverseItemPhrase(phrase string) (string, bool) {
+	matches := localLlamaUnsupportedReverseItemPattern.FindStringSubmatch(phrase)
 	if len(matches) != 4 {
 		return "", false
 	}
@@ -160,7 +195,10 @@ func localLlamaNormalizeReverseItemPhrase(phrase string) (string, bool) {
 		return "", false
 	}
 	quantity := strings.Join(strings.Fields(matches[2]), " ")
-	unit := localLlamaNormalizeSourceUnit(matches[3])
+	unit := localLlamaNormalizeUnsupportedSourceUnit(matches[3])
+	if quantity == "" || unit == "" {
+		return "", false
+	}
 	return strings.TrimSpace(quantity + " " + unit + " " + food), true
 }
 
@@ -194,6 +232,48 @@ func localLlamaNormalizeSourceUnit(unit string) string {
 		return "slice"
 	case "servings":
 		return "serving"
+	default:
+		return normalized
+	}
+}
+
+func localLlamaNormalizeUnsupportedSourceUnit(unit string) string {
+	normalized := strings.ToLower(strings.TrimSpace(unit))
+	switch normalized {
+	case "bowls":
+		return "bowl"
+	case "plates":
+		return "plate"
+	case "handfuls":
+		return "handful"
+	case "scoops":
+		return "scoop"
+	case "packets":
+		return "packet"
+	case "packages":
+		return "package"
+	case "cans":
+		return "can"
+	case "jars":
+		return "jar"
+	case "bottles":
+		return "bottle"
+	case "loaves":
+		return "loaf"
+	case "pieces":
+		return "piece"
+	case "wedges":
+		return "wedge"
+	case "bars":
+		return "bar"
+	case "containers":
+		return "container"
+	case "cartons":
+		return "carton"
+	case "boxes":
+		return "box"
+	case "bags":
+		return "bag"
 	default:
 		return normalized
 	}

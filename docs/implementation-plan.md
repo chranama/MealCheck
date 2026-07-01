@@ -3885,3 +3885,55 @@ Verification:
 - `GOCACHE=/private/tmp/mealcheck-gocache go test ./...` passes outside the
   sandbox because hosted provider tests need local `httptest` ports.
 - `git diff --check` passes.
+
+## Milestone 52: Unsupported-Unit Boundary And Reverse-Measurement Corpus
+
+Status: Implemented locally in the current worktree.
+
+Purpose:
+
+Finish the next P0 tightening pass without weakening the SLM-critical happy
+path. MealCheck should accept product-shaped one-day text with supported
+measurements, including reverse-measurement phrasing such as `chicken, 100 g`,
+but reject clear unsupported portion units before queueing instead of silently
+normalizing them into servings.
+
+Delivered:
+
+- Added `meal_plan_unsupported_units` as a first-class qualification status for
+  explicit unsupported portion units.
+- Wired the status through hosted local-model preflight, `/api/runs` error
+  envelopes, qualification tests, UI recovery guidance, API docs, and contract
+  docs.
+- Updated deterministic source inventory parsing so unsupported inline or
+  reverse units such as `1 bowl cereal` and `soup, 1 bowl` remain
+  `needs_model_parse` source spans rather than becoming fake `serving` rows.
+- Added a strict reviewed success fixture for supported reverse measurements.
+- Added strict reviewed qualification-failure fixtures for unsupported inline
+  and reverse portion units.
+- Updated the P0 generator so regenerated failure JSONL preserves
+  unsupported-unit coverage tags.
+- Updated current priorities and evaluation docs with the expanded strict
+  corpus: 9 one-day success cases, 5 qualification failures, and 85 strict
+  expected source items.
+
+Acceptance:
+
+- Clear unsupported units such as bowl, plate, jar, and similar portion words
+  fail before queueing with structured recovery guidance.
+- Supported units still pass, including reverse-measurement wording.
+- Deterministic parsing does not invent supported units for unsupported
+  quantities.
+- The checked-in P0 corpus remains reproducible through the generation script.
+
+Verification:
+
+- `go test ./...` passes outside the sandbox because app tests need local
+  `httptest` ports.
+- `GOCACHE=/private/tmp/mealcheck-gocache go test ./cmd/mealcheck ./internal/llm/local ./internal/workflow/normalize` passes.
+- `GOCACHE=/private/tmp/mealcheck-gocache go run ./cmd/mealcheck fixture-check` passes.
+- `GOCACHE=/private/tmp/mealcheck-gocache go run ./cmd/mealcheck eval-normalization -gate strict -out /private/tmp/mealcheck-p0-normalization.json` passes with 14 of 14 strict cases, 9 success cases, 5 qualification failures, and 85 of 85 expected source items preserved.
+- `npm test` passes in `ui/`.
+- `npm run typecheck` passes in `ui/`.
+- `python3 -m py_compile scripts/generate-p0-normalization-evaluation.py` passes.
+- `git diff --check` passes.

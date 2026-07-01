@@ -210,7 +210,7 @@ def load_robustness_cases(root: Path) -> tuple[list[dict[str, Any]], list[dict[s
                     "stage": "qualification",
                     "status": case["expected_status"],
                 },
-                "tags": ["failure", "reviewed_seed", case["expected_status"]],
+                "tags": ["failure", "reviewed_seed", case["expected_status"], *case.get("coverage_tags", [])],
             }
         )
     return success_cases, failure_cases

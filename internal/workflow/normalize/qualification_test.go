@@ -62,6 +62,24 @@ func TestQualifyMealPlanTextIdentifiesRecipeNeedingDecomposition(t *testing.T) {
 	}
 }
 
+func TestQualifyMealPlanTextRejectsUnsupportedPortionUnits(t *testing.T) {
+	result, err := QualifyMealPlanText(context.Background(), nil, MealPlanQualificationRequest{
+		Text: "Day 1 breakfast: 1 bowl cereal, 1 cup milk.\nLunch: chicken, 1 plate, and 1 cup rice.",
+	})
+	if err != nil {
+		t.Fatalf("QualifyMealPlanText error: %v", err)
+	}
+	if result.Status != QualificationStatusUnsupportedUnits {
+		t.Fatalf("status = %q, want %q", result.Status, QualificationStatusUnsupportedUnits)
+	}
+	if !containsString(result.MissingFields, "supported_units") {
+		t.Fatalf("missing fields = %v, want supported_units", result.MissingFields)
+	}
+	if !strings.Contains(result.Reason, "bowl") || !strings.Contains(result.Reason, "plate") {
+		t.Fatalf("reason = %q, want unsupported units", result.Reason)
+	}
+}
+
 func TestQualifyStructuredMealPlanTextAcceptsEligiblePlan(t *testing.T) {
 	result := QualifyStructuredMealPlanText(testMealPlanJSON(false))
 	if result.Status != QualificationStatusEligibleForVerification {

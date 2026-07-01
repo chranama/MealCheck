@@ -23,6 +23,22 @@
       "title": "Recipe-like text without meal-plan structure",
       "expected_status": "recipe_or_menu_needs_decomposition",
       "expected_provider_used": false
+    },
+    {
+      "id": "unsupported_unit_inline",
+      "file": "failure-cases/unsupported-unit-inline.txt",
+      "title": "Unsupported inline portion units",
+      "expected_status": "meal_plan_unsupported_units",
+      "expected_provider_used": false,
+      "coverage_tags": ["unsupported_units", "inline_text"]
+    },
+    {
+      "id": "unsupported_unit_reverse",
+      "file": "failure-cases/unsupported-unit-reverse.txt",
+      "title": "Unsupported reverse portion units",
+      "expected_status": "meal_plan_unsupported_units",
+      "expected_provider_used": false,
+      "coverage_tags": ["unsupported_units", "reverse_measurements"]
     }
   ]
 }

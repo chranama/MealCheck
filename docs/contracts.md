@@ -475,10 +475,12 @@ Response shape:
 
 Qualification statuses are `not_meal_plan`, `meal_plan_too_vague`,
 `recipe_or_menu_needs_decomposition`,
-`meal_plan_outside_hosted_contract`, `eligible_for_verification`, and
-`eligible_with_unresolved_items`. Qualification does not decide guideline
-compliance; it only determines whether content can become normalized meal-plan
-JSON for verification. The hosted local-model path uses
+`meal_plan_unsupported_units`, `meal_plan_outside_hosted_contract`,
+`eligible_for_verification`, and `eligible_with_unresolved_items`.
+Qualification does not decide guideline compliance; it only determines whether
+content can become normalized meal-plan JSON for verification. The hosted
+local-model path uses `meal_plan_unsupported_units` for explicit portion units
+that MealCheck does not normalize reliably, and
 `meal_plan_outside_hosted_contract` for food-related input that is outside the
 public one-day contract, such as weekly plans, multi-day plans, grocery lists,
 or source inventories over the configured source-item cap.

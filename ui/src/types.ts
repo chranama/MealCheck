@@ -6,6 +6,7 @@ export type QualificationStatus =
   | "not_meal_plan"
   | "meal_plan_too_vague"
   | "recipe_or_menu_needs_decomposition"
+  | "meal_plan_unsupported_units"
   | "meal_plan_outside_hosted_contract"
   | "eligible_for_verification"
   | "eligible_with_unresolved_items"

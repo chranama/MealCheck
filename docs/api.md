@@ -245,6 +245,7 @@ Qualification statuses:
 | `not_meal_plan` | The text is not asking for or describing meals. |
 | `meal_plan_too_vague` | The text has meals or menu ideas but lacks ingredient quantities or units. |
 | `recipe_or_menu_needs_decomposition` | The text is recipe-like or menu-like and needs ingredient decomposition before verification. |
+| `meal_plan_unsupported_units` | The text uses explicit portion units MealCheck does not normalize reliably, such as bowls, plates, handfuls, scoops, packets, cans, jars, bottles, loaves, pieces, boxes, or bags. |
 | `meal_plan_outside_hosted_contract` | The text may describe food, but it is outside the hosted one-day local-model contract, such as weekly plans, multi-day plans, grocery lists, or source inventories over the configured cap. |
 | `eligible_for_verification` | The text is already normalized MealCheck JSON or was normalized successfully. |
 | `eligible_with_unresolved_items` | The normalized plan can be checked while preserving explicit unresolved items. |

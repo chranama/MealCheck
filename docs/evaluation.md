@@ -256,6 +256,7 @@ contexts:
 - one-day inline sentences
 - one-day paragraph meal spans
 - numbered list items
+- one-day reverse measurements, such as `chicken, 100 g`
 - two-day clear `Day N` sections
 - one-day snack-inclusive plans
 - one-day snack-inclusive paragraphs
@@ -380,10 +381,10 @@ while still making normalization reliability measurable.
 
 Current strict deterministic P0 seed result:
 
-- 8 one-day success cases pass deterministic source-inventory and adapter
+- 9 one-day success cases pass deterministic source-inventory and adapter
   checks.
-- 3 qualification-failure cases pass expected-status checks.
-- 76 of 76 expected source items are preserved, for a
+- 5 qualification-failure cases pass expected-status checks.
+- 85 of 85 expected source items are preserved, for a
   `source_item_preservation_rate` of 1.0.
 - The seed result has zero mismatches.
 
@@ -415,7 +416,7 @@ Serving MacBook live local-model result before the strict one-day gate split:
 - Aggregate: 3 of 3 repeats completed, 0 provider failures, 2 decode failures,
   min row/food/quantity/unit accuracy 0.8058, max duration 676 seconds.
 
-Current serving MacBook strict one-day live local-model result:
+Most recent serving MacBook strict one-day live local-model result:
 
 - Run date: 2026-06-30.
 - MealCheck commit: `8a3a395ab4712c9bf08471bfb45ef655d9c164c5`.
@@ -433,6 +434,9 @@ Current serving MacBook strict one-day live local-model result:
 - Source-grounded reconciliation made 77 deterministic field repairs across the
   three repeats and 24 repair-case observations.
 - Maximum run duration was 235 seconds.
+- The checked-in strict corpus has since expanded with reverse-measurement and
+  unsupported-unit boundary cases, so the expanded corpus needs a fresh live
+  regimen before it becomes serving-MacBook evidence.
 
 Previous P0 live local-model seed result before per-meal chunking:
 
@@ -470,10 +474,10 @@ chunk.
 
 The current checked-in P0 corpus is still a seed corpus:
 
-- 8 strict one-day success cases
+- 9 strict one-day success cases
 - 3 exploratory multi-day success cases
-- 3 qualification failure cases
-- 76 strict expected source items
+- 5 qualification failure cases
+- 85 strict expected source items
 - 63 exploratory expected source items
 - supported units only: `g`, `oz`, `cup`, `tbsp`, `tsp`, `slice`, `serving`
 

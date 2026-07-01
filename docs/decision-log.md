@@ -2079,3 +2079,42 @@ Consequences:
   item evidence.
 - Multi-day examples remain only where they exercise rejection, robustness, or
   legacy checker behavior.
+
+## 2026-07-01: Unsupported Portion Units Fail Qualification
+
+Status: Accepted
+
+Decision:
+
+The hosted local-model path should reject explicit unsupported portion units
+before queueing with `meal_plan_unsupported_units`. Supported units remain
+grams, ounces, cups, tablespoons, teaspoons, slices, and servings. Clear
+unsupported portion words such as bowl, plate, handful, scoop, packet, can, jar,
+bottle, loaf, piece, box, and bag should not be silently converted into
+`serving`.
+
+Supported reverse-measurement phrasing, such as `chicken, 100 g`, remains
+inside the strict success contract. Deterministic source inventory may reorder
+that into the model-facing source text `100 g chicken`, because the conversion
+is visible, supported, and test-covered.
+
+Reason:
+
+The MacBook-hosted SLM should stay in the critical path for semantic parsing,
+but deterministic guardrails must define the boundary. Inventing serving units
+for unsupported measurements hides uncertainty from users and can create false
+confidence in nutrition totals. A specific qualification status gives users a
+clear recovery path while preserving the distinction between not-a-meal text,
+vague meal outlines, recipes, hosted-contract overflow, and supported
+normalization.
+
+Consequences:
+
+- `/api/runs` and `/api/qualify` can return unsupported-unit recovery guidance
+  without calling the local model.
+- The strict P0 corpus now includes supported reverse-measurement success cases
+  and unsupported-unit qualification failures.
+- Deterministic source inventory tests must prove unsupported units are not
+  normalized into fake supported measurements.
+- Common unsupported units should only move into deterministic normalization
+  after a reviewed, source-backed conversion policy exists.

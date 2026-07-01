@@ -4,7 +4,7 @@ This document is MealCheck's active engineering-priority surface. The
 implementation plan records milestone history; this document ranks the next
 work by user impact, observed failure modes, and proof value.
 
-Last reviewed: 2026-06-30.
+Last reviewed: 2026-07-01.
 
 ## Prioritization Rule
 
@@ -77,6 +77,11 @@ Current evidence:
   cap, with weekly plans, multi-day plans, recipes, grocery lists, and long
   inventories failing before model inference with structured qualification
   guidance.
+- The strict deterministic P0 corpus now covers first-class unsupported-unit
+  qualification failures and supported reverse measurements such as
+  `chicken, 100 g`. It passes with 14 of 14 strict cases, 9 accepted one-day
+  success cases, 5 qualification failures, and 85 of 85 expected source items
+  preserved.
 - The chunk-artifact change was deployed and smoke-verified on 2026-06-30 at
   commit `4482f8f0c5e0c1f0a34a3cefe95b8d63bd553abb`. Live run
   `run_a0363caa5080a7ede2d01d90` completed through the deployed path with 3
@@ -87,13 +92,14 @@ Current evidence:
 
 Near-term engineering slices:
 
-1. Add first-class unsupported-unit qualification diagnostics so otherwise
-   structured inputs fail or become unresolved with a specific public reason.
-2. Expand the hand-reviewed robustness corpus with observed live failures and
-   product-shaped natural rewrites of the public example, including paragraphs,
-   snack spans, reverse measurements, and unsupported-unit boundaries.
-3. Promote deterministic unit normalization only when the conversion is safe and
-   visible; preserve vague or genuinely unsupported quantities as unresolved.
+1. Run the expanded strict P0 corpus through the serving MacBook live local-model
+   regimen and inspect chunk artifacts for the new reverse-measurement success
+   case.
+2. Keep adding observed in-bound natural rewrites to the reviewed corpus before
+   using broad generated external data as a release signal.
+3. Keep deterministic unit normalization conservative: normalize supported
+   units only when the conversion is visible and preserve or reject vague and
+   genuinely unsupported quantities rather than inventing serving equivalents.
 4. Keep user-facing failure messages guidance-oriented and avoid exposing compact
    row, schema, model-path, or parser internals.
 5. Generate and manually review small NYT Ingredient Phrase Tagger and TASTEset

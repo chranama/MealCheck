@@ -173,6 +173,11 @@ func TestLocalModelRunFastFailsNonVerifiableTextBeforeQueue(t *testing.T) {
 			text:       "1 cup cooked oatmeal, 1 cup blueberries, and 4 oz chicken breast.",
 			wantStatus: QualificationStatusMealPlanTooVague,
 		},
+		{
+			name:       "unsupported portion unit",
+			text:       "Day 1 breakfast: 1 bowl cereal, 1 cup milk.",
+			wantStatus: QualificationStatusUnsupportedUnits,
+		},
 	}
 
 	for _, tt := range tests {

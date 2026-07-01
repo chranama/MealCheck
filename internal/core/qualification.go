@@ -11,6 +11,7 @@ const (
 	QualificationStatusNotMealPlan                 = "not_meal_plan"
 	QualificationStatusMealPlanTooVague            = "meal_plan_too_vague"
 	QualificationStatusRecipeOrMenuNeedsDecompose  = "recipe_or_menu_needs_decomposition"
+	QualificationStatusUnsupportedUnits            = "meal_plan_unsupported_units"
 	QualificationStatusOutsideHostedContract       = "meal_plan_outside_hosted_contract"
 	QualificationStatusEligibleForVerification     = "eligible_for_verification"
 	QualificationStatusEligibleWithUnresolvedItems = "eligible_with_unresolved_items"
@@ -47,12 +48,17 @@ func ClassifyCandidateMealPlanText(text string) MealPlanQualificationResult {
 	hasMealStructure := hasMealStructureSignal(lower)
 	hasQuantity := hasQuantitySignal(lower)
 	isRecipeLike := hasRecipeSignal(lower)
+	unsupportedUnits := unsupportedUnitsInText(text)
 
 	if !hasMealStructure && !isRecipeLike {
 		return QualificationResult(QualificationStatusNotMealPlan, "The text does not describe days, meals, recipes, or ingredient-level meal-plan content.", []string{"meal_plan_content"})
 	}
 	if isRecipeLike && !hasMealStructure {
 		return QualificationResult(QualificationStatusRecipeOrMenuNeedsDecompose, "The text is recipe-like, but it needs to be decomposed into day, meal, ingredient, quantity, and unit fields before verification.", []string{"days", "meals", "ingredient_items"})
+	}
+	if len(unsupportedUnits) > 0 {
+		reason := "MealCheck found unsupported portion units: " + strings.Join(unsupportedUnits, ", ") + ". Use grams, ounces, cups, tablespoons, teaspoons, slices, or servings before verification."
+		return QualificationResult(QualificationStatusUnsupportedUnits, reason, []string{"supported_units"})
 	}
 	if !hasQuantity {
 		return QualificationResult(QualificationStatusMealPlanTooVague, "The text resembles a meal plan but lacks ingredient quantities and units needed for verification.", []string{"quantities", "units"})
@@ -74,7 +80,7 @@ func ClassifyLocalModelCandidateMealPlanText(text string) MealPlanQualificationR
 
 func IsTerminalQualificationFailure(result MealPlanQualificationResult) bool {
 	switch result.Status {
-	case QualificationStatusNotMealPlan, QualificationStatusMealPlanTooVague, QualificationStatusRecipeOrMenuNeedsDecompose:
+	case QualificationStatusNotMealPlan, QualificationStatusMealPlanTooVague, QualificationStatusRecipeOrMenuNeedsDecompose, QualificationStatusUnsupportedUnits:
 		return true
 	case QualificationStatusOutsideHostedContract:
 		return true
@@ -102,7 +108,26 @@ func hasRecipeSignal(text string) bool {
 }
 
 var quantitySignalPattern = regexp.MustCompile(`(?i)(\b\d+(\.\d+)?\b.*\b(g|gram|grams|oz|ounce|ounces|cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|slice|slices|serving|servings)\b)|(\b(g|oz|cup|cups|tbsp|tsp|slice|slices|serving|servings)\b.*\b\d+(\.\d+)?\b)`)
+var unsupportedUnitSignalPattern = regexp.MustCompile(`(?i)\b(?:\d+(?:\.\d+)?|\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+)\s+(bowls?|plates?|handfuls?|scoops?|packets?|packages?|cans?|jars?|bottles?|loaves|loaf|pieces?|wedges?|bars?|containers?|cartons?|boxes?|bags?)\b`)
 
 func hasQuantitySignal(text string) bool {
 	return quantitySignalPattern.MatchString(text)
+}
+
+func unsupportedUnitsInText(text string) []string {
+	matches := unsupportedUnitSignalPattern.FindAllStringSubmatch(text, -1)
+	seen := map[string]bool{}
+	var units []string
+	for _, match := range matches {
+		if len(match) < 2 {
+			continue
+		}
+		unit := strings.ToLower(strings.TrimSpace(match[1]))
+		if unit == "" || seen[unit] {
+			continue
+		}
+		seen[unit] = true
+		units = append(units, unit)
+	}
+	return units
 }

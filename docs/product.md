@@ -11,9 +11,11 @@ available in the downloaded repository and API/CLI for local verification,
 debugging, regression cases, and future agent-tool integration.
 The hosted input contract is one day only. The ideal input uses `Day 1` or clear
 meal labels, stays under the configured character and source-item limits, and
-groups foods, quantities, and units under meals. Missing amounts may remain
-visible as unresolved items, but weekly plans, recipes, grocery lists, and
-multi-day text are rejected before the model is called.
+groups foods, quantities, and supported units under meals. Supported units are
+grams, ounces, cups, tablespoons, teaspoons, slices, and servings. Missing
+amounts may remain visible as unresolved items, but unsupported portion units,
+weekly plans, recipes, grocery lists, and multi-day text are rejected before
+the model is called.
 
 ## Problem
 

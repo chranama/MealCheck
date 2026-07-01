@@ -17,6 +17,7 @@ const (
 	QualificationStatusNotMealPlan                = core.QualificationStatusNotMealPlan
 	QualificationStatusMealPlanTooVague           = core.QualificationStatusMealPlanTooVague
 	QualificationStatusRecipeOrMenuNeedsDecompose = core.QualificationStatusRecipeOrMenuNeedsDecompose
+	QualificationStatusUnsupportedUnits           = core.QualificationStatusUnsupportedUnits
 	QualificationStatusOutsideHostedContract      = core.QualificationStatusOutsideHostedContract
 )
 

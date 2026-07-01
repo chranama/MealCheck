@@ -245,6 +245,59 @@ func TestLocalModelExtractionMessagesNormalizesParagraphReverseQuantityOrder(t *
 	}
 }
 
+func TestLocalModelSourceInventoryPreservesUnsupportedInlineUnits(t *testing.T) {
+	text := "Day 1 breakfast: 1 bowl cereal, 1 cup milk."
+	chunks := localLlamaExtractionMealChunks(text)
+	if len(chunks) != 1 {
+		t.Fatalf("chunks = %d, want 1: %+v", len(chunks), chunks)
+	}
+	wants := []struct {
+		text   string
+		status localLlamaSourceParseStatus
+	}{
+		{text: "1 bowl cereal", status: localLlamaSourceNeedsModelParse},
+		{text: "1 cup milk", status: localLlamaSourceResolved},
+	}
+	if len(chunks[0].Items) != len(wants) {
+		t.Fatalf("items = %d, want %d: %+v", len(chunks[0].Items), len(wants), chunks[0].Items)
+	}
+	for index, want := range wants {
+		item := chunks[0].Items[index]
+		if item.Text != want.text || item.ParseStatus != want.status {
+			t.Fatalf("item %d = %+v, want text=%q status=%s", index, item, want.text, want.status)
+		}
+	}
+
+	resolved := localLlamaResolvedSourceItems(text)
+	if len(resolved) != 1 || resolved[0].Text != "1 cup milk" {
+		t.Fatalf("resolved items = %+v, want only supported measured item", resolved)
+	}
+}
+
+func TestLocalModelSourceInventoryPreservesUnsupportedReverseUnits(t *testing.T) {
+	chunks := localLlamaExtractionMealChunks("For lunch I had soup, 1 bowl, rice, 1 cup, and a side salad.")
+	if len(chunks) != 1 {
+		t.Fatalf("chunks = %d, want 1: %+v", len(chunks), chunks)
+	}
+	wants := []struct {
+		text   string
+		status localLlamaSourceParseStatus
+	}{
+		{text: "1 bowl soup", status: localLlamaSourceNeedsModelParse},
+		{text: "1 cup rice", status: localLlamaSourceResolved},
+		{text: "a side salad", status: localLlamaSourceNeedsModelParse},
+	}
+	if len(chunks[0].Items) != len(wants) {
+		t.Fatalf("items = %d, want %d: %+v", len(chunks[0].Items), len(wants), chunks[0].Items)
+	}
+	for index, want := range wants {
+		item := chunks[0].Items[index]
+		if item.Text != want.text || item.ParseStatus != want.status {
+			t.Fatalf("item %d = %+v, want text=%q status=%s", index, item, want.text, want.status)
+		}
+	}
+}
+
 func TestMealPlanInputRobustnessManifestSourceInventory(t *testing.T) {
 	root := repoRoot(t)
 	manifestPath := filepath.Join(root, "examples/meal-plan-input-robustness/manifest.json")

@@ -159,6 +159,17 @@ export function recoveryFromQualification(result: MealPlanQualificationResult): 
           "List the eaten portion of each ingredient, not cooking instructions.",
         ],
       };
+    case "meal_plan_unsupported_units":
+      return {
+        title: "Use supported portion units",
+        message: result.reason || "MealCheck found portion units it cannot verify reliably.",
+        tone: "warn",
+        steps: [
+          "Use grams, ounces, cups, tablespoons, teaspoons, slices, or servings.",
+          "Rewrite bowl, plate, handful, scoop, packet, can, jar, bottle, loaf, or piece amounts with a supported measure.",
+          "Keep foods with truly unknown amounts visible, but remove unsupported measured units before submitting.",
+        ],
+      };
     case "meal_plan_outside_hosted_contract":
       return {
         title: "Use one day of meal text",

@@ -77,6 +77,19 @@
       "coverage_tags": ["one_day", "three_meals", "numbered_items", "decimals", "supported_units"]
     },
     {
+      "id": "one_day_reverse_measurements",
+      "file": "cases/one-day-reverse-measurements.txt",
+      "title": "One-day reverse measurements",
+      "expected_days": 1,
+      "expected_meals_per_day": 3,
+      "expected_meal_codes_by_day": {
+        "1": ["b", "l", "d"]
+      },
+      "expected_item_count": 9,
+      "smoke_harness_compatible": false,
+      "coverage_tags": ["one_day", "three_meals", "reverse_measurements", "commas", "supported_units"]
+    },
+    {
       "id": "two_day_bullets",
       "file": "cases/two-day-bullets.txt",
       "title": "Two-day bullet plan",

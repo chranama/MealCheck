@@ -56,9 +56,9 @@
     }
   ],
   "summary": {
-    "success_cases": 11,
-    "failure_cases": 3,
+    "success_cases": 12,
+    "failure_cases": 5,
     "quarantine_cases": 0,
-    "total_expected_source_items": 139
+    "total_expected_source_items": 148
   }
 }
