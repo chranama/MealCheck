@@ -218,30 +218,49 @@ Metrics to track:
 - Queue-full count.
 - Local-model unavailable count.
 
-## P3: Report Trust And Actionability
+## P3: Normalized-Plan Review And Report Trust
 
 Goal:
 
-Completed reports should make the verifier's conclusion easy to trust and easy
-to act on.
+Users should be able to trust MealCheck's semantic interpretation before the
+deterministic checker gives it authority. After normalization, the product
+should show a source-linked normalized plan and let the user confirm, correct,
+or reject it before checker execution. Completed reports should then make the
+verifier's conclusion easy to trust and easy to act on.
 
 Why this follows the earlier priorities:
 
 - Report polish matters only after users can reliably get reports.
+- Normalized-plan review is the right trust layer for SLM risk: the model stays
+  critical to the happy path, but the user can catch semantic errors before the
+  checker turns them into authoritative-looking findings.
 - The current artifact and report system already carries strong evidence; the
   next improvements should focus on unresolved-item clarity and practical
   recovery.
 
 Near-term engineering slices:
 
-1. Make unresolved items easier to scan by reason and affected day/meal.
-2. Surface concrete edit guidance where deterministic and safe.
-3. Keep deterministic recommendations conservative and verification-gated.
-4. Avoid adding generative explanation until the deterministic evidence and
+1. Add a normalized-plan review step between local-model normalization and
+   checker execution after the expanded P0 live regimen passes.
+2. Keep the review step efficient for broad users: make `Check now` the obvious
+   action for clean normalizations, but require explicit confirmation when
+   unresolved items, source repairs, vague quantities, or other trust signals
+   are present.
+3. Preserve source links by day, meal, source text, normalized food, quantity,
+   unit, and unresolved reason so the user can see exactly what the SLM changed.
+4. Start with confirm/rewrite recovery; add direct normalized-plan editing only
+   with strict validation and clear source preservation.
+5. Make unresolved items easier to scan by reason and affected day/meal.
+6. Surface concrete edit guidance where deterministic and safe.
+7. Keep deterministic recommendations conservative and verification-gated.
+8. Avoid adding generative explanation until the deterministic evidence and
    unresolved-state UX are boringly reliable.
 
 Metrics to track:
 
+- normalized-plan review completion rate.
+- normalized-plan rejection or rewrite rate by reason.
+- report failures prevented by review-stage user correction.
 - User-visible unresolved reason coverage.
 - Recommendation availability for supported deterministic edit classes.
 - Reports with missing or confusing artifact links.
@@ -309,6 +328,7 @@ P2 proof should include:
 P3 proof should include:
 
 - artifact bundle validation
+- frontend tests for source-linked normalized-plan review and confirmation
 - report rendering tests
 - frontend tests for unresolved-item labels and recovery actions
 - recommendation tests when deterministic edits change
