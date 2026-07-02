@@ -121,10 +121,10 @@ instructions as valid P0 success cases, make fuzzy food matching part of the P0
 score, or check in raw third-party source datasets until license and size
 handling are reviewed.
 
-Optional NYT and TASTEset generation support lives in
-`scripts/generate-p0-normalization-evaluation.py`. Raw third-party source files
-stay local, generated external outputs remain exploratory until manual review,
-and active promotion decisions belong in [Current Priorities](current-priorities.md).
+Optional NYT and TASTEset generation support lives in `tools/mealcheck_data`.
+Raw third-party source files stay local, generated external outputs remain
+exploratory until manual review, and active promotion decisions belong in
+[Current Priorities](current-priorities.md).
 
 ### P0 Case Format
 
@@ -189,10 +189,10 @@ the intended failure stage and reason:
 
 ### P0 Dataset Generation
 
-The generator script is:
+The generator command is:
 
 ```text
-scripts/generate-p0-normalization-evaluation.py
+PYTHONPATH=tools/mealcheck_data/src python3 -m mealcheck_data generate-p0-normalization-evaluation
 ```
 
 The generator reads optional external source files from environment variables:
@@ -226,7 +226,8 @@ data/evaluation/p0-normalization/tasteset-quarantine-v1.jsonl
 Probe local source files before generation:
 
 ```bash
-python3 scripts/generate-p0-normalization-evaluation.py \
+PYTHONPATH=tools/mealcheck_data/src \
+  python3 -m mealcheck_data generate-p0-normalization-evaluation \
   --probe-sources \
   --nyt-csv "$MEALCHECK_NYT_INGREDIENTS_CSV" \
   --tasteset-csv "$MEALCHECK_TASTESET_CSV"
@@ -895,10 +896,9 @@ Regeneration expects them at:
   fallback enabled.
 - `mealcheck eval-checker`: deterministic runner for case coverage, unresolved food
   frequency, category summaries, and expected-outcome mismatches.
-- `scripts/generate-fndds-evaluation.py`: reproducible generator for the
-  expanded fixture catalog and FNDDS-grounded evaluation dataset.
-- `scripts/generate-wweia-nhanes-evaluation.py`: reproducible generator for the
-  WWEIA/NHANES real-recall evaluation dataset.
+- `tools/mealcheck_data`: reproducible generator package for the expanded
+  fixture catalog, FNDDS-grounded evaluation dataset, WWEIA/NHANES real-recall
+  evaluation dataset, and FNDDS reference import.
 
 ## P1 Dataset Mix
 
@@ -1119,7 +1119,8 @@ available for frequency mining and manual review pressure.
 Regenerate the FNDDS reference layer after downloading the FNDDS workbooks:
 
 ```bash
-python3 scripts/import-fndds-reference.py
+PYTHONPATH=tools/mealcheck_data/src \
+  python3 -m mealcheck_data import-fndds-reference
 ```
 
 ## Running Evaluation
@@ -1149,7 +1150,8 @@ go run ./cmd/mealcheck eval-normalization \
 Compare two portable P0 or P1 JSONL exports across commits:
 
 ```bash
-python3 scripts/compare-eval-exports.py \
+PYTHONPATH=tools/mealcheck_ops/src \
+  python3 -m mealcheck_ops compare-eval-exports \
   --baseline /tmp/before.rows.jsonl \
   --current /tmp/after.rows.jsonl \
   --out /tmp/eval-compare.json \
@@ -1164,7 +1166,8 @@ Summarize completed or failed hosted run artifacts into an operator review and
 priority queue:
 
 ```bash
-python3 scripts/summarize-run-artifacts.py \
+PYTHONPATH=tools/mealcheck_ops/src \
+  python3 -m mealcheck_ops summarize-run-artifacts \
   --artifact-root /tmp/mealcheck-live-artifacts \
   --out /tmp/mealcheck-run-summary.json \
   --markdown /tmp/mealcheck-run-summary.md
@@ -1203,14 +1206,16 @@ gate summary.
 Regenerate the P1 catalog and dataset after downloading the FNDDS workbooks:
 
 ```bash
-python3 scripts/generate-fndds-evaluation.py
+PYTHONPATH=tools/mealcheck_data/src \
+  python3 -m mealcheck_data generate-fndds-evaluation
 ```
 
 Regenerate the P1 WWEIA/NHANES real-recall layer after downloading the NHANES
 XPT files and the FNDDS foods workbook:
 
 ```bash
-python3 scripts/generate-wweia-nhanes-evaluation.py
+PYTHONPATH=tools/mealcheck_data/src \
+  python3 -m mealcheck_data generate-wweia-nhanes-evaluation
 ```
 
 Run the expanded P1 catalog evaluation:
@@ -1235,7 +1240,7 @@ go run ./cmd/mealcheck eval-checker \
   -export-csv /tmp/mealcheck-p1-checker.rows.csv
 ```
 
-The same `scripts/compare-eval-exports.py` command compares P1 JSONL exports
+The same `mealcheck_ops compare-eval-exports` command compares P1 JSONL exports
 and summarizes resolver metric deltas plus unresolved-food and unresolved-unit
 changes.
 

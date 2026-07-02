@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -9,7 +10,6 @@ from pathlib import Path
 
 
 PACKAGE_SRC = Path(__file__).resolve().parents[1] / "src"
-REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(PACKAGE_SRC))
 
 from mealcheck_ops.eval_exports import CompareError, compare_exports  # noqa: E402
@@ -47,7 +47,9 @@ class CompareEvalExportsTest(unittest.TestCase):
             completed = subprocess.run(
                 [
                     sys.executable,
-                    str(REPO_ROOT / "scripts" / "compare-eval-exports.py"),
+                    "-m",
+                    "mealcheck_ops",
+                    "compare-eval-exports",
                     "--baseline",
                     str(baseline),
                     "--current",
@@ -60,6 +62,7 @@ class CompareEvalExportsTest(unittest.TestCase):
                 check=False,
                 text=True,
                 capture_output=True,
+                env={**os.environ, "PYTHONPATH": str(PACKAGE_SRC)},
             )
             self.assertEqual(completed.returncode, 0, completed.stderr)
 

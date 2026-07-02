@@ -23,7 +23,7 @@
     "classification-summary.json",
     "fndds.sqlite"
   ],
-  "generation_command": "python3 scripts/import-fndds-reference.py",
+  "generation_command": "PYTHONPATH=tools/mealcheck_data/src python3 -m mealcheck_data import-fndds-reference",
   "summary": {
     "schema_version": "0.1",
     "release": "2021-2023",

@@ -16,6 +16,26 @@ from mealcheck_ops.run_artifacts import (
 )
 
 
+def main(argv: Sequence[str] | None = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+    if not args or args[0] in {"-h", "--help"}:
+        print(
+            "usage: python -m mealcheck_ops "
+            "{compare-eval-exports,summarize-run-artifacts} [options]",
+            file=sys.stderr,
+        )
+        return 0 if args else 2
+
+    command, command_args = args[0], args[1:]
+    if command == "compare-eval-exports":
+        return compare_eval_exports_main(command_args)
+    if command == "summarize-run-artifacts":
+        return summarize_run_artifacts_main(command_args)
+
+    print(f"mealcheck_ops: unknown command {command!r}", file=sys.stderr)
+    return 2
+
+
 def compare_eval_exports_main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Compare MealCheck eval export JSONL rows.")
     parser.add_argument("--baseline", required=True, help="baseline JSONL export path")

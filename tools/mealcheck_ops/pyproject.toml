@@ -4,5 +4,8 @@ version = "0.1.0"
 description = "MealCheck operator tooling over canonical Go artifacts"
 requires-python = ">=3.11"
 
+[project.scripts]
+mealcheck-ops = "mealcheck_ops.cli:main"
+
 [tool.unittest]
 start-directory = "tests"

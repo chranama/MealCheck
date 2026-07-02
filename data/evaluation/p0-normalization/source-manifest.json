@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1",
   "source_manifest_id": "p0-normalization-sources-v1",
-  "generation_command": "python3 scripts/generate-p0-normalization-evaluation.py",
+  "generation_command": "PYTHONPATH=tools/mealcheck_data/src python3 -m mealcheck_data generate-p0-normalization-evaluation",
   "sources": [
     {
       "source": "mealcheck_input_robustness",

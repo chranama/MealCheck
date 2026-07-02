@@ -514,7 +514,7 @@ Implemented slices:
   changed metrics, and eval-specific summaries for P0 normalization and P1
   checker runs.
 - Python operator code now has a minimal `tools/mealcheck_ops` package
-  structure, with scripts kept as thin wrappers and tests using package imports.
+  structure, package module commands, and tests using package imports.
 - Python operator tooling can now summarize canonical run artifact directories
   into JSON and Markdown review queues, extracting unresolved normalized rows,
   source-row mismatches, deterministic normalization repairs, failed chunks,

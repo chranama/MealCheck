@@ -1019,7 +1019,10 @@ def source_manifest(external_outputs: list[ExternalOutput]) -> dict[str, Any]:
     return {
         "schema_version": "0.1",
         "source_manifest_id": "p0-normalization-sources-v1",
-        "generation_command": "python3 scripts/generate-p0-normalization-evaluation.py",
+        "generation_command": (
+            "PYTHONPATH=tools/mealcheck_data/src "
+            "python3 -m mealcheck_data generate-p0-normalization-evaluation"
+        ),
         "sources": sources,
     }
 

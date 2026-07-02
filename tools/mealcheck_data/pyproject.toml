@@ -1,0 +1,11 @@
+[project]
+name = "mealcheck-data"
+version = "0.1.0"
+description = "MealCheck data generation and reference import tooling"
+requires-python = ">=3.11"
+
+[project.scripts]
+mealcheck-data = "mealcheck_data.__main__:main"
+
+[tool.unittest]
+start-directory = "tests"

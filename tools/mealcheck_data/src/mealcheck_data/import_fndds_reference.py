@@ -2043,7 +2043,10 @@ def release_manifest(summary: dict[str, Any]) -> dict[str, Any]:
             "classification-summary.json",
             "fndds.sqlite",
         ],
-        "generation_command": "python3 scripts/import-fndds-reference.py",
+            "generation_command": (
+                "PYTHONPATH=tools/mealcheck_data/src "
+                "python3 -m mealcheck_data import-fndds-reference"
+            ),
         "summary": summary,
     }
 
@@ -2066,7 +2069,10 @@ def source_manifest() -> dict[str, Any]:
                     str(DEFAULT_SOURCE_DIR / "portions-and-weights.xlsx"),
                 ],
                 "generated_artifact_dir": str(DEFAULT_OUT_DIR),
-                "generation_command": "python3 scripts/import-fndds-reference.py",
+                "generation_command": (
+                    "PYTHONPATH=tools/mealcheck_data/src "
+                    "python3 -m mealcheck_data import-fndds-reference"
+                ),
             }
         ],
     }

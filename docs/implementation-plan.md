@@ -4206,3 +4206,191 @@ Verification:
 
 - `npm test -- --run` passes in `ui/`.
 - `npm run typecheck` passes in `ui/`.
+
+## Milestone 58: P3 Review Correction And Recommendation Trust
+
+Status: Implemented through the current repository history.
+
+Purpose:
+
+Complete the current P3 trust layer by allowing users to correct normalized
+rows before checking, then carrying those corrections and deterministic
+recommendation evidence into completed reports.
+
+Delivered:
+
+- Added editable normalized-plan review rows while runs are in
+  `awaiting_review`.
+- Strictly validated review corrections, preserving source-item identity and
+  updating only the candidate normalized plan used by `Check now`.
+- Recorded correction action artifacts with source row, before value, after
+  value, reason, and timestamp.
+- Included correction details in completed-report normalization traces.
+- Added completed-report `Recommendation` rendering for available and
+  unavailable recommendation artifacts.
+- Hardened recommendation artifacts so available recommendations must include
+  deterministic changes, a modified plan, and a projected `pass` decision.
+- Kept unsupported recommendation classes unavailable instead of exposing
+  attempted edits as advice.
+
+Acceptance:
+
+- Users can correct model interpretation before the deterministic checker gives
+  normalized rows authority.
+- Correction artifacts are auditable and can later feed fixture promotion.
+- Completed reports show normalization and recommendation evidence without
+  trusting generative explanations.
+- Recommendation rows are shown only when deterministic projection proves the
+  modified plan passes.
+
+Verification:
+
+- Frontend report fixtures cover available and unavailable recommendation
+  states.
+- Backend recommendation tests cover the supported missing-vegetable edit class,
+  source-plan immutability, unsupported warning classes, and hidden attempted
+  edits whose projected checker result does not pass.
+- `docs/current-priorities.md` now marks P3 implementation work complete for
+  the current product shape.
+
+## Milestone 59: P4 Replay, Portable Evaluation, And Operator Summaries
+
+Status: Implemented through the current repository history.
+
+Purpose:
+
+Make MealCheck easier to operate, replay, and explain without expanding product
+scope. The maintainer workflow should be able to reproduce the hosted
+local-model path, preserve useful failure evidence, compare evaluation outputs,
+and review run artifacts without reading every raw JSON file by hand.
+
+Delivered:
+
+- Added a focused operator walkthrough to the runbook.
+- Extended the deployed local-model smoke path to treat `awaiting_review` as
+  the expected midpoint, fetch review artifacts, confirm review, inspect
+  completed artifacts, exercise local-model rejection policy, and verify
+  deletion.
+- Added a production-parity local-model deployment profile under
+  `deploy/local-model/` using host-local Postgres, filesystem artifacts, a
+  source-built API/worker, and a loopback llama.cpp endpoint.
+- Kept Docker Postgres only as a disposable developer fallback, not the
+  production-parity deployment shape.
+- Added portable JSONL/CSV row exports for P0 normalization and P1 checker eval
+  commands.
+- Added Python operator tooling for eval export comparison.
+- Added Python operator tooling for run-artifact summaries over canonical
+  artifact directories.
+- Added deterministic cross-run clusters and a priority queue for unresolved
+  foods, source phrases, units, failure stages, timing outliers, and
+  repair-heavy local-model chunks.
+
+Acceptance:
+
+- Operators can run one documented path through local validation, deployed
+  local-model smoke, artifact capture, review confirmation, report inspection,
+  and deletion.
+- P0/P1 eval outputs can be compared across commits from stable structured
+  exports.
+- Run artifacts can be summarized into compact JSON and Markdown review queues.
+- P2 model comparison remains the next pending engineering slice after the
+  operator-summary prerequisite.
+
+Verification:
+
+- `python3 -m unittest discover -s tools/mealcheck_ops/tests` passes.
+- `docs/current-priorities.md` now records no immediate P4 engineering slice
+  beyond the operating loop.
+
+## Milestone 60: P4 UI Contracts, Source Inspection, And Copy Cleanup
+
+Status: Implemented through the current repository history.
+
+Purpose:
+
+Make the live product and reviewer-facing proof surface more robust by
+tightening frontend/backend contracts, exposing deterministic report-source
+inspection, and avoiding copy that overstates MealCheck as a broad medical,
+ML-training, or model-infrastructure project.
+
+Delivered:
+
+- Added TypeScript runtime contract parsers for key backend workflow responses
+  and runtime config.
+- Added a shared report-creation preflight helper for API configuration,
+  invite-code, backend health, local-model readiness, text limits, and busy
+  state.
+- Added completed-report source inspection that resolves decision-check source
+  references to guideline citations.
+- Called out missing source references and traced normalized source text to
+  resolved, unresolved, and excluded food outcomes.
+- Tightened public README and frontend copy so MealCheck is described as a
+  bounded meal-plan check against declared constraints and source-backed
+  findings.
+- Fixed the frontend CI mock failure discovered during the copy cleanup pass.
+
+Acceptance:
+
+- Frontend code fails closer to the contract boundary when backend workflow
+  responses drift.
+- Completed reports let users inspect the deterministic sources behind report
+  findings without introducing open-ended RAG.
+- Public copy stays aligned with the verifier architecture and does not imply
+  medical, model-training, or broad model-infrastructure claims.
+
+Verification:
+
+- Frontend contract and source-inspection tests cover the new parsing and
+  report-inspection surfaces.
+- The GitHub Actions frontend gate was fixed by the CI mock update.
+
+## Milestone 61: Tooling Directory Cleanup
+
+Status: Implemented locally in the current worktree.
+
+Purpose:
+
+Prevent `scripts/` from becoming a junk drawer by making it a shell-only
+entrypoint directory and moving Python command surfaces into importable packages
+under `tools/`.
+
+Delivered:
+
+- Removed all Python files from `scripts/`.
+- Added `scripts/README.md` describing script ownership and runtime
+  expectations.
+- Moved data-generation and reference-import logic into `tools/mealcheck_data`.
+- Added `python -m mealcheck_data ...` command dispatch for:
+  - `generate-fndds-evaluation`
+  - `generate-p0-normalization-evaluation`
+  - `generate-wweia-nhanes-evaluation`
+  - `import-fndds-reference`
+- Added `python -m mealcheck_ops ...` command dispatch for:
+  - `compare-eval-exports`
+  - `summarize-run-artifacts`
+- Updated active CLI/evaluation docs and checked-in generation metadata away
+  from removed `scripts/*.py` commands.
+- Updated Python operator tests to exercise package module commands instead of
+  script wrappers.
+
+Acceptance:
+
+- `scripts/` contains only shell scripts plus `README.md`.
+- There are no `.py`, `.pyc`, or `__pycache__` files under `scripts/`.
+- Python tooling remains runnable from a source checkout through package module
+  commands.
+- Historical `docs/implementation-plan.md` milestone references to old
+  `scripts/*.py` paths remain historical records, not current command
+  instructions.
+
+Verification:
+
+- `PYTHONPATH=tools/mealcheck_ops/src python3 -m mealcheck_ops --help` passes.
+- `PYTHONPATH=tools/mealcheck_data/src python3 -m mealcheck_data --help` passes.
+- `PYTHONPATH=tools/mealcheck_ops/src python3 -m mealcheck_ops compare-eval-exports --help` passes.
+- `PYTHONPATH=tools/mealcheck_ops/src python3 -m mealcheck_ops summarize-run-artifacts --help` passes.
+- `PYTHONPATH=tools/mealcheck_data/src python3 -m mealcheck_data generate-p0-normalization-evaluation --help` passes.
+- `PYTHONPATH=tools/mealcheck_data/src python3 -m mealcheck_data import-fndds-reference --help` passes.
+- `python3 -m py_compile` over the new `mealcheck_data` package, new
+  `mealcheck_ops` module entry point, and updated operator CLI passes.
+- `python3 -m unittest discover -s tools/mealcheck_ops/tests` passes.

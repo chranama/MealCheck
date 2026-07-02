@@ -284,13 +284,13 @@ Options:
 
 ## Python Operator Tools
 
-Python operator tooling lives under `tools/mealcheck_ops` with thin
-compatibility wrappers in `scripts/`.
+Python operator tooling lives under `tools/mealcheck_ops`.
 
 Compare portable P0/P1 eval JSONL exports across commits:
 
 ```bash
-python3 scripts/compare-eval-exports.py \
+PYTHONPATH=tools/mealcheck_ops/src \
+  python3 -m mealcheck_ops compare-eval-exports \
   --baseline /tmp/before.rows.jsonl \
   --current /tmp/after.rows.jsonl \
   --out /tmp/eval-compare.json \
@@ -300,7 +300,8 @@ python3 scripts/compare-eval-exports.py \
 Summarize run artifacts into a compact review and priority queue:
 
 ```bash
-python3 scripts/summarize-run-artifacts.py \
+PYTHONPATH=tools/mealcheck_ops/src \
+  python3 -m mealcheck_ops summarize-run-artifacts \
   --artifact-root .mealcheck-data/artifacts \
   --out /tmp/mealcheck-run-summary.json \
   --markdown /tmp/mealcheck-run-summary.md

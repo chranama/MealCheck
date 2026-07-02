@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -9,7 +10,6 @@ from pathlib import Path
 
 
 PACKAGE_SRC = Path(__file__).resolve().parents[1] / "src"
-REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(PACKAGE_SRC))
 
 from mealcheck_ops.run_artifacts import summarize_run_artifacts  # noqa: E402
@@ -124,7 +124,9 @@ class RunArtifactSummaryTest(unittest.TestCase):
             completed = subprocess.run(
                 [
                     sys.executable,
-                    str(REPO_ROOT / "scripts" / "summarize-run-artifacts.py"),
+                    "-m",
+                    "mealcheck_ops",
+                    "summarize-run-artifacts",
                     "--artifact-root",
                     str(root),
                     "--out",
@@ -135,6 +137,7 @@ class RunArtifactSummaryTest(unittest.TestCase):
                 check=False,
                 text=True,
                 capture_output=True,
+                env={**os.environ, "PYTHONPATH": str(PACKAGE_SRC)},
             )
 
             self.assertEqual(completed.returncode, 0, completed.stderr)

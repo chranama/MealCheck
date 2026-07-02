@@ -6,6 +6,113 @@ public expectations.
 Use this log instead of separate ADR and RFC files until a decision becomes too
 large to keep readable here.
 
+Ordering: entries are reverse chronological. Add new accepted decisions near
+the top of this file, immediately below this ordering note, so the latest
+architecture and scope decisions are visible first. Keep superseding decisions
+above the decisions they supersede.
+
+## 2026-07-02: Python Tools Live Under `tools`, Not `scripts`
+
+Status: Accepted
+
+Decision:
+
+Python command surfaces should live under importable packages in `tools/`.
+`scripts/` should remain a shell-entrypoint directory for deployment, smoke,
+and local-model orchestration scripts. Data-generation and reference-import
+commands belong to `tools/mealcheck_data`; operator artifact and eval commands
+belong to `tools/mealcheck_ops`.
+
+Run Python tools from a source checkout with package module commands, such as:
+
+```bash
+PYTHONPATH=tools/mealcheck_ops/src \
+  python3 -m mealcheck_ops compare-eval-exports --help
+
+PYTHONPATH=tools/mealcheck_data/src \
+  python3 -m mealcheck_data generate-p0-normalization-evaluation --help
+```
+
+Reason:
+
+`scripts/` was beginning to mix shell orchestration, compatibility wrappers,
+large Python data generators, and operator tooling. That shape makes ownership
+unclear and encourages the directory to become a junk drawer. Python packages
+make code importable, testable, and easier to grow without relying on script
+path conventions.
+
+Consequences:
+
+- `scripts/` contains shell scripts plus its ownership README only.
+- Python wrappers under `scripts/` are removed rather than retained for
+  compatibility.
+- Active docs use `python -m mealcheck_ops ...` and
+  `python -m mealcheck_data ...`.
+- Historical milestone references to old `scripts/*.py` paths remain historical
+  records, not current command instructions.
+- A later packaging pass may replace `PYTHONPATH=... python3 -m ...` with
+  installed console scripts, but the source-tree command surface is explicit
+  now.
+
+## 2026-07-02: Review Corrections Are Source-Preserving Artifacts
+
+Status: Accepted
+
+Decision:
+
+Normalized-plan review may allow user corrections before deterministic
+checking, but corrections must preserve source-item identity and remain
+auditable. A correction updates the candidate normalized plan used by
+confirmation, records before/after values and user reason in review action
+artifacts, and appears in the completed-report normalization trace.
+
+Reason:
+
+The local model performs semantic interpretation. A review pause without
+correction lets users reject bad interpretation, but it does not let them
+recover from small, visible model mistakes. Corrections strengthen the trust
+boundary only if they remain tied to the original source row and are preserved
+as review evidence rather than silently mutating the run.
+
+Consequences:
+
+- Corrections are allowed only in the review stage before checker execution.
+- Source item identity is preserved; corrections are not fuzzy new extraction.
+- Correction artifacts become candidate material for future P0 fixture
+  promotion.
+- Completed reports show correction history in the normalization trace.
+- Corrections are not automatic training data.
+
+## 2026-07-02: Source Inspection Is Deterministic Report Evidence, Not RAG
+
+Status: Accepted
+
+Decision:
+
+Completed-report source inspection should trace MealCheck decisions back to
+deterministic source packs, guideline citations, normalized source text,
+resolved foods, unresolved foods, and excluded foods. It should not introduce
+open-ended RAG, vector search, or agent tooling unless a future product or
+operator requirement shows that those tools improve source inspection while
+preserving deterministic source-pack authority.
+
+Reason:
+
+External AI-app benchmarks and job postings often reward retrieval language,
+but MealCheck's product value comes from bounded verification. Rebranding or
+expanding the verifier into generic RAG would weaken the trust boundary. A
+compact source-inspection surface captures the useful product signal without
+changing the verifier's authority model.
+
+Consequences:
+
+- Source inspection lives in completed reports and operator artifacts.
+- Missing source references should be visible instead of hidden.
+- Source packs and checked-in guideline artifacts remain the authority for
+  report findings.
+- RAG and agent tooling stay deferred until they serve a concrete inspection or
+  operator-analysis need.
+
 ## 2026-07-01: Local Replay Means Local-Model Runtime Replay
 
 Status: Accepted
