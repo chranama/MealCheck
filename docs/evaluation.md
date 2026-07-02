@@ -1160,6 +1160,24 @@ The comparison output matches rows by `eval_type`, `dataset_id`, and `case_id`,
 then reports added and removed cases, regressions, fixes, still-failing cases,
 changed metrics, and eval-specific metric summaries.
 
+Summarize completed or failed hosted run artifacts into an operator review
+queue:
+
+```bash
+python3 scripts/summarize-run-artifacts.py \
+  --artifact-root /tmp/mealcheck-live-artifacts \
+  --out /tmp/mealcheck-run-summary.json \
+  --markdown /tmp/mealcheck-run-summary.md
+```
+
+The artifact summary consumes canonical run artifacts such as `manifest.json`,
+`decision.json`, `report.json`, `review/normalized-plan-review.json`,
+`optional/local-model-chunks.json`, and
+`debug/normalization-failure.json`. It reports run status and decision counts,
+then queues unresolved normalized rows, source-row count mismatches,
+deterministic normalization repairs, failed chunks, normalization failures, and
+manifest-listed missing artifacts for operator review.
+
 Run the Python operator-tooling tests:
 
 ```bash

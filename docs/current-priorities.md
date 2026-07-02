@@ -510,12 +510,16 @@ Implemented slices:
   checker runs.
 - Python operator code now has a minimal `tools/mealcheck_ops` package
   structure, with scripts kept as thin wrappers and tests using package imports.
+- Python operator tooling can now summarize canonical run artifact directories
+  into JSON and Markdown review queues, extracting unresolved normalized rows,
+  source-row mismatches, deterministic normalization repairs, failed chunks,
+  normalization failures, and manifest-listed missing artifacts.
 
 Near-term engineering slices:
 
-1. Extend Python operator tooling beyond eval-row comparison: consume run
-   artifacts or eval datasets to produce summaries, clusters, and review queues
-   tied back to canonical Go report/eval artifacts.
+1. Extend Python operator tooling from summary queues into cross-run clustering
+   and prioritization over repeated unresolved foods, source phrases, units,
+   failure stages, timing outliers, and repair-heavy local-model chunks.
 2. Add TypeScript backend-adjacent code for the static UI or edge path, such as
    typed API clients, runtime config validation, report preflight, or a narrow
    Cloudflare Worker adapter backed by the Go API contract.

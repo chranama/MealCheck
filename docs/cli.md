@@ -282,6 +282,41 @@ Options:
 | `-format` | `text` | Output format: `text` or `json`. |
 | `-out` | stdout | Optional path to write the summary. |
 
+## Python Operator Tools
+
+Python operator tooling lives under `tools/mealcheck_ops` with thin
+compatibility wrappers in `scripts/`.
+
+Compare portable P0/P1 eval JSONL exports across commits:
+
+```bash
+python3 scripts/compare-eval-exports.py \
+  --baseline /tmp/before.rows.jsonl \
+  --current /tmp/after.rows.jsonl \
+  --out /tmp/eval-compare.json \
+  --markdown /tmp/eval-compare.md
+```
+
+Summarize run artifacts into a compact review queue:
+
+```bash
+python3 scripts/summarize-run-artifacts.py \
+  --artifact-root .mealcheck-data/artifacts \
+  --out /tmp/mealcheck-run-summary.json \
+  --markdown /tmp/mealcheck-run-summary.md
+```
+
+The run-artifact summary scans canonical artifact directories and queues
+unresolved rows, source-row mismatches, normalization repairs, failed chunks,
+normalization failures, and manifest-listed missing artifacts for operator
+review.
+
+Run the Python operator-tooling tests:
+
+```bash
+python3 -m unittest discover -s tools/mealcheck_ops/tests
+```
+
 ## Check Fixtures
 
 `fixture-check` validates checked-in schemas, example fixtures, guideline
