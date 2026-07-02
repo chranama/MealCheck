@@ -4,7 +4,7 @@ This document is MealCheck's active engineering-priority surface. The
 implementation plan records milestone history; this document ranks the next
 work by user impact, observed failure modes, and operational value.
 
-Last reviewed: 2026-07-01.
+Last reviewed: 2026-07-02.
 
 ## Prioritization Rule
 
@@ -71,7 +71,7 @@ The best near-term improvements are therefore:
 
 - make model normalization inspectable and correctable by users
 - turn existing timing and chunk artifacts into compact operator summaries
-- compare local-model quality and latency after artifact summaries exist
+- compare local-model quality and latency now that artifact summaries exist
 - make the deployed workflow reproducible enough to debug outages and release
   changes
 - export evaluation summaries in a portable format from canonical verifier
@@ -347,19 +347,24 @@ operator summaries exist, product progress states are redacted and surfaced,
 recovery guidance distinguishes the expected failure classes, and smoke
 coverage exercises queue, timeout, artifact, local-model outage, and active
 local-model claim behavior. P2 now moves into deployment measurement and
-model-limit tuning.
+model-limit tuning. The pending P2 engineering slice is a model-comparison
+artifact for the production local model versus one larger local candidate.
 
-Near-term engineering slices:
+Pending engineering work:
+
+1. Compare the production `Qwen3-0.6B-Q4_K_M` model against one larger local
+   candidate on the one-day local-model contract. Record quality, latency,
+   timeout behavior, memory/resource notes, repair rate, decode failures, and
+   user-visible tradeoffs in a durable artifact that can inform model-limit,
+   model-selection, and portfolio claims.
+
+Near-term operating guidance:
 
 1. Run `mealcheck local-model-summary` against representative hosted artifacts
    after each local-model deployment or prompt/model change.
 2. Use measured data before raising model limits again.
 3. Keep hosted local-model input bounded to one day and the configured source
    item cap before revisiting larger scopes.
-4. Compare the production `Qwen3-0.6B-Q4_K_M` model against one larger local
-   candidate after the operator timing summary exists. Record quality,
-   latency, timeout, memory, repair rate, decode failures, and user-visible
-   tradeoffs.
 
 Metrics to track:
 
