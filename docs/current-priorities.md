@@ -339,6 +339,15 @@ Current evidence:
 - Active-run hardening validation on 2026-07-01 included `go test ./...`,
   `mealcheck local-smoke`, and `mealcheck local-model-summary` against both
   the default artifact root and a kept local-smoke artifact root.
+- Local model comparison on 2026-07-02 kept the production
+  `Qwen3-0.6B-Q4_K_M` baseline over the larger `Qwen3-1.7B-Q4_K_M` candidate.
+  The baseline passed 3 of 3 repeats with zero mismatches, zero provider
+  failures, zero decode failures, max duration 45s, and 81 source repairs. The
+  1.7B candidate failed the gate with one mismatch repeat, one decode failure
+  from a duplicated source item, minimum row/food/quantity/unit accuracy of
+  0.8588235294117647, max duration 99s, and 128 source repairs. The durable
+  artifact is
+  `data/evaluation/results/local-model-comparison/qwen3-0.6b-vs-qwen3-1.7b-local-20260702.md`.
 
 Current implementation state:
 
@@ -347,16 +356,18 @@ operator summaries exist, product progress states are redacted and surfaced,
 recovery guidance distinguishes the expected failure classes, and smoke
 coverage exercises queue, timeout, artifact, local-model outage, and active
 local-model claim behavior. P2 now moves into deployment measurement and
-model-limit tuning. The pending P2 engineering slice is a model-comparison
-artifact for the production local model versus one larger local candidate.
+model-limit tuning. The local model-comparison artifact is complete for the
+current product shape and supports the default decision to keep the 0.6B
+production model. Treat new model-comparison work as trigger-based until a new
+candidate, prompt, schema, llama.cpp build, or observed failure justifies
+another run.
 
 Pending engineering work:
 
-1. Compare the production `Qwen3-0.6B-Q4_K_M` model against one larger local
-   candidate on the one-day local-model contract. Record quality, latency,
-   timeout behavior, memory/resource notes, repair rate, decode failures, and
-   user-visible tradeoffs in a durable artifact that can inform model-limit,
-   model-selection, and portfolio claims.
+No immediate P2 engineering slice remains from model comparison. Promote new
+work when timing summaries, production logs, or user-visible failures show a
+specific capacity, timeout, decode, repair-rate, or model-selection issue that
+the current summaries cannot explain.
 
 Near-term operating guidance:
 

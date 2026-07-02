@@ -1,0 +1,28 @@
+{
+  "comparison_id": "qwen3-0.6b-vs-qwen3-1.7b-local-20260702",
+  "objective": "Compare the production Qwen3 0.6B Q4_K_M local model with the larger Qwen3 1.7B Q4_K_M candidate on the local deployment host.",
+  "runs": [
+    {
+      "stage": "local",
+      "role": "baseline",
+      "label": "Qwen3-0.6B-Q4_K_M",
+      "run_dir": "/Users/chranama/career/MealCheck/.mealcheck-local-model/model-comparison/20260702-local-0.6b",
+      "model_path": "/Users/chranama/infra/models/gguf/Qwen3-0.6B-Q4_K_M.gguf",
+      "model_sha256": "18ea1f301079bba6391ab6d455c0c8565fd5a3214075eb2cd9daf351dedc719b",
+      "llama_build": "version: 9753 (7c082bc41); AppleClang 17.0.0.17000603; Darwin arm64",
+      "service_notes": "Local launchd-managed llama.cpp endpoint on 127.0.0.1:11435/v1.",
+      "resource_notes": "CPU-only, 4 threads, ctx 4096, one slot, 512 MiB prompt cache."
+    },
+    {
+      "stage": "local",
+      "role": "candidate",
+      "label": "Qwen3-1.7B-Q4_K_M",
+      "run_dir": "/Users/chranama/career/MealCheck/.mealcheck-local-model/model-comparison/20260702-local-1.7b",
+      "model_path": "/Users/chranama/infra/models/gguf/Qwen3-1.7B-Q4_K_M.gguf",
+      "model_sha256": "2cf0badd555da6ffb89ff4105dd9abfd8f331808ee271d01071eefdc4a45b8c3",
+      "llama_build": "version: 9753 (7c082bc41); AppleClang 17.0.0.17000603; Darwin arm64",
+      "service_notes": "Same local launchd-managed llama.cpp endpoint temporarily restarted with the candidate model.",
+      "resource_notes": "CPU-only, 4 threads, ctx 4096, one slot, 512 MiB prompt cache."
+    }
+  ]
+}

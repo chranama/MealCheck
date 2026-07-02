@@ -594,6 +594,56 @@ scripts/run-p0-local-model-regimen.sh
 
 Those labels make laptop-to-server comparison easier.
 
+Model comparison artifact:
+
+Use `mealcheck-ops compare-model-runs` after collecting local regimen output
+directories for the current production baseline model and a larger local
+candidate. The command does not start llama.cpp, switch models, or copy GGUF
+files; it reads completed regimen artifacts and a matrix file that records the
+comparison context.
+
+Example matrix:
+
+```json
+{
+  "comparison_id": "qwen3-0.6b-vs-qwen3-1.7b",
+  "objective": "Compare the production local model with one larger Qwen3 candidate.",
+  "runs": [
+    {
+      "stage": "local",
+      "role": "baseline",
+      "label": "Qwen3-0.6B-Q4_K_M",
+      "run_dir": "/tmp/mealcheck-model-compare/local-0.6b",
+      "model_path": "/Users/chranama/infra/models/gguf/Qwen3-0.6B-Q4_K_M.gguf"
+    },
+    {
+      "stage": "local",
+      "role": "candidate",
+      "label": "Qwen3-1.7B-Q4_K_M",
+      "run_dir": "/tmp/mealcheck-model-compare/local-1.7b",
+      "model_path": "/Users/chranama/infra/models/gguf/Qwen3-1.7B-Q4_K_M.gguf"
+    }
+  ]
+}
+```
+
+Generate the durable comparison artifact:
+
+```bash
+mkdir -p data/evaluation/results/local-model-comparison
+
+PYTHONPATH=tools/mealcheck_ops/src \
+python3 -m mealcheck_ops compare-model-runs \
+  --matrix /tmp/mealcheck-model-compare/matrix.json \
+  --out data/evaluation/results/local-model-comparison/qwen3-0.6b-vs-qwen3-1.7b.json \
+  --markdown data/evaluation/results/local-model-comparison/qwen3-0.6b-vs-qwen3-1.7b.md
+```
+
+The report records gate status, quality metrics, timeout/provider/decode
+failures, source repairs, latency, model paths, model SHA labels when present,
+llama.cpp build labels, service notes, and the baseline-versus-candidate
+recommendation.
+
 Reading results:
 
 ```bash

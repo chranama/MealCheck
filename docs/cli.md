@@ -315,6 +315,22 @@ Markdown outputs also include deterministic cross-run `clusters` and a
 `priority_queue` over repeated unresolved foods, source phrases, units, failure
 stages, timing outliers, and repair-heavy local-model chunks.
 
+Compare P0 live local-model regimen runs across the production baseline and a
+larger model candidate:
+
+```bash
+PYTHONPATH=tools/mealcheck_ops/src \
+  python3 -m mealcheck_ops compare-model-runs \
+  --matrix /tmp/mealcheck-model-compare/matrix.json \
+  --out /tmp/mealcheck-model-compare/comparison.json \
+  --markdown /tmp/mealcheck-model-compare/comparison.md
+```
+
+The model comparison reads completed `scripts/run-p0-local-model-regimen.sh`
+output directories from the matrix and reports gate status, quality metrics,
+provider/decode failures, source repairs, latency, model metadata, and
+baseline-versus-candidate tradeoffs.
+
 Run the Python operator-tooling tests:
 
 ```bash

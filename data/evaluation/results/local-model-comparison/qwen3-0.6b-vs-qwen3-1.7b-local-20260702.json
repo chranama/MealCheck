@@ -1,0 +1,325 @@
+{
+  "schema_version": "0.1",
+  "generated_at": "2026-07-02T21:30:39.233027Z",
+  "comparison_id": "qwen3-0.6b-vs-qwen3-1.7b-local-20260702",
+  "objective": "Compare the production Qwen3 0.6B Q4_K_M local model with the larger Qwen3 1.7B Q4_K_M candidate on the local deployment host.",
+  "matrix_path": "/Users/chranama/career/MealCheck/data/evaluation/results/local-model-comparison/qwen3-0.6b-vs-qwen3-1.7b-local-20260702-matrix.json",
+  "inclusion_criteria": [
+    "GGUF file is already available locally or on the target server; no model download is part of the comparison.",
+    "Model runs through the same llama.cpp OpenAI-compatible endpoint used by MealCheck.",
+    "Model uses the same MealCheck prompt, compact JSON contract, parser, and deterministic reconciliation path.",
+    "Model fits the one-day local-model contract, current source-item cap, and documented timeout envelope.",
+    "Primary candidate changes model scale while keeping model family and quantization comparable to production.",
+    "Run artifacts record model path or id, SHA when available, llama.cpp build, service settings, quality, failures, repairs, and timing."
+  ],
+  "runs": [
+    {
+      "stage": "local",
+      "role": "baseline",
+      "label": "Qwen3-0.6B-Q4_K_M",
+      "run_dir": "/Users/chranama/career/MealCheck/.mealcheck-local-model/model-comparison/20260702-local-0.6b",
+      "model": {
+        "id": "/Users/chranama/infra/models/gguf/Qwen3-0.6B-Q4_K_M.gguf",
+        "path": "/Users/chranama/infra/models/gguf/Qwen3-0.6B-Q4_K_M.gguf",
+        "sha256": "18ea1f301079bba6391ab6d455c0c8565fd5a3214075eb2cd9daf351dedc719b",
+        "file_size_bytes": 484220160
+      },
+      "service": {
+        "base_url": "http://127.0.0.1:11435/v1",
+        "llama_build": "version: 9753 (7c082bc41); AppleClang 17.0.0.17000603; Darwin arm64",
+        "max_output_tokens": 1536,
+        "timeout": "240s",
+        "curl_max_time_seconds": 20,
+        "service_notes": "Local launchd-managed llama.cpp endpoint on 127.0.0.1:11435/v1.",
+        "resource_notes": "CPU-only, 4 threads, ctx 4096, one slot, 512 MiB prompt cache."
+      },
+      "machine": {
+        "go_version": "go version go1.26.1 darwin/arm64",
+        "uname": "Darwin MacBook-Pro-de-Chris.local 25.5.0 Darwin Kernel Version 25.5.0: Mon Apr 27 20:39:42 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6031 arm64",
+        "cpu": "Apple M3 Max",
+        "memory_bytes": "137438953472"
+      },
+      "gate": {
+        "passed": true,
+        "min_row_match_rate": 1
+      },
+      "metrics": {
+        "repeats_requested": 3,
+        "repeats_completed": 3,
+        "command_failures": 0,
+        "repeats_with_mismatches": 0,
+        "total_provider_failures": 0,
+        "total_decode_failures": 0,
+        "min_local_model_row_match_rate": 1,
+        "min_local_model_food_accuracy": 1,
+        "min_local_model_quantity_accuracy": 1,
+        "min_local_model_unit_accuracy": 1,
+        "max_duration_seconds": 45,
+        "total_source_repairs": 81,
+        "total_repair_cases": 24
+      },
+      "mismatch_case_ids": [],
+      "repeat_summaries": [
+        {
+          "run_index": 1,
+          "exit_code": 0,
+          "duration_seconds": 45,
+          "cases_with_mismatches": 0,
+          "local_model_row_match_rate": 1,
+          "local_model_source_repairs": 41,
+          "local_model_provider_failures": 0,
+          "local_model_decode_failures": 0,
+          "mismatch_case_ids": []
+        },
+        {
+          "run_index": 2,
+          "exit_code": 0,
+          "duration_seconds": 45,
+          "cases_with_mismatches": 0,
+          "local_model_row_match_rate": 1,
+          "local_model_source_repairs": 20,
+          "local_model_provider_failures": 0,
+          "local_model_decode_failures": 0,
+          "mismatch_case_ids": []
+        },
+        {
+          "run_index": 3,
+          "exit_code": 0,
+          "duration_seconds": 45,
+          "cases_with_mismatches": 0,
+          "local_model_row_match_rate": 1,
+          "local_model_source_repairs": 20,
+          "local_model_provider_failures": 0,
+          "local_model_decode_failures": 0,
+          "mismatch_case_ids": []
+        }
+      ],
+      "live_result": {
+        "dataset_id": "p0-normalization-v1",
+        "mode": "local_llama",
+        "total_cases": 14,
+        "cases_passed": 14,
+        "cases_with_mismatches": 0
+      },
+      "artifacts": {
+        "metadata": "/Users/chranama/career/MealCheck/.mealcheck-local-model/model-comparison/20260702-local-0.6b/metadata.json",
+        "summary": "/Users/chranama/career/MealCheck/.mealcheck-local-model/model-comparison/20260702-local-0.6b/summary.json",
+        "live_summary": "/Users/chranama/career/MealCheck/.mealcheck-local-model/model-comparison/20260702-local-0.6b/live-summary.jsonl",
+        "live_result": "/Users/chranama/career/MealCheck/.mealcheck-local-model/model-comparison/20260702-local-0.6b/live-result.json"
+      }
+    },
+    {
+      "stage": "local",
+      "role": "candidate",
+      "label": "Qwen3-1.7B-Q4_K_M",
+      "run_dir": "/Users/chranama/career/MealCheck/.mealcheck-local-model/model-comparison/20260702-local-1.7b",
+      "model": {
+        "id": "/Users/chranama/infra/models/gguf/Qwen3-1.7B-Q4_K_M.gguf",
+        "path": "/Users/chranama/infra/models/gguf/Qwen3-1.7B-Q4_K_M.gguf",
+        "sha256": "2cf0badd555da6ffb89ff4105dd9abfd8f331808ee271d01071eefdc4a45b8c3",
+        "file_size_bytes": 1282439424
+      },
+      "service": {
+        "base_url": "http://127.0.0.1:11435/v1",
+        "llama_build": "version: 9753 (7c082bc41); AppleClang 17.0.0.17000603; Darwin arm64",
+        "max_output_tokens": 1536,
+        "timeout": "240s",
+        "curl_max_time_seconds": 20,
+        "service_notes": "Same local launchd-managed llama.cpp endpoint temporarily restarted with the candidate model.",
+        "resource_notes": "CPU-only, 4 threads, ctx 4096, one slot, 512 MiB prompt cache."
+      },
+      "machine": {
+        "go_version": "go version go1.26.1 darwin/arm64",
+        "uname": "Darwin MacBook-Pro-de-Chris.local 25.5.0 Darwin Kernel Version 25.5.0: Mon Apr 27 20:39:42 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6031 arm64",
+        "cpu": "Apple M3 Max",
+        "memory_bytes": "137438953472"
+      },
+      "gate": {
+        "passed": false,
+        "min_row_match_rate": 1
+      },
+      "metrics": {
+        "repeats_requested": 3,
+        "repeats_completed": 3,
+        "command_failures": 0,
+        "repeats_with_mismatches": 1,
+        "total_provider_failures": 0,
+        "total_decode_failures": 1,
+        "min_local_model_row_match_rate": 0.8588235294117647,
+        "min_local_model_food_accuracy": 0.8588235294117647,
+        "min_local_model_quantity_accuracy": 0.8588235294117647,
+        "min_local_model_unit_accuracy": 0.8588235294117647,
+        "max_duration_seconds": 99,
+        "total_source_repairs": 128,
+        "total_repair_cases": 23
+      },
+      "mismatch_case_ids": [
+        "robustness_one_day_paragraph_with_snacks"
+      ],
+      "repeat_summaries": [
+        {
+          "run_index": 1,
+          "exit_code": 0,
+          "duration_seconds": 99,
+          "cases_with_mismatches": 1,
+          "local_model_row_match_rate": 0.8588235294117647,
+          "local_model_source_repairs": 27,
+          "local_model_provider_failures": 0,
+          "local_model_decode_failures": 1,
+          "mismatch_case_ids": [
+            "robustness_one_day_paragraph_with_snacks"
+          ]
+        },
+        {
+          "run_index": 2,
+          "exit_code": 0,
+          "duration_seconds": 99,
+          "cases_with_mismatches": 0,
+          "local_model_row_match_rate": 1,
+          "local_model_source_repairs": 49,
+          "local_model_provider_failures": 0,
+          "local_model_decode_failures": 0,
+          "mismatch_case_ids": [
+            "robustness_one_day_paragraph_with_snacks"
+          ]
+        },
+        {
+          "run_index": 3,
+          "exit_code": 0,
+          "duration_seconds": 99,
+          "cases_with_mismatches": 0,
+          "local_model_row_match_rate": 1,
+          "local_model_source_repairs": 52,
+          "local_model_provider_failures": 0,
+          "local_model_decode_failures": 0,
+          "mismatch_case_ids": [
+            "robustness_one_day_paragraph_with_snacks"
+          ]
+        }
+      ],
+      "live_result": {
+        "dataset_id": "p0-normalization-v1",
+        "mode": "local_llama",
+        "total_cases": 14,
+        "cases_passed": 13,
+        "cases_with_mismatches": 1
+      },
+      "artifacts": {
+        "metadata": "/Users/chranama/career/MealCheck/.mealcheck-local-model/model-comparison/20260702-local-1.7b/metadata.json",
+        "summary": "/Users/chranama/career/MealCheck/.mealcheck-local-model/model-comparison/20260702-local-1.7b/summary.json",
+        "live_summary": "/Users/chranama/career/MealCheck/.mealcheck-local-model/model-comparison/20260702-local-1.7b/live-summary.jsonl",
+        "live_result": "/Users/chranama/career/MealCheck/.mealcheck-local-model/model-comparison/20260702-local-1.7b/live-result.json"
+      }
+    }
+  ],
+  "stage_comparisons": [
+    {
+      "stage": "local",
+      "baseline_label": "Qwen3-0.6B-Q4_K_M",
+      "candidate_label": "Qwen3-1.7B-Q4_K_M",
+      "baseline_gate_passed": true,
+      "candidate_gate_passed": false,
+      "candidate_viable": false,
+      "recommendation": "keep_baseline_due_to_candidate_failure",
+      "metric_deltas": {
+        "repeats_requested": {
+          "baseline": 3,
+          "candidate": 3,
+          "delta": 0
+        },
+        "repeats_completed": {
+          "baseline": 3,
+          "candidate": 3,
+          "delta": 0
+        },
+        "command_failures": {
+          "baseline": 0,
+          "candidate": 0,
+          "delta": 0
+        },
+        "repeats_with_mismatches": {
+          "baseline": 0,
+          "candidate": 1,
+          "delta": 1
+        },
+        "total_provider_failures": {
+          "baseline": 0,
+          "candidate": 0,
+          "delta": 0
+        },
+        "total_decode_failures": {
+          "baseline": 0,
+          "candidate": 1,
+          "delta": 1
+        },
+        "min_local_model_row_match_rate": {
+          "baseline": 1,
+          "candidate": 0.8588235294117647,
+          "delta": -0.141176
+        },
+        "min_local_model_food_accuracy": {
+          "baseline": 1,
+          "candidate": 0.8588235294117647,
+          "delta": -0.141176
+        },
+        "min_local_model_quantity_accuracy": {
+          "baseline": 1,
+          "candidate": 0.8588235294117647,
+          "delta": -0.141176
+        },
+        "min_local_model_unit_accuracy": {
+          "baseline": 1,
+          "candidate": 0.8588235294117647,
+          "delta": -0.141176
+        },
+        "max_duration_seconds": {
+          "baseline": 45,
+          "candidate": 99,
+          "delta": 54,
+          "ratio": 2.2
+        },
+        "total_source_repairs": {
+          "baseline": 81,
+          "candidate": 128,
+          "delta": 47
+        },
+        "total_repair_cases": {
+          "baseline": 24,
+          "candidate": 23,
+          "delta": -1
+        }
+      },
+      "quality_regressions": [
+        "min_local_model_row_match_rate",
+        "min_local_model_food_accuracy",
+        "min_local_model_quantity_accuracy",
+        "min_local_model_unit_accuracy"
+      ],
+      "quality_improvements": [],
+      "failure_regressions": [
+        "repeats_with_mismatches",
+        "total_decode_failures"
+      ],
+      "failure_improvements": [],
+      "tradeoff_notes": [
+        "gate changed from true to false",
+        "candidate regressed quality metrics: min_local_model_row_match_rate, min_local_model_food_accuracy, min_local_model_quantity_accuracy, min_local_model_unit_accuracy",
+        "candidate added failure counts: repeats_with_mismatches, total_decode_failures",
+        "candidate added 47 source repairs",
+        "candidate max duration increased by 54s (2.2x baseline)"
+      ]
+    }
+  ],
+  "overall_recommendation": {
+    "status": "keep_baseline",
+    "basis_stage": "local",
+    "basis_recommendation": "keep_baseline_due_to_candidate_failure",
+    "notes": [
+      "gate changed from true to false",
+      "candidate regressed quality metrics: min_local_model_row_match_rate, min_local_model_food_accuracy, min_local_model_quantity_accuracy, min_local_model_unit_accuracy",
+      "candidate added failure counts: repeats_with_mismatches, total_decode_failures",
+      "candidate added 47 source repairs",
+      "candidate max duration increased by 54s (2.2x baseline)"
+    ]
+  }
+}

@@ -9,6 +9,11 @@ from pathlib import Path
 from typing import Sequence
 
 from mealcheck_ops.eval_exports import CompareError, compare_exports, render_markdown
+from mealcheck_ops.model_comparison import (
+    ModelComparisonError,
+    compare_model_runs,
+    render_model_comparison_markdown,
+)
 from mealcheck_ops.run_artifacts import (
     ArtifactSummaryError,
     render_artifact_markdown,
@@ -21,7 +26,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not args or args[0] in {"-h", "--help"}:
         print(
             "usage: python -m mealcheck_ops "
-            "{compare-eval-exports,summarize-run-artifacts} [options]",
+            "{compare-eval-exports,summarize-run-artifacts,compare-model-runs} [options]",
             file=sys.stderr,
         )
         return 0 if args else 2
@@ -31,6 +36,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return compare_eval_exports_main(command_args)
     if command == "summarize-run-artifacts":
         return summarize_run_artifacts_main(command_args)
+    if command == "compare-model-runs":
+        return compare_model_runs_main(command_args)
 
     print(f"mealcheck_ops: unknown command {command!r}", file=sys.stderr)
     return 2
@@ -81,5 +88,29 @@ def summarize_run_artifacts_main(argv: Sequence[str] | None = None) -> int:
             Path(args.markdown).write_text(render_artifact_markdown(result), encoding="utf-8")
     except ArtifactSummaryError as err:
         print(f"summarize-run-artifacts failed: {err}", file=sys.stderr)
+        return 2
+    return 0
+
+
+def compare_model_runs_main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Compare MealCheck P0 live local-model regimen runs across model candidates."
+    )
+    parser.add_argument("--matrix", required=True, help="model comparison matrix JSON path")
+    parser.add_argument("--out", help="optional machine-readable JSON output path")
+    parser.add_argument("--markdown", help="optional Markdown report output path")
+    args = parser.parse_args(argv)
+
+    try:
+        result = compare_model_runs(Path(args.matrix))
+        encoded = json.dumps(result, indent=2, sort_keys=False) + "\n"
+        if args.out:
+            Path(args.out).write_text(encoded, encoding="utf-8")
+        else:
+            sys.stdout.write(encoded)
+        if args.markdown:
+            Path(args.markdown).write_text(render_model_comparison_markdown(result), encoding="utf-8")
+    except ModelComparisonError as err:
+        print(f"compare-model-runs failed: {err}", file=sys.stderr)
         return 2
     return 0

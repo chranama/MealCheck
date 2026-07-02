@@ -36,6 +36,9 @@ PYTHONPATH=tools/mealcheck_ops/src \
 
 PYTHONPATH=tools/mealcheck_ops/src \
   python3 -m mealcheck_ops summarize-run-artifacts --help
+
+PYTHONPATH=tools/mealcheck_ops/src \
+  python3 -m mealcheck_ops compare-model-runs --help
 ```
 
 Run data-generation tools through `mealcheck_data`:
