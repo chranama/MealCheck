@@ -504,12 +504,16 @@ Implemented slices:
   per-case JSONL or CSV row exports alongside their aggregate JSON results, so
   normalization and resolver changes can be compared across commits from stable
   structured outputs.
+- A Python operator comparison tool now consumes portable eval JSONL exports and
+  reports added and removed cases, regressions, fixes, still-failing cases,
+  changed metrics, and eval-specific summaries for P0 normalization and P1
+  checker runs.
 
 Near-term engineering slices:
 
-1. Add Python operator tooling that consumes run artifacts or eval datasets to
-   produce summaries, clusters, comparisons, and review queues tied back to
-   canonical Go report/eval artifacts.
+1. Extend Python operator tooling beyond eval-row comparison: consume run
+   artifacts or eval datasets to produce summaries, clusters, and review queues
+   tied back to canonical Go report/eval artifacts.
 2. Add TypeScript backend-adjacent code for the static UI or edge path, such as
    typed API clients, runtime config validation, report preflight, or a narrow
    Cloudflare Worker adapter backed by the Go API contract.

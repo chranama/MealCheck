@@ -1146,6 +1146,20 @@ go run ./cmd/mealcheck eval-normalization \
   -export-csv /tmp/mealcheck-p0-normalization.rows.csv
 ```
 
+Compare two portable P0 or P1 JSONL exports across commits:
+
+```bash
+python3 scripts/compare-eval-exports.py \
+  --baseline /tmp/before.rows.jsonl \
+  --current /tmp/after.rows.jsonl \
+  --out /tmp/eval-compare.json \
+  --markdown /tmp/eval-compare.md
+```
+
+The comparison output matches rows by `eval_type`, `dataset_id`, and `case_id`,
+then reports added and removed cases, regressions, fixes, still-failing cases,
+changed metrics, and eval-specific metric summaries.
+
 Run the opt-in local-model P0 baseline when the local llama.cpp-compatible
 service is available:
 
@@ -1193,6 +1207,10 @@ go run ./cmd/mealcheck eval-checker \
   -export-jsonl /tmp/mealcheck-p1-checker.rows.jsonl \
   -export-csv /tmp/mealcheck-p1-checker.rows.csv
 ```
+
+The same `scripts/compare-eval-exports.py` command compares P1 JSONL exports
+and summarizes resolver metric deltas plus unresolved-food and unresolved-unit
+changes.
 
 Write the WWEIA/NHANES result artifact:
 
