@@ -20,6 +20,7 @@ import {
   sourceClaimLabel,
   valueText,
 } from "../../lib/format";
+import { buildSourceInspection, recoveryActionForUnresolvedReason } from "../../lib/source_inspection";
 import { Metric } from "../common/FormControls";
 
 export function ReportSurface({
@@ -137,7 +138,7 @@ function FoodsPanel({ artifacts }: { artifacts: ReportArtifacts }) {
   const unresolvedRows = unresolved.map((item) => ({
     ...item,
     ...unresolvedSourceLink(item, reviewRows),
-    recovery_action: unresolvedRecoveryAction(item.unresolved_reason),
+    recovery_action: recoveryActionForUnresolvedReason(item.unresolved_reason),
   }));
   const unresolvedSummaryRows = unresolvedSummary(unresolved);
   const unresolvedFields = reviewRows.length
@@ -536,24 +537,6 @@ function reviewQuantityText(row: NormalizedPlanReviewRow): string {
   return "-";
 }
 
-function unresolvedRecoveryAction(reason: unknown): string {
-  const id = String(reason || "");
-  if (id.startsWith("missing_conversion:")) return "Use a supported measured unit or add a reviewed conversion.";
-  const actions: Record<string, string> = {
-    ambiguous_food: "Choose a more specific food.",
-    branded_food_unavailable: "Use a supported generic ingredient or an exact reviewed catalog item.",
-    composed_food_needs_decomposition: "Break this mixed dish into ingredients.",
-    model_normalization_failed: "Rewrite this item with a clear food, quantity, and unit, then rerun MealCheck.",
-    non_food_text: "Remove non-food text from the meal plan.",
-    preparation_unclear: "Specify preparation details such as baked, boiled, fried, or added fat.",
-    restaurant_or_branded_food: "Use supported generic ingredients or an exact reviewed catalog item.",
-    unknown_food: "Use a supported catalog food or request catalog expansion.",
-    unsupported_unit: "Use grams, ounces, cups, tablespoons, teaspoons, slices, or servings.",
-    vague_quantity: "Add a measured quantity and unit.",
-  };
-  return actions[id] || "Clarify this item and rerun MealCheck.";
-}
-
 function unresolvedSummary(items: UnresolvedFood[]): Record<string, unknown>[] {
   const groups = new Map<string, { reason: string; count: number; affected: Set<string>; recovery: string }>();
   for (const item of items) {
@@ -562,7 +545,7 @@ function unresolvedSummary(items: UnresolvedFood[]): Record<string, unknown>[] {
       reason,
       count: 0,
       affected: new Set<string>(),
-      recovery: unresolvedRecoveryAction(reason),
+      recovery: recoveryActionForUnresolvedReason(reason),
     };
     group.count += 1;
     group.affected.add([`Day ${item.day}`, readableID(item.meal)].filter(Boolean).join(" "));
@@ -579,37 +562,74 @@ function unresolvedSummary(items: UnresolvedFood[]): Record<string, unknown>[] {
 }
 
 function SourcesPanel({ artifacts }: { artifacts: ReportArtifacts }) {
-  const sources = artifacts.citations?.sources || [];
+  const inspection = buildSourceInspection(artifacts);
   return (
     <>
-      <h2>Guidelines And Sources</h2>
-      {sources.length === 0 ? <p className="empty-state">No citations available.</p> : null}
-      <div className="source-list">
-        {sources.map((source) => (
-          <article className="source-card" key={source.source_id}>
-            <header>
-              <div className="source-heading">
-                <span className="source-identity-mark" aria-hidden="true" />
-                <div>
-                  <h3 className="source-title">{source.title}</h3>
-                  <p className="source-meta">{source.publisher || source.source_id}</p>
+      <h2>Source Inspection</h2>
+      <div className="metric-grid source-metrics">
+        <Metric label="Citation Sources" value={String(inspection.summary.citationSourceCount)} />
+        <Metric label="Check References" value={String(inspection.summary.checkSourceRefCount)} />
+        <Metric label="Food Trace Rows" value={String(inspection.summary.foodTraceCount)} />
+        <Metric label="Missing Refs" value={String(inspection.summary.missingSourceRefCount)} />
+      </div>
+      <div className="source-inspection-stack">
+        <TraceSection title="Check Source Trace" count={inspection.checkRows.length}>
+          {inspection.checkRows.length ? (
+            <DataTable rows={inspection.checkRows} fields={["check", "status", "affected", "source_refs", "sources", "missing_source_refs", "message"]} />
+          ) : (
+            <p className="empty-state">No check source references are available.</p>
+          )}
+        </TraceSection>
+        <TraceSection title="Food Source Trace" count={inspection.foodRows.length}>
+          {inspection.foodRows.length ? (
+            <DataTable
+              rows={inspection.foodRows}
+              fields={["day", "meal", "source_item_id", "source_text", "food", "quantity", "status", "reason", "recovery_action", "grams"]}
+            />
+          ) : (
+            <p className="empty-state">No food trace rows are available.</p>
+          )}
+        </TraceSection>
+        {inspection.missingSourceRows.length ? (
+          <TraceSection title="Missing Source References" count={inspection.missingSourceRows.length}>
+            <DataTable rows={inspection.missingSourceRows} fields={["source_ref", "referenced_by_checks"]} />
+          </TraceSection>
+        ) : null}
+        <div className="source-subsection">
+          <div className="source-subsection-header">
+            <h3 className="food-title">Guideline Citations</h3>
+            <span className="status-pill status-pill--info">{inspection.citationRows.length}</span>
+          </div>
+          {inspection.citationRows.length === 0 ? <p className="empty-state">No citations available.</p> : null}
+        </div>
+        <div className="source-list">
+          {inspection.citationRows.map((source) => (
+            <article className="source-card" key={source.source_id}>
+              <header>
+                <div className="source-heading">
+                  <span className="source-identity-mark" aria-hidden="true" />
+                  <div>
+                    <h3 className="source-title">{source.title}</h3>
+                    <p className="source-meta">{source.publisher || source.source_id}</p>
+                  </div>
                 </div>
-              </div>
-              <a href={source.url} target="_blank" rel="noreferrer">Open source</a>
-            </header>
-            {source.claims_used?.length ? (
-              <ul className="source-claim-list">
-                {source.claims_used.map((claim) => (
-                  <li key={claim.claim_id}>
-                    <strong>{sourceClaimLabel(claim.claim_id)}</strong>
-                    {claim.summary ? <span>{claim.summary}</span> : null}
-                    {claim.source_locator ? <small>{claim.source_locator}</small> : null}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </article>
-        ))}
+                <a href={source.url} target="_blank" rel="noreferrer">Open source</a>
+              </header>
+              <ChipRow values={[source.source_id, source.referenced_by_checks === "-" ? "" : `Used by ${source.referenced_by_checks}`].filter(Boolean)} />
+              {source.claims.length ? (
+                <ul className="source-claim-list">
+                  {source.claims.map((claim) => (
+                    <li key={claim.claim_id}>
+                      <strong>{sourceClaimLabel(claim.claim_id)}</strong>
+                      {claim.summary ? <span>{claim.summary}</span> : null}
+                      {claim.source_locator ? <small>{claim.source_locator}</small> : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </article>
+          ))}
+        </div>
       </div>
     </>
   );

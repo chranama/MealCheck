@@ -449,6 +449,11 @@ h1 {
   margin-bottom: 14px;
 }
 
+.source-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  margin-bottom: 14px;
+}
+
 .metric {
   min-width: 0;
   min-height: 78px;
@@ -1121,6 +1126,18 @@ a:focus-visible {
 .artifact-list,
 .food-sections {
   display: grid;
+  gap: 14px;
+}
+
+.source-inspection-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.source-subsection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 14px;
 }
 

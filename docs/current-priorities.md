@@ -521,14 +521,14 @@ Implemented slices:
   workflow responses and runtime config, plus a shared report-creation
   preflight helper that keeps API configuration, invite-code, backend health,
   local-model readiness, text-limit, and busy-state gating in one place.
+- Completed reports now have a compact source-inspection surface that resolves
+  decision-check source references to guideline citations, calls out missing
+  source references, and traces normalized source text to resolved, unresolved,
+  and excluded food outcomes.
 
 Near-term engineering slices:
 
-1. Add a compact source and citation inspection surface when it helps users
-   trace report findings to source facts, guideline references, normalized
-   foods, quantities, and unresolved reasons. Deterministic source packs remain
-   the source of verification truth.
-2. Keep product copy focused on checking a bounded meal plan against declared
+1. Keep product copy focused on checking a bounded meal plan against declared
    constraints, source-backed findings, and concrete recovery guidance.
 
 Metrics to track:

@@ -1,9 +1,104 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { reportArtifacts } from "../../test/factories/report";
+import { decision, reportArtifacts } from "../../test/factories/report";
 import { ReportSurface } from "./ReportSurface";
 
 describe("ReportSurface", () => {
+  it("shows source inspection for checks, food trace rows, and citations", () => {
+    render(
+      <ReportSurface
+        activeTab="sources"
+        artifacts={reportArtifacts({
+          decision: decision({
+            checks: [
+              {
+                check_id: "sodium_under_limit",
+                status: "warn",
+                message: "Sodium exceeds the configured daily limit.",
+                affected_days: [1],
+                source_refs: ["dga-sodium", "missing-source"],
+              },
+            ],
+          }),
+          citations: {
+            sources: [
+              {
+                source_id: "dga-sodium",
+                title: "Dietary Guidelines for Americans",
+                publisher: "USDA and HHS",
+                url: "https://www.dietaryguidelines.gov/",
+                claims_used: [
+                  {
+                    claim_id: "dga-sodium-mg-per-day",
+                    summary: "Limit sodium intake for adults.",
+                    source_locator: "Chapter 1",
+                  },
+                ],
+              },
+            ],
+          },
+          unresolved: [
+            {
+              day: 1,
+              meal: "breakfast",
+              food: "berries",
+              quantity_text: "a bowl",
+              unresolved_reason: "vague_quantity",
+            },
+          ],
+          normalizationReview: {
+            schema_version: "0.1",
+            run_id: "run-review",
+            created_at: "2026-07-01T12:00:00Z",
+            status: "confirmed",
+            requires_confirmation: true,
+            trust_signals: {
+              source_item_count: 1,
+              normalized_row_count: 1,
+              unresolved_item_count: 1,
+              repair_count: 0,
+              failed_chunk_count: 0,
+            },
+            normalized_plan: {
+              schema_version: "0.1",
+              plan_id: "plan-review",
+              description: "Review plan",
+              days: [],
+              shopping_list: [],
+              prep_notes: [],
+            },
+            rows: [
+              {
+                day: 1,
+                meal_code: "b",
+                meal_label: "breakfast",
+                source_item_id: 2,
+                source_text: "a bowl berries",
+                normalized_food: "berries",
+                resolved: false,
+                quantity_text: "a bowl",
+                unresolved_reason: "vague_quantity",
+              },
+            ],
+          },
+        })}
+        setActiveTab={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Source Inspection" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Check Source Trace" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Food Source Trace" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Missing Source References" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Guideline Citations" })).toBeVisible();
+    expect(screen.getByText("Dietary Guidelines for Americans")).toBeVisible();
+    expect(screen.getAllByText("missing-source").length).toBeGreaterThan(0);
+    expect(screen.getByText("a bowl berries")).toBeVisible();
+    expect(screen.getByText("a vague quantity")).toBeVisible();
+    expect(screen.getByText("Add a measured quantity and unit.")).toBeVisible();
+    expect(screen.getByText("Sodium daily limit")).toBeVisible();
+  });
+
   it("shows available verified recommendation changes", () => {
     render(
       <ReportSurface
