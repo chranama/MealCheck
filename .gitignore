@@ -1,4 +1,5 @@
 .mealcheck-data/
+.mealcheck-local-model/
 .DS_Store
 .wrangler/
 /artifacts/

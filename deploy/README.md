@@ -1,8 +1,9 @@
 # Deployment Package
 
-This directory contains the local deployment package prepared for the MacBook
-Air backend and Cloudflare-hosted frontend. The files use placeholder secret
-values only; public production hostnames are intentionally committed.
+This directory contains the deployment package prepared for the MacBook Air
+backend, Cloudflare-hosted frontend, and local-model replay profile. The files
+use placeholder secret values only; public production hostnames are
+intentionally committed.
 
 ## Selected MVP Paths
 
@@ -65,6 +66,14 @@ values only; public production hostnames are intentionally committed.
 - `cloudflare/pages-settings.md`: Cloudflare Pages project settings.
 - `cloudflare/config.json.template`: optional runtime frontend config served as
   `/config.json`.
+- `local-model/README.md`: reproducible local-model deployment profile for the
+  API, Postgres, filesystem artifacts, and a loopback llama.cpp endpoint.
+- `local-model/compose.postgres.dev.yml`: optional disposable Postgres fallback
+  for developer laptops on host port `5433`.
+- `local-model/mealcheck-server.env.example`: local-model API environment
+  template.
+- `local-model/mealcheck-llama.env.example`: llama.cpp environment template for
+  profile replay.
 
 ## Source-Build Deployment
 
@@ -82,6 +91,39 @@ This is sufficient for MVP because the deployment target is one known MacBook
 Air, the project is early, and source builds keep the release process simple.
 Release binaries can be added later if there are multiple target machines or a
 public download story.
+
+## Local-Model Replay Profile
+
+Use `deploy/local-model/` when a maintainer needs to replay the production
+local-LLM path without Cloudflare. The profile runs the Go API and worker from a
+source-built `bin/mealcheck-server`, stores metadata in a host-local Postgres
+service, writes artifacts under `.mealcheck-local-model/artifacts`, and expects
+private loopback Postgres and llama.cpp services. This mirrors the production
+MacBook shape: Postgres and llama.cpp are administered outside the API runner,
+not started as containers by the profile.
+
+Quick start:
+
+```bash
+pg_isready -d 'postgres://mealcheck:mealcheck@127.0.0.1:5432/mealcheck?sslmode=disable'
+curl -fsS http://127.0.0.1:11435/v1/models | jq .
+mkdir -p .mealcheck-local-model
+cp deploy/local-model/mealcheck-server.env.example \
+  .mealcheck-local-model/mealcheck-server.env
+MEALCHECK_PROFILE_ENV_FILE=.mealcheck-local-model/mealcheck-server.env \
+  scripts/run-local-model-deployment-profile.sh
+```
+
+Smoke it from another terminal:
+
+```bash
+MEALCHECK_DEPLOYED_API_URL=http://127.0.0.1:8080 \
+  scripts/test-deployed-local-model-live.sh
+```
+
+See `deploy/local-model/README.md` for the llama.cpp profile, optional
+disposable Postgres fallback, model-name resolution, smoke evidence directory,
+and reset commands.
 
 ## Secret Handling
 

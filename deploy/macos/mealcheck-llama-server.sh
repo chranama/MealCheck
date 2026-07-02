@@ -17,6 +17,7 @@ LLAMA_GPU_LAYERS="0"
 LLAMA_PARALLEL="1"
 LLAMA_CACHE_RAM="512"
 LLAMA_EXTRA_ARGS=""
+LLAMA_LOG_DIR="/Users/chranama-server/MealCheck-data/logs"
 
 log() {
   printf '%s mealcheck-llama: %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >&2
@@ -32,6 +33,15 @@ else
 fi
 
 if [ ! -x "$LLAMA_SERVER_BIN" ]; then
+  if [[ "$LLAMA_SERVER_BIN" != */* ]]; then
+    RESOLVED_LLAMA_SERVER_BIN="$(command -v "$LLAMA_SERVER_BIN" || true)"
+    if [ -n "$RESOLVED_LLAMA_SERVER_BIN" ]; then
+      LLAMA_SERVER_BIN="$RESOLVED_LLAMA_SERVER_BIN"
+    fi
+  fi
+fi
+
+if [ ! -x "$LLAMA_SERVER_BIN" ]; then
   log "llama-server binary is not executable: $LLAMA_SERVER_BIN"
   exit 127
 fi
@@ -41,7 +51,7 @@ if [ ! -f "$LLAMA_MODEL_PATH" ]; then
   exit 2
 fi
 
-mkdir -p /Users/chranama-server/MealCheck-data/logs
+mkdir -p "$LLAMA_LOG_DIR"
 
 args=(
   "$LLAMA_SERVER_BIN"

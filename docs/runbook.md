@@ -427,6 +427,85 @@ curl -X POST http://127.0.0.1:8080/api/runs \
   }'
 ```
 
+### Local-Model Deployment Profile
+
+Use `deploy/local-model/` to replay the production local-LLM path without
+Cloudflare. In MealCheck, "local" means the server-owned local model path: the
+API accepts `local_model` input, calls a private llama.cpp endpoint, pauses for
+source-linked review, writes report artifacts, and stores run metadata in
+Postgres.
+
+The profile uses:
+
+- `mealcheck-server` API, worker, and cleanup from a source-built binary
+- host-local Postgres metadata storage
+- filesystem artifacts under `.mealcheck-local-model/artifacts`
+- llama.cpp on `127.0.0.1:11435/v1`
+
+The canonical profile mirrors production shape: Postgres and llama.cpp are
+local services administered outside the API runner, not containers started by
+the profile. Verify the host-local Postgres service:
+
+```bash
+pg_isready -d 'postgres://mealcheck:mealcheck@127.0.0.1:5432/mealcheck?sslmode=disable'
+```
+
+Verify the local model endpoint:
+
+```bash
+curl -fsS http://127.0.0.1:11435/v1/models | jq .
+```
+
+If a developer laptop does not have a local Postgres service, the profile
+includes an optional disposable Compose fallback. This is not the
+production-parity path:
+
+```bash
+docker compose -f deploy/local-model/compose.postgres.dev.yml up -d
+```
+
+When using the fallback, copy `deploy/local-model/mealcheck-server.env.example`
+and change `DATABASE_URL` to port `5433`.
+
+If the MacBook launchd llama service is not running, start a profile endpoint
+from the checkout:
+
+```bash
+mkdir -p .mealcheck-local-model/models .mealcheck-local-model/logs
+cp deploy/local-model/mealcheck-llama.env.example \
+  .mealcheck-local-model/mealcheck-llama.env
+
+MEALCHECK_LLAMA_ENV_FILE=.mealcheck-local-model/mealcheck-llama.env \
+  deploy/macos/mealcheck-llama-server.sh
+```
+
+Copy and run the API profile:
+
+```bash
+mkdir -p .mealcheck-local-model
+cp deploy/local-model/mealcheck-server.env.example \
+  .mealcheck-local-model/mealcheck-server.env
+
+MEALCHECK_PROFILE_ENV_FILE=.mealcheck-local-model/mealcheck-server.env \
+  scripts/run-local-model-deployment-profile.sh
+```
+
+The runner builds `bin/mealcheck-server`, waits for Postgres, resolves
+`MEALCHECK_LOCAL_MODEL_NAME=auto` from `/v1/models`, creates the data and
+artifact directories, and starts the API on `127.0.0.1:8080`.
+
+Smoke the profile from another terminal:
+
+```bash
+MEALCHECK_DEPLOYED_API_URL=http://127.0.0.1:8080 \
+MEALCHECK_DEPLOYED_OUTPUT_DIR=.mealcheck-local-model/smoke/$(date +%Y%m%d-%H%M%S) \
+  scripts/test-deployed-local-model-live.sh
+```
+
+The smoke path should reach `awaiting_review`, fetch the normalized-plan review
+artifact, confirm the review, verify completed artifacts, delete the run, and
+confirm the deleted run is no longer retrievable.
+
 Avoid for the current deployment:
 
 - Kubernetes

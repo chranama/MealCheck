@@ -6,6 +6,38 @@ public expectations.
 Use this log instead of separate ADR and RFC files until a decision becomes too
 large to keep readable here.
 
+## 2026-07-01: Local Replay Means Local-Model Runtime Replay
+
+Status: Accepted
+
+Decision:
+
+Operational replay for MealCheck should treat "local" as the server-owned
+local-model path, not merely a laptop-hosted mock. The reproducible deployment
+profile should run the Go API and worker against Postgres and filesystem
+artifacts while using a private loopback llama.cpp endpoint for `local_model`
+normalization. The canonical replay should use host-local Postgres and
+llama.cpp services administered outside the API runner, matching production's
+non-Docker MacBook shape.
+
+Reason:
+
+The deployed product is now centered on the hosted local-model verifier. A
+mocked provider can still help deterministic tests, but it does not exercise the
+runtime behavior that most affects operations: local model readiness, model id
+selection, normalization review, artifact writes, queueing, and cleanup.
+
+Consequences:
+
+- The replay profile lives under `deploy/local-model/`.
+- The profile smoke path reuses `scripts/test-deployed-local-model-live.sh`
+  against `http://127.0.0.1:8080`.
+- MacBook/Cloudflare production deployment remains documented separately.
+- Docker Postgres is allowed only as a disposable developer-laptop fallback, not
+  as the production-parity replay path.
+- Mocked provider paths remain test fixtures, not the primary local deployment
+  profile.
+
 ## 2026-07-01: Completed Reports Include Normalization Trace When Present
 
 Status: Accepted
