@@ -1160,6 +1160,12 @@ The comparison output matches rows by `eval_type`, `dataset_id`, and `case_id`,
 then reports added and removed cases, regressions, fixes, still-failing cases,
 changed metrics, and eval-specific metric summaries.
 
+Run the Python operator-tooling tests:
+
+```bash
+python3 -m unittest discover -s tools/mealcheck_ops/tests
+```
+
 Run the opt-in local-model P0 baseline when the local llama.cpp-compatible
 service is available:
 

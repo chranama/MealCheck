@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
 from __future__ import annotations
 
-import importlib.util
 import json
 import subprocess
 import sys
@@ -10,13 +8,11 @@ import unittest
 from pathlib import Path
 
 
-SCRIPT = Path(__file__).with_name("compare-eval-exports.py")
-SPEC = importlib.util.spec_from_file_location("compare_eval_exports", SCRIPT)
-assert SPEC is not None
-compare_eval_exports = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = compare_eval_exports
-assert SPEC.loader is not None
-SPEC.loader.exec_module(compare_eval_exports)
+PACKAGE_SRC = Path(__file__).resolve().parents[1] / "src"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(PACKAGE_SRC))
+
+from mealcheck_ops.eval_exports import CompareError, compare_exports  # noqa: E402
 
 
 class CompareEvalExportsTest(unittest.TestCase):
@@ -51,7 +47,7 @@ class CompareEvalExportsTest(unittest.TestCase):
             completed = subprocess.run(
                 [
                     sys.executable,
-                    str(SCRIPT),
+                    str(REPO_ROOT / "scripts" / "compare-eval-exports.py"),
                     "--baseline",
                     str(baseline),
                     "--current",
@@ -114,7 +110,7 @@ class CompareEvalExportsTest(unittest.TestCase):
                 ],
             )
 
-            result = compare_eval_exports.compare_exports(baseline, current)
+            result = compare_exports(baseline, current)
             self.assertEqual(result["eval_type"], "checker")
             self.assertEqual(result["changed_metric_count"], 1)
             metric_summary = result["metric_summary"]
@@ -133,12 +129,12 @@ class CompareEvalExportsTest(unittest.TestCase):
             current = root / "current.jsonl"
             write_jsonl(baseline, [normalization_row("case_a")])
             write_jsonl(current, [checker_row("case_a")])
-            with self.assertRaisesRegex(compare_eval_exports.CompareError, "eval_type mismatch"):
-                compare_eval_exports.compare_exports(baseline, current)
+            with self.assertRaisesRegex(CompareError, "eval_type mismatch"):
+                compare_exports(baseline, current)
 
             write_jsonl(current, [normalization_row("case_a", dataset_id="other-dataset")])
-            with self.assertRaisesRegex(compare_eval_exports.CompareError, "dataset_id mismatch"):
-                compare_eval_exports.compare_exports(baseline, current)
+            with self.assertRaisesRegex(CompareError, "dataset_id mismatch"):
+                compare_exports(baseline, current)
 
     def test_rejects_mixed_eval_type_input(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -147,8 +143,8 @@ class CompareEvalExportsTest(unittest.TestCase):
             current = root / "current.jsonl"
             write_jsonl(baseline, [normalization_row("case_a"), checker_row("case_b")])
             write_jsonl(current, [normalization_row("case_a")])
-            with self.assertRaisesRegex(compare_eval_exports.CompareError, "multiple eval_type"):
-                compare_eval_exports.compare_exports(baseline, current)
+            with self.assertRaisesRegex(CompareError, "multiple eval_type"):
+                compare_exports(baseline, current)
 
 
 def normalization_row(
@@ -222,7 +218,3 @@ def checker_row(
 
 def write_jsonl(path: Path, rows: list[dict[str, object]]) -> None:
     path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
-
-
-if __name__ == "__main__":
-    unittest.main()

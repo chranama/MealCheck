@@ -508,6 +508,8 @@ Implemented slices:
   reports added and removed cases, regressions, fixes, still-failing cases,
   changed metrics, and eval-specific summaries for P0 normalization and P1
   checker runs.
+- Python operator code now has a minimal `tools/mealcheck_ops` package
+  structure, with scripts kept as thin wrappers and tests using package imports.
 
 Near-term engineering slices:
 
