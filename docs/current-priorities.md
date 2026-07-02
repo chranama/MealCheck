@@ -71,7 +71,8 @@ The best near-term improvements are therefore:
 
 - make model normalization inspectable and correctable by users
 - turn existing timing and chunk artifacts into compact operator summaries
-- compare local-model quality and latency now that artifact summaries exist
+- keep local-model quality and latency evidence current when the prompt,
+  schema, llama.cpp build, model, or deployment limits change
 - make the deployed workflow reproducible enough to debug outages and release
   changes
 - export evaluation summaries in a portable format from canonical verifier
@@ -593,7 +594,9 @@ Promote these areas when the named product evidence appears:
   concrete explanation gap that static artifact views do not solve.
 - Promote NYT/TASTEset-generated P0 cases after product-shaped reviewed cases
   expose the gap and manual review classifies expected rows and failures.
-- Compare larger models after operator timing summaries exist.
+- Compare additional larger models only after a new candidate, prompt/schema
+  change, or observed model failure creates a concrete model-selection
+  question.
 - Raise local-model limits after stage timing shows enough headroom.
 
 ## Operating Loop
