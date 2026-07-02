@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/chranama/MealCheck/internal/commands/evalexport"
 	"github.com/chranama/MealCheck/internal/workflow/checker"
 )
 
@@ -72,6 +73,29 @@ type evalResult struct {
 	TopUnresolvedFoods   []rankedCount     `json:"top_unresolved_foods"`
 	TopUnresolvedUnits   []rankedCount     `json:"top_unresolved_units"`
 	Mismatches           []caseMismatch    `json:"mismatches,omitempty"`
+	ExportRows           []exportRow       `json:"-"`
+}
+
+type exportRow struct {
+	EvalType           string   `json:"eval_type"`
+	DatasetID          string   `json:"dataset_id"`
+	CatalogID          string   `json:"catalog_id"`
+	CaseID             string   `json:"case_id"`
+	Category           string   `json:"category"`
+	Tags               []string `json:"tags"`
+	Decision           string   `json:"decision"`
+	ExpectedDecision   string   `json:"expected_decision"`
+	Passed             bool     `json:"passed"`
+	MismatchCount      int      `json:"mismatch_count"`
+	FoodItems          int      `json:"food_items"`
+	ResolvedItems      int      `json:"resolved_items"`
+	ExactResolvedItems int      `json:"exact_resolved_items"`
+	EstimatedItems     int      `json:"estimated_items"`
+	DecomposedItems    int      `json:"decomposed_items"`
+	UnresolvedItems    int      `json:"unresolved_items"`
+	ResolvedRate       float64  `json:"resolved_rate"`
+	UnresolvedFoods    []string `json:"unresolved_foods"`
+	UnresolvedUnits    []string `json:"unresolved_units"`
 }
 
 type categorySummary struct {
@@ -116,6 +140,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	fallbackPath := flags.String("fndds-fallback", "", "optional FNDDS SQLite fallback database path")
 	skipExpected := flags.Bool("skip-expected", false, "skip expected outcome comparisons and report coverage only")
 	outPath := flags.String("out", "", "optional path to write JSON results")
+	exportJSONLPath := flags.String("export-jsonl", "", "optional path to write flat JSONL case rows")
+	exportCSVPath := flags.String("export-csv", "", "optional path to write flat CSV case rows")
 	allowMismatch := flags.Bool("allow-mismatch", false, "exit successfully even when expected outcomes mismatch")
 	if err := flags.Parse(args); err != nil {
 		return 2
@@ -141,6 +167,18 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		}
 	} else {
 		fmt.Fprint(stdout, string(encoded))
+	}
+	if *exportJSONLPath != "" {
+		if err := evalexport.WriteJSONL(resolvePath(*root, *exportJSONLPath), result.ExportRows); err != nil {
+			fmt.Fprintf(stderr, "write eval-checker JSONL export: %v\n", err)
+			return 1
+		}
+	}
+	if *exportCSVPath != "" {
+		if err := evalexport.WriteCSV(resolvePath(*root, *exportCSVPath), result.ExportRows); err != nil {
+			fmt.Fprintf(stderr, "write eval-checker CSV export: %v\n", err)
+			return 1
+		}
 	}
 
 	if result.CasesWithMismatches > 0 && !*allowMismatch {
@@ -247,12 +285,34 @@ func run(root, datasetPath, catalogOverride, fallbackPath string, skipExpected b
 			unresolvedUnits[unit]++
 		}
 
+		mismatch := caseMismatch{CaseID: evalCase.CaseID, Category: evalCase.Category}
 		if !skipExpected {
-			mismatch := compareExpected(evalCase, evaluation)
+			mismatch = compareExpected(evalCase, evaluation)
 			if len(mismatch.Messages) > 0 {
 				result.Mismatches = append(result.Mismatches, mismatch)
 			}
 		}
+		result.ExportRows = append(result.ExportRows, exportRow{
+			EvalType:           "checker",
+			DatasetID:          dataset.DatasetID,
+			CatalogID:          catalog.CatalogID,
+			CaseID:             evalCase.CaseID,
+			Category:           evalCase.Category,
+			Tags:               append([]string(nil), evalCase.Tags...),
+			Decision:           evaluation.Decision,
+			ExpectedDecision:   evalCase.Expected.Decision,
+			Passed:             len(mismatch.Messages) == 0,
+			MismatchCount:      len(mismatch.Messages),
+			FoodItems:          itemCount,
+			ResolvedItems:      resolvedCount,
+			ExactResolvedItems: exactCount,
+			EstimatedItems:     estimatedCount,
+			DecomposedItems:    decomposedCount,
+			UnresolvedItems:    unresolvedCount,
+			ResolvedRate:       ratio(resolvedCount, itemCount),
+			UnresolvedFoods:    unresolvedFoodValues(evaluation.UnresolvedItems),
+			UnresolvedUnits:    unresolvedUnitValues(evaluation.UnresolvedItems),
+		})
 	}
 
 	result.ResolvedRate = ratio(result.ResolvedItems, result.TotalFoodItems)
@@ -383,6 +443,38 @@ func contains(values []string, want string) bool {
 
 func normalizeKey(value string) string {
 	return strings.Join(strings.Fields(strings.ToLower(strings.TrimSpace(value))), " ")
+}
+
+func unresolvedFoodValues(items []checker.UnresolvedItem) []string {
+	seen := map[string]bool{}
+	for _, item := range items {
+		value := normalizeKey(item.Food)
+		if value != "" {
+			seen[value] = true
+		}
+	}
+	return sortedKeys(seen)
+}
+
+func unresolvedUnitValues(items []checker.UnresolvedItem) []string {
+	seen := map[string]bool{}
+	for _, item := range items {
+		unit := item.Unit
+		if unit == "" {
+			unit = "(missing)"
+		}
+		seen[unit] = true
+	}
+	return sortedKeys(seen)
+}
+
+func sortedKeys(values map[string]bool) []string {
+	keys := make([]string, 0, len(values))
+	for value := range values {
+		keys = append(keys, value)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func readJSON(path string, out any) error {

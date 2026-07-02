@@ -90,7 +90,8 @@ The current checked-in P0 corpus is small and hand-authored:
   compatible acceptable-input cases.
 - `mealcheck eval-normalization`: P0 runner for deterministic source inventory,
   compact-row adapter, qualification-failure, tag-summary, failure-summary, and
-  opt-in local-model baseline metrics.
+  opt-in local-model baseline metrics. Use `-export-jsonl` or `-export-csv`
+  to write flat per-case rows for cross-commit comparison.
 
 The checked-in seed can be extended with public ingredient-parsing datasets as
 source material for generated MealCheck normalization cases:
@@ -1136,6 +1137,15 @@ go run ./cmd/mealcheck eval-normalization \
   -out /tmp/mealcheck-p0-normalization.json
 ```
 
+Write portable per-case P0 rows alongside the aggregate result:
+
+```bash
+go run ./cmd/mealcheck eval-normalization \
+  -out /tmp/mealcheck-p0-normalization.json \
+  -export-jsonl /tmp/mealcheck-p0-normalization.rows.jsonl \
+  -export-csv /tmp/mealcheck-p0-normalization.rows.csv
+```
+
 Run the opt-in local-model P0 baseline when the local llama.cpp-compatible
 service is available:
 
@@ -1173,6 +1183,15 @@ Write a result artifact:
 ```bash
 go run ./cmd/mealcheck eval-checker \
   -out data/evaluation/results/fndds-grounded-catalog-v1.json
+```
+
+Write portable per-case P1 rows alongside the aggregate result:
+
+```bash
+go run ./cmd/mealcheck eval-checker \
+  -out /tmp/mealcheck-p1-checker.json \
+  -export-jsonl /tmp/mealcheck-p1-checker.rows.jsonl \
+  -export-csv /tmp/mealcheck-p1-checker.rows.csv
 ```
 
 Write the WWEIA/NHANES result artifact:

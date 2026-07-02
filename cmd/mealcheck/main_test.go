@@ -2,10 +2,12 @@ package main
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -142,6 +144,59 @@ func TestEvalCheckerCommandWritesResult(t *testing.T) {
 	}
 }
 
+func TestEvalCheckerCommandWritesPortableExports(t *testing.T) {
+	root := repoRoot(t)
+	dir := t.TempDir()
+	jsonlPath := filepath.Join(dir, "eval-checker-rows.jsonl")
+	csvPath := filepath.Join(dir, "eval-checker-rows.csv")
+	out := filepath.Join(dir, "eval-checker-result.json")
+
+	code := run([]string{
+		"eval-checker",
+		"-root", root,
+		"-out", out,
+		"-export-jsonl", jsonlPath,
+		"-export-csv", csvPath,
+	}, &bytes.Buffer{}, &bytes.Buffer{})
+
+	if code != 0 {
+		t.Fatalf("eval-checker exit code = %d, want 0", code)
+	}
+
+	type row struct {
+		EvalType      string  `json:"eval_type"`
+		DatasetID     string  `json:"dataset_id"`
+		CatalogID     string  `json:"catalog_id"`
+		CaseID        string  `json:"case_id"`
+		Passed        bool    `json:"passed"`
+		FoodItems     int     `json:"food_items"`
+		ResolvedItems int     `json:"resolved_items"`
+		ResolvedRate  float64 `json:"resolved_rate"`
+	}
+	rows := readJSONL[row](t, jsonlPath)
+	if len(rows) != 100 {
+		t.Fatalf("JSONL row count = %d, want 100", len(rows))
+	}
+	first := rows[0]
+	if first.EvalType != "checker" || first.DatasetID != "fndds-grounded-meal-plans-v1" || first.CaseID != "balanced_common-001" {
+		t.Fatalf("first checker export row = %+v", first)
+	}
+	if !first.Passed || first.CatalogID == "" || first.FoodItems == 0 || first.ResolvedItems == 0 || first.ResolvedRate == 0 {
+		t.Fatalf("first checker export metrics = %+v", first)
+	}
+
+	csvRows := readCSV(t, csvPath)
+	if len(csvRows) != 101 {
+		t.Fatalf("CSV row count = %d, want 101 including header", len(csvRows))
+	}
+	wantHeader := []string{"eval_type", "dataset_id", "catalog_id", "case_id", "category"}
+	for i, want := range wantHeader {
+		if got := csvRows[0][i]; got != want {
+			t.Fatalf("CSV header[%d] = %q, want %q", i, got, want)
+		}
+	}
+}
+
 func TestEvalNormalizationCommandWritesResult(t *testing.T) {
 	root := repoRoot(t)
 	out := filepath.Join(t.TempDir(), "p0-eval-result.json")
@@ -184,6 +239,67 @@ func TestEvalNormalizationCommandWritesResult(t *testing.T) {
 	}
 	if result.SourceItemPreservationRate != 1 {
 		t.Fatalf("source_item_preservation_rate = %f, want 1", result.SourceItemPreservationRate)
+	}
+}
+
+func TestEvalNormalizationCommandWritesPortableExports(t *testing.T) {
+	root := repoRoot(t)
+	dir := t.TempDir()
+	jsonlPath := filepath.Join(dir, "p0-eval-rows.jsonl")
+	csvPath := filepath.Join(dir, "p0-eval-rows.csv")
+	out := filepath.Join(dir, "p0-eval-result.json")
+
+	code := run([]string{
+		"eval-normalization",
+		"-root", root,
+		"-out", out,
+		"-export-jsonl", jsonlPath,
+		"-export-csv", csvPath,
+	}, &bytes.Buffer{}, &bytes.Buffer{})
+
+	if code != 0 {
+		t.Fatalf("eval-normalization exit code = %d, want 0", code)
+	}
+
+	type row struct {
+		EvalType                   string   `json:"eval_type"`
+		DatasetID                  string   `json:"dataset_id"`
+		Mode                       string   `json:"mode"`
+		CaseID                     string   `json:"case_id"`
+		CaseType                   string   `json:"case_type"`
+		Tags                       []string `json:"tags"`
+		Passed                     bool     `json:"passed"`
+		ExpectedSourceItems        int      `json:"expected_source_items"`
+		SourceItemsMatched         int      `json:"source_items_matched"`
+		SourceItemPreservationRate float64  `json:"source_item_preservation_rate"`
+	}
+	rows := readJSONL[row](t, jsonlPath)
+	if len(rows) != 14 {
+		t.Fatalf("JSONL row count = %d, want 14", len(rows))
+	}
+	first := rows[0]
+	if first.EvalType != "normalization" || first.DatasetID != "p0-normalization-v1" || first.Mode != "deterministic" {
+		t.Fatalf("first normalization export row = %+v", first)
+	}
+	if first.CaseID != "robustness_one_day_canonical_bullets" || first.CaseType != "success" || !first.Passed {
+		t.Fatalf("first normalization case row = %+v", first)
+	}
+	if first.ExpectedSourceItems != 9 || first.SourceItemsMatched != 9 || first.SourceItemPreservationRate != 1 {
+		t.Fatalf("first normalization metrics = %+v", first)
+	}
+	if !containsString(first.Tags, "reviewed_seed") {
+		t.Fatalf("first normalization tags = %v, want reviewed_seed", first.Tags)
+	}
+
+	csvRows := readCSV(t, csvPath)
+	if len(csvRows) != 15 {
+		t.Fatalf("CSV row count = %d, want 15 including header", len(csvRows))
+	}
+	wantHeader := []string{"eval_type", "dataset_id", "mode", "case_id", "case_type"}
+	for i, want := range wantHeader {
+		if got := csvRows[0][i]; got != want {
+			t.Fatalf("CSV header[%d] = %q, want %q", i, got, want)
+		}
 	}
 }
 
@@ -305,6 +421,49 @@ func readJSON(t *testing.T, path string, out any) {
 	if err := json.NewDecoder(f).Decode(out); err != nil {
 		t.Fatalf("decode %s: %v", path, err)
 	}
+}
+
+func readJSONL[T any](t *testing.T, path string) []T {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	var rows []T
+	for i, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		var row T
+		if err := json.Unmarshal([]byte(line), &row); err != nil {
+			t.Fatalf("decode %s line %d: %v", path, i+1, err)
+		}
+		rows = append(rows, row)
+	}
+	return rows
+}
+
+func readCSV(t *testing.T, path string) [][]string {
+	t.Helper()
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("open %s: %v", path, err)
+	}
+	defer f.Close()
+	rows, err := csv.NewReader(f).ReadAll()
+	if err != nil {
+		t.Fatalf("read csv %s: %v", path, err)
+	}
+	return rows
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
 }
 
 func validateAgainstSchema(t *testing.T, schemaPath, instancePath string) {

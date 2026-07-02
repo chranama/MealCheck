@@ -500,22 +500,24 @@ Implemented slices:
   artifacts, a source-built API/worker, and a loopback llama.cpp endpoint whose
   model id can be resolved from `/v1/models`. A Docker Postgres profile is kept
   only as a disposable developer fallback, not the production-parity path.
+- The P0 normalization and P1 checker eval commands can now write portable
+  per-case JSONL or CSV row exports alongside their aggregate JSON results, so
+  normalization and resolver changes can be compared across commits from stable
+  structured outputs.
 
 Near-term engineering slices:
 
-1. Add a portable eval/reporting export, such as JSONL or CSV, so normalization
-   and resolver changes can be compared across commits from structured outputs.
-2. Add Python operator tooling that consumes run artifacts or eval datasets to
+1. Add Python operator tooling that consumes run artifacts or eval datasets to
    produce summaries, clusters, comparisons, and review queues tied back to
    canonical Go report/eval artifacts.
-3. Add TypeScript backend-adjacent code for the static UI or edge path, such as
+2. Add TypeScript backend-adjacent code for the static UI or edge path, such as
    typed API clients, runtime config validation, report preflight, or a narrow
    Cloudflare Worker adapter backed by the Go API contract.
-4. Add a compact source and citation inspection surface when it helps users
+3. Add a compact source and citation inspection surface when it helps users
    trace report findings to source facts, guideline references, normalized
    foods, quantities, and unresolved reasons. Deterministic source packs remain
    the source of verification truth.
-5. Keep product copy focused on checking a bounded meal plan against declared
+4. Keep product copy focused on checking a bounded meal plan against declared
    constraints, source-backed findings, and concrete recovery guidance.
 
 Metrics to track:

@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chranama/MealCheck/internal/commands/evalexport"
 	"github.com/chranama/MealCheck/internal/core"
 	llm "github.com/chranama/MealCheck/internal/llm/external"
 	localmodel "github.com/chranama/MealCheck/internal/llm/local"
@@ -162,6 +163,31 @@ type result struct {
 	TagSummary                  []tagSummary        `json:"tag_summary,omitempty"`
 	FailureSummary              []rankedCount       `json:"failure_summary,omitempty"`
 	Mismatches                  []caseMismatch      `json:"mismatches,omitempty"`
+	ExportRows                  []exportRow         `json:"-"`
+}
+
+type exportRow struct {
+	EvalType                   string   `json:"eval_type"`
+	DatasetID                  string   `json:"dataset_id"`
+	Mode                       string   `json:"mode"`
+	CaseID                     string   `json:"case_id"`
+	CaseType                   string   `json:"case_type"`
+	Gate                       string   `json:"gate"`
+	SourceDataset              string   `json:"source_dataset"`
+	Tags                       []string `json:"tags"`
+	Passed                     bool     `json:"passed"`
+	MismatchCount              int      `json:"mismatch_count"`
+	FailureCategories          []string `json:"failure_categories"`
+	ExpectedSourceItems        int      `json:"expected_source_items"`
+	SourceItemsMatched         int      `json:"source_items_matched"`
+	SourceItemPreservationRate float64  `json:"source_item_preservation_rate"`
+	AdapterValid               bool     `json:"adapter_valid"`
+	LocalModelRepeats          int      `json:"local_model_repeats"`
+	LocalModelMinRowMatchRate  float64  `json:"local_model_min_row_match_rate"`
+	LocalModelMeanRowMatchRate float64  `json:"local_model_mean_row_match_rate"`
+	LocalModelProviderFailures int      `json:"local_model_provider_failures"`
+	LocalModelDecodeFailures   int      `json:"local_model_decode_failures"`
+	LocalModelRepairCount      int      `json:"local_model_repair_count"`
 }
 
 type tagSummary struct {
@@ -270,6 +296,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	gate := flags.String("gate", "strict", "manifest gate to run: strict, exploratory, or all")
 	sourceDataset := flags.String("source-dataset", "", "optional source_dataset filter for manifest-driven runs")
 	outPath := flags.String("out", "", "optional path to write JSON results")
+	exportJSONLPath := flags.String("export-jsonl", "", "optional path to write flat JSONL case rows")
+	exportCSVPath := flags.String("export-csv", "", "optional path to write flat CSV case rows")
 	mode := flags.String("mode", modeDeterministic, "evaluation mode: deterministic or local-llama")
 	localModelBaseURL := flags.String("local-model-base-url", "", "local llama OpenAI-compatible base URL; defaults to MEALCHECK_LOCAL_MODEL_BASE_URL")
 	localModelName := flags.String("local-model-name", "", "local llama model name; defaults to MEALCHECK_LOCAL_MODEL_NAME")
@@ -322,6 +350,18 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		}
 	} else {
 		fmt.Fprint(stdout, string(encoded))
+	}
+	if *exportJSONLPath != "" {
+		if err := evalexport.WriteJSONL(resolvePath(*root, *exportJSONLPath), result.ExportRows); err != nil {
+			fmt.Fprintf(stderr, "write normalization eval JSONL export: %v\n", err)
+			return 1
+		}
+	}
+	if *exportCSVPath != "" {
+		if err := evalexport.WriteCSV(resolvePath(*root, *exportCSVPath), result.ExportRows); err != nil {
+			fmt.Fprintf(stderr, "write normalization eval CSV export: %v\n", err)
+			return 1
+		}
 	}
 	if result.CasesWithMismatches > 0 && !*allowMismatch {
 		return 1
@@ -395,6 +435,20 @@ func run(opts runOptions) (result, error) {
 	for _, loaded := range successCases {
 		c := loaded.Case
 		mismatch, matchedItems, adapterOK := evaluateSuccessCase(c)
+		row := exportRow{
+			EvalType:                   "normalization",
+			DatasetID:                  m.DatasetID,
+			Mode:                       mode,
+			CaseID:                     c.ID,
+			CaseType:                   "success",
+			Gate:                       loaded.Gate,
+			SourceDataset:              c.SourceDataset,
+			Tags:                       append([]string(nil), c.Tags...),
+			ExpectedSourceItems:        len(c.Expected.SourceItems),
+			SourceItemsMatched:         matchedItems,
+			SourceItemPreservationRate: ratio(matchedItems, len(c.Expected.SourceItems)),
+			AdapterValid:               adapterOK,
+		}
 		r.TotalExpectedSourceItems += len(c.Expected.SourceItems)
 		r.SourceItemsMatched += matchedItems
 		if adapterOK {
@@ -405,12 +459,20 @@ func run(opts runOptions) (result, error) {
 				CaseID:  c.ID,
 				Repeats: localModelRepeats,
 			}
+			row.LocalModelRepeats = localModelRepeats
 			for repeatIndex := 1; repeatIndex <= localModelRepeats; repeatIndex++ {
 				localMessages, localMetrics, localRepairs, localFailure := evaluateLocalModelSuccessCase(c, opts.ProviderFactory, opts.ProviderConfig)
 				repeat := &r.LocalModelRepeatSummary[repeatIndex-1]
 				recordLocalModelAttempt(&r, repeat, c, localMetrics, localRepairs, localMessages, localFailure)
 				rowRate := ratio(localMetrics.MatchedRows, len(c.Expected.SourceItems))
 				recordCaseRepeatAttempt(&caseSummary, rowRate, len(localMessages) == 0)
+				row.LocalModelRepairCount += localRepairs
+				switch localFailure {
+				case "provider":
+					row.LocalModelProviderFailures++
+				case "decode":
+					row.LocalModelDecodeFailures++
+				}
 				if len(localMessages) != 0 {
 					for _, message := range localMessages {
 						mismatch.Messages = append(mismatch.Messages, fmt.Sprintf("repeat_%d_%s", repeatIndex, message))
@@ -418,6 +480,8 @@ func run(opts runOptions) (result, error) {
 				}
 			}
 			finalizeCaseRepeatSummary(&caseSummary)
+			row.LocalModelMinRowMatchRate = caseSummary.MinRowMatchRate
+			row.LocalModelMeanRowMatchRate = caseSummary.MeanRowMatchRate
 			if shouldReportCaseRepeat(caseSummary) {
 				r.LocalModelCaseRepeatSummary = append(r.LocalModelCaseRepeatSummary, caseSummary)
 			}
@@ -426,6 +490,10 @@ func run(opts runOptions) (result, error) {
 			}
 		}
 		passed := len(mismatch.Messages) == 0
+		row.Passed = passed
+		row.MismatchCount = len(mismatch.Messages)
+		row.FailureCategories = failureCategories(mismatch.Messages)
+		r.ExportRows = append(r.ExportRows, row)
 		if passed {
 			r.SuccessCasesPassed++
 		} else {
@@ -443,6 +511,20 @@ func run(opts runOptions) (result, error) {
 		c := loaded.Case
 		mismatch := evaluateFailureCase(c)
 		passed := len(mismatch.Messages) == 0
+		row := exportRow{
+			EvalType:          "normalization",
+			DatasetID:         m.DatasetID,
+			Mode:              mode,
+			CaseID:            c.ID,
+			CaseType:          "failure",
+			Gate:              loaded.Gate,
+			SourceDataset:     c.SourceDataset,
+			Tags:              append([]string(nil), c.Tags...),
+			Passed:            passed,
+			MismatchCount:     len(mismatch.Messages),
+			FailureCategories: failureCategories(mismatch.Messages),
+		}
+		r.ExportRows = append(r.ExportRows, row)
 		if c.ExpectedFailure.Stage == "qualification" {
 			r.QualificationFailuresRun++
 			if passed {
@@ -1149,6 +1231,22 @@ func failureCategory(message string) string {
 		return message[:index+len("_failed")]
 	}
 	return message
+}
+
+func failureCategories(messages []string) []string {
+	seen := map[string]bool{}
+	for _, message := range messages {
+		category := failureCategory(message)
+		if category != "" {
+			seen[category] = true
+		}
+	}
+	values := make([]string, 0, len(seen))
+	for value := range seen {
+		values = append(values, value)
+	}
+	sort.Strings(values)
+	return values
 }
 
 func ratio(numerator, denominator int) float64 {
