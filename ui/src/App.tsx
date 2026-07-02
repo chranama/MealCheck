@@ -434,9 +434,9 @@ export default function App({ runtimeConfig }: { runtimeConfig: RuntimeConfig })
         <div className="brand-cluster">
           <BrandMark />
           <div className="brand-block">
-            <p className="eyebrow">Live verification</p>
+            <p className="eyebrow">Live check</p>
             <h1>MealCheck</h1>
-            <p className="brand-subtitle">Evidence-backed meal plan verification</p>
+            <p className="brand-subtitle">Bounded meal plan checks with source-backed findings</p>
           </div>
         </div>
       </header>

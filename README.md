@@ -2,14 +2,13 @@
 
 [![CI](https://github.com/chranama/MealCheck/actions/workflows/ci.yml/badge.svg)](https://github.com/chranama/MealCheck/actions/workflows/ci.yml)
 
-MealCheck verifies ingredient-level meal plans against user constraints and
+MealCheck checks ingredient-level meal plans against user constraints and
 versioned public guideline sources. Plans may come from a user, an LLM, or a
-bounded normalization workflow, but guideline compliance is checked
-deterministically.
+bounded normalization workflow, but source-backed checks run deterministically.
 
-It answers one practical question:
+It answers one bounded question:
 
-`Does this meal plan satisfy the declared checks well enough to use, or should it be revised?`
+`Does this meal plan violate my declared constraints or source-backed checks, and what should I fix next?`
 
 
 ## What It Does
@@ -26,7 +25,8 @@ It answers one practical question:
 - Resolves foods and portions against a reviewed nutrient catalog, with an
   optional exact-match FNDDS SQLite fallback for eligible gram-based misses.
 - Applies deterministic checks from a versioned guideline pack.
-- Produces a `pass`, `warn`, or `block` decision with evidence.
+- Produces a `pass`, `warn`, or `block` decision with source-backed findings
+  and concrete recovery guidance.
 - Preserves seeded proof artifacts, local structured case-file verification,
   and a local llama compact-output adapter for development and regression work.
 
@@ -58,11 +58,10 @@ The deployed MVP shape is:
 The Cloudflare Pages frontend is connected
 to the GitHub repository and automatically deploys from `main`.
 
-The hosted website is a bounded local-model verification demo: paste one concise
-ingredient-level day of meals and receive a source-backed report. The downloaded
-repository is the deterministic local verifier/debug surface, the self-hostable
-BYOK/custom endpoint surface, and the intended base for future agent-tool
-integration.
+The hosted website checks one concise ingredient-level day of meals against
+declared constraints and source-backed rules. The downloaded repository is the
+deterministic local verifier/debug surface and the self-hostable BYOK/custom
+endpoint surface.
 Hosted local-model runs accept one day only. Semi-structured lines and paragraph
 text are both supported when meals have clear anchors and bounded food spans.
 The backend chunks the day by meal, sends each meal text span plus its numbered

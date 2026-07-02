@@ -93,7 +93,7 @@ async function mockMealCheckApi(page: Page, options: MockMealCheckApiOptions = {
   const deletedRunIDs: string[] = [];
 
   await page.route("**/mock-api/api/health", async (route) => {
-    await route.fulfill({ json: { status: "ok", access_mode: "public_byok", public_openai_compatible: false } });
+    await route.fulfill({ json: { status: "ok", store: "mock", access_mode: "public_byok", public_openai_compatible: false } });
   });
   await page.route("**/mock-api/api/status", async (route) => {
     await route.fulfill({
@@ -241,7 +241,7 @@ test("loads the live run homepage without seeded demo navigation", async ({ page
   await expect(page.locator(".brand-mark")).toBeVisible();
   await expect(page.locator("#live-workspace")).toBeVisible();
   await expect(page.locator(".live-action-strip")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: "Check a meal plan" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Check a bounded meal plan" })).toBeVisible();
   await expect(page.locator(".mode-icon")).toHaveCount(0);
   await expect(page.locator(".nav-icon")).toHaveCount(0);
   await expect(page.locator(".pipeline-graphic")).toHaveCount(0);
@@ -299,7 +299,7 @@ test("loads the public status page with summarized component states", async ({ p
 test("loads the consumer about page with shared footer navigation", async ({ page }) => {
   await page.goto("/about.html");
 
-  await expect(page.getByRole("heading", { level: 1, name: "A second check for meal plans." })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Bounded checks for meal plans." })).toBeVisible();
   await expectSharedFooter(page);
 });
 

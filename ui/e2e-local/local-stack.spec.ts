@@ -12,7 +12,7 @@ test("renders the live run homepage without an API base", async ({ page }) => {
   await expect(page.locator(".brand-mark")).toBeVisible();
   await expect(page.locator("#live-workspace")).toBeVisible();
   await expect(page.locator(".live-action-strip")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: "Check a meal plan" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Check a bounded meal plan" })).toBeVisible();
   await expect(page.locator(".mode-icon")).toHaveCount(0);
   await expect(page.locator(".nav-icon")).toHaveCount(0);
   await expect(page.locator(".pipeline-graphic")).toHaveCount(0);

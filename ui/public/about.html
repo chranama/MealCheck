@@ -242,7 +242,7 @@
       <div class="brand-cluster">
         <img class="brand-mark" src="/favicon.svg" alt="" />
         <div>
-          <p class="eyebrow">Live verification</p>
+          <p class="eyebrow">Live check</p>
           <p class="brand-title">MealCheck</p>
         </div>
       </div>
@@ -251,12 +251,12 @@
     <main class="page">
       <section class="hero">
         <p class="eyebrow">About</p>
-        <h1>A second check for meal plans.</h1>
+        <h1>Bounded checks for meal plans.</h1>
         <p class="lead">
-          MealCheck helps you review one day of meals before you rely on it.
-          Paste concise ingredient-level text, in lines or a paragraph, and
-          MealCheck returns a source-backed report with the details that need
-          attention.
+          MealCheck checks one day of ingredient-level meals against declared
+          constraints and source-backed rules. Paste concise text, in lines or a
+          paragraph, and MealCheck returns findings plus concrete recovery
+          steps for anything that needs attention.
         </p>
       </section>
 
@@ -295,12 +295,13 @@
           <h2>How To Read Results</h2>
           <p>
             A pass means the plan did not trigger the configured checks. A warn
-            means something should be reviewed. A block means the plan has a
-            clear issue that should be fixed before use.
+            means a source-backed finding or unresolved detail should be
+            reviewed. A block means a declared constraint or required detail
+            needs a concrete fix before use.
           </p>
           <p>
-            The report points to the meals, foods, limits, or missing details
-            that led to the result.
+            The report points to the meals, foods, limits, sources, or missing
+            details that led to the result.
           </p>
         </article>
 
@@ -311,9 +312,9 @@
             dietitian, or food-safety professional.
           </p>
           <p>
-            It is not a meal-planning chatbot. Use it as a structured review
-            step, especially when a plan was drafted quickly or needs a clearer
-            safety and nutrition check.
+            It is not a meal-planning chatbot. Use it as a structured check
+            when a bounded plan needs constraint review, source-backed findings,
+            and recovery guidance.
           </p>
         </article>
 
@@ -326,7 +327,7 @@
       </section>
 
       <nav class="actions" aria-label="Page actions">
-        <a class="button" href="/">Check a meal plan</a>
+        <a class="button" href="/">Check a bounded meal plan</a>
       </nav>
     </main>
 

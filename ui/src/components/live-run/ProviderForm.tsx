@@ -42,7 +42,7 @@ export function ProviderForm({
     <section className="mode-section" id="provider-section">
       <div className="notice">
         <strong>Model provider disclosure</strong>
-        <p>MealCheck sends this key to the backend for the requested provider call. Use temporary, scoped, budget-limited keys. Hosted public mode disables custom OpenAI-compatible endpoints unless explicitly allowed; run MealCheck locally from the repo for maximum endpoint control.</p>
+        <p>MealCheck sends this key only for the requested normalization or report-creation call. Use temporary, scoped, budget-limited keys. Hosted public mode disables custom OpenAI-compatible endpoints unless explicitly allowed; run MealCheck locally from the repo for maximum endpoint control.</p>
       </div>
       <div className="form-grid">
         <Field label="Provider">

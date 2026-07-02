@@ -13,8 +13,8 @@ export function LiveSummary({
             <span className="chip">Reference {live.runID}</span>
           </div>
         ) : null}
-        <h2 className="summary-title">Check a meal plan</h2>
-        <p className="summary-text">{live.message || "Enter a meal plan and MealCheck will return a clear decision with supporting details."}</p>
+        <h2 className="summary-title">Check a bounded meal plan</h2>
+        <p className="summary-text">{live.message || "Enter a meal plan and MealCheck will check declared constraints, source-backed findings, and recovery steps."}</p>
       </section>
     </section>
   );

@@ -525,11 +525,16 @@ Implemented slices:
   decision-check source references to guideline citations, calls out missing
   source references, and traces normalized source text to resolved, unresolved,
   and excluded food outcomes.
+- Public README and frontend copy now describe MealCheck as a bounded meal-plan
+  check against declared constraints and source-backed findings, with concrete
+  recovery steps, rather than broad verification, medical, or model-infra
+  claims.
 
 Near-term engineering slices:
 
-1. Keep product copy focused on checking a bounded meal plan against declared
-   constraints, source-backed findings, and concrete recovery guidance.
+- No immediate P4 engineering slice is queued. Continue using the operating
+  loop below to promote the next concrete operations, replay, or source
+  inspection gap.
 
 Metrics to track:
 
