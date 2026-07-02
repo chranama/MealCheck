@@ -13,6 +13,10 @@ example:
 http://localhost:4173/?api=http://127.0.0.1:8080
 ```
 
+Backend-facing helpers live under `src/lib/`. Keep workflow API calls,
+`config.json` loading, and report-creation gating behind the contract parsers
+and preflight helper there instead of casting arbitrary JSON in components.
+
 Local development:
 
 ```bash

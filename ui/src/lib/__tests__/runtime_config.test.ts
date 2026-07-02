@@ -29,6 +29,19 @@ describe("runtime_config", () => {
     await expect(loadRuntimeConfig()).resolves.toHaveProperty("api.base_url");
   });
 
+  it("falls back when config.json has the wrong shape", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({ api: { base_url: 42 } }),
+      { status: 200 },
+    )));
+
+    await expect(loadRuntimeConfig()).resolves.toMatchObject({
+      api: {
+        base_url: "",
+      },
+    });
+  });
+
   it("prefers explicit query parameter over runtime, window, and meta config", () => {
     window.history.replaceState(null, "", "/?api=http://query.local/");
     window.MEALCHECK_API_BASE_URL = "http://window.local";

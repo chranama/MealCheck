@@ -517,17 +517,18 @@ Implemented slices:
 - The run-artifact summary now emits deterministic cross-run clusters and a
   priority queue over repeated unresolved foods, source phrases, units, failure
   stages, timing outliers, and repair-heavy local-model chunks.
+- The static TypeScript UI now has runtime contract parsers for the key backend
+  workflow responses and runtime config, plus a shared report-creation
+  preflight helper that keeps API configuration, invite-code, backend health,
+  local-model readiness, text-limit, and busy-state gating in one place.
 
 Near-term engineering slices:
 
-1. Add TypeScript backend-adjacent code for the static UI or edge path, such as
-   typed API clients, runtime config validation, report preflight, or a narrow
-   Cloudflare Worker adapter backed by the Go API contract.
-2. Add a compact source and citation inspection surface when it helps users
+1. Add a compact source and citation inspection surface when it helps users
    trace report findings to source facts, guideline references, normalized
    foods, quantities, and unresolved reasons. Deterministic source packs remain
    the source of verification truth.
-3. Keep product copy focused on checking a bounded meal plan against declared
+2. Keep product copy focused on checking a bounded meal plan against declared
    constraints, source-backed findings, and concrete recovery guidance.
 
 Metrics to track:

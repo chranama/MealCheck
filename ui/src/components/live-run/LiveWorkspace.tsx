@@ -8,6 +8,7 @@ import {
 } from "../../constants";
 import { cleanApiBase } from "../../lib/api";
 import { buildLocalModelRunPayload, buildQualificationPayload, buildRunPayload } from "../../lib/payload";
+import { reportCreationPreflight } from "../../lib/report_preflight";
 import { recoveryFromQualification } from "../../lib/recovery";
 import type {
   BackendState,
@@ -24,7 +25,6 @@ import type {
 import { Field } from "../common/FormControls";
 import { CandidateTextForm } from "./CandidateTextForm";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
-import { createRunFeedback } from "./feedback";
 import { ProviderForm } from "./ProviderForm";
 import { RunActionStrip } from "./RunActionStrip";
 import { RunStatusPanel } from "./RunStatusPanel";
@@ -79,8 +79,6 @@ export function LiveWorkspace({
   const cleanBase = cleanApiBase(apiBase);
   const inviteRequired = backend.accessMode === "invite_required";
   const isLocalModelHosted = backend.hostedMode === "local_model";
-  const localModelReady = Boolean(backend.localModel?.enabled && backend.localModel?.ready);
-  const localModelUnavailable = isLocalModelHosted && !localModelReady;
   const candidateTextLimit = isLocalModelHosted
     ? backend.localModel?.max_input_chars || backend.maxCandidateTextChars
     : backend.maxCandidateTextChars;
@@ -88,32 +86,24 @@ export function LiveWorkspace({
   const candidateTextLength = candidateText.length;
   const candidateTextTooLong = Boolean(candidateTextLimit && candidateTextLength > candidateTextLimit);
   const allowOpenAICompatible = backend.accessMode !== "public_byok" || backend.publicOpenAICompatible;
-  const isSubmitting = live.status === "queued" || live.status === "running" || live.status === "awaiting_review" || review.status === "submitting";
-  const isCheckingQualification = qualification.status === "checking";
-  const healthBlocksSubmit = backend.kind === "offline" && Boolean(cleanBase);
   const canDeleteRun = Boolean(live.runID && live.status !== "deleted");
-  const baseActionsEnabled = Boolean(cleanBase) && (!inviteRequired || Boolean(inviteToken.trim())) && !isSubmitting && !isCheckingQualification && !healthBlocksSubmit;
-  const canQualify = !isLocalModelHosted && baseActionsEnabled && Boolean(candidateText.trim());
-  const canCreateRun = baseActionsEnabled && (
-    isLocalModelHosted
-      ? Boolean(candidateText.trim()) && !candidateTextTooLong && !localModelUnavailable
-      : true
-  );
+  const preflight = reportCreationPreflight({
+    apiBase: cleanBase,
+    backend,
+    candidateText,
+    candidateTextTooLong,
+    inviteToken,
+    liveStatus: live.status,
+    qualificationStatus: qualification.status,
+    reviewStatus: review.status,
+  });
+  const canQualify = preflight.canQualify;
+  const canCreateRun = preflight.canCreate;
   const qualificationRecovery = qualification.result ? recoveryFromQualification(qualification.result) : null;
   const inlineMealPlanRecovery = qualificationRecovery && qualification.result?.status !== "eligible_for_verification"
     ? qualificationRecovery
     : null;
-  const createFeedback = createRunFeedback({
-    apiBase: cleanBase,
-    candidateTextTooLong,
-    hasInviteToken: Boolean(inviteToken.trim()),
-    inviteRequired,
-    healthBlocksSubmit,
-    isLocalModelHosted,
-    localModelUnavailable,
-    needsCandidateText: isLocalModelHosted && !candidateText.trim(),
-    isBusy: isSubmitting || isCheckingQualification,
-  });
+  const createFeedback = preflight.message;
 
   useEffect(() => {
     if (!allowOpenAICompatible && provider.type === "openai_compatible") {

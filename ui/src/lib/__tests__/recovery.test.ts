@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ApiError } from "../api";
+import { ContractParseError } from "../api_contracts";
 import {
   recoveryFromError,
   recoveryFromQualification,
@@ -45,6 +46,17 @@ describe("recovery", () => {
     expect(notice.title).toBe("MealCheck API is unreachable");
     expect(notice.tone).toBe("block");
     expect(notice.action?.href).toBe("/status.html");
+  });
+
+  it("maps API contract parse failures to stale-frontend guidance", () => {
+    const notice = recoveryFromError(new ContractParseError("create run response.run_id", "expected string"));
+
+    expect(notice).toMatchObject({
+      title: "MealCheck response changed",
+      tone: "block",
+      action: { href: "/status.html" },
+    });
+    expect(notice.steps?.join(" ")).toContain("stale static frontend");
   });
 
   it("maps vague meal-plan qualification to edit guidance", () => {

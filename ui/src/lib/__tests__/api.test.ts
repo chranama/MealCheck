@@ -16,6 +16,7 @@ import {
   requestJSON,
   submitNormalizedPlanCorrection,
 } from "../api";
+import { ContractParseError } from "../api_contracts";
 import { DEFAULT_SETTINGS } from "../../constants";
 import type { RunPayload } from "../../types";
 
@@ -134,6 +135,19 @@ describe("api", () => {
         }),
       }),
     );
+  });
+
+  it("rejects malformed create-run responses before they reach UI state", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({ status: "queued" }),
+      { status: 202 },
+    )));
+
+    await expect(createRun("http://api", "", {
+      input_mode: "local_model",
+      settings: DEFAULT_SETTINGS,
+      candidate_text: "Day 1 breakfast: 1 cup oatmeal.",
+    })).rejects.toThrow(ContractParseError);
   });
 
   it("qualifies meal plan text with the invite token header", async () => {

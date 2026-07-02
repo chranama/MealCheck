@@ -1,5 +1,6 @@
 import type { MealPlanQualificationResult, RunStatus } from "../types";
 import { ApiError, qualificationFromApiError } from "./api";
+import { ContractParseError } from "./api_contracts";
 
 export type RecoveryTone = "info" | "pass" | "warn" | "block";
 
@@ -104,6 +105,19 @@ export function recoveryFromError(errorLike: unknown): RecoveryNotice {
           steps: ["Review the input and try again."],
         };
     }
+  }
+
+  if (errorLike instanceof ContractParseError) {
+    return {
+      title: "MealCheck response changed",
+      message: "The frontend received backend data that did not match the expected MealCheck contract.",
+      tone: "block",
+      steps: [
+        "Refresh once to rule out a stale static frontend.",
+        "Check the public status page if the issue persists.",
+      ],
+      action: { label: "Open status page", href: "/status.html" },
+    };
   }
 
   const rawMessage = errorLike instanceof Error ? errorLike.message : String(errorLike || "");

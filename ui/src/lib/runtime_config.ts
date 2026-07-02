@@ -1,5 +1,6 @@
 import type { RuntimeConfig } from "../types";
 import { cleanApiBase } from "./api";
+import { parseRuntimeConfig } from "./api_contracts";
 
 export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
   const fallback: RuntimeConfig = {
@@ -11,7 +12,7 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
   try {
     const response = await fetch(`/config.json?ts=${Date.now()}`, { cache: "no-store" });
     if (!response.ok) return fallback;
-    const config = (await response.json()) as RuntimeConfig;
+    const config = parseRuntimeConfig(await response.json());
     return {
       ...fallback,
       ...config,

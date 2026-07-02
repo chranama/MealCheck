@@ -16,6 +16,16 @@ import type {
   RunEvent,
   RunPayload,
 } from "../types";
+import {
+  parseArtifactListResponse,
+  parseCreateRunResponse,
+  parseHealthResponse,
+  parseMealPlanQualificationResult,
+  parseNormalizedPlanReviewArtifact,
+  parsePublicStatusResponse,
+  parseQualifyMealPlanResponse,
+  parseRunDocument,
+} from "./api_contracts";
 import { parseSSE } from "./sse";
 
 declare global {
@@ -66,15 +76,11 @@ export function qualificationFromApiError(errorLike: unknown): MealPlanQualifica
   const details = objectRecord(error?.details);
   const qualification = objectRecord(details?.qualification);
   if (!qualification) return null;
-  if (
-    typeof qualification.schema_version !== "string" ||
-    typeof qualification.status !== "string" ||
-    typeof qualification.reason !== "string" ||
-    typeof qualification.provider_used !== "boolean"
-  ) {
+  try {
+    return parseMealPlanQualificationResult(qualification);
+  } catch {
     return null;
   }
-  return qualification as MealPlanQualificationResult;
 }
 
 function objectRecord(value: unknown): Record<string, unknown> | null {
@@ -161,18 +167,18 @@ export async function fetchHealth(base: string): Promise<HealthResponse> {
     if (!response.ok) {
       throw new ApiError(response.status, await response.text());
     }
-    return await response.json() as HealthResponse;
+    return parseHealthResponse(await response.json());
   } finally {
     window.clearTimeout(timeout);
   }
 }
 
 export async function fetchPublicStatus(base: string): Promise<PublicStatusResponse> {
-  return requestJSON<PublicStatusResponse>(base, "/api/status");
+  return parsePublicStatusResponse(await requestJSON<unknown>(base, "/api/status"));
 }
 
 export async function createRun(base: string, inviteToken: string, payload: RunPayload): Promise<CreateRunResponse> {
-  return requestJSON<CreateRunResponse>(base, "/api/runs", {
+  const response = await requestJSON<unknown>(base, "/api/runs", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -180,10 +186,11 @@ export async function createRun(base: string, inviteToken: string, payload: RunP
     },
     body: JSON.stringify(payload),
   });
+  return parseCreateRunResponse(response);
 }
 
 export async function qualifyMealPlan(base: string, inviteToken: string, payload: QualifyMealPlanPayload): Promise<QualifyMealPlanResponse> {
-  return requestJSON<QualifyMealPlanResponse>(base, "/api/qualify", {
+  const response = await requestJSON<unknown>(base, "/api/qualify", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -191,6 +198,7 @@ export async function qualifyMealPlan(base: string, inviteToken: string, payload
     },
     body: JSON.stringify(payload),
   });
+  return parseQualifyMealPlanResponse(response);
 }
 
 function inviteHeader(inviteToken: string): Record<string, string> {
@@ -199,7 +207,7 @@ function inviteHeader(inviteToken: string): Record<string, string> {
 }
 
 export async function fetchRun(base: string, runID: string): Promise<RunDocument> {
-  return requestJSON<RunDocument>(base, `/api/runs/${runID}`);
+  return parseRunDocument(await requestJSON<unknown>(base, `/api/runs/${runID}`));
 }
 
 export async function fetchEvents(base: string, runID: string, fallback: RunEvent[]): Promise<RunEvent[]> {
@@ -215,37 +223,41 @@ export async function fetchArtifact<T>(base: string, runID: string, path: string
 }
 
 export async function fetchNormalizedPlanReview(base: string, runID: string): Promise<NormalizedPlanReviewArtifact> {
-  return requestJSON<NormalizedPlanReviewArtifact>(base, `/api/runs/${runID}/review`);
+  return parseNormalizedPlanReviewArtifact(await requestJSON<unknown>(base, `/api/runs/${runID}/review`));
 }
 
 export async function confirmNormalizedPlanReview(base: string, runID: string): Promise<RunDocument> {
-  return requestJSON<RunDocument>(base, `/api/runs/${runID}/review/confirm`, {
+  const response = await requestJSON<unknown>(base, `/api/runs/${runID}/review/confirm`, {
     method: "POST",
   });
+  return parseRunDocument(response);
 }
 
 export async function rejectNormalizedPlanReview(base: string, runID: string, reason: string): Promise<RunDocument> {
-  return requestJSON<RunDocument>(base, `/api/runs/${runID}/review/reject`, {
+  const response = await requestJSON<unknown>(base, `/api/runs/${runID}/review/reject`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ reason }),
   });
+  return parseRunDocument(response);
 }
 
 export async function requestNormalizedPlanRewrite(base: string, runID: string, reason: string): Promise<RunDocument> {
-  return requestJSON<RunDocument>(base, `/api/runs/${runID}/review/rewrite`, {
+  const response = await requestJSON<unknown>(base, `/api/runs/${runID}/review/rewrite`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ reason }),
   });
+  return parseRunDocument(response);
 }
 
 export async function submitNormalizedPlanCorrection(base: string, runID: string, payload: NormalizedPlanCorrectionPayload): Promise<NormalizedPlanReviewArtifact> {
-  return requestJSON<NormalizedPlanReviewArtifact>(base, `/api/runs/${runID}/review/correction`, {
+  const response = await requestJSON<unknown>(base, `/api/runs/${runID}/review/correction`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+  return parseNormalizedPlanReviewArtifact(response);
 }
 
 async function fetchOptionalArtifact<T>(base: string, runID: string, path: string, fallback: T): Promise<T> {
@@ -261,6 +273,14 @@ async function fetchOptionalArtifactText(base: string, runID: string, path: stri
     return await requestText(base, `/api/runs/${runID}/artifacts/${path}`);
   } catch {
     return fallback;
+  }
+}
+
+async function fetchOptionalNormalizedPlanReviewArtifact(base: string, runID: string): Promise<NormalizedPlanReviewArtifact | null> {
+  try {
+    return parseNormalizedPlanReviewArtifact(await fetchArtifact<unknown>(base, runID, "review/normalized-plan-review.json"));
+  } catch {
+    return null;
   }
 }
 
@@ -291,12 +311,12 @@ export async function loadLiveArtifacts(base: string, runID: string): Promise<Re
     fetchArtifact(base, runID, "guideline-pack/citations.json"),
     requestJSON<ArtifactListResponse>(base, `/api/runs/${runID}/artifacts`),
     fetchOptionalArtifact<ReportArtifacts["recommendation"]>(base, runID, "recommendation.json", null),
-    fetchOptionalArtifact<NormalizedPlanReviewArtifact | null>(base, runID, "review/normalized-plan-review.json", null),
+    fetchOptionalNormalizedPlanReviewArtifact(base, runID),
     fetchOptionalArtifact<NormalizationEvent[] | null>(base, runID, "optional/normalization-events.json", null),
     fetchOptionalArtifact<LocalModelExtractionArtifact | null>(base, runID, "optional/local-model-chunks.json", null),
     fetchOptionalArtifactText(base, runID, "review/review-actions.jsonl", ""),
   ]);
-  const artifactItems = artifactList.artifacts || [];
+  const artifactItems = parseArtifactListResponse(artifactList).artifacts || [];
   return {
     apiBase: base,
     base: `${base}/api/runs/${runID}/artifacts`,
