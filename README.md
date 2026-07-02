@@ -27,7 +27,7 @@ It answers one bounded question:
 - Applies deterministic checks from a versioned guideline pack.
 - Produces a `pass`, `warn`, or `block` decision with source-backed findings
   and concrete recovery guidance.
-- Preserves seeded proof artifacts, local structured case-file verification,
+- Preserves seeded artifacts, local structured case-file verification,
   and a local llama compact-output adapter for development and regression work.
 
 ## Current Shape
@@ -45,7 +45,7 @@ The deployed MVP shape is:
   `https://api.mealcheck.dev`
 - private llama.cpp local model service on the MacBook backend
 - hosted live verification through the server-owned local model
-- seeded proof artifacts preserved in the repository, including
+- seeded artifacts preserved in the repository, including
   [a rendered HTML report](https://chranama.github.io/MealCheck/seeded-report.html)
   served by GitHub Pages from the
   [checked-in source file](docs/seeded-report.html)
@@ -79,12 +79,12 @@ unresolved items.
 
 ## Verified By CI
 
-GitHub Actions runs the core proof gates on every push to `main`, pull request,
+GitHub Actions runs the core CI gates on every push to `main`, pull request,
 and manual dispatch:
 
 - fixture validation with `go run ./cmd/mealcheck fixture-check`
 - backend tests with `go test ./...`
-- local CLI/API smoke proof with `go run ./cmd/mealcheck local-smoke`
+- local CLI/API smoke path with `go run ./cmd/mealcheck local-smoke`
 - frontend typecheck, unit tests, and build
 - mocked Playwright browser workflow
 - local-stack Playwright workflow against the real Go backend, memory storage,
@@ -92,6 +92,28 @@ and manual dispatch:
 
 Deployed live checks remain release operations because they depend on the
 production tunnel, hosted local model, and optional external provider paths.
+
+## Reviewer Path
+
+For a fast technical review, start with:
+
+1. This README for the product boundary, hosted shape, and CI gates.
+2. [`docs/current-priorities.md`](docs/current-priorities.md) for implemented
+   slices, evaluation results, operating loops, and deferred non-goals.
+3. [`docs/evaluation.md`](docs/evaluation.md) for the P0 normalization and P1
+   food/unit resolver metrics and commands.
+4. [`docs/architecture.md`](docs/architecture.md) for the local-model,
+   deterministic-checker, API/worker, storage, and frontend boundaries.
+5. [`docs/decision-log.md`](docs/decision-log.md) for tradeoffs around
+   normalized-plan review, correction artifacts, source inspection, local replay,
+   local-model capacity, and Python operator tooling.
+6. [`docs/runbook.md`](docs/runbook.md) for local validation, deployment,
+   smoke-test, and artifact-inspection workflows.
+
+Trace one hosted local-model run through the repo surfaces: input text becomes a
+source-linked normalized plan, review actions are retained, deterministic checks
+produce the decision, and completed reports link findings back to source rows
+and guideline references.
 
 ## Documentation
 
