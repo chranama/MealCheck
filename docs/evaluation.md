@@ -1160,8 +1160,8 @@ The comparison output matches rows by `eval_type`, `dataset_id`, and `case_id`,
 then reports added and removed cases, regressions, fixes, still-failing cases,
 changed metrics, and eval-specific metric summaries.
 
-Summarize completed or failed hosted run artifacts into an operator review
-queue:
+Summarize completed or failed hosted run artifacts into an operator review and
+priority queue:
 
 ```bash
 python3 scripts/summarize-run-artifacts.py \
@@ -1172,11 +1172,14 @@ python3 scripts/summarize-run-artifacts.py \
 
 The artifact summary consumes canonical run artifacts such as `manifest.json`,
 `decision.json`, `report.json`, `review/normalized-plan-review.json`,
-`optional/local-model-chunks.json`, and
+`unresolved-foods.json`, `optional/local-model-chunks.json`, and
 `debug/normalization-failure.json`. It reports run status and decision counts,
-then queues unresolved normalized rows, source-row count mismatches,
-deterministic normalization repairs, failed chunks, normalization failures, and
-manifest-listed missing artifacts for operator review.
+then queues unresolved normalized rows, checker unresolved foods,
+source-row count mismatches, deterministic normalization repairs, failed
+chunks, normalization failures, timing outliers, and manifest-listed missing
+artifacts for operator review. It also emits deterministic `clusters` and a
+ranked `priority_queue` over repeated unresolved foods, source phrases, units,
+failure stages, timing outliers, and repair-heavy local-model chunks.
 
 Run the Python operator-tooling tests:
 

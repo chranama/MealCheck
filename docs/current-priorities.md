@@ -514,20 +514,20 @@ Implemented slices:
   into JSON and Markdown review queues, extracting unresolved normalized rows,
   source-row mismatches, deterministic normalization repairs, failed chunks,
   normalization failures, and manifest-listed missing artifacts.
+- The run-artifact summary now emits deterministic cross-run clusters and a
+  priority queue over repeated unresolved foods, source phrases, units, failure
+  stages, timing outliers, and repair-heavy local-model chunks.
 
 Near-term engineering slices:
 
-1. Extend Python operator tooling from summary queues into cross-run clustering
-   and prioritization over repeated unresolved foods, source phrases, units,
-   failure stages, timing outliers, and repair-heavy local-model chunks.
-2. Add TypeScript backend-adjacent code for the static UI or edge path, such as
+1. Add TypeScript backend-adjacent code for the static UI or edge path, such as
    typed API clients, runtime config validation, report preflight, or a narrow
    Cloudflare Worker adapter backed by the Go API contract.
-3. Add a compact source and citation inspection surface when it helps users
+2. Add a compact source and citation inspection surface when it helps users
    trace report findings to source facts, guideline references, normalized
    foods, quantities, and unresolved reasons. Deterministic source packs remain
    the source of verification truth.
-4. Keep product copy focused on checking a bounded meal plan against declared
+3. Keep product copy focused on checking a bounded meal plan against declared
    constraints, source-backed findings, and concrete recovery guidance.
 
 Metrics to track:

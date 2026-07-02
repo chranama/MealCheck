@@ -9,14 +9,25 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from mealcheck_ops.artifact_clusters import (
+    REPAIR_HEAVY_THRESHOLD,
+    build_clusters,
+    priority_sort_key,
+    repair_count_bucket,
+    timing_bucket,
+)
+
 
 SCHEMA_VERSION = "0.1"
+PROVIDER_REQUEST_OUTLIER_MS = 30_000
+CHUNK_TOTAL_OUTLIER_MS = 45_000
 
 EVIDENCE_FILES = {
     "manifest.json",
     "decision.json",
     "report.json",
     "normalized-plan.json",
+    "unresolved-foods.json",
     "review/normalized-plan-review.json",
     "optional/local-model-chunks.json",
     "debug/normalization-failure.json",
@@ -44,6 +55,8 @@ def summarize_run_artifacts(artifact_root: Path) -> dict[str, Any]:
         review_queue.extend(run["review_queue"])
 
     review_queue.sort(key=review_queue_sort_key)
+    clusters = build_clusters(review_queue)
+    priority_queue = sorted(clusters, key=priority_sort_key)
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
@@ -57,6 +70,8 @@ def summarize_run_artifacts(artifact_root: Path) -> dict[str, Any]:
         "decision_counts": dict(sorted(decision_counts.items())),
         "issue_counts": dict(sorted(issue_counts.items())),
         "review_queue": review_queue,
+        "clusters": clusters,
+        "priority_queue": priority_queue,
         "runs": runs,
     }
 
@@ -98,6 +113,7 @@ def summarize_run(run_dir: Path) -> dict[str, Any]:
     decision = read_optional_json(run_dir / "decision.json")
     report = read_optional_json(run_dir / "report.json")
     normalized_plan = read_optional_json(run_dir / "normalized-plan.json")
+    unresolved_foods = read_optional_json_list(run_dir / "unresolved-foods.json")
     review = read_optional_json(run_dir / "review" / "normalized-plan-review.json")
     chunks = read_optional_json(run_dir / "optional" / "local-model-chunks.json")
     failure = read_optional_json(run_dir / "debug" / "normalization-failure.json")
@@ -152,6 +168,29 @@ def summarize_run(run_dir: Path) -> dict[str, Any]:
             )
         )
 
+    for item in unresolved_foods:
+        if not isinstance(item, dict):
+            continue
+        issue_counts["checker_unresolved_items"] += 1
+        review_queue.append(
+            queue_entry(
+                run_id=run_id,
+                artifact_dir=run_dir,
+                severity="review",
+                reason="checker_unresolved_item",
+                detail=checker_unresolved_detail(item),
+                day=int_field(item, "day"),
+                meal_label=string_field(item, "meal"),
+                food=string_field(item, "food"),
+                source_food_code=string_field(item, "source_food_code"),
+                quantity=number_field(item, "quantity"),
+                unit=string_field(item, "unit"),
+                quantity_text=string_field(item, "quantity_text"),
+                unresolved_reason=string_field(item, "unresolved_reason"),
+                decision=decision_value,
+            )
+        )
+
     source_count = int_field(trust_signals, "source_item_count")
     normalized_count = int_field(trust_signals, "normalized_row_count")
     if source_count is not None and normalized_count is not None and source_count != normalized_count:
@@ -196,6 +235,8 @@ def summarize_run(run_dir: Path) -> dict[str, Any]:
 
     if chunk_summary["decode_failure_count"] > 0:
         issue_counts["decode_failures"] += chunk_summary["decode_failure_count"]
+    for key, value in chunk_summary["issue_counts"].items():
+        issue_counts[key] += value
     review_queue.extend(chunk_summary["review_queue"](run_id, run_dir, decision_value))
 
     if failure:
@@ -235,6 +276,7 @@ def summarize_run(run_dir: Path) -> dict[str, Any]:
         "normalized_row_count": first_int(normalized_count, len(rows) if rows else None, plan_item_count),
         "normalized_plan_item_count": plan_item_count,
         "unresolved_item_count": issue_counts["unresolved_items"],
+        "checker_unresolved_item_count": issue_counts["checker_unresolved_items"],
         "repair_count": repair_count,
         "failed_chunk_count": failed_chunk_count,
         "chunk_count": first_int(int_field(chunks, "chunk_count"), chunk_summary["chunk_count"]),
@@ -263,11 +305,32 @@ def summarize_chunks(chunks: dict[str, Any] | None, failure: dict[str, Any] | No
     repair_count = 0
     failed_chunk_count = 0
     decode_failure_count = 0
+    issue_counts: Counter[str] = Counter()
     chunk_issues: list[dict[str, Any]] = []
     for chunk in chunk_rows:
         if not isinstance(chunk, dict):
             continue
-        repair_count += int_field(object_field(chunk, "reconciliation"), "repair_count") or 0
+        chunk_repair_count = int_field(object_field(chunk, "reconciliation"), "repair_count") or 0
+        repair_count += chunk_repair_count
+        if chunk_repair_count >= REPAIR_HEAVY_THRESHOLD:
+            issue_counts["repair_heavy_chunks"] += 1
+            chunk_issues.append(
+                {
+                    "severity": "review",
+                    "reason": "repair_heavy_chunk",
+                    "detail": f"chunk had {chunk_repair_count} deterministic source-preserving repairs",
+                    "chunk_index": int_field(chunk, "index"),
+                    "day": int_field(chunk, "day"),
+                    "meal_code": string_field(chunk, "meal_code"),
+                    "meal_label": string_field(chunk, "meal_label"),
+                    "repair_count": chunk_repair_count,
+                    "repair_bucket": repair_count_bucket(chunk_repair_count),
+                    "source_item_count": len(list_field(chunk, "source_item_ids")),
+                }
+            )
+        for timing_issue in chunk_timing_issues(chunk):
+            issue_counts["timing_outliers"] += 1
+            chunk_issues.append(timing_issue)
         failure_stage = string_field(chunk, "failure_stage")
         error = string_field(chunk, "error")
         if failure_stage or error:
@@ -307,8 +370,46 @@ def summarize_chunks(chunks: dict[str, Any] | None, failure: dict[str, Any] | No
         "repair_count": repair_count,
         "failed_chunk_count": failed_chunk_count,
         "decode_failure_count": decode_failure_count,
+        "issue_counts": dict(sorted(issue_counts.items())),
         "review_queue": queue_entries,
     }
+
+
+def chunk_timing_issues(chunk: dict[str, Any]) -> list[dict[str, Any]]:
+    timings = object_field(chunk, "stage_timings")
+    issues: list[dict[str, Any]] = []
+    provider_ms = int_field(timings, "provider_request_ms")
+    total_ms = int_field(timings, "total_ms")
+    base = {
+        "severity": "review",
+        "reason": "timing_outlier",
+        "chunk_index": int_field(chunk, "index"),
+        "day": int_field(chunk, "day"),
+        "meal_code": string_field(chunk, "meal_code"),
+        "meal_label": string_field(chunk, "meal_label"),
+        "source_item_count": len(list_field(chunk, "source_item_ids")),
+    }
+    if provider_ms is not None and provider_ms >= PROVIDER_REQUEST_OUTLIER_MS:
+        issues.append(
+            {
+                **base,
+                "detail": f"provider_request_ms was {provider_ms}",
+                "timing_stage": "provider_request_ms",
+                "timing_ms": provider_ms,
+                "timing_bucket": timing_bucket(provider_ms),
+            }
+        )
+    if total_ms is not None and total_ms >= CHUNK_TOTAL_OUTLIER_MS:
+        issues.append(
+            {
+                **base,
+                "detail": f"chunk total_ms was {total_ms}",
+                "timing_stage": "total_ms",
+                "timing_ms": total_ms,
+                "timing_bucket": timing_bucket(total_ms),
+            }
+        )
+    return issues
 
 
 def missing_artifacts(run_dir: Path, manifest: dict[str, Any] | None) -> list[str]:
@@ -353,6 +454,7 @@ def render_artifact_markdown(summary: dict[str, Any]) -> str:
         f"- Awaiting review: {summary['awaiting_review_count']}",
         f"- Failed: {summary['failed_count']}",
         f"- Review queue items: {len(summary['review_queue'])}",
+        f"- Priority queue items: {len(summary['priority_queue'])}",
         "",
     ]
     if summary["decision_counts"]:
@@ -365,6 +467,46 @@ def render_artifact_markdown(summary: dict[str, Any]) -> str:
         for issue, count in summary["issue_counts"].items():
             lines.append(f"| `{escape_markdown_cell(issue)}` | {count} |")
         lines.append("")
+
+    lines.extend(["## Priority Queue", ""])
+    if not summary["priority_queue"]:
+        lines.append("No priority queue items.")
+    else:
+        lines.extend(
+            [
+                "| Score | Type | Key | Runs | Issues | Suggested Action |",
+                "|---:|---|---|---:|---:|---|",
+            ]
+        )
+        for item in summary["priority_queue"]:
+            lines.append(
+                "| {score} | `{cluster_type}` | `{key}` | {runs} | {issues} | {action} |".format(
+                    score=item["priority_score"],
+                    cluster_type=escape_markdown_cell(str(item["cluster_type"])),
+                    key=escape_markdown_cell(str(item["key"])),
+                    runs=item["run_count"],
+                    issues=item["issue_count"],
+                    action=escape_markdown_cell(str(item["suggested_next_action"])),
+                )
+            )
+    lines.append("")
+
+    lines.extend(["## Clusters", ""])
+    if not summary["clusters"]:
+        lines.append("No clusters.")
+    else:
+        lines.extend(["| Type | Key | Runs | Examples |", "|---|---|---:|---|"])
+        for item in summary["clusters"]:
+            examples = item["example_source_texts"] or item["example_details"]
+            lines.append(
+                "| `{cluster_type}` | `{key}` | {runs} | {examples} |".format(
+                    cluster_type=escape_markdown_cell(str(item["cluster_type"])),
+                    key=escape_markdown_cell(str(item["key"])),
+                    runs=item["run_count"],
+                    examples=escape_markdown_cell("; ".join(str(example) for example in examples)),
+                )
+            )
+    lines.append("")
 
     lines.extend(["## Review Queue", ""])
     if not summary["review_queue"]:
@@ -393,6 +535,18 @@ def read_optional_json(path: Path) -> dict[str, Any] | None:
         raise ArtifactSummaryError(f"{path} is not valid JSON: {err}") from err
     if not isinstance(value, dict):
         raise ArtifactSummaryError(f"{path} must contain a JSON object")
+    return value
+
+
+def read_optional_json_list(path: Path) -> list[Any]:
+    if not path.is_file():
+        return []
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as err:
+        raise ArtifactSummaryError(f"{path} is not valid JSON: {err}") from err
+    if not isinstance(value, list):
+        raise ArtifactSummaryError(f"{path} must contain a JSON array")
     return value
 
 
@@ -450,6 +604,23 @@ def unresolved_detail(row: dict[str, Any]) -> str:
     if reason:
         parts.append(reason)
     return "; ".join(parts) or "unresolved normalized row"
+
+
+def checker_unresolved_detail(item: dict[str, Any]) -> str:
+    food = string_field(item, "food")
+    reason = string_field(item, "unresolved_reason")
+    quantity = string_field(item, "quantity_text")
+    unit = string_field(item, "unit")
+    parts = []
+    if food:
+        parts.append(food)
+    if quantity:
+        parts.append(quantity)
+    if unit:
+        parts.append(unit)
+    if reason:
+        parts.append(reason)
+    return "; ".join(parts) or "checker unresolved item"
 
 
 def review_queue_sort_key(item: dict[str, Any]) -> tuple[int, str, str, int]:

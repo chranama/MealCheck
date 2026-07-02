@@ -297,7 +297,7 @@ python3 scripts/compare-eval-exports.py \
   --markdown /tmp/eval-compare.md
 ```
 
-Summarize run artifacts into a compact review queue:
+Summarize run artifacts into a compact review and priority queue:
 
 ```bash
 python3 scripts/summarize-run-artifacts.py \
@@ -307,9 +307,12 @@ python3 scripts/summarize-run-artifacts.py \
 ```
 
 The run-artifact summary scans canonical artifact directories and queues
-unresolved rows, source-row mismatches, normalization repairs, failed chunks,
-normalization failures, and manifest-listed missing artifacts for operator
-review.
+unresolved rows, checker unresolved foods, source-row mismatches,
+normalization repairs, failed chunks, normalization failures, timing outliers,
+and manifest-listed missing artifacts for operator review. Its JSON and
+Markdown outputs also include deterministic cross-run `clusters` and a
+`priority_queue` over repeated unresolved foods, source phrases, units, failure
+stages, timing outliers, and repair-heavy local-model chunks.
 
 Run the Python operator-tooling tests:
 
