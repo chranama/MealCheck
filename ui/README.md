@@ -40,6 +40,15 @@ npm run test:e2e:local
 npm run build
 ```
 
+The root page has Open Graph metadata for link previews. Regenerate the
+crawler-facing PNG after copy or visual changes with:
+
+```bash
+python3 ui/scripts/generate_og_image.py
+```
+
+The generator requires Pillow.
+
 The default Playwright suite targets the installed Chrome channel and mocks
 backend routes, so it does not require a running Go backend or model provider.
 
