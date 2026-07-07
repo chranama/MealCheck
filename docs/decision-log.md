@@ -11,6 +11,38 @@ the top of this file, immediately below this ordering note, so the latest
 architecture and scope decisions are visible first. Keep superseding decisions
 above the decisions they supersede.
 
+## 2026-07-07: v1.0 Labels The Hosted Local-Model Baseline
+
+Status: Accepted
+
+Decision:
+
+MealCheck v1.0 names the current hosted local-model product shape: Cloudflare
+Pages frontend, Cloudflare Tunnel to the MacBook-hosted Go API, private
+llama.cpp local-model normalization, deterministic source-backed checking,
+reviewed artifacts, and local/self-hosted BYOK extension points.
+
+The v1.0 build label is release metadata. It does not change API payload
+schema versions, guideline source-pack versions, evaluation dataset filenames,
+or tool package ownership. The project-level release marker is the Git tag,
+while package metadata keeps using native package-manager version formats.
+
+Reason:
+
+The current public build is coherent enough to serve as a baseline before
+future product or deployment changes. Naming it v1.0 makes follow-on work easy
+to describe as intentional changes from a known baseline, not a replacement for
+an undefined prototype.
+
+Consequences:
+
+- `ui/package.json` and `ui/package-lock.json` carry version `1.0.0`.
+- Git tag `v1.0` identifies the project-level release.
+- The README identifies the current build as v1.0.
+- Future work must document what it changes relative to this baseline.
+- Contract and schema version bumps remain evidence-driven and separate from
+  the build label.
+
 ## 2026-07-02: Python Tools Live Under `tools`, Not `scripts`
 
 Status: Accepted

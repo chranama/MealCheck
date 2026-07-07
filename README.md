@@ -2,6 +2,9 @@
 
 [![CI](https://github.com/chranama/MealCheck/actions/workflows/ci.yml/badge.svg)](https://github.com/chranama/MealCheck/actions/workflows/ci.yml)
 
+Current build: v1.0. This label names the hosted local-model product baseline;
+contract and schema versions remain separate compatibility identifiers.
+
 MealCheck checks ingredient-level meal plans against user constraints and
 versioned public guideline sources. Plans may come from a user, an LLM, or a
 bounded normalization workflow, but source-backed checks run deterministically.
