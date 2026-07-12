@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/chranama/MealCheck/internal/core"
-	localmodel "github.com/chranama/MealCheck/internal/llm/local"
+	planextract "github.com/chranama/MealCheck/internal/llm/planextract"
 	"github.com/chranama/MealCheck/internal/workflow/checker"
 )
 
@@ -40,7 +40,7 @@ func QualifyStructuredMealPlanText(text string) MealPlanQualificationResult {
 	return qualifyMealPlanJSON(text)
 }
 
-func QualifyMealPlanText(ctx context.Context, providerFactory ProviderFactory, request MealPlanQualificationRequest) (MealPlanQualificationResult, error) {
+func QualifyMealPlanText(ctx context.Context, completerFactory CompleterFactory, request MealPlanQualificationRequest) (MealPlanQualificationResult, error) {
 	text := strings.TrimSpace(request.Text)
 	if text == "" {
 		return qualificationResult(QualificationStatusNotMealPlan, "No candidate meal-plan text was provided.", []string{"text"}), nil
@@ -63,24 +63,24 @@ func QualifyMealPlanText(ctx context.Context, providerFactory ProviderFactory, r
 		}
 	}
 
-	if providerFactory == nil {
-		providerFactory = DefaultProviderFactory
-	}
 	if err := validateProviderConfig(request.Provider); err != nil {
 		return MealPlanQualificationResult{}, err
 	}
-	provider, err := providerFactory(request.Provider)
+	if completerFactory == nil {
+		return MealPlanQualificationResult{}, fmt.Errorf("inference completer factory is required")
+	}
+	completer, err := completerFactory(request.Provider)
 	if err != nil {
 		return MealPlanQualificationResult{}, err
 	}
 
 	if request.Provider.Type == ProviderTypeLocalLlama {
-		_, plan, _, _, decodeErr := requestLocalModelExtraction(ctx, provider, request.Provider, PendingRunInput{
+		_, plan, _, _, decodeErr := requestLocalModelExtraction(ctx, completer, request.Provider, PendingRunInput{
 			Mode:          InputModeLocalModel,
 			Settings:      request.Settings,
 			CandidateText: text,
 			Provider:      request.Provider,
-		}, localmodel.DefaultLocalLlamaPlanID)
+		}, planextract.DefaultLocalLlamaPlanID)
 		if decodeErr != nil {
 			return MealPlanQualificationResult{
 				SchemaVersion: "0.1",
@@ -94,7 +94,7 @@ func QualifyMealPlanText(ctx context.Context, providerFactory ProviderFactory, r
 		result.ProviderUsed = true
 		return result, nil
 	}
-	output, err := provider.Complete(ctx, request.Provider, qualificationMessages(request))
+	output, err := completer.Complete(ctx, request.Provider, mealPlanCompletionRequest(qualificationMessages(request)))
 	if err != nil {
 		return MealPlanQualificationResult{}, err
 	}
@@ -182,7 +182,7 @@ func isTerminalQualificationFailure(result MealPlanQualificationResult) bool {
 	}
 }
 
-func qualificationMessages(request MealPlanQualificationRequest) []ProviderMessage {
+func qualificationMessages(request MealPlanQualificationRequest) []Message {
 	system := strings.Join([]string{
 		"Normalize candidate meal-plan text into MealCheck meal-plan JSON only.",
 		"Return one JSON object matching schema_version 0.1.",
@@ -199,13 +199,13 @@ func qualificationMessages(request MealPlanQualificationRequest) []ProviderMessa
 		"alias_rules":    mealPlanAliasRules(),
 	}
 	payloadJSON, _ := json.MarshalIndent(payload, "", "  ")
-	return []ProviderMessage{
+	return []Message{
 		{Role: "system", Content: system},
 		{Role: "user", Content: string(payloadJSON)},
 	}
 }
 
-func QualificationMessages(request MealPlanQualificationRequest) []ProviderMessage {
+func QualificationMessages(request MealPlanQualificationRequest) []Message {
 	return qualificationMessages(request)
 }
 

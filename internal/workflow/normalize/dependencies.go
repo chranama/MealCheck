@@ -3,40 +3,47 @@ package normalize
 import (
 	"context"
 
-	llm "github.com/chranama/MealCheck/internal/llm/external"
-	localmodel "github.com/chranama/MealCheck/internal/llm/local"
+	"github.com/chranama/MealCheck/internal/llm/inference"
+	planextract "github.com/chranama/MealCheck/internal/llm/planextract"
 	"github.com/chranama/MealCheck/internal/workflow/checker"
 	"github.com/chranama/MealCheck/internal/workflow/mealplan"
 )
 
 type decodePlanResult = mealplan.DecodePlanResult
 
-func DefaultProviderFactory(config ProviderConfig) (Provider, error) {
-	return llm.DefaultProviderFactory(config)
+func mealPlanCompletionRequest(messages []Message) CompletionRequest {
+	return CompletionRequest{
+		Messages: messages,
+		StructuredOutput: &StructuredOutput{
+			Name:           "mealcheck_meal_plan",
+			StrictSchema:   mealplan.StrictMealPlanResponseSchema(),
+			PortableSchema: mealplan.PortableMealPlanResponseSchema(),
+		},
+	}
 }
 
 func validateProviderConfig(config ProviderConfig) error {
-	return llm.ValidateProviderConfig(config)
+	return inference.ValidateProviderConfig(config)
 }
 
 func sanitizeProviderErrorText(message, apiKey string) string {
-	return llm.SanitizeProviderErrorText(message, apiKey)
+	return inference.SanitizeErrorText(message, apiKey)
 }
 
 func normalizeLocalModelSettings(settings checker.Settings) checker.Settings {
-	return localmodel.NormalizeLocalModelSettings(settings)
+	return planextract.NormalizeLocalModelSettings(settings)
 }
 
 func validateLocalModelSettings(settings checker.Settings) error {
-	return localmodel.ValidateLocalModelSettings(settings)
+	return planextract.ValidateLocalModelSettings(settings)
 }
 
 func validateLocalModelInputContract(config Config, text string) error {
-	return localmodel.ValidateLocalModelInputContract(config, text)
+	return planextract.ValidateLocalModelInputContract(config, text)
 }
 
-func requestLocalModelExtraction(ctx context.Context, provider Provider, providerConfig ProviderConfig, input PendingRunInput, planID string) (string, checker.Plan, []LocalLlamaNormalizationRepair, string, error) {
-	return localmodel.RunLocalModelExtraction(ctx, provider, providerConfig, input, planID)
+func requestLocalModelExtraction(ctx context.Context, completer Completer, providerConfig ProviderConfig, input PendingRunInput, planID string) (string, checker.Plan, []LocalLlamaNormalizationRepair, string, error) {
+	return planextract.Extract(ctx, completer, providerConfig, input, planID)
 }
 
 func mealPlanContractPromptBlock() string {

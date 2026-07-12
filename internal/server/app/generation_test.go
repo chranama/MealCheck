@@ -39,7 +39,7 @@ func TestProfileGenerationUsesBYOKProviderAndRedactsSecret(t *testing.T) {
 	var created CreateRunResponse
 	decodeJSON(t, createResp.Body.Bytes(), &created)
 
-	worker := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+	worker := NewWorker(config, store, pending, func(config ProviderConfig) (Completer, error) {
 		return provider, nil
 	})
 	processed, err := worker.ProcessOne(context.Background())
@@ -106,7 +106,7 @@ func TestProfileGenerationRedactsSuccessfulLLMOutputArtifact(t *testing.T) {
 	var created CreateRunResponse
 	decodeJSON(t, createResp.Body.Bytes(), &created)
 
-	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Completer, error) {
 		return provider, nil
 	}).ProcessOne(context.Background())
 	if err != nil {
@@ -190,7 +190,7 @@ func TestPromptGenerationAllowsOneBoundedRepair(t *testing.T) {
 	var created CreateRunResponse
 	decodeJSON(t, createResp.Body.Bytes(), &created)
 
-	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Completer, error) {
 		return provider, nil
 	}).ProcessOne(context.Background())
 	if err != nil {
@@ -245,7 +245,7 @@ func TestPromptGenerationRepairsGeneratedPlanCountMismatch(t *testing.T) {
 	var created CreateRunResponse
 	decodeJSON(t, createResp.Body.Bytes(), &created)
 
-	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Completer, error) {
 		return provider, nil
 	}).ProcessOne(context.Background())
 	if err != nil {
@@ -309,7 +309,7 @@ func TestPromptGenerationMarksUnsupportedUnitsUnresolved(t *testing.T) {
 	var created CreateRunResponse
 	decodeJSON(t, createResp.Body.Bytes(), &created)
 
-	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Completer, error) {
 		return provider, nil
 	}).ProcessOne(context.Background())
 	if err != nil {
@@ -382,7 +382,7 @@ func TestPromptGenerationFailsWithoutRepairAfterInvalidJSON(t *testing.T) {
 	var created CreateRunResponse
 	decodeJSON(t, createResp.Body.Bytes(), &created)
 
-	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Completer, error) {
 		return provider, nil
 	}).ProcessOne(context.Background())
 	if err == nil {
@@ -569,7 +569,7 @@ func TestPromptGenerationWritesRedactedNormalizationDebugArtifact(t *testing.T) 
 	var created CreateRunResponse
 	decodeJSON(t, createResp.Body.Bytes(), &created)
 
-	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Completer, error) {
 		return provider, nil
 	}).ProcessOne(context.Background())
 	if err == nil {
@@ -635,7 +635,7 @@ func TestPromptGenerationWritesRedactedDebugArtifactOnProviderError(t *testing.T
 	var created CreateRunResponse
 	decodeJSON(t, createResp.Body.Bytes(), &created)
 
-	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Completer, error) {
 		return errorProvider{err: fmt.Errorf("Gemini provider returned HTTP 400 Bad Request: schema rejected for %s", config.APIKey)}, nil
 	}).ProcessOne(context.Background())
 	if err == nil {
@@ -699,7 +699,7 @@ func TestBYOKRunFailsClosedWhenPendingInputExpiresBeforeWorkerClaim(t *testing.T
 	decodeJSON(t, createResp.Body.Bytes(), &created)
 
 	providerCalled := false
-	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Completer, error) {
 		providerCalled = true
 		return nil, fmt.Errorf("provider should not be called")
 	}).ProcessOne(context.Background())

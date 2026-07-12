@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	localmodel "github.com/chranama/MealCheck/internal/llm/local"
+	planextract "github.com/chranama/MealCheck/internal/llm/planextract"
 )
 
 func TestBuildSummarizesCompletedAndFailedLocalModelArtifacts(t *testing.T) {
@@ -15,40 +15,40 @@ func TestBuildSummarizesCompletedAndFailedLocalModelArtifacts(t *testing.T) {
 	failedDir := filepath.Join(root, "run_failed")
 	writeJSON(t, filepath.Join(completedDir, "manifest.json"), manifestArtifact{MealCheck: map[string]string{"version": "abc123"}})
 	writeJSON(t, filepath.Join(completedDir, "decision.json"), map[string]string{"decision": "warn"})
-	writeJSON(t, filepath.Join(completedDir, "optional", "local-model-chunks.json"), localmodel.LocalModelExtractionArtifact{
+	writeJSON(t, filepath.Join(completedDir, "optional", "local-model-chunks.json"), planextract.LocalModelExtractionArtifact{
 		SchemaVersion:   "0.1",
 		PlanID:          "local-model-run_completed",
-		Provider:        localmodel.RedactedProviderConfig{Type: "local_llama", Model: "Qwen3-0.6B-Q4_K_M.gguf"},
+		Provider:        planextract.RedactedProviderConfig{Type: "local_llama", Model: "Qwen3-0.6B-Q4_K_M.gguf"},
 		ChunkCount:      1,
 		SourceItemCount: 2,
-		StageTimings:    localmodel.LocalModelExtractionStageTimings{TotalMS: 1200},
-		Chunks: []localmodel.LocalModelChunkArtifact{
+		StageTimings:    planextract.LocalModelExtractionStageTimings{TotalMS: 1200},
+		Chunks: []planextract.LocalModelChunkArtifact{
 			{
 				Index:         0,
 				Day:           1,
 				MealCode:      "b",
 				SourceItemIDs: []int{1, 2},
-				DecodedRows: []localmodel.LocalModelChunkDecodedRowArtifact{
+				DecodedRows: []planextract.LocalModelChunkDecodedRowArtifact{
 					{SourceItemID: 1, Food: "oatmeal", Resolved: true},
 					{SourceItemID: 2, Food: "blueberries", Resolved: true},
 				},
-				Reconciliation: localmodel.LocalModelChunkReconciliationArtifact{RepairCount: 3},
-				StageTimings:   localmodel.LocalModelChunkStageTimings{ProviderRequestMS: 900, TotalMS: 1000},
+				Reconciliation: planextract.LocalModelChunkReconciliationArtifact{RepairCount: 3},
+				StageTimings:   planextract.LocalModelChunkStageTimings{ProviderRequestMS: 900, TotalMS: 1000},
 			},
 		},
 	})
 	writeJSON(t, filepath.Join(failedDir, "debug", "normalization-failure.json"), normalizationFailureArtifact{
 		RunID:      "run_failed",
 		FinalError: "run timed out",
-		LocalModelExtraction: &localmodel.LocalModelExtractionArtifact{
+		LocalModelExtraction: &planextract.LocalModelExtractionArtifact{
 			SchemaVersion:   "0.1",
 			PlanID:          "local-model-run_failed",
-			Provider:        localmodel.RedactedProviderConfig{Type: "local_llama", Model: "Qwen3-0.6B-Q4_K_M.gguf"},
+			Provider:        planextract.RedactedProviderConfig{Type: "local_llama", Model: "Qwen3-0.6B-Q4_K_M.gguf"},
 			ChunkCount:      1,
 			SourceItemCount: 1,
 			FailureStage:    "decode",
 			Error:           "context deadline exceeded",
-			Chunks: []localmodel.LocalModelChunkArtifact{
+			Chunks: []planextract.LocalModelChunkArtifact{
 				{
 					Index:         0,
 					Day:           1,

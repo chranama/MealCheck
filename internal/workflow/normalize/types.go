@@ -2,8 +2,8 @@ package normalize
 
 import (
 	"github.com/chranama/MealCheck/internal/core"
-	llm "github.com/chranama/MealCheck/internal/llm/external"
-	localmodel "github.com/chranama/MealCheck/internal/llm/local"
+	"github.com/chranama/MealCheck/internal/llm/inference"
+	planextract "github.com/chranama/MealCheck/internal/llm/planextract"
 )
 
 type Config = core.Config
@@ -11,12 +11,14 @@ type Run = core.Run
 type PendingRunInput = core.PendingRunInput
 type ProviderConfig = core.ProviderConfig
 type RedactedProviderConfig = core.RedactedProviderConfig
-type Provider = llm.Provider
-type ProviderFactory = llm.ProviderFactory
-type ProviderMessage = llm.ProviderMessage
-type LocalModelExtractionArtifact = localmodel.LocalModelExtractionArtifact
-type LocalModelChunkSourceItemArtifact = localmodel.LocalModelChunkSourceItemArtifact
-type LocalLlamaNormalizationRepair = localmodel.LocalLlamaNormalizationRepair
+type Completer = inference.Completer
+type CompleterFactory = inference.CompleterFactory
+type Message = inference.Message
+type CompletionRequest = inference.Request
+type StructuredOutput = inference.StructuredOutput
+type LocalModelExtractionArtifact = planextract.LocalModelExtractionArtifact
+type LocalModelChunkSourceItemArtifact = planextract.LocalModelChunkSourceItemArtifact
+type LocalLlamaNormalizationRepair = planextract.LocalLlamaNormalizationRepair
 
 const (
 	InputModeManualStructured  = core.InputModeManualStructured
@@ -24,7 +26,7 @@ const (
 	InputModePromptGeneration  = core.InputModePromptGeneration
 	InputModeLocalModel        = core.InputModeLocalModel
 
-	ProviderTypeOpenAI           = llm.ProviderTypeOpenAI
-	ProviderTypeLocalLlama       = llm.ProviderTypeLocalLlama
-	ProviderTypeOpenAICompatible = llm.ProviderTypeOpenAICompatible
+	ProviderTypeOpenAI           = inference.ProviderTypeOpenAI
+	ProviderTypeLocalLlama       = inference.ProviderTypeLocalLlama
+	ProviderTypeOpenAICompatible = inference.ProviderTypeOpenAICompatible
 )

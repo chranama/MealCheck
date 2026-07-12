@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	llm "github.com/chranama/MealCheck/internal/llm/external"
-	localmodel "github.com/chranama/MealCheck/internal/llm/local"
+	"github.com/chranama/MealCheck/internal/llm/inference"
+	planextract "github.com/chranama/MealCheck/internal/llm/planextract"
 	"github.com/chranama/MealCheck/internal/server/access"
 	"github.com/chranama/MealCheck/internal/workflow/checker"
 	"github.com/chranama/MealCheck/internal/workflow/normalize"
@@ -14,12 +14,8 @@ import (
 
 type PreparedRun = normalize.PreparedRun
 type NormalizedPlanReviewArtifact = normalize.NormalizedPlanReviewArtifact
-type qualificationRejectionError = localmodel.QualificationRejectionError
-type localModelInputContractError = localmodel.LocalModelInputContractError
-
-func DefaultProviderFactory(config ProviderConfig) (Provider, error) {
-	return llm.DefaultProviderFactory(config)
-}
+type qualificationRejectionError = planextract.QualificationRejectionError
+type localModelInputContractError = planextract.LocalModelInputContractError
 
 func NewPolicyLimiter() *PolicyLimiter {
 	return access.NewPolicyLimiter()
@@ -29,12 +25,12 @@ func validateSettings(settings checker.Settings) error {
 	return checker.ValidateSettings(settings)
 }
 
-func QualifyMealPlanText(ctx context.Context, providerFactory ProviderFactory, request MealPlanQualificationRequest) (MealPlanQualificationResult, error) {
-	return normalize.QualifyMealPlanText(ctx, providerFactory, request)
+func QualifyMealPlanText(ctx context.Context, completerFactory CompleterFactory, request MealPlanQualificationRequest) (MealPlanQualificationResult, error) {
+	return normalize.QualifyMealPlanText(ctx, completerFactory, request)
 }
 
-func PrepareRunInput(ctx context.Context, config Config, providerFactory ProviderFactory, run Run, input PendingRunInput) (PreparedRun, error) {
-	return normalize.PrepareRunInput(ctx, config, providerFactory, run, input)
+func PrepareRunInput(ctx context.Context, config Config, completerFactory CompleterFactory, run Run, input PendingRunInput) (PreparedRun, error) {
+	return normalize.PrepareRunInput(ctx, config, completerFactory, run, input)
 }
 
 func writeOptionalArtifacts(outDir string, prepared PreparedRun) error {
@@ -54,11 +50,11 @@ func runtimeCasePath(config Config, runID string) string {
 }
 
 func normalizeLocalModelSettings(settings checker.Settings) checker.Settings {
-	return localmodel.NormalizeLocalModelSettings(settings)
+	return planextract.NormalizeLocalModelSettings(settings)
 }
 
 func validateLocalModelMealPlanPreflight(config Config, text string) error {
-	return localmodel.ValidateLocalModelMealPlanPreflight(config, text)
+	return planextract.ValidateLocalModelMealPlanPreflight(config, text)
 }
 
 func validatePublicProviderPolicy(config Config, provider ProviderConfig) error {
@@ -82,7 +78,7 @@ func retryAfterHeader(duration time.Duration) string {
 }
 
 func sanitizeProviderErrorText(message, apiKey string) string {
-	return llm.SanitizeProviderErrorText(message, apiKey)
+	return inference.SanitizeErrorText(message, apiKey)
 }
 
 func jsonRaw(v any) json.RawMessage {

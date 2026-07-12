@@ -81,11 +81,8 @@ func (s *Server) handleQualify(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	providerFactory := s.ProviderFactory
-	if providerFactory == nil {
-		providerFactory = DefaultProviderFactory
-	}
-	qualification, err := QualifyMealPlanText(r.Context(), providerFactory, request)
+	completerFactory := s.CompleterFactory
+	qualification, err := QualifyMealPlanText(r.Context(), completerFactory, request)
 	if err != nil {
 		if isProviderConfigError(err) {
 			writeError(w, r, http.StatusBadRequest, "invalid_request", err.Error(), nil)

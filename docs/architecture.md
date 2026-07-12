@@ -40,6 +40,18 @@ MealCheck separates LLM roles from verification roles:
 Nutrition totals, allergen checks, threshold checks, and source-pack compliance
 must come from deterministic code and source data, not from LLM assertions.
 
+The Go implementation separates model inference into three internal packages:
+
+- `internal/llm/inference` defines the provider-neutral completion contract.
+- `internal/llm/client` implements clients for OpenAI, Anthropic, Gemini,
+  OpenAI-compatible endpoints, llama.cpp, and deterministic test responses.
+- `internal/llm/planextract` owns MealCheck-specific meal-text chunking,
+  prompting, compact decoding, source reconciliation, and extraction evidence.
+
+The server composition root selects a concrete client factory. Server and
+workflow packages depend on the inference contract, and the plan-extraction
+workflow does not import concrete clients.
+
 ## Components
 
 ### Checker Engine
@@ -185,6 +197,19 @@ Initial hosted storage:
 The implementation includes a Postgres-backed store and applies its initial
 schema at server startup. Tests use an in-memory store to avoid requiring local
 Postgres for the normal development suite.
+
+The Go implementation separates hosted state into an application contract and
+concrete adapters:
+
+- `internal/state` defines run, event, invite, queue, and lifecycle operations.
+- `internal/state/postgres` maps those operations to PostgreSQL transactions and
+  SQL.
+- `internal/state/memory` provides equivalent in-process behavior for tests and
+  local smoke workflows.
+
+Server and access packages depend only on `state.Store`. Executable composition
+roots select PostgreSQL or memory explicitly; the state contract does not import
+either adapter.
 
 ## Hosted Local-Model Flow
 

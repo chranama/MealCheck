@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	localmodel "github.com/chranama/MealCheck/internal/llm/local"
+	planextract "github.com/chranama/MealCheck/internal/llm/planextract"
 	"github.com/chranama/MealCheck/internal/workflow/checker"
 )
 
-func prepareLocalModelExtraction(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, events []NormalizationEvent) (checker.Plan, string, []NormalizationEvent, *LocalModelExtractionArtifact, error) {
-	output, plan, repairs, extraction, stage, err := localmodel.RunLocalModelExtractionWithArtifacts(ctx, provider, input.Provider, input, "local-model-"+run.ID)
+func prepareLocalModelExtraction(ctx context.Context, config Config, completer Completer, run Run, input PendingRunInput, events []NormalizationEvent) (checker.Plan, string, []NormalizationEvent, *LocalModelExtractionArtifact, error) {
+	output, plan, repairs, extraction, stage, err := planextract.ExtractWithArtifacts(ctx, completer, input.Provider, input, "local-model-"+run.ID)
 	if err != nil {
 		events = append(events, localModelFailureEvent(stage))
 		return checker.Plan{}, output, events, extraction, writeLocalModelNormalizationFailureAndReturn(config, run, input, events, normalizationFailureDebug{

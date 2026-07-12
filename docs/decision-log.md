@@ -11,6 +11,73 @@ the top of this file, immediately below this ordering note, so the latest
 architecture and scope decisions are visible first. Keep superseding decisions
 above the decisions they supersede.
 
+## 2026-07-12: Hosted State Separates Contract From Storage Adapters
+
+Status: Accepted
+
+Decision:
+
+MealCheck places its hosted operational-state contract in `internal/state`.
+PostgreSQL and in-memory implementations live in `internal/state/postgres` and
+`internal/state/memory`. Server and access packages depend only on
+`state.Store`; executable composition roots and explicit CLI tooling select
+concrete adapters.
+
+Reason:
+
+The previous `internal/server/store` package combined an application-owned state
+contract, a PostgreSQL adapter for an external database service, and an
+in-process test implementation under HTTP-server ownership. Runs, queue claims,
+events, and invite tokens are broader application state, and adapter selection
+is a composition concern rather than part of the contract.
+
+Consequences:
+
+- `cmd/mealcheck-server` selects `memory.New` or `postgres.Open` from runtime
+  configuration.
+- Invite administration selects the PostgreSQL adapter explicitly.
+- PostgreSQL transactions, migrations, queue locking, and SQL behavior remain
+  unchanged.
+- The memory adapter continues to enforce the same run and invite semantics for
+  tests and smoke workflows.
+- Existing store-kind configuration, database URLs, JSON contracts, and status
+  behavior remain compatible.
+
+## 2026-07-12: LLM Packages Name Contracts, Clients, And Plan Extraction
+
+Status: Accepted
+
+Decision:
+
+MealCheck separates its internal LLM code into three responsibility-based Go
+packages. `internal/llm/inference` owns the provider-neutral completion contract,
+`internal/llm/client` owns concrete clients for model-serving endpoints, and
+`internal/llm/planextract` owns MealCheck-specific meal-plan extraction.
+
+The server composition root injects a concrete client factory. Server,
+normalization, and plan-extraction code depend on the inference contract instead
+of selecting clients implicitly. Provider configuration fields and serialized
+provider-type values remain unchanged because they describe external providers
+and are part of existing API and operational contracts.
+
+Reason:
+
+The previous `internal/llm/external` and `internal/llm/local` names conflated
+deployment location, external providers, transport adapters, and MealCheck
+workflow logic. The new names make dependency direction visible and preserve
+"provider" for the external entity that exposes a model endpoint.
+
+Consequences:
+
+- Concrete client selection occurs in composition roots and explicit tooling.
+- Workflow packages receive `inference.Completer` or
+  `inference.CompleterFactory` dependencies.
+- The hosted llama.cpp endpoint is represented by a `client.LlamaCPP` client.
+- Existing JSON fields, environment variables, and provider-type strings remain
+  compatible.
+- Tests use deterministic completer factories without importing hosted workflow
+  internals.
+
 ## 2026-07-07: v1.0 Labels The Hosted Local-Model Baseline
 
 Status: Accepted

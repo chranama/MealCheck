@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	localmodel "github.com/chranama/MealCheck/internal/llm/local"
+	planextract "github.com/chranama/MealCheck/internal/llm/planextract"
 )
 
 type Summary struct {
@@ -28,44 +28,44 @@ type Summary struct {
 }
 
 type RunSummary struct {
-	RunID              string                                      `json:"run_id"`
-	ArtifactDir        string                                      `json:"artifact_dir"`
-	Status             string                                      `json:"status"`
-	Model              string                                      `json:"model,omitempty"`
-	ProviderType       string                                      `json:"provider_type,omitempty"`
-	MealCheckVersion   string                                      `json:"mealcheck_version,omitempty"`
-	PlanID             string                                      `json:"plan_id,omitempty"`
-	SourceItemCount    int                                         `json:"source_item_count"`
-	ChunkCount         int                                         `json:"chunk_count"`
-	FailureStage       string                                      `json:"failure_stage,omitempty"`
-	Error              string                                      `json:"error,omitempty"`
-	Timeout            bool                                        `json:"timeout"`
-	RepairCount        int                                         `json:"repair_count"`
-	DecodeFailureCount int                                         `json:"decode_failure_count"`
-	StageTimings       localmodel.LocalModelExtractionStageTimings `json:"stage_timings"`
-	Chunks             []ChunkSummary                              `json:"chunks"`
+	RunID              string                                       `json:"run_id"`
+	ArtifactDir        string                                       `json:"artifact_dir"`
+	Status             string                                       `json:"status"`
+	Model              string                                       `json:"model,omitempty"`
+	ProviderType       string                                       `json:"provider_type,omitempty"`
+	MealCheckVersion   string                                       `json:"mealcheck_version,omitempty"`
+	PlanID             string                                       `json:"plan_id,omitempty"`
+	SourceItemCount    int                                          `json:"source_item_count"`
+	ChunkCount         int                                          `json:"chunk_count"`
+	FailureStage       string                                       `json:"failure_stage,omitempty"`
+	Error              string                                       `json:"error,omitempty"`
+	Timeout            bool                                         `json:"timeout"`
+	RepairCount        int                                          `json:"repair_count"`
+	DecodeFailureCount int                                          `json:"decode_failure_count"`
+	StageTimings       planextract.LocalModelExtractionStageTimings `json:"stage_timings"`
+	Chunks             []ChunkSummary                               `json:"chunks"`
 }
 
 type ChunkSummary struct {
-	Index             int                                    `json:"index"`
-	Day               int                                    `json:"day"`
-	MealCode          string                                 `json:"meal_code"`
-	MealLabel         string                                 `json:"meal_label,omitempty"`
-	SourceItemCount   int                                    `json:"source_item_count"`
-	DecodedRowCount   int                                    `json:"decoded_row_count"`
-	RepairCount       int                                    `json:"repair_count"`
-	DecodeFailure     bool                                   `json:"decode_failure"`
-	FailureStage      string                                 `json:"failure_stage,omitempty"`
-	StageTimings      localmodel.LocalModelChunkStageTimings `json:"stage_timings"`
-	ProviderRequestMS int64                                  `json:"provider_request_ms"`
-	TotalMS           int64                                  `json:"total_ms"`
+	Index             int                                     `json:"index"`
+	Day               int                                     `json:"day"`
+	MealCode          string                                  `json:"meal_code"`
+	MealLabel         string                                  `json:"meal_label,omitempty"`
+	SourceItemCount   int                                     `json:"source_item_count"`
+	DecodedRowCount   int                                     `json:"decoded_row_count"`
+	RepairCount       int                                     `json:"repair_count"`
+	DecodeFailure     bool                                    `json:"decode_failure"`
+	FailureStage      string                                  `json:"failure_stage,omitempty"`
+	StageTimings      planextract.LocalModelChunkStageTimings `json:"stage_timings"`
+	ProviderRequestMS int64                                   `json:"provider_request_ms"`
+	TotalMS           int64                                   `json:"total_ms"`
 }
 
 type normalizationFailureArtifact struct {
-	RunID                string                                   `json:"run_id"`
-	Provider             localmodel.RedactedProviderConfig        `json:"provider"`
-	FinalError           string                                   `json:"final_error,omitempty"`
-	LocalModelExtraction *localmodel.LocalModelExtractionArtifact `json:"local_model_extraction,omitempty"`
+	RunID                string                                    `json:"run_id"`
+	Provider             planextract.RedactedProviderConfig        `json:"provider"`
+	FinalError           string                                    `json:"final_error,omitempty"`
+	LocalModelExtraction *planextract.LocalModelExtractionArtifact `json:"local_model_extraction,omitempty"`
 }
 
 type manifestArtifact struct {
@@ -233,7 +233,7 @@ func readRunSummary(path string) (RunSummary, bool, error) {
 		run.Timeout = isTimeout(run.Error)
 		return run, true, nil
 	}
-	var extraction localmodel.LocalModelExtractionArtifact
+	var extraction planextract.LocalModelExtractionArtifact
 	if err := readJSON(path, &extraction); err != nil {
 		return RunSummary{}, false, err
 	}
@@ -241,7 +241,7 @@ func readRunSummary(path string) (RunSummary, bool, error) {
 	return run, true, nil
 }
 
-func extractionRunSummary(path string, extraction localmodel.LocalModelExtractionArtifact) RunSummary {
+func extractionRunSummary(path string, extraction planextract.LocalModelExtractionArtifact) RunSummary {
 	runDir := artifactRunDir(path)
 	run := RunSummary{
 		RunID:            runIDFrom(runDir, extraction.PlanID),
@@ -305,7 +305,7 @@ func runIDFrom(runDir, planID string) string {
 	return strings.TrimPrefix(planID, "local-model-")
 }
 
-func finalStatus(runDir string, extraction localmodel.LocalModelExtractionArtifact) string {
+func finalStatus(runDir string, extraction planextract.LocalModelExtractionArtifact) string {
 	if fileExists(filepath.Join(runDir, "decision.json")) {
 		return "completed"
 	}

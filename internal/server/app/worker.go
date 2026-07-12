@@ -14,26 +14,23 @@ import (
 )
 
 type Worker struct {
-	Config          Config
-	Store           Store
-	Pending         *PendingInputs
-	ProviderFactory ProviderFactory
-	ID              string
+	Config           Config
+	Store            Store
+	Pending          *PendingInputs
+	CompleterFactory CompleterFactory
+	ID               string
 }
 
-func NewWorker(config Config, store Store, pending *PendingInputs, providerFactory ProviderFactory) *Worker {
+func NewWorker(config Config, store Store, pending *PendingInputs, completerFactory CompleterFactory) *Worker {
 	if pending == nil {
 		pending = NewPendingInputs()
 	}
-	if providerFactory == nil {
-		providerFactory = DefaultProviderFactory
-	}
 	return &Worker{
-		Config:          config,
-		Store:           store,
-		Pending:         pending,
-		ProviderFactory: providerFactory,
-		ID:              "worker-" + newID(),
+		Config:           config,
+		Store:            store,
+		Pending:          pending,
+		CompleterFactory: completerFactory,
+		ID:               "worker-" + newID(),
 	}
 }
 
@@ -75,7 +72,7 @@ func (w *Worker) ProcessOne(ctx context.Context) (bool, error) {
 		casePath := run.CasePath
 		if pendingInput, ok := w.Pending.Take(run.ID); ok {
 			processedPending = true
-			prepared, err = PrepareRunInput(runCtx, w.Config, w.ProviderFactory, run, pendingInput)
+			prepared, err = PrepareRunInput(runCtx, w.Config, w.CompleterFactory, run, pendingInput)
 			if err != nil {
 				done <- workerProcessResult{err: err}
 				return

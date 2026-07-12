@@ -2,8 +2,8 @@ package access
 
 import (
 	"github.com/chranama/MealCheck/internal/core"
-	llm "github.com/chranama/MealCheck/internal/llm/external"
-	"github.com/chranama/MealCheck/internal/server/store"
+	"github.com/chranama/MealCheck/internal/llm/inference"
+	"github.com/chranama/MealCheck/internal/state"
 )
 
 type Config = core.Config
@@ -11,14 +11,14 @@ type InviteToken = core.InviteToken
 type ProviderConfig = core.ProviderConfig
 
 const (
-	ProviderTypeOpenAICompatible = llm.ProviderTypeOpenAICompatible
-	ProviderTypeLocalLlama       = llm.ProviderTypeLocalLlama
+	ProviderTypeOpenAICompatible = inference.ProviderTypeOpenAICompatible
+	ProviderTypeLocalLlama       = inference.ProviderTypeLocalLlama
 
 	AccessModePublicBYOK     = core.AccessModePublicBYOK
 	AccessModeInviteRequired = core.AccessModeInviteRequired
 )
 
 var (
-	ErrInviteUnavailable = store.ErrInviteUnavailable
-	ErrInviteRunLimit    = store.ErrInviteRunLimit
+	ErrInviteUnavailable = state.ErrInviteUnavailable
+	ErrInviteRunLimit    = state.ErrInviteRunLimit
 )

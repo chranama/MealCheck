@@ -77,7 +77,7 @@ func TestQualifyEndpointUsesBYOKProviderForTextNormalization(t *testing.T) {
 	seeded := seededCase(t, root)
 	secret := "sk-qualify-endpoint-secret"
 	provider := &fakeProvider{responses: []string{testMealPlanJSON(false)}}
-	server.ProviderFactory = func(config ProviderConfig) (Provider, error) {
+	server.CompleterFactory = func(config ProviderConfig) (Completer, error) {
 		if config.Type != ProviderTypeOpenAI {
 			t.Fatalf("provider type = %q, want openai", config.Type)
 		}
@@ -130,7 +130,7 @@ func TestQualifyEndpointUsesHostedLocalModelWithoutClientProvider(t *testing.T) 
 	server := NewServer(config, store)
 	seeded := seededCase(t, root)
 	provider := &fakeProvider{responses: compactLocalMealPlanJSONResponses()}
-	server.ProviderFactory = func(config ProviderConfig) (Provider, error) {
+	server.CompleterFactory = func(config ProviderConfig) (Completer, error) {
 		if config.Type != ProviderTypeLocalLlama {
 			t.Fatalf("provider type = %q, want %q", config.Type, ProviderTypeLocalLlama)
 		}

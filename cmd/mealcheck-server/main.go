@@ -12,9 +12,11 @@ import (
 	"time"
 
 	"github.com/chranama/MealCheck/internal/core"
-	llm "github.com/chranama/MealCheck/internal/llm/external"
+	"github.com/chranama/MealCheck/internal/llm/client"
 	"github.com/chranama/MealCheck/internal/server/app"
-	"github.com/chranama/MealCheck/internal/server/store"
+	"github.com/chranama/MealCheck/internal/state"
+	"github.com/chranama/MealCheck/internal/state/memory"
+	"github.com/chranama/MealCheck/internal/state/postgres"
 )
 
 func main() {
@@ -62,25 +64,25 @@ func run(args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	store, err := store.OpenStore(ctx, config)
+	stateStore, err := openStateStore(ctx, config)
 	if err != nil {
 		return err
 	}
-	defer store.Close()
+	defer stateStore.Close()
 
 	pendingInputs := app.NewPendingInputs()
-	providerFactory := llm.DefaultProviderFactory
+	completerFactory := client.New
 	if path := os.Getenv("MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH"); path != "" {
-		factory, err := llm.StaticResponseProviderFactoryFromFile(path)
+		factory, err := client.StaticResponseFactoryFromFile(path)
 		if err != nil {
 			return fmt.Errorf("load fake provider response: %w", err)
 		}
-		providerFactory = factory
+		completerFactory = factory
 	}
-	worker := app.NewWorker(config, store, pendingInputs, providerFactory)
-	cleanup := app.CleanupJob{Config: config, Store: store, Pending: pendingInputs}
-	hostedServer := app.NewServer(config, store, pendingInputs)
-	hostedServer.ProviderFactory = providerFactory
+	worker := app.NewWorker(config, stateStore, pendingInputs, completerFactory)
+	cleanup := app.CleanupJob{Config: config, Store: stateStore, Pending: pendingInputs}
+	hostedServer := app.NewServer(config, stateStore, pendingInputs)
+	hostedServer.CompleterFactory = completerFactory
 	go worker.Run(ctx)
 	go cleanup.Run(ctx)
 
@@ -106,5 +108,16 @@ func run(args []string) error {
 			return nil
 		}
 		return err
+	}
+}
+
+func openStateStore(ctx context.Context, config core.Config) (state.Store, error) {
+	switch config.StoreKind {
+	case "memory":
+		return memory.New(), nil
+	case "postgres", "":
+		return postgres.Open(ctx, config.DatabaseURL)
+	default:
+		return nil, fmt.Errorf("unsupported store kind %q", config.StoreKind)
 	}
 }

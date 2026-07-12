@@ -30,9 +30,12 @@ type NormalizationEvent struct {
 	CreatedAt string `json:"created_at"`
 }
 
-func PrepareRunInput(ctx context.Context, config Config, providerFactory ProviderFactory, run Run, input PendingRunInput) (PreparedRun, error) {
+func PrepareRunInput(ctx context.Context, config Config, completerFactory CompleterFactory, run Run, input PendingRunInput) (PreparedRun, error) {
 	if input.Mode == "" {
 		return PreparedRun{}, fmt.Errorf("input mode is required")
+	}
+	if input.Mode != InputModeManualStructured && completerFactory == nil {
+		return PreparedRun{}, fmt.Errorf("inference completer factory is required")
 	}
 	if input.Mode == InputModeLocalModel {
 		input.Settings = normalizeLocalModelSettings(input.Settings)
@@ -56,7 +59,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 	var repairAttempted bool
 	var events []NormalizationEvent
 	var providerRedacted RedactedProviderConfig
-	var provider Provider
+	var completer Completer
 	var localModelExtraction *LocalModelExtractionArtifact
 	usedProvider := false
 
@@ -69,7 +72,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		events = append(events, normalizationEvent("manual_plan_received", "manual structured meal plan received"))
 	case InputModeProfileGeneration, InputModePromptGeneration:
 		var err error
-		provider, err = providerFactory(input.Provider)
+		completer, err = completerFactory(input.Provider)
 		if err != nil {
 			return PreparedRun{}, err
 		}
@@ -79,7 +82,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		if err != nil {
 			return PreparedRun{}, err
 		}
-		llmOutput, err = provider.Complete(ctx, input.Provider, messages)
+		llmOutput, err = completer.Complete(ctx, input.Provider, mealPlanCompletionRequest(messages))
 		if err != nil {
 			events = append(events, normalizationEvent("provider_request_failed", "provider request failed before returning meal-plan JSON"))
 			return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
@@ -101,7 +104,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 			}
 			repairDecodeErr := sanitizeRepairPromptError(err, input.Provider.APIKey)
 			repairAttempted = true
-			repairOutput, repairErr = provider.Complete(ctx, input.Provider, repairMessages(input, sanitizeDebugArtifactText(llmOutput, input.Provider.APIKey), repairDecodeErr))
+			repairOutput, repairErr = completer.Complete(ctx, input.Provider, mealPlanCompletionRequest(repairMessages(input, sanitizeDebugArtifactText(llmOutput, input.Provider.APIKey), repairDecodeErr)))
 			if repairErr != nil {
 				return PreparedRun{}, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
 					InitialOutput: initialOutput,
@@ -136,13 +139,13 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 		}
 	case InputModeLocalModel:
 		var err error
-		provider, err = providerFactory(input.Provider)
+		completer, err = completerFactory(input.Provider)
 		if err != nil {
 			return PreparedRun{}, err
 		}
 		providerRedacted = redactProvider(input.Provider)
 		usedProvider = true
-		plan, llmOutput, events, localModelExtraction, err = prepareLocalModelExtraction(ctx, config, provider, run, input, events)
+		plan, llmOutput, events, localModelExtraction, err = prepareLocalModelExtraction(ctx, config, completer, run, input, events)
 		if err != nil {
 			return PreparedRun{}, err
 		}
@@ -152,7 +155,7 @@ func PrepareRunInput(ctx context.Context, config Config, providerFactory Provide
 
 	if usedProvider {
 		var err error
-		plan, llmOutput, repairOutput, repairErr, repairAttempted, events, err = normalizeGeneratedPlanPostDecode(ctx, config, provider, run, input, plan, llmOutput, initialOutput, initialErr, repairOutput, repairErr, repairAttempted, events, localModelExtraction)
+		plan, llmOutput, repairOutput, repairErr, repairAttempted, events, err = normalizeGeneratedPlanPostDecode(ctx, config, completer, run, input, plan, llmOutput, initialOutput, initialErr, repairOutput, repairErr, repairAttempted, events, localModelExtraction)
 		if err != nil {
 			return PreparedRun{}, err
 		}

@@ -184,16 +184,16 @@ func readAll(t *testing.T, r *http.Request) []byte {
 	return b
 }
 
-func (p *fakeProvider) Complete(_ context.Context, config ProviderConfig, messages []ProviderMessage) (string, error) {
+func (p *fakeProvider) Complete(_ context.Context, config ProviderConfig, request CompletionRequest) (string, error) {
 	if config.APIKey != "" {
-		for _, message := range messages {
+		for _, message := range request.Messages {
 			if strings.Contains(message.Content, config.APIKey) {
 				return "", fmt.Errorf("provider key leaked into prompt")
 			}
 		}
 	}
 	p.configs = append(p.configs, config)
-	p.messages = append(p.messages, append([]ProviderMessage(nil), messages...))
+	p.messages = append(p.messages, append([]Message(nil), request.Messages...))
 	if p.calls >= len(p.responses) {
 		return "", fmt.Errorf("fake provider response exhausted")
 	}
@@ -202,7 +202,7 @@ func (p *fakeProvider) Complete(_ context.Context, config ProviderConfig, messag
 	return response, nil
 }
 
-func (p errorProvider) Complete(context.Context, ProviderConfig, []ProviderMessage) (string, error) {
+func (p errorProvider) Complete(context.Context, ProviderConfig, CompletionRequest) (string, error) {
 	return "", p.err
 }
 

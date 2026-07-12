@@ -3,12 +3,12 @@ package app
 import "net/http"
 
 type Server struct {
-	Config          Config
-	Store           Store
-	Pending         *PendingInputs
-	Policy          *PolicyLimiter
-	ProviderFactory ProviderFactory
-	mux             *http.ServeMux
+	Config           Config
+	Store            Store
+	Pending          *PendingInputs
+	Policy           *PolicyLimiter
+	CompleterFactory CompleterFactory
+	mux              *http.ServeMux
 }
 
 func NewServer(config Config, store Store, pending ...*PendingInputs) *Server {
@@ -16,7 +16,7 @@ func NewServer(config Config, store Store, pending ...*PendingInputs) *Server {
 	if len(pending) > 0 && pending[0] != nil {
 		pendingInputs = pending[0]
 	}
-	s := &Server{Config: config, Store: store, Pending: pendingInputs, Policy: NewPolicyLimiter(), ProviderFactory: DefaultProviderFactory, mux: http.NewServeMux()}
+	s := &Server{Config: config, Store: store, Pending: pendingInputs, Policy: NewPolicyLimiter(), mux: http.NewServeMux()}
 	s.routes()
 	return s
 }

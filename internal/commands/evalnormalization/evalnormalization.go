@@ -17,8 +17,9 @@ import (
 
 	"github.com/chranama/MealCheck/internal/commands/evalexport"
 	"github.com/chranama/MealCheck/internal/core"
-	llm "github.com/chranama/MealCheck/internal/llm/external"
-	localmodel "github.com/chranama/MealCheck/internal/llm/local"
+	"github.com/chranama/MealCheck/internal/llm/client"
+	"github.com/chranama/MealCheck/internal/llm/inference"
+	planextract "github.com/chranama/MealCheck/internal/llm/planextract"
 	"github.com/chranama/MealCheck/internal/workflow/checker"
 	"github.com/chranama/MealCheck/internal/workflow/normalize"
 )
@@ -282,7 +283,7 @@ type runOptions struct {
 	Mode              string
 	LocalModelRepeats int
 	ProviderConfig    core.ProviderConfig
-	ProviderFactory   llm.ProviderFactory
+	CompleterFactory  inference.CompleterFactory
 }
 
 // Run executes the P0 meal-plan normalization evaluation.
@@ -315,7 +316,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 
 	envConfig := core.ConfigFromEnv(*root)
 	providerConfig := core.ProviderConfig{
-		Type:      llm.ProviderTypeLocalLlama,
+		Type:      inference.ProviderTypeLocalLlama,
 		BaseURL:   firstNonEmpty(*localModelBaseURL, envConfig.LocalModelBaseURL),
 		Model:     firstNonEmpty(*localModelName, envConfig.LocalModelName),
 		MaxTokens: firstPositiveInt(*localModelMaxOutputTokens, envConfig.LocalModelMaxOutputTokens),
@@ -331,7 +332,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		Mode:              *mode,
 		LocalModelRepeats: *localModelRepeats,
 		ProviderConfig:    providerConfig,
-		ProviderFactory:   llm.DefaultProviderFactory,
+		CompleterFactory:  client.New,
 	})
 	if err != nil {
 		fmt.Fprintf(stderr, "mealcheck eval-normalization failed: %v\n", err)
@@ -376,10 +377,10 @@ func run(opts runOptions) (result, error) {
 	}
 	if mode == modeLocalLlama {
 		if opts.ProviderConfig.Type == "" {
-			opts.ProviderConfig.Type = llm.ProviderTypeLocalLlama
+			opts.ProviderConfig.Type = inference.ProviderTypeLocalLlama
 		}
-		if opts.ProviderConfig.Type != llm.ProviderTypeLocalLlama {
-			return result{}, fmt.Errorf("local-llama mode requires provider type %q", llm.ProviderTypeLocalLlama)
+		if opts.ProviderConfig.Type != inference.ProviderTypeLocalLlama {
+			return result{}, fmt.Errorf("local-llama mode requires provider type %q", inference.ProviderTypeLocalLlama)
 		}
 		if strings.TrimSpace(opts.ProviderConfig.Model) == "" {
 			return result{}, fmt.Errorf("local-llama mode requires -local-model-name or MEALCHECK_LOCAL_MODEL_NAME")
@@ -389,8 +390,8 @@ func run(opts runOptions) (result, error) {
 	if err != nil {
 		return result{}, err
 	}
-	if opts.ProviderFactory == nil {
-		opts.ProviderFactory = llm.DefaultProviderFactory
+	if opts.CompleterFactory == nil {
+		opts.CompleterFactory = client.New
 	}
 
 	var m manifest
@@ -461,7 +462,7 @@ func run(opts runOptions) (result, error) {
 			}
 			row.LocalModelRepeats = localModelRepeats
 			for repeatIndex := 1; repeatIndex <= localModelRepeats; repeatIndex++ {
-				localMessages, localMetrics, localRepairs, localFailure := evaluateLocalModelSuccessCase(c, opts.ProviderFactory, opts.ProviderConfig)
+				localMessages, localMetrics, localRepairs, localFailure := evaluateLocalModelSuccessCase(c, opts.CompleterFactory, opts.ProviderConfig)
 				repeat := &r.LocalModelRepeatSummary[repeatIndex-1]
 				recordLocalModelAttempt(&r, repeat, c, localMetrics, localRepairs, localMessages, localFailure)
 				rowRate := ratio(localMetrics.MatchedRows, len(c.Expected.SourceItems))
@@ -711,7 +712,7 @@ func evaluateSuccessCase(c successCase) (caseMismatch, int, bool) {
 		mismatch.Messages = append(mismatch.Messages, "expected.source_items must not be empty")
 	}
 
-	actualItems := localmodel.LocalLlamaResolvedSourceItems(c.InputText)
+	actualItems := planextract.LocalLlamaResolvedSourceItems(c.InputText)
 	if len(actualItems) != len(c.Expected.SourceItems) {
 		mismatch.Messages = append(mismatch.Messages, fmt.Sprintf("source_inventory_count_failed: got %d source item(s), want %d", len(actualItems), len(c.Expected.SourceItems)))
 	}
@@ -731,7 +732,7 @@ func evaluateSuccessCase(c successCase) (caseMismatch, int, bool) {
 	}
 
 	adapterOK := true
-	plan, err := localmodel.DecodeLocalLlamaCompactPlan(compactRowsJSON(c.Expected.SourceItems), "p0-normalization-eval")
+	plan, err := planextract.DecodeLocalLlamaCompactPlan(compactRowsJSON(c.Expected.SourceItems), "p0-normalization-eval")
 	if err != nil {
 		adapterOK = false
 		mismatch.Messages = append(mismatch.Messages, fmt.Sprintf("adapter_validation_failed: %v", err))
@@ -743,8 +744,8 @@ func evaluateSuccessCase(c successCase) (caseMismatch, int, bool) {
 	return mismatch, matchedItems, adapterOK
 }
 
-func evaluateLocalModelSuccessCase(c successCase, providerFactory llm.ProviderFactory, providerConfig core.ProviderConfig) ([]string, rowComparisonMetrics, int, string) {
-	provider, err := providerFactory(providerConfig)
+func evaluateLocalModelSuccessCase(c successCase, completerFactory inference.CompleterFactory, providerConfig core.ProviderConfig) ([]string, rowComparisonMetrics, int, string) {
+	completer, err := completerFactory(providerConfig)
 	if err != nil {
 		return []string{fmt.Sprintf("local_model_provider_failed: %v", err)}, rowComparisonMetrics{}, 0, "provider"
 	}
@@ -754,7 +755,7 @@ func evaluateLocalModelSuccessCase(c successCase, providerFactory llm.ProviderFa
 		ctx, cancel = context.WithTimeout(ctx, providerConfig.Timeout)
 		defer cancel()
 	}
-	_, plan, repairs, stage, err := localmodel.RunLocalModelExtraction(ctx, provider, providerConfig, core.PendingRunInput{
+	_, plan, repairs, stage, err := planextract.Extract(ctx, completer, providerConfig, core.PendingRunInput{
 		Mode:          core.InputModeLocalModel,
 		CandidateText: c.InputText,
 		Provider:      providerConfig,
@@ -872,7 +873,7 @@ func finalizeRepeatSummaries(summaries []repeatSummary) {
 	}
 }
 
-func compareSourceItem(actual localmodel.LocalLlamaSourceItem, expected expectedSourceItem) []string {
+func compareSourceItem(actual planextract.LocalLlamaSourceItem, expected expectedSourceItem) []string {
 	var messages []string
 	if actual.ID != expected.SourceItemID {
 		messages = append(messages, fmt.Sprintf("id_failed: got %d, want %d", actual.ID, expected.SourceItemID))
@@ -913,7 +914,7 @@ func evaluateFailureCase(c failureCase) caseMismatch {
 			mismatch.Messages = append(mismatch.Messages, fmt.Sprintf("qualification_status_failed: got %q, want %q", qualification.Status, c.ExpectedFailure.Status))
 		}
 	case "source_inventory":
-		items := localmodel.LocalLlamaResolvedSourceItems(c.InputText)
+		items := planextract.LocalLlamaResolvedSourceItems(c.InputText)
 		if len(items) != 0 {
 			mismatch.Messages = append(mismatch.Messages, fmt.Sprintf("source_inventory_failed: got %d source item(s), want 0", len(items)))
 		}

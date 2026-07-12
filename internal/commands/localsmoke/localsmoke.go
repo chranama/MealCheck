@@ -19,9 +19,11 @@ import (
 
 	"github.com/chranama/MealCheck/internal/commands/localmodelsummary"
 	"github.com/chranama/MealCheck/internal/core"
-	llm "github.com/chranama/MealCheck/internal/llm/external"
+	llmclient "github.com/chranama/MealCheck/internal/llm/client"
+	"github.com/chranama/MealCheck/internal/llm/inference"
 	"github.com/chranama/MealCheck/internal/server/app"
-	"github.com/chranama/MealCheck/internal/server/store"
+	"github.com/chranama/MealCheck/internal/state"
+	"github.com/chranama/MealCheck/internal/state/memory"
 	"github.com/chranama/MealCheck/internal/workflow/checker"
 )
 
@@ -145,7 +147,7 @@ func (r *runner) cliDeploymentSmoke() error {
 func (r *runner) hostedSmoke() error {
 	r.logf("hosted: start in-memory API harness")
 	config := smokeConfig(r.root, r.workDir)
-	store := store.NewMemoryStore()
+	store := memory.New()
 	pending := app.NewPendingInputs()
 	server := app.NewServer(config, store, pending)
 	httpServer := httptest.NewServer(server.Handler())
@@ -173,7 +175,7 @@ func (r *runner) hostedSmoke() error {
 		return err
 	}
 	r.logf("hosted: process checked-in seeded run")
-	if err := processOne(config, store, pending, llm.DefaultProviderFactory); err != nil {
+	if err := processOne(config, store, pending, llmclient.New); err != nil {
 		return err
 	}
 	if err := verifyCompletedRun(client, httpServer.URL, seededRunID); err != nil {
@@ -201,7 +203,7 @@ func (r *runner) hostedSmoke() error {
 	if err != nil {
 		return err
 	}
-	if err := processOne(config, store, pending, llm.StaticResponseProviderFactory(string(response))); err != nil {
+	if err := processOne(config, store, pending, llmclient.StaticResponseFactory(string(response))); err != nil {
 		return err
 	}
 	if err := verifyCompletedRun(client, httpServer.URL, byokRunID); err != nil {
@@ -217,7 +219,7 @@ func (r *runner) p2OperationalSmoke() error {
 	r.logf("p2: verify queue-full response")
 	queueConfig := smokeConfig(r.root, filepath.Join(r.workDir, "p2-queue"))
 	queueConfig.QueueSize = 1
-	queueStore := store.NewMemoryStore()
+	queueStore := memory.New()
 	queueServer := httptest.NewServer(app.NewServer(queueConfig, queueStore, app.NewPendingInputs()).Handler())
 	defer queueServer.Close()
 	client := queueServer.Client()
@@ -232,7 +234,7 @@ func (r *runner) p2OperationalSmoke() error {
 	r.logf("p2: verify local-model unavailable response")
 	unavailableConfig := localModelSmokeConfig(r.root, filepath.Join(r.workDir, "p2-unavailable"))
 	unavailableConfig.LocalModelEnabled = false
-	unavailableServer := httptest.NewServer(app.NewServer(unavailableConfig, store.NewMemoryStore(), app.NewPendingInputs()).Handler())
+	unavailableServer := httptest.NewServer(app.NewServer(unavailableConfig, memory.New(), app.NewPendingInputs()).Handler())
 	defer unavailableServer.Close()
 	var seeded checker.Case
 	if err := readJSON(filepath.Join(r.root, seededCasePath), &seeded); err != nil {
@@ -245,7 +247,7 @@ func (r *runner) p2OperationalSmoke() error {
 
 	r.logf("p2: verify one active local-model claim")
 	activeConfig := localModelSmokeConfig(r.root, filepath.Join(r.workDir, "p2-active-local-model"))
-	activeStore := store.NewMemoryStore()
+	activeStore := memory.New()
 	activePending := app.NewPendingInputs()
 	activeServer := httptest.NewServer(app.NewServer(activeConfig, activeStore, activePending).Handler())
 	defer activeServer.Close()
@@ -285,7 +287,7 @@ func (r *runner) p2OperationalSmoke() error {
 	r.logf("p2: verify timeout failure progress")
 	timeoutConfig := localModelSmokeConfig(r.root, filepath.Join(r.workDir, "p2-timeout"))
 	timeoutConfig.RunTimeout = 20 * time.Millisecond
-	timeoutStore := store.NewMemoryStore()
+	timeoutStore := memory.New()
 	timeoutPending := app.NewPendingInputs()
 	timeoutServer := httptest.NewServer(app.NewServer(timeoutConfig, timeoutStore, timeoutPending).Handler())
 	defer timeoutServer.Close()
@@ -294,7 +296,7 @@ func (r *runner) p2OperationalSmoke() error {
 		return err
 	}
 	slowProvider := &sleepingProvider{delay: 200 * time.Millisecond, done: make(chan struct{})}
-	processed, err := app.NewWorker(timeoutConfig, timeoutStore, timeoutPending, func(core.ProviderConfig) (llm.Provider, error) {
+	processed, err := app.NewWorker(timeoutConfig, timeoutStore, timeoutPending, func(core.ProviderConfig) (inference.Completer, error) {
 		return slowProvider, nil
 	}).ProcessOne(context.Background())
 	if !processed {
@@ -322,7 +324,7 @@ func (r *runner) p2OperationalSmoke() error {
 
 	r.logf("p2: verify local-model artifact writes and summary")
 	localConfig := localModelSmokeConfig(r.root, filepath.Join(r.workDir, "p2-local-model"))
-	localStore := store.NewMemoryStore()
+	localStore := memory.New()
 	localPending := app.NewPendingInputs()
 	localServer := httptest.NewServer(app.NewServer(localConfig, localStore, localPending).Handler())
 	defer localServer.Close()
@@ -335,7 +337,7 @@ func (r *runner) p2OperationalSmoke() error {
 		`{"i":[[4,"chicken breast",4,"oz"],[5,"brown rice",1,"cup"],[6,"broccoli",1,"cup"]]}`,
 		`{"i":[[7,"salmon",4,"oz"],[8,"sweet potato",1,"cup"],[9,"spinach",1,"cup"]]}`,
 	}
-	if err := processOne(localConfig, localStore, localPending, func(core.ProviderConfig) (llm.Provider, error) {
+	if err := processOne(localConfig, localStore, localPending, func(core.ProviderConfig) (inference.Completer, error) {
 		return &sequenceProvider{responses: responses}, nil
 	}); err != nil {
 		return err
@@ -487,8 +489,8 @@ func localModelRunBody(settings checker.Settings) string {
 	return string(body)
 }
 
-func processOne(config core.Config, store store.Store, pending *app.PendingInputs, providerFactory llm.ProviderFactory) error {
-	processed, err := app.NewWorker(config, store, pending, providerFactory).ProcessOne(context.Background())
+func processOne(config core.Config, store state.Store, pending *app.PendingInputs, completerFactory inference.CompleterFactory) error {
+	processed, err := app.NewWorker(config, store, pending, completerFactory).ProcessOne(context.Background())
 	if err != nil {
 		return err
 	}
@@ -503,7 +505,7 @@ type sequenceProvider struct {
 	index     int
 }
 
-func (p *sequenceProvider) Complete(_ context.Context, _ core.ProviderConfig, _ []llm.ProviderMessage) (string, error) {
+func (p *sequenceProvider) Complete(_ context.Context, _ core.ProviderConfig, _ inference.Request) (string, error) {
 	if p.index >= len(p.responses) {
 		return "", fmt.Errorf("sequence provider exhausted")
 	}
@@ -517,7 +519,7 @@ type sleepingProvider struct {
 	done  chan struct{}
 }
 
-func (p *sleepingProvider) Complete(ctx context.Context, _ core.ProviderConfig, _ []llm.ProviderMessage) (string, error) {
+func (p *sleepingProvider) Complete(ctx context.Context, _ core.ProviderConfig, _ inference.Request) (string, error) {
 	if p.done != nil {
 		defer close(p.done)
 	}

@@ -48,7 +48,7 @@ func TestLocalModelRunUsesServerOwnedProvider(t *testing.T) {
 		t.Fatalf("queued run input mode = %q, want %q", queuedRun.InputMode, InputModeLocalModel)
 	}
 
-	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Completer, error) {
 		if config.Type != ProviderTypeLocalLlama {
 			t.Fatalf("provider type = %q, want %q", config.Type, ProviderTypeLocalLlama)
 		}
@@ -310,7 +310,7 @@ func TestLocalModelRunAcceptsMissingQuantitiesAsUnresolvedRows(t *testing.T) {
 	var created CreateRunResponse
 	decodeJSON(t, createResp.Body.Bytes(), &created)
 
-	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Completer, error) {
 		return provider, nil
 	}).ProcessOne(context.Background())
 	if err != nil {
@@ -376,7 +376,7 @@ func TestLocalModelReviewCorrectionUpdatesPlanAndArtifacts(t *testing.T) {
 	}
 	var created CreateRunResponse
 	decodeJSON(t, createResp.Body.Bytes(), &created)
-	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Completer, error) {
 		return provider, nil
 	}).ProcessOne(context.Background())
 	if err != nil {
@@ -569,7 +569,7 @@ func TestLocalModelRunReportsFriendlyPostModelNormalizationFailure(t *testing.T)
 	var created CreateRunResponse
 	decodeJSON(t, createResp.Body.Bytes(), &created)
 
-	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Provider, error) {
+	processed, err := NewWorker(config, store, pending, func(config ProviderConfig) (Completer, error) {
 		return provider, nil
 	}).ProcessOne(context.Background())
 	if err == nil {

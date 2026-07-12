@@ -8,7 +8,7 @@ import (
 	"github.com/chranama/MealCheck/internal/workflow/checker"
 )
 
-func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provider Provider, run Run, input PendingRunInput, plan checker.Plan, llmOutput string, initialOutput string, initialErr error, repairOutput string, repairErr error, repairAttempted bool, events []NormalizationEvent, localModelExtraction *LocalModelExtractionArtifact) (checker.Plan, string, string, error, bool, []NormalizationEvent, error) {
+func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, completer Completer, run Run, input PendingRunInput, plan checker.Plan, llmOutput string, initialOutput string, initialErr error, repairOutput string, repairErr error, repairAttempted bool, events []NormalizationEvent, localModelExtraction *LocalModelExtractionArtifact) (checker.Plan, string, string, error, bool, []NormalizationEvent, error) {
 	if normalizedPlan, changed := markUnsupportedUnitsUnresolved(plan); changed {
 		plan = normalizedPlan
 		events = append(events, normalizationEvent("unsupported_units_marked_unresolved", "provider numeric items with unsupported units were preserved as unresolved quantities"))
@@ -39,7 +39,7 @@ func normalizeGeneratedPlanPostDecode(ctx context.Context, config Config, provid
 		}
 
 		repairAttempted = true
-		repairOutput, repairErr = provider.Complete(ctx, input.Provider, repairMessages(input, sanitizeDebugArtifactText(llmOutput, input.Provider.APIKey), sanitizeRepairPromptError(err, input.Provider.APIKey)))
+		repairOutput, repairErr = completer.Complete(ctx, input.Provider, mealPlanCompletionRequest(repairMessages(input, sanitizeDebugArtifactText(llmOutput, input.Provider.APIKey), sanitizeRepairPromptError(err, input.Provider.APIKey))))
 		if repairErr != nil {
 			return checker.Plan{}, llmOutput, repairOutput, repairErr, repairAttempted, events, writeNormalizationFailureAndReturn(config, run, input.Provider, events, normalizationFailureDebug{
 				InitialOutput:        initialOutput,

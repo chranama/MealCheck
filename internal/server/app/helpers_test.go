@@ -14,10 +14,10 @@ import (
 	"time"
 
 	"github.com/chranama/MealCheck/internal/core"
-	llm "github.com/chranama/MealCheck/internal/llm/external"
-	localmodel "github.com/chranama/MealCheck/internal/llm/local"
+	"github.com/chranama/MealCheck/internal/llm/inference"
+	planextract "github.com/chranama/MealCheck/internal/llm/planextract"
 	"github.com/chranama/MealCheck/internal/server/access"
-	"github.com/chranama/MealCheck/internal/server/store"
+	"github.com/chranama/MealCheck/internal/state/memory"
 	"github.com/chranama/MealCheck/internal/workflow/checker"
 	"github.com/chranama/MealCheck/internal/workflow/mealplan"
 	"github.com/chranama/MealCheck/internal/workflow/normalize"
@@ -105,7 +105,7 @@ func assertFileTreeDoesNotContain(t *testing.T, root, secret string) {
 type fakeProvider struct {
 	responses []string
 	calls     int
-	messages  [][]ProviderMessage
+	messages  [][]Message
 	configs   []ProviderConfig
 }
 
@@ -127,37 +127,38 @@ const (
 )
 
 type decodePlanResult = mealplan.DecodePlanResult
-type MemoryStore = store.MemoryStore
-type ProviderMessage = llm.ProviderMessage
-type LocalModelExtractionArtifact = localmodel.LocalModelExtractionArtifact
+type MemoryStore = memory.Store
+type Message = inference.Message
+type CompletionRequest = inference.Request
+type LocalModelExtractionArtifact = planextract.LocalModelExtractionArtifact
 
 type normalizationFailureArtifact struct {
-	SchemaVersion        string                                   `json:"schema_version"`
-	RunID                string                                   `json:"run_id"`
-	CreatedAt            string                                   `json:"created_at"`
-	Provider             RedactedProviderConfig                   `json:"provider"`
-	NormalizationEvents  []NormalizationEvent                     `json:"normalization_events"`
-	InitialOutput        string                                   `json:"initial_output,omitempty"`
-	InitialError         string                                   `json:"initial_error,omitempty"`
-	RepairOutput         string                                   `json:"repair_output,omitempty"`
-	RepairError          string                                   `json:"repair_error,omitempty"`
-	FinalError           string                                   `json:"final_error,omitempty"`
-	LocalModelExtraction *localmodel.LocalModelExtractionArtifact `json:"local_model_extraction,omitempty"`
+	SchemaVersion        string                                    `json:"schema_version"`
+	RunID                string                                    `json:"run_id"`
+	CreatedAt            string                                    `json:"created_at"`
+	Provider             RedactedProviderConfig                    `json:"provider"`
+	NormalizationEvents  []NormalizationEvent                      `json:"normalization_events"`
+	InitialOutput        string                                    `json:"initial_output,omitempty"`
+	InitialError         string                                    `json:"initial_error,omitempty"`
+	RepairOutput         string                                    `json:"repair_output,omitempty"`
+	RepairError          string                                    `json:"repair_error,omitempty"`
+	FinalError           string                                    `json:"final_error,omitempty"`
+	LocalModelExtraction *planextract.LocalModelExtractionArtifact `json:"local_model_extraction,omitempty"`
 }
 
-func NewMemoryStore() *store.MemoryStore {
-	return store.NewMemoryStore()
+func NewMemoryStore() *memory.Store {
+	return memory.New()
 }
 
 func GenerateInviteToken(label string, expiresAt *time.Time, maxRuns *int, now time.Time) (access.GeneratedInviteToken, error) {
 	return access.GenerateInviteToken(label, expiresAt, maxRuns, now)
 }
 
-func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
+func generationMessages(input PendingRunInput) ([]Message, error) {
 	return normalize.GenerationMessages(input)
 }
 
-func qualificationMessages(request MealPlanQualificationRequest) []ProviderMessage {
+func qualificationMessages(request MealPlanQualificationRequest) []Message {
 	return normalize.QualificationMessages(request)
 }
 

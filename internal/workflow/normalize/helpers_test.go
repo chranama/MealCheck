@@ -16,20 +16,20 @@ import (
 type fakeProvider struct {
 	responses []string
 	calls     int
-	messages  [][]ProviderMessage
+	messages  [][]Message
 	configs   []ProviderConfig
 }
 
-func (p *fakeProvider) Complete(_ context.Context, config ProviderConfig, messages []ProviderMessage) (string, error) {
+func (p *fakeProvider) Complete(_ context.Context, config ProviderConfig, request CompletionRequest) (string, error) {
 	if config.APIKey != "" {
-		for _, message := range messages {
+		for _, message := range request.Messages {
 			if strings.Contains(message.Content, config.APIKey) {
 				return "", fmt.Errorf("provider key leaked into prompt")
 			}
 		}
 	}
 	p.configs = append(p.configs, config)
-	p.messages = append(p.messages, append([]ProviderMessage(nil), messages...))
+	p.messages = append(p.messages, append([]Message(nil), request.Messages...))
 	if p.calls >= len(p.responses) {
 		return "", fmt.Errorf("fake provider response exhausted")
 	}

@@ -7,7 +7,8 @@ import (
 	"testing"
 
 	"github.com/chranama/MealCheck/internal/core"
-	llm "github.com/chranama/MealCheck/internal/llm/external"
+	"github.com/chranama/MealCheck/internal/llm/client"
+	"github.com/chranama/MealCheck/internal/llm/inference"
 )
 
 func TestRunLocalLlamaModeScoresProviderOutput(t *testing.T) {
@@ -37,10 +38,10 @@ func TestRunLocalLlamaModeScoresProviderOutput(t *testing.T) {
 		FailurePath:  failurePath,
 		Mode:         "local-llama",
 		ProviderConfig: core.ProviderConfig{
-			Type:  llm.ProviderTypeLocalLlama,
+			Type:  inference.ProviderTypeLocalLlama,
 			Model: "test-model",
 		},
-		ProviderFactory: llm.StaticResponseProviderFactory(`{"i":[[1,1,"b","oatmeal",1,"cup"]]}`),
+		CompleterFactory: client.StaticResponseFactory(`{"i":[[1,1,"b","oatmeal",1,"cup"]]}`),
 	})
 	if err != nil {
 		t.Fatalf("run local llama eval: %v", err)
@@ -82,7 +83,7 @@ func TestRunLocalLlamaModeSupportsRepeats(t *testing.T) {
 		t.Fatalf("write failures: %v", err)
 	}
 
-	providerFactory := &sequenceProviderFactory{responses: []string{
+	completerFactory := &sequenceCompleterFactory{responses: []string{
 		`{"i":[[1,1,"b","oatmeal",1,"cup"]]}`,
 		`{"i":[]}`,
 		`{"i":[[1,1,"b","oatmeal",1,"cup"]]}`,
@@ -95,16 +96,16 @@ func TestRunLocalLlamaModeSupportsRepeats(t *testing.T) {
 		Mode:              "local-llama",
 		LocalModelRepeats: 3,
 		ProviderConfig: core.ProviderConfig{
-			Type:  llm.ProviderTypeLocalLlama,
+			Type:  inference.ProviderTypeLocalLlama,
 			Model: "test-model",
 		},
-		ProviderFactory: providerFactory.Factory,
+		CompleterFactory: completerFactory.Factory,
 	})
 	if err != nil {
 		t.Fatalf("run local llama repeat eval: %v", err)
 	}
-	if providerFactory.calls != 3 {
-		t.Fatalf("provider calls = %d, want 3", providerFactory.calls)
+	if completerFactory.calls != 3 {
+		t.Fatalf("provider calls = %d, want 3", completerFactory.calls)
 	}
 	if result.LocalModelRepeatsRequested != 3 {
 		t.Fatalf("local_model_repeats_requested = %d, want 3", result.LocalModelRepeatsRequested)
@@ -166,10 +167,10 @@ func TestRunLocalLlamaModeRecordsSourceRepairs(t *testing.T) {
 		FailurePath:  failurePath,
 		Mode:         "local-llama",
 		ProviderConfig: core.ProviderConfig{
-			Type:  llm.ProviderTypeLocalLlama,
+			Type:  inference.ProviderTypeLocalLlama,
 			Model: "test-model",
 		},
-		ProviderFactory: llm.StaticResponseProviderFactory(`{"i":[[2,1,"b","1 tbsp olive oil",1,"tsp"],[1,1,"b","1/2 cup blueberries",1,"cup"]]}`),
+		CompleterFactory: client.StaticResponseFactory(`{"i":[[2,1,"b","1 tbsp olive oil",1,"tsp"],[1,1,"b","1/2 cup blueberries",1,"cup"]]}`),
 	})
 	if err != nil {
 		t.Fatalf("run local llama eval: %v", err)
@@ -265,20 +266,20 @@ func TestRunManifestGateAndSourceDatasetFilters(t *testing.T) {
 	}
 }
 
-type sequenceProviderFactory struct {
+type sequenceCompleterFactory struct {
 	responses []string
 	calls     int
 }
 
-func (f *sequenceProviderFactory) Factory(core.ProviderConfig) (llm.Provider, error) {
+func (f *sequenceCompleterFactory) Factory(core.ProviderConfig) (inference.Completer, error) {
 	return sequenceProvider{factory: f}, nil
 }
 
 type sequenceProvider struct {
-	factory *sequenceProviderFactory
+	factory *sequenceCompleterFactory
 }
 
-func (p sequenceProvider) Complete(context.Context, core.ProviderConfig, []llm.ProviderMessage) (string, error) {
+func (p sequenceProvider) Complete(context.Context, core.ProviderConfig, inference.Request) (string, error) {
 	p.factory.calls++
 	index := p.factory.calls - 1
 	if index >= len(p.factory.responses) {

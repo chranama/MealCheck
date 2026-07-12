@@ -15,9 +15,10 @@ import (
 	"github.com/chranama/MealCheck/internal/commands/fixturecheck"
 	"github.com/chranama/MealCheck/internal/commands/localmodelsummary"
 	"github.com/chranama/MealCheck/internal/commands/localsmoke"
-	localmodel "github.com/chranama/MealCheck/internal/llm/local"
+	planextract "github.com/chranama/MealCheck/internal/llm/planextract"
 	"github.com/chranama/MealCheck/internal/server/access"
-	"github.com/chranama/MealCheck/internal/server/store"
+	"github.com/chranama/MealCheck/internal/state"
+	"github.com/chranama/MealCheck/internal/state/postgres"
 	"github.com/chranama/MealCheck/internal/workflow/artifacts"
 	"github.com/chranama/MealCheck/internal/workflow/checker"
 )
@@ -102,7 +103,7 @@ func runLocalLlamaNormalizeCommand(args []string, stdout, stderr io.Writer) int 
 		fmt.Fprintf(stderr, "local-llama normalize failed: %v\n", err)
 		return 2
 	}
-	plan, err := localmodel.DecodeLocalLlamaCompactPlan(string(input), *planID)
+	plan, err := planextract.DecodeLocalLlamaCompactPlan(string(input), *planID)
 	if err != nil {
 		fmt.Fprintf(stderr, "local-llama normalize failed: %v\n", err)
 		return 2
@@ -131,7 +132,7 @@ func runLocalLlamaSchemaCommand(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "local-llama schema does not accept positional arguments")
 		return 2
 	}
-	if err := writeJSON(stdout, localmodel.LocalLlamaCompactResponseSchema()); err != nil {
+	if err := writeJSON(stdout, planextract.LocalLlamaCompactResponseSchema()); err != nil {
 		fmt.Fprintf(stderr, "local-llama schema failed: %v\n", err)
 		return 2
 	}
@@ -289,8 +290,8 @@ func runInviteRevokeCommand(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-func openInviteStore(databaseURL string) (store.Store, error) {
-	return store.OpenPostgresStore(context.Background(), databaseURL)
+func openInviteStore(databaseURL string) (state.Store, error) {
+	return postgres.Open(context.Background(), databaseURL)
 }
 
 func parseInviteExpiry(value string, duration time.Duration, now time.Time) (*time.Time, error) {

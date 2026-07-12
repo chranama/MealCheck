@@ -1792,7 +1792,7 @@ Implemented:
    deterministic text classification, and BYOK-assisted normalization.
    Already-normalized JSON and deterministic ineligible classifications do not
    require a provider key.
-4. Added server-level `ProviderFactory` injection so qualification provider
+4. Added server-level `CompleterFactory` injection so qualification provider
    calls can be tested without live external endpoints.
 5. Rejected hosted `manual_structured` run creation while preserving
    `case_path` compatibility for checked-in examples and smoke tests.
@@ -3930,7 +3930,7 @@ Verification:
 
 - `go test ./...` passes outside the sandbox because app tests need local
   `httptest` ports.
-- `GOCACHE=/private/tmp/mealcheck-gocache go test ./cmd/mealcheck ./internal/llm/local ./internal/workflow/normalize` passes.
+- `GOCACHE=/private/tmp/mealcheck-gocache go test ./cmd/mealcheck ./internal/llm/planextract ./internal/workflow/normalize` passes.
 - `GOCACHE=/private/tmp/mealcheck-gocache go run ./cmd/mealcheck fixture-check` passes.
 - `GOCACHE=/private/tmp/mealcheck-gocache go run ./cmd/mealcheck eval-normalization -gate strict -out /private/tmp/mealcheck-p0-normalization.json` passes with 14 of 14 strict cases, 9 success cases, 5 qualification failures, and 85 of 85 expected source items preserved.
 - `npm test` passes in `ui/`.
@@ -3978,7 +3978,7 @@ Acceptance:
 
 Verification:
 
-- `GOCACHE=/private/tmp/mealcheck-gocache go test ./internal/llm/local` passes.
+- `GOCACHE=/private/tmp/mealcheck-gocache go test ./internal/llm/planextract` passes.
 - `GOCACHE=/private/tmp/mealcheck-gocache go test ./internal/server/app` passes
   outside the sandbox because app tests need local `httptest` ports.
 - `GOCACHE=/private/tmp/mealcheck-gocache go test ./...` passes outside the
@@ -4110,7 +4110,7 @@ Remaining P2 Work:
 Verification:
 
 - `go test ./...` passes.
-- `go test ./internal/server/store ./internal/server/app ./internal/commands/localsmoke`
+- `go test ./internal/state/... ./internal/server/app ./internal/commands/localsmoke`
   passes.
 - `npm test -- --run` passes in `ui/`.
 - `npm run build` passes in `ui/`.

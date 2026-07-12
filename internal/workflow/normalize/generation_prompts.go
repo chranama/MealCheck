@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	localmodel "github.com/chranama/MealCheck/internal/llm/local"
+	planextract "github.com/chranama/MealCheck/internal/llm/planextract"
 	"github.com/chranama/MealCheck/internal/workflow/checker"
 )
 
-func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
+func generationMessages(input PendingRunInput) ([]Message, error) {
 	if input.Mode == InputModePromptGeneration && strings.TrimSpace(input.GenerationPrompt) == "" {
 		return nil, fmt.Errorf("generation_prompt is required for prompt_generation")
 	}
@@ -43,20 +43,20 @@ func generationMessages(input PendingRunInput) ([]ProviderMessage, error) {
 		payload["user_prompt"] = input.GenerationPrompt
 	}
 	payloadJSON, _ := json.MarshalIndent(payload, "", "  ")
-	return []ProviderMessage{
+	return []Message{
 		{Role: "system", Content: system},
 		{Role: "user", Content: string(payloadJSON)},
 	}, nil
 }
 
-func GenerationMessages(input PendingRunInput) ([]ProviderMessage, error) {
+func GenerationMessages(input PendingRunInput) ([]Message, error) {
 	return generationMessages(input)
 }
 
 // LocalModelExtractionMessages returns the compact local-model extraction
 // prompt used by the hosted local-model path.
-func LocalModelExtractionMessages(input PendingRunInput) ([]ProviderMessage, error) {
-	return localmodel.LocalModelExtractionMessages(input)
+func LocalModelExtractionMessages(input PendingRunInput) ([]Message, error) {
+	return planextract.LocalModelExtractionMessages(input)
 }
 func generationCountInstruction(constraints checker.VerificationConstraints) string {
 	switch {
@@ -85,13 +85,13 @@ func localLlamaMealCodeInstruction(mealsPerDay int) string {
 	return fmt.Sprintf("Use exactly these meal codes for every day: %s. Do not use any other meal codes.", strings.Join(codes, ", "))
 }
 func localLlamaItemCountInstruction(text string) string {
-	expected := localmodel.LocalLlamaExpectedExtractionItemCount(text)
+	expected := planextract.LocalLlamaExpectedExtractionItemCount(text)
 	if expected == 0 {
 		return "Preserve every food item that can be tied to a day or meal in the source text."
 	}
 	return fmt.Sprintf("The source contains exactly %d numbered source item(s); return exactly %d row(s).", expected, expected)
 }
-func repairMessages(input PendingRunInput, original string, decodeErr error) []ProviderMessage {
+func repairMessages(input PendingRunInput, original string, decodeErr error) []Message {
 	constraints := input.Settings.VerificationConstraints
 	systemParts := []string{
 		"Repair MealCheck meal-plan JSON syntax or minor schema shape only.",
@@ -116,7 +116,7 @@ func repairMessages(input PendingRunInput, original string, decodeErr error) []P
 		"original_output": original,
 	}
 	payloadJSON, _ := json.MarshalIndent(payload, "", "  ")
-	return []ProviderMessage{
+	return []Message{
 		{Role: "system", Content: system},
 		{Role: "user", Content: string(payloadJSON)},
 	}

@@ -2,9 +2,9 @@ package app
 
 import (
 	"github.com/chranama/MealCheck/internal/core"
-	llm "github.com/chranama/MealCheck/internal/llm/external"
+	"github.com/chranama/MealCheck/internal/llm/inference"
 	"github.com/chranama/MealCheck/internal/server/access"
-	"github.com/chranama/MealCheck/internal/server/store"
+	"github.com/chranama/MealCheck/internal/state"
 	"github.com/chranama/MealCheck/internal/workflow/normalize"
 )
 
@@ -33,13 +33,12 @@ type StatusIncident = core.StatusIncident
 type StatusUpdate = core.StatusUpdate
 type StatusLinks = core.StatusLinks
 type PendingRunInput = core.PendingRunInput
-type Store = store.Store
-type StoreStats = store.StoreStats
+type Store = state.Store
+type StoreStats = state.StoreStats
 type PolicyLimiter = access.PolicyLimiter
 type PolicyError = access.PolicyError
-type ProviderFactory = llm.ProviderFactory
-type Provider = llm.Provider
-type ProviderHTTPError = llm.ProviderHTTPError
+type CompleterFactory = inference.CompleterFactory
+type Completer = inference.Completer
 type MealPlanQualificationRequest = core.MealPlanQualificationRequest
 type MealPlanQualificationResult = core.MealPlanQualificationResult
 type QualifyMealPlanResponse = core.QualifyMealPlanResponse
@@ -76,11 +75,11 @@ const (
 	InputModePromptGeneration  = core.InputModePromptGeneration
 	InputModeLocalModel        = core.InputModeLocalModel
 
-	ProviderTypeOpenAICompatible = llm.ProviderTypeOpenAICompatible
-	ProviderTypeOpenAI           = llm.ProviderTypeOpenAI
-	ProviderTypeAnthropic        = llm.ProviderTypeAnthropic
-	ProviderTypeGemini           = llm.ProviderTypeGemini
-	ProviderTypeLocalLlama       = llm.ProviderTypeLocalLlama
+	ProviderTypeOpenAICompatible = inference.ProviderTypeOpenAICompatible
+	ProviderTypeOpenAI           = inference.ProviderTypeOpenAI
+	ProviderTypeAnthropic        = inference.ProviderTypeAnthropic
+	ProviderTypeGemini           = inference.ProviderTypeGemini
+	ProviderTypeLocalLlama       = inference.ProviderTypeLocalLlama
 
 	StatusStateOperational   = core.StatusStateOperational
 	StatusStateDegraded      = core.StatusStateDegraded
@@ -91,9 +90,9 @@ const (
 )
 
 var (
-	ErrQueueFull         = store.ErrQueueFull
-	ErrNotFound          = store.ErrNotFound
-	ErrConflict          = store.ErrConflict
-	ErrInviteUnavailable = store.ErrInviteUnavailable
-	ErrInviteRunLimit    = store.ErrInviteRunLimit
+	ErrQueueFull         = state.ErrQueueFull
+	ErrNotFound          = state.ErrNotFound
+	ErrConflict          = state.ErrConflict
+	ErrInviteUnavailable = state.ErrInviteUnavailable
+	ErrInviteRunLimit    = state.ErrInviteRunLimit
 )

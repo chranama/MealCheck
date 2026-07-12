@@ -10,7 +10,7 @@ import (
 
 func TestQualifyMealPlanTextRejectsNonMealText(t *testing.T) {
 	called := false
-	result, err := QualifyMealPlanText(context.Background(), func(config ProviderConfig) (Provider, error) {
+	result, err := QualifyMealPlanText(context.Background(), func(config ProviderConfig) (Completer, error) {
 		called = true
 		return &fakeProvider{}, nil
 	}, MealPlanQualificationRequest{
@@ -109,7 +109,7 @@ func TestQualifyMealPlanTextUsesBYOKProviderForEligibleTextNormalization(t *test
 	secret := "sk-qualification-secret"
 	provider := &fakeProvider{responses: []string{testMealPlanJSON(false)}}
 
-	result, err := QualifyMealPlanText(context.Background(), func(config ProviderConfig) (Provider, error) {
+	result, err := QualifyMealPlanText(context.Background(), func(config ProviderConfig) (Completer, error) {
 		if config.APIKey != secret {
 			t.Fatalf("provider api key = %q, want secret", config.APIKey)
 		}
