@@ -2,16 +2,19 @@
 
 [![CI](https://github.com/chranama/MealCheck/actions/workflows/ci.yml/badge.svg)](https://github.com/chranama/MealCheck/actions/workflows/ci.yml)
 
-Current build: v1.0. This label names the hosted local-model product baseline;
-contract and schema versions remain separate compatibility identifiers.
+MealCheck evaluates ingredient-level meal plans against declared user constraints
+and rules derived from versioned public guideline sources. It answers one bounded
+question:
 
-MealCheck checks ingredient-level meal plans against user constraints and
-versioned public guideline sources. Plans may come from a user, an LLM, or a
-bounded normalization workflow, but source-backed checks run deterministically.
+`Does this meal plan violate my constraints or source-backed rules, and what should I fix next?`
 
-It answers one bounded question:
+In the hosted web deployment, a user submits concise meal-plan text. The
+server-owned local model normalizes the text into a source-linked structured
+plan. After the user reviews, corrects if needed, and confirms that plan,
+deterministic code performs the checks and produces the decision.
 
-`Does this meal plan violate my declared constraints or source-backed checks, and what should I fix next?`
+Current build: v1.0, the baseline for this hosted local-model workflow. Contract
+and schema versions are tracked separately.
 
 
 ## What It Does
