@@ -21,7 +21,9 @@ import (
 	"github.com/chranama/MealCheck/internal/core"
 	llmclient "github.com/chranama/MealCheck/internal/llm/client"
 	"github.com/chranama/MealCheck/internal/llm/inference"
-	"github.com/chranama/MealCheck/internal/server/app"
+	"github.com/chranama/MealCheck/internal/runs/execution"
+	"github.com/chranama/MealCheck/internal/runs/runinput"
+	"github.com/chranama/MealCheck/internal/server/httpapi"
 	"github.com/chranama/MealCheck/internal/state"
 	"github.com/chranama/MealCheck/internal/state/memory"
 	"github.com/chranama/MealCheck/internal/workflow/checker"
@@ -148,8 +150,8 @@ func (r *runner) hostedSmoke() error {
 	r.logf("hosted: start in-memory API harness")
 	config := smokeConfig(r.root, r.workDir)
 	store := memory.New()
-	pending := app.NewPendingInputs()
-	server := app.NewServer(config, store, pending)
+	pending := runinput.New()
+	server := httpapi.NewServer(config, store, pending)
 	httpServer := httptest.NewServer(server.Handler())
 	defer httpServer.Close()
 	client := httpServer.Client()
@@ -220,7 +222,7 @@ func (r *runner) p2OperationalSmoke() error {
 	queueConfig := smokeConfig(r.root, filepath.Join(r.workDir, "p2-queue"))
 	queueConfig.QueueSize = 1
 	queueStore := memory.New()
-	queueServer := httptest.NewServer(app.NewServer(queueConfig, queueStore, app.NewPendingInputs()).Handler())
+	queueServer := httptest.NewServer(httpapi.NewServer(queueConfig, queueStore, runinput.New()).Handler())
 	defer queueServer.Close()
 	client := queueServer.Client()
 	body := `{"case_path":"` + seededCasePath + `"}`
@@ -234,7 +236,7 @@ func (r *runner) p2OperationalSmoke() error {
 	r.logf("p2: verify local-model unavailable response")
 	unavailableConfig := localModelSmokeConfig(r.root, filepath.Join(r.workDir, "p2-unavailable"))
 	unavailableConfig.LocalModelEnabled = false
-	unavailableServer := httptest.NewServer(app.NewServer(unavailableConfig, memory.New(), app.NewPendingInputs()).Handler())
+	unavailableServer := httptest.NewServer(httpapi.NewServer(unavailableConfig, memory.New(), runinput.New()).Handler())
 	defer unavailableServer.Close()
 	var seeded checker.Case
 	if err := readJSON(filepath.Join(r.root, seededCasePath), &seeded); err != nil {
@@ -248,8 +250,8 @@ func (r *runner) p2OperationalSmoke() error {
 	r.logf("p2: verify one active local-model claim")
 	activeConfig := localModelSmokeConfig(r.root, filepath.Join(r.workDir, "p2-active-local-model"))
 	activeStore := memory.New()
-	activePending := app.NewPendingInputs()
-	activeServer := httptest.NewServer(app.NewServer(activeConfig, activeStore, activePending).Handler())
+	activePending := runinput.New()
+	activeServer := httptest.NewServer(httpapi.NewServer(activeConfig, activeStore, activePending).Handler())
 	defer activeServer.Close()
 	firstLocalRunID, err := r.createRun(activeServer.Client(), activeServer.URL, localModelRunRequest(seeded.Settings))
 	if err != nil {
@@ -288,15 +290,15 @@ func (r *runner) p2OperationalSmoke() error {
 	timeoutConfig := localModelSmokeConfig(r.root, filepath.Join(r.workDir, "p2-timeout"))
 	timeoutConfig.RunTimeout = 20 * time.Millisecond
 	timeoutStore := memory.New()
-	timeoutPending := app.NewPendingInputs()
-	timeoutServer := httptest.NewServer(app.NewServer(timeoutConfig, timeoutStore, timeoutPending).Handler())
+	timeoutPending := runinput.New()
+	timeoutServer := httptest.NewServer(httpapi.NewServer(timeoutConfig, timeoutStore, timeoutPending).Handler())
 	defer timeoutServer.Close()
 	timeoutRunID, err := r.createRun(timeoutServer.Client(), timeoutServer.URL, localModelRunRequest(seeded.Settings))
 	if err != nil {
 		return err
 	}
 	slowProvider := &sleepingProvider{delay: 200 * time.Millisecond, done: make(chan struct{})}
-	processed, err := app.NewWorker(timeoutConfig, timeoutStore, timeoutPending, func(core.ProviderConfig) (inference.Completer, error) {
+	processed, err := execution.NewWorker(timeoutConfig, timeoutStore, timeoutPending, func(core.ProviderConfig) (inference.Completer, error) {
 		return slowProvider, nil
 	}).ProcessOne(context.Background())
 	if !processed {
@@ -325,8 +327,8 @@ func (r *runner) p2OperationalSmoke() error {
 	r.logf("p2: verify local-model artifact writes and summary")
 	localConfig := localModelSmokeConfig(r.root, filepath.Join(r.workDir, "p2-local-model"))
 	localStore := memory.New()
-	localPending := app.NewPendingInputs()
-	localServer := httptest.NewServer(app.NewServer(localConfig, localStore, localPending).Handler())
+	localPending := runinput.New()
+	localServer := httptest.NewServer(httpapi.NewServer(localConfig, localStore, localPending).Handler())
 	defer localServer.Close()
 	localRunID, err := r.createRun(localServer.Client(), localServer.URL, localModelRunRequest(seeded.Settings))
 	if err != nil {
@@ -489,8 +491,8 @@ func localModelRunBody(settings checker.Settings) string {
 	return string(body)
 }
 
-func processOne(config core.Config, store state.Store, pending *app.PendingInputs, completerFactory inference.CompleterFactory) error {
-	processed, err := app.NewWorker(config, store, pending, completerFactory).ProcessOne(context.Background())
+func processOne(config core.Config, store state.Store, pending *runinput.Vault, completerFactory inference.CompleterFactory) error {
+	processed, err := execution.NewWorker(config, store, pending, completerFactory).ProcessOne(context.Background())
 	if err != nil {
 		return err
 	}

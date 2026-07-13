@@ -165,6 +165,28 @@ documented `/api/*` surface over Go's standard HTTP server. It binds to
 `127.0.0.1:8080` by default so Cloudflare Tunnel can publish it without direct
 router port forwarding.
 
+The Go packages separate transport, run lifecycle, and reusable computation:
+
+- `internal/server/httpapi` owns routes, middleware, HTTP request decoding,
+  response encoding, SSE formatting, and HTTP error mapping.
+- `internal/access` owns invite-token security, rate limits, access modes, and
+  public-provider endpoint policy.
+- `internal/runs/submission` validates hosted requests and creates queued runs.
+- `internal/runs/runinput` holds sensitive, non-persistent input until a worker
+  claims it.
+- `internal/runs/execution` owns worker processing and retention cleanup.
+- `internal/runs/review` owns normalized-plan correction, confirmation,
+  rejection, artifact recovery, and associated run-state transitions.
+- `internal/runs/progress` projects internal run state into redacted public
+  progress and recovery guidance.
+- `internal/workflow/*` continues to own reusable normalization, checking,
+  artifact generation, and recommendation computation used below the run
+  lifecycle.
+
+`cmd/mealcheck-server` is the composition root. HTTP packages may call run
+services, and run services may call state and workflow contracts; workflow
+packages do not import HTTP or run-lifecycle packages.
+
 ### Worker
 
 Runs one check job at a time on the MacBook-hosted deployment target.
@@ -182,6 +204,9 @@ The worker processes both checked-in case paths and runtime cases generated
 from hosted manual/BYOK input through the same artifact writer used by the CLI.
 For BYOK runs, the worker first normalizes the plan, writes a runtime case, and
 then runs deterministic evaluation.
+
+The worker implementation lives in `internal/runs/execution`; it is a
+background component in the server process, not part of the HTTP transport.
 
 ### Storage
 
@@ -207,9 +232,9 @@ concrete adapters:
 - `internal/state/memory` provides equivalent in-process behavior for tests and
   local smoke workflows.
 
-Server and access packages depend only on `state.Store`. Executable composition
-roots select PostgreSQL or memory explicitly; the state contract does not import
-either adapter.
+Run-lifecycle and HTTP packages depend only on `state.Store`. Executable
+composition roots select PostgreSQL or memory explicitly; the state contract
+does not import either adapter.
 
 ## Hosted Local-Model Flow
 
@@ -235,8 +260,8 @@ BYOK flows still exist for repo/API/local and self-hosted deployments. Those
 flows require trusting the MealCheck backend process because keys briefly exist
 in request and process memory before being sent to the selected provider.
 
-Milestone 5 implements this as an in-memory pending-input map shared by the API
-handler and the worker. The database stores only run metadata and the generated
+This is implemented as an in-memory `runinput.Vault` shared by submission and
+worker execution. The database stores only run metadata and the generated
 runtime case path. Provider API keys are removed from memory when the worker
 claims the run, the run is deleted, the pending input expires, or cleanup
 removes expired pending state. Expired pending inputs fail closed before

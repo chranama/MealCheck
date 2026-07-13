@@ -13,7 +13,9 @@ import (
 
 	"github.com/chranama/MealCheck/internal/core"
 	"github.com/chranama/MealCheck/internal/llm/client"
-	"github.com/chranama/MealCheck/internal/server/app"
+	"github.com/chranama/MealCheck/internal/runs/execution"
+	"github.com/chranama/MealCheck/internal/runs/runinput"
+	"github.com/chranama/MealCheck/internal/server/httpapi"
 	"github.com/chranama/MealCheck/internal/state"
 	"github.com/chranama/MealCheck/internal/state/memory"
 	"github.com/chranama/MealCheck/internal/state/postgres"
@@ -70,7 +72,7 @@ func run(args []string) error {
 	}
 	defer stateStore.Close()
 
-	pendingInputs := app.NewPendingInputs()
+	inputVault := runinput.New()
 	completerFactory := client.New
 	if path := os.Getenv("MEALCHECK_FAKE_PROVIDER_RESPONSE_PATH"); path != "" {
 		factory, err := client.StaticResponseFactoryFromFile(path)
@@ -79,9 +81,9 @@ func run(args []string) error {
 		}
 		completerFactory = factory
 	}
-	worker := app.NewWorker(config, stateStore, pendingInputs, completerFactory)
-	cleanup := app.CleanupJob{Config: config, Store: stateStore, Pending: pendingInputs}
-	hostedServer := app.NewServer(config, stateStore, pendingInputs)
+	worker := execution.NewWorker(config, stateStore, inputVault, completerFactory)
+	cleanup := execution.CleanupJob{Config: config, Store: stateStore, Inputs: inputVault}
+	hostedServer := httpapi.NewServer(config, stateStore, inputVault)
 	hostedServer.CompleterFactory = completerFactory
 	go worker.Run(ctx)
 	go cleanup.Run(ctx)

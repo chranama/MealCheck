@@ -4299,6 +4299,7 @@ Acceptance:
 Verification:
 
 - `python3 -m unittest discover -s tools/mealcheck_ops/tests` passes.
+
 - `docs/current-priorities.md` now records no immediate P4 engineering slice
   beyond the operating loop.
 
@@ -4394,3 +4395,41 @@ Verification:
 - `python3 -m py_compile` over the new `mealcheck_data` package, new
   `mealcheck_ops` module entry point, and updated operator CLI passes.
 - `python3 -m unittest discover -s tools/mealcheck_ops/tests` passes.
+
+## Milestone 62: Functional Run-Lifecycle Package Boundaries
+
+Status: Implemented locally in the current worktree.
+
+Purpose:
+
+Separate HTTP transport from run lifecycle behavior and reusable MealCheck
+workflows so package names communicate ownership and dependency direction.
+
+Delivered:
+
+- Moved invite security and public access policy to `internal/access`.
+- Replaced `internal/server/app` with HTTP-only `internal/server/httpapi`.
+- Added `internal/runs/submission` for request validation and queue creation.
+- Added `internal/runs/runinput` for expiring, non-persistent sensitive input.
+- Added `internal/runs/execution` for worker and cleanup jobs.
+- Added `internal/runs/review` for review corrections, artifact transactions,
+  deterministic confirmation checks, and run-state transitions.
+- Added `internal/runs/progress` for redacted public progress projections.
+- Updated the server composition root and local smoke harness to construct the
+  HTTP server, input vault, worker, and cleanup job explicitly.
+- Removed the production `app` type and dependency facade.
+
+Acceptance:
+
+- HTTP routes and JSON contracts remain unchanged.
+- Hosted run, BYOK, local-model, review, cleanup, status, and access-policy tests
+  retain their behavior.
+- Run packages do not import `net/http` or `internal/server/httpapi`.
+- Workflow packages do not import run-lifecycle or HTTP packages.
+
+Verification:
+
+- `go test ./...` passes outside the restricted loopback sandbox.
+- `go test -race ./...` passes outside the restricted loopback sandbox.
+- `go vet ./...` passes.
+- `go mod tidy -diff` reports no changes.

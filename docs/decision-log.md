@@ -11,6 +11,44 @@ the top of this file, immediately below this ordering note, so the latest
 architecture and scope decisions are visible first. Keep superseding decisions
 above the decisions they supersede.
 
+## 2026-07-12: Run Lifecycle Is Separate From HTTP And Workflows
+
+Status: Accepted
+
+Decision:
+
+MealCheck separates the hosted backend into three responsibility layers:
+
+- `internal/server/httpapi` owns HTTP transport behavior.
+- `internal/runs/*` owns the persisted and asynchronous run lifecycle.
+- `internal/workflow/*` owns reusable meal-plan computation.
+
+Run lifecycle packages are organized as `submission`, `runinput`, `execution`,
+`review`, and `progress`. Access policy moves from `internal/server/access` to
+top-level `internal/access` because invite administration is also used by the
+CLI and is not exclusively an HTTP concern.
+
+Reason:
+
+The previous `internal/server/app` package combined routes, access middleware,
+submission validation, transient provider credentials, worker execution,
+retention, review artifact transactions, deterministic checking, and public
+status projection. The name `app` did not communicate ownership, while the
+alternative name `hosted` described a deployment context that could equally be
+local, cloud-hosted, or self-hosted.
+
+Consequences:
+
+- HTTP handlers decode requests, call run services, and map results to HTTP.
+- `runs` describes the lifecycle around a queued MealCheck run, independent of
+  deployment location.
+- `workflow` remains the computational layer shared by server and CLI paths.
+- The transient `runinput.Vault` stays separate from durable `state.Store`.
+- Background execution is composed beside the HTTP server in
+  `cmd/mealcheck-server`, rather than being owned by the transport package.
+- Existing API routes, JSON contracts, storage behavior, worker concurrency,
+  and review behavior remain unchanged.
+
 ## 2026-07-12: Hosted State Separates Contract From Storage Adapters
 
 Status: Accepted
