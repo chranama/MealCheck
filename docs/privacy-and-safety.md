@@ -107,6 +107,13 @@ generation request starts.
 MealCheck should not send user settings, prompt, or meal-plan data to
 analytics, advertising, or tracking services.
 
+The production frontend at `mealcheck.dev` loads the standard Cloudflare Web
+Analytics beacon for page and browser performance measurement. The beacon is
+installed only on that exact hostname, is not loaded by local or preview
+deployments, and has no application-data or interaction-event integration.
+MealCheck does not provide the beacon with settings, prompts, meal plans,
+provider credentials, access codes, or form values.
+
 ## Secrets
 
 Provider API keys:
