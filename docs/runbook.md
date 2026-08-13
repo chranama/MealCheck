@@ -1145,8 +1145,15 @@ Tunnel down:
 
 - run `cloudflared tunnel info mealcheck-api`
 - verify local backend health first
-- restart the tunnel process or service
+- retain the independent administration path and use the protected procedure in
+  [`chranama/web-server-infrastructure`](https://github.com/chranama/web-server-infrastructure)
+  to validate, restart, or roll back the shared tunnel
 - verify public API health
+
+Do not treat these recovery events as interchangeable. A backend restart affects only MealCheck;
+a shared-tunnel restart can interrupt both hosted applications and Cloudflare SSH; a controlled OS
+reboot tests the complete launchd and network path; and cold power-on additionally depends on
+hardware, disk unlock, power restoration, and network association.
 
 Bad frontend API config:
 

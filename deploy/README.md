@@ -122,6 +122,20 @@ transports automatically after a restart, installation, or other mutation begins
 MealCheck's autodeploy service runs on the server itself and therefore has no SSH transport to
 select. It remains application-scoped and does not edit shared ingress.
 
+## Recovery boundaries
+
+- A MealCheck restart replaces only `dev.mealcheck.server` after confirming no generation is
+  running or queued.
+- A shared-tunnel restart is host infrastructure, can interrupt Treasury and Cloudflare SSH as
+  well as MealCheck, and must use the protected neutral activation or rollback procedure.
+- A controlled macOS reboot tests launchd recovery for the complete host. It is not an application
+  release or a substitute for an isolated service restart.
+- A cold power-on also depends on hardware, disk-unlock, power, and network conditions. Successful
+  process and OS-reboot tests do not establish a cold-power availability guarantee.
+
+The neutral host runbook owns administration-daemon and tunnel recovery. This repository remains
+self-contained for MealCheck installation, application restart, health, and rollback.
+
 ## Local-Model Replay Profile
 
 Use `deploy/local-model/` when a maintainer needs to replay the production
