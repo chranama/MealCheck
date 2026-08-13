@@ -1277,12 +1277,19 @@ If the deployed local model reports the wrong context size or model path, update
 the server-local env file and restart the launchd service from the server:
 
 ```bash
+deploy/macos/check-remote-service.sh --connect mealcheck-server
 ssh mealcheck-server
 cd /Users/chranama-server/MealCheck
 nano /Users/chranama-server/MealCheck-data/mealcheck-llama.env
 deploy/macos/install-mealcheck-llama-service.sh restart
 curl -fsS http://127.0.0.1:11435/v1/models | jq .
 ```
+
+`mealcheck-server` is the default administration path. An operator may deliberately substitute
+`mealcheck-server-cf` after validating that path and confirming no change began on the primary
+attempt. Print or state the selected alias before any remote restart or file edit. Do not build an
+automatic transport fallback into operational commands: after mutation starts, inspect the host
+through the independent path before deciding whether to retry or roll back.
 
 The restart command uses `sudo` internally and may prompt for the server user
 password.

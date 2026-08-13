@@ -66,6 +66,8 @@ or restart `cloudflared`.
   only when backend code changed.
 - `macos/wait-for-mealcheck-ready.sh`: reboot-friendly readiness check that
   waits for Postgres and then the MealCheck health endpoint.
+- `macos/check-remote-service.sh`: read-only health and launchd inspection through one of the two
+  accepted administration aliases, with no automatic fallback.
 - `macos/postgres-setup.sql.template`: first-time Postgres database and role
   template.
 - `cloudflare/tunnel-config.yml.template`: retired compatibility notice for the original
@@ -98,6 +100,27 @@ This is sufficient for MVP because the deployment target is one known MacBook
 Air, the project is early, and source builds keep the release process simple.
 Release binaries can be added later if there are multiple target machines or a
 public download story.
+
+## Remote administration paths
+
+The accepted aliases are `mealcheck-server` for the primary system-Tailscale path and
+`mealcheck-server-cf` for the Access-protected recovery path. Check local SSH configuration or
+perform the same read-only remote checks through one deliberately selected alias:
+
+```bash
+deploy/macos/check-remote-service.sh mealcheck-server
+deploy/macos/check-remote-service.sh mealcheck-server-cf
+deploy/macos/check-remote-service.sh --connect mealcheck-server
+deploy/macos/check-remote-service.sh --connect mealcheck-server-cf
+```
+
+The Cloudflare connection requires a valid interactive Access session. No Access token belongs in
+this repository or unattended CI. If a connection fails before a remote change, confirm no change
+occurred before deliberately retrying a read-only check through the other alias. Never switch
+transports automatically after a restart, installation, or other mutation begins.
+
+MealCheck's autodeploy service runs on the server itself and therefore has no SSH transport to
+select. It remains application-scoped and does not edit shared ingress.
 
 ## Local-Model Replay Profile
 
