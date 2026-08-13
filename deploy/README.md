@@ -5,6 +5,13 @@ backend, Cloudflare-hosted frontend, and local-model replay profile. The files
 use placeholder secret values only; public production hostnames are
 intentionally committed.
 
+Shared Cloudflare ingress and host administration use the non-secret, neutral implementation in
+[`chranama/web-server-infrastructure`](https://github.com/chranama/web-server-infrastructure). The
+server promotes a reviewed commit into its protected infrastructure runtime rather than operating
+from either application repository. MealCheck retains ownership of its application, listener,
+releases, data, health, and application-service restart. Ordinary MealCheck operations do not edit
+or restart `cloudflared`.
+
 ## Selected MVP Paths
 
 | Value | Proposed setting |
@@ -50,9 +57,8 @@ intentionally committed.
 - `macos/dev.mealcheck.postgres.plist.template`: system `LaunchDaemon`
   template for Postgres `17`, started at boot but running as
   `chranama-server`.
-- `macos/dev.mealcheck.tunnel.plist.template`: system `LaunchDaemon`
-  template for `cloudflared`, using the MacBook-local tunnel config at
-  `/Users/chranama-server/.cloudflared/mealcheck-api.yml`.
+- `macos/dev.mealcheck.tunnel.plist.template`: retired compatibility notice for the original
+  MealCheck-owned tunnel bootstrap. It is intentionally not installable.
 - `macos/dev.mealcheck.autodeploy.plist.template`: system `LaunchDaemon`
   template for polling GitHub and applying fast-forward backend updates.
 - `macos/mealcheck-autodeploy.sh`: root-run autodeploy script that executes
@@ -62,7 +68,8 @@ intentionally committed.
   waits for Postgres and then the MealCheck health endpoint.
 - `macos/postgres-setup.sql.template`: first-time Postgres database and role
   template.
-- `cloudflare/tunnel-config.yml.template`: Cloudflare Tunnel ingress template.
+- `cloudflare/tunnel-config.yml.template`: retired compatibility notice for the original
+  MealCheck-only ingress template. It is intentionally not activatable.
 - `cloudflare/pages-settings.md`: Cloudflare Pages project settings.
 - `cloudflare/config.json.template`: optional runtime frontend config served as
   `/config.json`.

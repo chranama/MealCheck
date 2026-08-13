@@ -1,11 +1,12 @@
-# Cloudflare Tunnel config template for MealCheck API.
-# Copy to a MacBook-local cloudflared config path after creating the tunnel.
-# Replace placeholders locally. Do not commit real tunnel credentials.
-
-tunnel: <CLOUDFLARE_TUNNEL_ID>
-credentials-file: <ABSOLUTE_CLOUDFLARE_CREDENTIALS_JSON>
-
-ingress:
-  - hostname: api.mealcheck.dev
-    service: http://127.0.0.1:8080
-  - service: http_status:404
+# RETIRED COMPATIBILITY NOTICE
+#
+# This path records the original MealCheck-only bootstrap artifact. It is intentionally not a
+# usable tunnel configuration. The sole canonical shared-ingress template and guarded activation
+# path are owned by:
+#
+#   https://github.com/chranama/web-server-infrastructure
+# Installed server copy:
+#   /Users/chranama-server/web-server-infrastructure-runtime/installed/
+#
+# Ordinary MealCheck installation, release, and restart operations must not edit or restart the
+# shared cloudflared service.

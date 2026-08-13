@@ -1,40 +1,16 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>dev.mealcheck.tunnel</string>
+<!--
+RETIRED COMPATIBILITY NOTICE
 
-  <key>UserName</key>
-  <string>chranama-server</string>
+This path records the original MealCheck-owned tunnel bootstrap artifact. It is intentionally not
+an installable plist. The canonical non-secret LaunchDaemon template and shared-ingress runbook are
+owned by:
 
-  <key>ProgramArguments</key>
-  <array>
-    <string>/usr/local/bin/cloudflared</string>
-    <string>tunnel</string>
-    <string>--config</string>
-    <string>/Users/chranama-server/.cloudflared/mealcheck-api.yml</string>
-    <string>run</string>
-    <string>mealcheck-api</string>
-  </array>
+  https://github.com/chranama/web-server-infrastructure
 
-  <key>WorkingDirectory</key>
-  <string>/Users/chranama-server/MealCheck</string>
+The server promotes a reviewed commit into:
 
-  <key>RunAtLoad</key>
-  <true/>
+  /Users/chranama-server/web-server-infrastructure-runtime/installed/
 
-  <key>KeepAlive</key>
-  <true/>
-
-  <key>StandardOutPath</key>
-  <string>/Users/chranama-server/MealCheck-data/logs/cloudflared.out.log</string>
-
-  <key>StandardErrorPath</key>
-  <string>/Users/chranama-server/MealCheck-data/logs/cloudflared.err.log</string>
-
-  <key>ProcessType</key>
-  <string>Background</string>
-</dict>
-</plist>
+Ordinary MealCheck installation, release, and restart operations must not replace or restart the
+shared cloudflared service.
+-->

@@ -583,7 +583,7 @@ Templates:
 - `deploy/macos/mealcheck-server.env.example`
 - `deploy/macos/dev.mealcheck.server.plist.template`
 - `deploy/macos/postgres-setup.sql.template`
-- `deploy/cloudflare/tunnel-config.yml.template`
+- `deploy/cloudflare/tunnel-config.yml.template` (retired compatibility notice)
 - `deploy/cloudflare/pages-settings.md`
 - `deploy/cloudflare/config.json.template`
 
@@ -1005,47 +1005,25 @@ Cloudflare DNS record for `https://mealcheck.dev`:
 |---|---|---|---|
 | `CNAME` | `@` | `mealcheck.pages.dev` | Proxied |
 
-Tunnel config template:
+The historical MealCheck-only tunnel template is retained as a nonfunctional compatibility notice:
 
 ```bash
 deploy/cloudflare/tunnel-config.yml.template
 ```
 
-After creating the tunnel, copy the config to the MacBook-local cloudflared
-config path and replace:
+Do not copy or activate it. The sole canonical ingress template, LaunchDaemon template, validation,
+activation, rollback, and recovery source lives in
+[`chranama/web-server-infrastructure`](https://github.com/chranama/web-server-infrastructure). The
+server runs an explicitly promoted copy from its protected infrastructure runtime. A MealCheck
+release may verify its public API but must not edit the shared configuration or restart
+`dev.mealcheck.tunnel`.
 
-- `<CLOUDFLARE_TUNNEL_ID>`
-- `<ABSOLUTE_CLOUDFLARE_CREDENTIALS_JSON>`
-- `api.mealcheck.dev`
-
-Manual tunnel start:
-
-```bash
-cloudflared tunnel --config /Users/chranama-server/.cloudflared/mealcheck-api.yml run mealcheck-api
-```
-
-Install the tunnel as a system `LaunchDaemon`:
-
-```bash
-cd /Users/chranama-server/MealCheck
-sudo launchctl bootout system/dev.mealcheck.tunnel 2>/dev/null || true
-sudo rm -f /Library/LaunchDaemons/dev.mealcheck.tunnel.plist
-sudo cp deploy/macos/dev.mealcheck.tunnel.plist.template \
-  /Library/LaunchDaemons/dev.mealcheck.tunnel.plist
-sudo chown root:wheel /Library/LaunchDaemons/dev.mealcheck.tunnel.plist
-sudo chmod 644 /Library/LaunchDaemons/dev.mealcheck.tunnel.plist
-sudo plutil -lint /Library/LaunchDaemons/dev.mealcheck.tunnel.plist
-sudo launchctl bootstrap system /Library/LaunchDaemons/dev.mealcheck.tunnel.plist
-sudo launchctl kickstart -k system/dev.mealcheck.tunnel
-sudo launchctl print system/dev.mealcheck.tunnel
-```
-
-Tunnel status:
+Read-only tunnel status:
 
 ```bash
 cloudflared tunnel info mealcheck-api
 cloudflared tunnel list
-sudo launchctl print system/dev.mealcheck.tunnel
+launchctl print system/dev.mealcheck.tunnel
 ```
 
 Public API health:

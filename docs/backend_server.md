@@ -306,7 +306,10 @@ Milestone 8 deployment templates:
 - `deploy/macos/dev.mealcheck.autodeploy.plist.template`
 - `deploy/macos/mealcheck-autodeploy.sh`
 - `deploy/macos/postgres-setup.sql.template`
-- `deploy/cloudflare/tunnel-config.yml.template`
+- `deploy/cloudflare/tunnel-config.yml.template` is a retired compatibility notice; reusable
+  shared-ingress source is owned by
+  [`chranama/web-server-infrastructure`](https://github.com/chranama/web-server-infrastructure),
+  outside either application release.
 - `deploy/cloudflare/pages-settings.md`
 - `deploy/cloudflare/config.json.template`
 
