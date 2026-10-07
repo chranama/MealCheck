@@ -129,6 +129,20 @@ func (s *Store) ClaimNextRun(ctx context.Context, workerID string, leaseUntil ti
 	if _, err := tx.ExecContext(ctx, `select pg_advisory_xact_lock($1)`, localModelClaimAdvisoryLockKey); err != nil {
 		return state.Run{}, false, err
 	}
+	// Expired leases identify abandoned work. Sensitive inputs are process-local;
+	// fail terminally instead of replaying a job after a worker crash.
+	if _, err := tx.ExecContext(ctx, `
+		with abandoned as (
+			update runs set status = $1, updated_at = $2, completed_at = $2,
+				error_message = $3, lease_owner = null, lease_expires_at = null
+			where status = $4 and lease_expires_at <= $2
+			returning id
+		)
+		insert into run_events (run_id, event_type, message, created_at)
+		select id, 'failed', $3, $2 from abandoned
+	`, state.StatusFailed, now, "worker lease expired after interruption; resubmit the run", state.StatusRunning); err != nil {
+		return state.Run{}, false, err
+	}
 	row := tx.QueryRowContext(ctx, `
 		update runs
 		set status = $1,
@@ -159,6 +173,9 @@ func (s *Store) ClaimNextRun(ctx context.Context, workerID string, leaseUntil ti
 	`, state.StatusRunning, now, workerID, leaseUntil, state.StatusQueued, state.InputModeLocalModel)
 	run, err := scanRun(row)
 	if errors.Is(err, state.ErrNotFound) {
+		if err := tx.Commit(); err != nil {
+			return state.Run{}, false, err
+		}
 		return state.Run{}, false, nil
 	}
 	if err != nil {

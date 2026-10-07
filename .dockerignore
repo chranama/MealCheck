@@ -1,0 +1,6 @@
+.git
+.mealcheck-data
+.env
+**/*.env
+**/*secret*
+!deploy/controller/api-entrypoint.sh
