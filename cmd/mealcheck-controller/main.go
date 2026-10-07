@@ -8,6 +8,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/chranama/MealCheck/internal/infra/control"
+	"github.com/chranama/MealCheck/internal/infra/controller"
+	dockerprovider "github.com/chranama/MealCheck/internal/infra/provider/docker"
 	"github.com/chranama/MealCheck/internal/infra/spec"
 	"github.com/chranama/MealCheck/internal/infra/state"
 	"io"
@@ -37,6 +39,8 @@ func run(args []string) error {
 	socket := fs.String("socket", "", "Unix socket path")
 	file := fs.String("file", "", "desired-state JSON file")
 	roots := fs.String("model-roots", "", "comma-separated allowed model directories")
+	engine := fs.String("engine", "", "explicit local Docker Engine Unix endpoint")
+	secretRoot := fs.String("secret-root", "", "root of private secret profiles")
 	registries := fs.String("registries", "", "comma-separated approved image prefixes")
 	if e := fs.Parse(args[1:]); e != nil {
 		return e
@@ -48,8 +52,8 @@ func run(args []string) error {
 		*socket = filepath.Join(*dir, "controller.sock")
 	}
 	if command == "daemon" {
-		if *roots == "" || *registries == "" {
-			return errors.New("daemon requires --model-roots and --registries")
+		if *roots == "" || *registries == "" || *engine == "" || *secretRoot == "" {
+			return errors.New("daemon requires --model-roots, --registries, --engine, and --secret-root")
 		}
 		s, e := state.Open(*dir)
 		if e != nil {
@@ -61,7 +65,21 @@ func run(args []string) error {
 		}
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
-		return control.Serve(ctx, *socket, control.Handler(s, spec.Policy{ModelRoots: strings.Split(*roots, ","), Registries: strings.Split(*registries, ",")}))
+		p, err := dockerprovider.New(*engine, *secretRoot)
+		if err != nil {
+			return err
+		}
+		defer p.Close()
+		reconcile := &controller.Controller{Store: s, Provider: p}
+		done := make(chan error, 1)
+		go func() { err := reconcile.Run(ctx, 5*time.Second); done <- err; cancel() }()
+		serveErr := control.Serve(ctx, *socket, control.Handler(s, spec.Policy{ModelRoots: strings.Split(*roots, ","), Registries: strings.Split(*registries, ",")}))
+		cancel()
+		reconcileErr := <-done
+		if serveErr != nil {
+			return serveErr
+		}
+		return reconcileErr
 	}
 	q := control.Request{Version: spec.Version, Command: command}
 	if command == "apply" {
