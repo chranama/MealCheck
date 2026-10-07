@@ -1,7 +1,7 @@
 # Go Resource Controller Implementation Plan
 
 Date: 2026-10-06  
-Status: implementation in progress; M0 contract reviewed; M1–M6 pending; M7 deferred
+Status: M0–M6 implemented; M0–M5 validated; M6 current-session checks validated, login/reboot unverified; M7 deferred
 
 ## Outcome and Scope
 
