@@ -75,3 +75,35 @@ passes against explicit `http://127.0.0.1:18080`, including review confirmation 
 report retrieval, then completed-data persistence passes after restart.
 Environment availability alone is not M1 acceptance. Native Linux/systemd
 operation is excluded from this implementation request.
+
+## Packaging reproduction
+
+Run from the repository root:
+
+```bash
+./deploy/controller/package-lab.sh prepare
+./deploy/controller/package-lab.sh build
+./deploy/controller/package-lab.sh up
+./deploy/controller/package-lab.sh smoke
+./deploy/controller/package-lab.sh restart
+./deploy/controller/package-lab.sh down
+```
+
+`prepare` stages a checksum-verified model and random lab-only credentials outside
+the repository. Override `MEALCHECK_LAB_ROOT` and `MEALCHECK_LAB_MODEL_SOURCE` for
+another allowed local path. `up` refuses existing container/network names.
+Volumes persist across `down`; their packaging ownership labels must match.
+`smoke` explicitly targets loopback and retains synthetic runs for persistence
+inspection. The API image includes `data`, `examples`, and `schemas`.
+
+For a digest-pinned API reference without external publication, run a private
+registry published only on loopback port 15000, tag the built image as
+`localhost:15000/mealcheck:lab`, push, and record its resulting manifest digest.
+Pre-pull that reference on the engine before applying desired state. The registry
+is a packaging prerequisite, not a resource owned by the controller.
+
+Hard-killed running jobs terminally fail once their existing worker lease expires
+(default run timeout: ten minutes), on the next claim poll; they are never replayed.
+This releases the serialized local-model queue. An unexpired lease remains active.
+Queued jobs whose volatile input was lost fail with a resubmission message. This
+is application policy, not a controller retry of meal inputs.
