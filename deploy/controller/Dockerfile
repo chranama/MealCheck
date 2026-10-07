@@ -6,7 +6,7 @@ COPY cmd/ ./cmd/
 COPY internal/ ./internal/
 RUN CGO_ENABLED=0 go build -trimpath -o /out/mealcheck-server ./cmd/mealcheck-server
 
-FROM debian:bookworm-slim@sha256:a1b86db52ce3daef089e45aabe36dfec4091f82464c25c1fdcf03de197cbe82a
+FROM debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587
 RUN groupadd -g 10001 mealcheck && useradd -u 10001 -g 10001 -M mealcheck \
     && mkdir -p /var/lib/mealcheck/artifacts \
     && chown -R 10001:10001 /var/lib/mealcheck

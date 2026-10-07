@@ -107,3 +107,17 @@ Hard-killed running jobs terminally fail once their existing worker lease expire
 This releases the serialized local-model queue. An unexpired lease remains active.
 Queued jobs whose volatile input was lost fail with a resubmission message. This
 is application policy, not a controller retry of meal inputs.
+
+## M7 manifest-driven controller
+
+The controller's new deployment input is separate from the trusted engineer system
+definition. See [systems](systems/README.md), [deployment examples](examples/README.md),
+and [schemas](schemas/) for committed JSON files. The original M1 packaging scripts
+and fixed profile above remain a historical reproduction path; M7 production
+provider operations consume the resolved accepted system graph through Docker API.
+
+ARM64 and AMD64 systems declare native image pins and limits independently. The
+Intel system uses model 2 CPU/1536 MiB, PostgreSQL 1 CPU/512 MiB, API 1 CPU/768 MiB to fit the
+server's four CPU/~3.82 GiB Engine. The daemon checks live Engine architecture/capacity
+and verifies preloaded image architecture before accepting a deployment. It never
+changes Docker Desktop allocation or starts the engine.

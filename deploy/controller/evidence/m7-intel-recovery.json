@@ -1,0 +1,32 @@
+{
+  "scenarios": [
+    {
+      "role": "api",
+      "fault": "kill",
+      "detectionSeconds": 5.162,
+      "runningSeconds": 5.162,
+      "readySeconds": 10.233,
+      "reportRetained": true,
+      "sameContainerID": true
+    },
+    {
+      "role": "model",
+      "fault": "kill",
+      "detectionSeconds": 4.748,
+      "runningSeconds": 4.748,
+      "readySeconds": 9.697,
+      "reportRetained": true,
+      "sameContainerID": true
+    },
+    {
+      "role": "api",
+      "fault": "remove",
+      "detectionSeconds": 4.882,
+      "runningSeconds": 9.562,
+      "readySeconds": 14.74,
+      "reportRetained": true,
+      "sameContainerID": false
+    }
+  ],
+  "reportSHA256": "cab727c8911caafdf0e1c0b5399374739b8235ed498e2241db1fe35a54dc7525"
+}

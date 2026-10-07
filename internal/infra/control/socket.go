@@ -25,6 +25,9 @@ type Response struct {
 
 func Handler(s *state.Store, p spec.Policy) http.Handler { return HandlerWithNotify(s, p, nil) }
 func HandlerWithNotify(s *state.Store, p spec.Policy, notify func()) http.Handler {
+	return HandlerWithManifests(s, p, ManifestOptions{}, notify)
+}
+func HandlerWithManifests(s *state.Store, p spec.Policy, manifests ManifestOptions, notify func()) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		respond := func(v any, e error) {
@@ -54,11 +57,8 @@ func HandlerWithNotify(s *state.Store, p spec.Policy, notify func()) http.Handle
 			return
 		}
 		switch q.Command {
-		case "apply":
-			d, e := spec.Decode(q.Document)
-			if e == nil {
-				e = d.Validate(p)
-			}
+		case "apply", "plan":
+			d, e := resolveRequest(r.Context(), s, p, manifests, q.Document)
 			if e != nil {
 				respond(nil, e)
 				return
@@ -69,6 +69,15 @@ func HandlerWithNotify(s *state.Store, p spec.Policy, notify func()) http.Handle
 				return
 			}
 			d.Spec.ModelPath = canonical
+			if q.Command == "plan" {
+				if err := checkPlan(s, d); err != nil {
+					respond(nil, err)
+					return
+				}
+				v, err := preview(d)
+				respond(v, err)
+				return
+			}
 			v, e := s.Apply(d)
 			if e == nil && notify != nil {
 				notify()

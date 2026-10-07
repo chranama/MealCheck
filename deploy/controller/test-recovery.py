@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Explicit isolated-lab drift injection; requires a Ready controller workload."""
-import argparse,datetime,hashlib,json,subprocess,time,urllib.request
+import argparse,datetime,hashlib,json,re,subprocess,time,urllib.request
 p=argparse.ArgumentParser();p.add_argument('--engine',required=True);p.add_argument('--binary',required=True);p.add_argument('--state-dir',required=True);p.add_argument('--report-run',required=True);p.add_argument('--output',required=True);a=p.parse_args()
 def cli(command):return json.loads(subprocess.check_output([a.binary,command,'--state-dir',a.state_dir]))
 def report(s):
  port=s['document']['spec']['apiHostPort']
  return hashlib.sha256(urllib.request.urlopen(f'http://127.0.0.1:{port}/api/runs/{a.report_run}/artifacts/report.json',timeout=5).read()).hexdigest()
 def engine(*args):return subprocess.check_output(['docker','--host',a.engine,*args],text=True,stderr=subprocess.DEVNULL).strip()
-def observation_time(s):return datetime.datetime.fromisoformat(s['status']['lastObservation'].replace('Z','+00:00')).timestamp()
+def timestamp(value):
+ # Python 3.8 on the Intel Mac accepts microseconds, while Docker emits nanoseconds.
+ value=re.sub(r'(\.\d{6})\d+',r'\1',value)
+ return datetime.datetime.fromisoformat(value.replace('Z','+00:00')).timestamp()
+def observation_time(s):return timestamp(s['status']['lastObservation'])
 if not a.engine.startswith('unix:///'): raise SystemExit('explicit local Unix engine required')
 initial=cli('get');assert initial['status']['phase']=='Ready'
 assert initial['document']['deploymentID']=='mealcheck-lab' and initial['document']['spec']['apiHostPort']==18080, 'isolated lab required'
@@ -17,6 +21,7 @@ assert net['Id']==network_binding['id']
 label_prefix='dev.mealcheck.controller.'
 owner=net['Labels'][label_prefix+'owner']
 keys=['profile','apiImage','postgresImage','modelImage','modelPath','secretProfile','apiHostPort','dataPolicy']
+if 'resolvedSystem' in initial['document']['spec']: keys=['resolvedSystem']+keys
 fingerprint=hashlib.sha256(json.dumps({k:initial['document']['spec'][k] for k in keys},separators=(',',':')).encode()).hexdigest()
 assert net['Labels'][label_prefix+'fingerprint']==fingerprint and net['Labels'][label_prefix+'deployment']=='mealcheck-lab'
 baseline=report(initial);results=[]
@@ -35,7 +40,7 @@ for role,action in [('api','kill'),('model','kill'),('api','remove')]:
   if observation_time(s)>wall and detected is None:detected=elapsed
   try:
    observed=json.loads(engine('inspect',name))[0]
-   if observed['State']['Running'] and datetime.datetime.fromisoformat(observed['State']['StartedAt'].replace('Z','+00:00')).timestamp()>wall and acted is None:acted=elapsed
+   if observed['State']['Running'] and timestamp(observed['State']['StartedAt'])>wall and acted is None:acted=elapsed
   except subprocess.CalledProcessError:pass
   if s['status']['phase']=='Blocked':raise RuntimeError(s['status'])
   if s['status']['phase']=='Ready' and observation_time(s)>wall and acted is not None:break

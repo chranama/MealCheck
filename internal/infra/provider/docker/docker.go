@@ -106,10 +106,30 @@ func (d *Docker) inspect(ctx context.Context, r provider.Resource) (provider.Obs
 		if x.Container.State != nil {
 			o.Running = x.Container.State.Running
 			o.Ready = false
-			if r.Role == "api" && o.Running {
+			resolved, resolvedErr := r.Workload.Resolved()
+			if resolvedErr != nil {
+				return provider.Observed{}, &provider.Error{Reason: "InvalidResolvedConfiguration"}
+			}
+			if resolved != nil {
+				for _, resource := range resolved.Resources {
+					if resource.Role != r.Role || resource.Container == nil {
+						continue
+					}
+					p := resource.Container.Probe
+					if p.Kind == "application" && o.Running {
+						hostPort, portErr := applicationHostPort(resource.Container)
+						if portErr != nil {
+							return provider.Observed{}, portErr
+						}
+						o.Ready = probeApplication(ctx, hostPort, p.Path, p.Components)
+					} else if x.Container.State.Health != nil {
+						o.Ready = o.Running && x.Container.State.Health.Status == "healthy"
+					}
+				}
+			} else if r.Role == "api" && o.Running {
 				o.Ready = ProbeApplication(ctx, r.Workload.APIHostPort)
 			}
-			if r.Role != "api" && x.Container.State.Health != nil {
+			if resolved == nil && r.Role != "api" && x.Container.State.Health != nil {
 				o.Ready = o.Running && x.Container.State.Health.Status == "healthy"
 			}
 		}
@@ -126,6 +146,9 @@ func (d *Docker) inspect(ctx context.Context, r provider.Resource) (provider.Obs
 		desired, configErr := d.config(r)
 		if configErr != nil {
 			return provider.Observed{}, configErr
+		}
+		if r.Workload.ResolvedJSON != "" {
+			image = desired.Config.Image
 		}
 		if x.Container.Config.Image != image || !compatibleConfig(x.Container, desired) {
 			o.Fingerprint = "incompatible-configuration"
@@ -274,6 +297,11 @@ func sibling(r provider.Resource, role string) string {
 	return strings.TrimSuffix(r.Name, "-"+r.Role) + "-" + role
 }
 func (d *Docker) config(r provider.Resource) (client.ContainerCreateOptions, error) {
+	if resolved, err := r.Workload.Resolved(); err != nil {
+		return client.ContainerCreateOptions{}, &provider.Error{Reason: "InvalidResolvedConfiguration"}
+	} else if resolved != nil {
+		return d.resolvedConfig(r, resolved)
+	}
 	w := r.Workload
 	cfg := &container.Config{Labels: labels(r)}
 	host := &container.HostConfig{RestartPolicy: container.RestartPolicy{Name: "no"}, Resources: container.Resources{Memory: 2 << 30, NanoCPUs: 2_000_000_000}}
@@ -331,7 +359,10 @@ func (d *Docker) config(r provider.Resource) (client.ContainerCreateOptions, err
 
 // ProbeApplication bounds a host-loopback application readiness request.
 func ProbeApplication(ctx context.Context, port int) bool {
-	req, e := http.NewRequestWithContext(ctx, "GET", "http://127.0.0.1:"+strconv.Itoa(port)+"/api/status", nil)
+	return probeApplication(ctx, port, "/api/status", []string{"meal_check_submission", "ai_meal_normalization", "nutrition_allergen_checking"})
+}
+func probeApplication(ctx context.Context, port int, path string, components []string) bool {
+	req, e := http.NewRequestWithContext(ctx, "GET", "http://127.0.0.1:"+strconv.Itoa(port)+path, nil)
 	if e != nil {
 		return false
 	}
@@ -357,7 +388,12 @@ func ProbeApplication(ctx context.Context, port int) bool {
 	for _, c := range status.Components {
 		ready[c.ID] = c.State == "operational"
 	}
-	return ready["meal_check_submission"] && ready["ai_meal_normalization"] && ready["nutrition_allergen_checking"]
+	for _, component := range components {
+		if !ready[component] {
+			return false
+		}
+	}
+	return len(components) > 0
 }
 
 // Labels assert ownership; actual settings must also satisfy the fixed profile.
@@ -374,7 +410,11 @@ func compatibleConfig(actual container.InspectResponse, desired client.Container
 	}
 	for _, required := range desired.Config.Env {
 		found := false
+		key := strings.SplitN(required, "=", 2)[0]
 		for _, value := range c.Env {
+			if strings.SplitN(value, "=", 2)[0] == key && value != required {
+				return false
+			}
 			if value == required {
 				found = true
 			}

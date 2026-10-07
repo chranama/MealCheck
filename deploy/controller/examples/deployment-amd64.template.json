@@ -1,0 +1,15 @@
+{
+  "apiVersion": "mealcheck.dev/deployment/v1alpha1",
+  "deploymentID": "mealcheck-lab",
+  "desiredState": "Running",
+  "system": {
+    "name": "mealcheck-cpu-amd64",
+    "version": "v1",
+    "digest": "sha256:064034312a8999a7d972193c94cfe13496714dce3eb61a4ae76efc5f2bea4185"
+  },
+  "parameters": {
+    "modelPath": "/REPLACE_WITH_PRIVATE_LAB_ROOT/models/model.gguf",
+    "secretProfile": "mealcheck-lab",
+    "apiHostPort": 18080
+  }
+}

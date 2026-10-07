@@ -9,13 +9,14 @@ SOCKET=${MEALCHECK_CONTROLLER_SOCKET:-$STATE/controller.sock}
 ENGINE=${MEALCHECK_CONTROLLER_ENGINE:-unix://$HOME/.docker/run/docker.sock}
 SECRETS=${MEALCHECK_CONTROLLER_SECRETS:-$LAB_ROOT/secrets}
 MODELS=${MEALCHECK_CONTROLLER_MODELS:-$LAB_ROOT/models}
-REGISTRIES=${MEALCHECK_CONTROLLER_REGISTRIES:-localhost:15000/mealcheck,postgres,ghcr.io/ggml-org/llama.cpp}
+REGISTRIES=${MEALCHECK_CONTROLLER_REGISTRIES:-localhost:15000/mealcheck,docker.io/library,postgres,ghcr.io/ggml-org/llama.cpp}
+CATALOG=${MEALCHECK_CONTROLLER_CATALOG:-$LAB_ROOT/systems}
 DEST=${MEALCHECK_LAUNCHAGENT_PATH:-$HOME/Library/LaunchAgents/dev.mealcheck.controller.lab.plist}
 LABEL=dev.mealcheck.controller.lab
 DOMAIN=gui/$(id -u)
 [[ $(uname -s) == Darwin ]] || { echo 'macOS required' >&2; exit 1; }
-[[ -x "$BINARY" && -d "$SECRETS" && -d "$MODELS" ]] || { echo 'build binary and prepare lab first' >&2; exit 1; }
-[[ "$BINARY" == /* && "$STATE" == /* && "$SOCKET" == /* && "$SECRETS" == /* && "$MODELS" == /* ]] || { echo 'paths must be absolute' >&2; exit 1; }
+[[ -x "$BINARY" && -d "$SECRETS" && -d "$MODELS" && -d "$CATALOG" ]] || { echo 'build binary and prepare lab and trusted system catalog first' >&2; exit 1; }
+[[ "$BINARY" == /* && "$STATE" == /* && "$SOCKET" == /* && "$SECRETS" == /* && "$MODELS" == /* && "$CATALOG" == /* ]] || { echo 'paths must be absolute' >&2; exit 1; }
 if launchctl print "$DOMAIN/$LABEL" >/dev/null 2>&1; then
   echo 'lab LaunchAgent already loaded; inspect or uninstall first' >&2; exit 1
 fi
@@ -23,11 +24,11 @@ fi
 umask 077
 mkdir -p "$STATE" "$LAB_ROOT/logs" "$(dirname "$DEST")"
 chmod 700 "$STATE" "$LAB_ROOT/logs"
-python3 - "$ROOT/deploy/controller/dev.mealcheck.controller.lab.plist.template" "$DEST" "$BINARY" "$STATE" "$SOCKET" "$ENGINE" "$SECRETS" "$MODELS" "$REGISTRIES" "$LAB_ROOT/logs" <<'PY'
+python3 - "$ROOT/deploy/controller/dev.mealcheck.controller.lab.plist.template" "$DEST" "$BINARY" "$STATE" "$SOCKET" "$ENGINE" "$SECRETS" "$MODELS" "$REGISTRIES" "$LAB_ROOT/logs" "$CATALOG" <<'PY'
 import plistlib,sys
 from xml.sax.saxutils import escape
 src,dest,*values=sys.argv[1:]
-keys=['BINARY','STATE','SOCKET','ENGINE','SECRETS','MODELS','REGISTRIES','LOGS']
+keys=['BINARY','STATE','SOCKET','ENGINE','SECRETS','MODELS','REGISTRIES','LOGS','CATALOG']
 text=open(src).read()
 for key,value in zip(keys,values):text=text.replace('@'+key+'@',escape(value))
 # Parse before writing so malformed templates cannot be installed.

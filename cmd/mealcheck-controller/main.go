@@ -31,7 +31,7 @@ func main() {
 }
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: mealcheck-controller daemon|apply|get|start|stop|delete|events")
+		return errors.New("usage: mealcheck-controller daemon|system-digest|plan|apply|get|start|stop|delete|events|retry")
 	}
 	command := args[0]
 	fs := flag.NewFlagSet(command, flag.ContinueOnError)
@@ -42,11 +42,27 @@ func run(args []string) error {
 	engine := fs.String("engine", "", "explicit local Docker Engine Unix endpoint")
 	secretRoot := fs.String("secret-root", "", "root of private secret profiles")
 	registries := fs.String("registries", "", "comma-separated approved image prefixes")
+	catalog := fs.String("catalog", "", "operator-owned trusted system catalog directory")
 	if e := fs.Parse(args[1:]); e != nil {
 		return e
 	}
 	if fs.NArg() != 0 {
 		return errors.New("unexpected positional arguments")
+	}
+	if command == "system-digest" {
+		if *file == "" {
+			return errors.New("system-digest requires --file")
+		}
+		b, err := os.ReadFile(*file)
+		if err != nil {
+			return err
+		}
+		system, err := spec.DecodeSystem(b)
+		if err != nil {
+			return err
+		}
+		fmt.Println(system.Digest())
+		return nil
 	}
 	if *socket == "" {
 		*socket = filepath.Join(*dir, "controller.sock")
@@ -74,7 +90,11 @@ func run(args []string) error {
 		reconcile := &controller.Controller{Store: s, Provider: p, Wake: wake}
 		done := make(chan error, 1)
 		go func() { err := reconcile.Run(ctx, 5*time.Second); done <- err; cancel() }()
-		serveErr := control.Serve(ctx, *socket, control.HandlerWithNotify(s, spec.Policy{ModelRoots: strings.Split(*roots, ","), Registries: strings.Split(*registries, ",")}, func() {
+		manifestOptions := control.ManifestOptions{EngineInfo: p.EngineInfo, ValidateImages: p.ValidateImages}
+		if *catalog != "" {
+			manifestOptions.Catalog = &spec.Catalog{Root: *catalog}
+		}
+		serveErr := control.Serve(ctx, *socket, control.HandlerWithManifests(s, spec.Policy{ModelRoots: strings.Split(*roots, ","), Registries: strings.Split(*registries, ",")}, manifestOptions, func() {
 			select {
 			case wake <- struct{}{}:
 			default:
@@ -88,9 +108,9 @@ func run(args []string) error {
 		return reconcileErr
 	}
 	q := control.Request{Version: spec.Version, Command: command}
-	if command == "apply" {
+	if command == "apply" || command == "plan" {
 		if *file == "" {
-			return errors.New("apply requires --file")
+			return fmt.Errorf("%s requires --file", command)
 		}
 		b, e := os.ReadFile(*file)
 		if e != nil {

@@ -10,6 +10,7 @@
     <string>--secret-root</string><string>@SECRETS@</string>
     <string>--model-roots</string><string>@MODELS@</string>
     <string>--registries</string><string>@REGISTRIES@</string>
+    <string>--catalog</string><string>@CATALOG@</string>
   </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>

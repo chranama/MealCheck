@@ -11,8 +11,8 @@ spreading across separate ADR, RFC, and planning documents.
 - [Product](product.md): problem, users, scope, non-goals, and success criteria.
 - [User Story](user-story.md): MVP user story, flow, LLM role, checks, and acceptance criteria.
 - [Current Priorities](current-priorities.md): active engineering priority order, target metrics, and next slices.
-- [Go Resource Controller](resource-controller-spec.md): proposed container-resource controller, reconciliation contract, failure policy, and implementation gates.
-- [Resource Controller Implementation Plan](resource-controller-implementation-plan.md): milestone deliverables and exit gates from Mac development through native Linux verification.
+- [Go Resource Controller](resource-controller-spec.md): implemented container-resource controller, reconciliation contract, failure policy, and separate system/deployment manifests.
+- [Resource Controller Implementation Plan](resource-controller-implementation-plan.md): M0–M7 buildout and separate manifests, and deferred M8 native Linux verification.
 - [Meal Plan Input Robustness](meal-plan-input-robustness.md): acceptable pasted-input boundary and synthetic normalization dataset.
 - [Evaluation](evaluation.md): P0 normalization, live local-model regimen, and P1 food/unit resolution evaluation datasets, metrics, and commands.
 - [Plan Recommendation](plan_recommendation.md): deterministic recommendation principles and artifact boundary.

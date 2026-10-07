@@ -1,0 +1,17 @@
+{
+  "architecture": "amd64",
+  "engineCPUs": 4,
+  "engineMemoryBytes": 4102107136,
+  "realModelSmoke": "PASS",
+  "completedRun": "run_0b73d290c67d7147c2eb7c88",
+  "idempotentApplyGeneration": 1,
+  "stopStartReportRetained": true,
+  "stopStartResourceIDsPreserved": true,
+  "terminalDeleteGeneration": 4,
+  "repeatDeleteIdempotent": true,
+  "retainedVolumeRoles": [
+    "artifact-volume",
+    "database-volume"
+  ],
+  "reportSHA256": "cab727c8911caafdf0e1c0b5399374739b8235ed498e2241db1fe35a54dc7525"
+}
