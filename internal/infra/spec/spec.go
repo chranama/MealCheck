@@ -18,12 +18,14 @@ import (
 const Version = "mealcheck.dev/v1alpha1"
 
 type Document struct {
-	APIVersion   string   `json:"apiVersion"`
-	DeploymentID string   `json:"deploymentID"`
-	DesiredState string   `json:"desiredState"`
-	Spec         Workload `json:"spec"`
+	APIVersion     string   `json:"apiVersion"`
+	DeploymentID   string   `json:"deploymentID"`
+	DesiredState   string   `json:"desiredState"`
+	Spec           Workload `json:"spec"`
+	DeploymentJSON string   `json:"deploymentDocument,omitempty"`
 }
 type Workload struct {
+	ResolvedJSON  string `json:"resolvedSystem,omitempty"`
 	Profile       string `json:"profile"`
 	APIImage      string `json:"apiImage"`
 	PostgresImage string `json:"postgresImage"`
@@ -44,6 +46,9 @@ var image = regexp.MustCompile(`^[a-zA-Z0-9./:_-]+@sha256:[a-f0-9]{64}$`)
 
 func Decode(b []byte) (Document, error) {
 	var d Document
+	if e := noDuplicates(b); e != nil {
+		return d, e
+	}
 	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&d); err != nil {
@@ -55,6 +60,47 @@ func Decode(b []byte) (Document, error) {
 	return d, nil
 }
 func (d Document) Validate(p Policy) error {
+	if d.Spec.ResolvedJSON != "" {
+		r, e := d.Spec.Resolved()
+		if e != nil {
+			return e
+		}
+		if e = r.Validate(p, Capacity{}); e != nil {
+			return e
+		}
+		if r.System.Name == "" || r.System.Version == "" || !regexp.MustCompile(`^sha256:[a-f0-9]{64}$`).MatchString(r.System.Digest) {
+			return errors.New("invalid persisted system identity")
+		}
+		for _, resource := range r.Resources {
+			c := resource.Container
+			if c == nil {
+				continue
+			}
+			expected := ""
+			switch resource.Role {
+			case "api":
+				expected = d.Spec.APIImage
+			case "model":
+				expected = d.Spec.ModelImage
+			case "postgres":
+				expected = d.Spec.PostgresImage
+			}
+			if c.Image != expected {
+				return errors.New("snapshot image mismatch")
+			}
+			for _, m := range c.Mounts {
+				if m.Kind == "model" && m.Source != d.Spec.ModelPath {
+					return errors.New("snapshot model path mismatch")
+				}
+			}
+			if resource.Role == "api" {
+				if len(c.Ports) != 1 || c.Ports[0].HostPort != d.Spec.APIHostPort {
+					return errors.New("snapshot API port mismatch")
+				}
+			}
+		}
+	}
+
 	if d.APIVersion != Version {
 		return errors.New("unsupported apiVersion")
 	}

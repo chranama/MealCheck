@@ -9,6 +9,7 @@ import (
 type Resource struct {
 	Role, Kind, Name, InstallationID, DeploymentID, Fingerprint string
 	Generation                                                  int64
+	DependsOn                                                   []string
 	Workload                                                    spec.Workload
 }
 type Observed struct {

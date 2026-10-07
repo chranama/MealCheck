@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/chranama/MealCheck/internal/infra/provider"
 	"github.com/chranama/MealCheck/internal/infra/provider/fake"
@@ -232,5 +233,111 @@ func TestCrashReopensDurableStore(t *testing.T) {
 	converge(t, second, "Ready")
 	if p.Calls["ensure:network"] != 1 {
 		t.Fatal("duplicate after restart")
+	}
+}
+
+func TestResolvedGraphUsesPersistedRolesAndDependencies(t *testing.T) {
+	c, p := setup(t)
+	// Install an accepted snapshot before any resources are created.
+	r, _ := c.Store.Get()
+	system := spec.ResolvedSystem{ApplicationRole: "api", Resources: []spec.ResolvedResource{{Role: "network", Kind: "network"}, {Role: "database-volume", Kind: "volume"}, {Role: "artifact-volume", Kind: "volume"}, {Role: "postgres", Kind: "container", DependsOn: []string{"network", "database-volume"}}, {Role: "model", Kind: "container", DependsOn: []string{"network"}}, {Role: "api", Kind: "container", DependsOn: []string{"postgres", "model", "artifact-volume"}}}}
+	b, _ := json.Marshal(system)
+	r.Document.Spec.ResolvedJSON = string(b)
+	resources := Resources(c.Store.InstallationID, r)
+	if len(resources) != 6 || len(resources[5].DependsOn) != 3 {
+		t.Fatal("graph ignored")
+	}
+	// Resource identity keeps the legacy naming convention and snapshots carry
+	// their own fingerprint, so catalog availability does not affect planning.
+	if resources[0].Name != Resources(c.Store.InstallationID, state.Record{Document: spec.Document{DeploymentID: "lab"}})[0].Name {
+		t.Fatal("ownership naming changed")
+	}
+	p.Resources["network"] = provider.Observed{ID: "network", Ready: true}
+	// Directly test readiness aggregation against engineer-defined dependencies.
+	status := state.Status{Phase: "Provisioning", Conditions: c.conditions(1, "False", "Reconciling")}
+	obs := provider.Observation{Resources: map[string]provider.Observed{}}
+	for _, res := range resources {
+		obs.Resources[res.Role] = provider.Observed{Ready: true, Running: true}
+	}
+	c.observedConditions(&status, r, resources, obs)
+	if status.Conditions[1].Status != "True" {
+		t.Fatal("healthy dependencies rejected")
+	}
+	volume := obs.Resources["artifact-volume"]
+	volume.Ready = false
+	obs.Resources["artifact-volume"] = volume
+	c.observedConditions(&status, r, resources, obs)
+	if status.Conditions[1].Status != "False" {
+		t.Fatal("engineer declared dependency ignored")
+	}
+}
+
+func TestShuffledResolvedGraphLifecycle(t *testing.T) {
+	s, err := state.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	system := spec.ResolvedSystem{ApplicationRole: "api", Resources: []spec.ResolvedResource{{Role: "api", Kind: "container", DependsOn: []string{"postgres", "model", "artifact-volume"}}, {Role: "model", Kind: "container", DependsOn: []string{"network"}}, {Role: "postgres", Kind: "container", DependsOn: []string{"network", "database-volume"}}, {Role: "artifact-volume", Kind: "volume"}, {Role: "database-volume", Kind: "volume"}, {Role: "network", Kind: "network"}}}
+	b, _ := json.Marshal(system)
+	_, err = s.Apply(spec.Document{APIVersion: spec.Version, DeploymentID: "lab", DesiredState: "Running", Spec: spec.Workload{Profile: "cpu-local-model-v1", ResolvedJSON: string(b)}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := fake.New()
+	c := &Controller{Store: s, Provider: p}
+	converge(t, c, "Ready")
+	r, _ := s.Get()
+	resources := Resources(s.InstallationID, r)
+	positions := map[string]int{}
+	for i, res := range resources {
+		positions[res.Role] = i
+	}
+	for _, res := range resources {
+		for _, dep := range res.DependsOn {
+			if positions[dep] >= positions[res.Role] {
+				t.Fatal("unsafe ordering")
+			}
+		}
+	}
+	s.Transition("Stopped")
+	converge(t, c, "Stopped")
+	s.Transition("Running")
+	converge(t, c, "Ready")
+	s.Transition("Deleted")
+	converge(t, c, "Deleted")
+	if len(p.Resources) != 2 {
+		t.Fatal("persistent data not retained")
+	}
+}
+
+func TestResolvedUnreadyDependencyNeverClaimsReady(t *testing.T) {
+	s, err := state.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	system := spec.ResolvedSystem{ApplicationRole: "api", Resources: []spec.ResolvedResource{{Role: "api", Kind: "container", DependsOn: []string{"network"}}, {Role: "network", Kind: "network"}}}
+	b, _ := json.Marshal(system)
+	_, err = s.Apply(spec.Document{APIVersion: spec.Version, DeploymentID: "lab", DesiredState: "Running", Spec: spec.Workload{ResolvedJSON: string(b)}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := fake.New()
+	c := &Controller{Store: s, Provider: p}
+	r, _ := s.Get()
+	resources := Resources(s.InstallationID, r)
+	for _, res := range resources {
+		p.Resources[res.Name] = provider.Observed{ID: res.Role, Owner: res.InstallationID, DeploymentID: res.DeploymentID, Role: res.Role, Fingerprint: res.Fingerprint, Ready: res.Kind == "container", Running: res.Kind == "container"}
+	}
+	if err = c.Step(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	r, _ = s.Get()
+	if r.Status.Phase == "Ready" {
+		t.Fatal("unready dependency accepted")
+	}
+	if len(p.Calls) != 0 {
+		t.Fatal("mutated despite blocked dependency")
 	}
 }

@@ -1,0 +1,206 @@
+{
+  "apiVersion": "mealcheck.dev/system/v1alpha1",
+  "name": "mealcheck-cpu-amd64",
+  "version": "v1",
+  "architecture": "amd64",
+  "applicationRole": "api",
+  "parameters": {
+    "modelPath": {
+      "type": "string"
+    },
+    "secretProfile": {
+      "type": "string",
+      "default": "mealcheck-lab",
+      "allowed": [
+        "mealcheck-lab"
+      ]
+    },
+    "apiHostPort": {
+      "type": "integer",
+      "default": 18080,
+      "minimum": 18080,
+      "maximum": 18089
+    },
+    "modelThreads": {
+      "type": "integer",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 2
+    },
+    "modelNanoCPUs": {
+      "type": "integer",
+      "default": 2000000000,
+      "minimum": 1000000000,
+      "maximum": 2000000000
+    }
+  },
+  "resources": [
+    {
+      "role": "network",
+      "kind": "network"
+    },
+    {
+      "role": "database-volume",
+      "kind": "volume"
+    },
+    {
+      "role": "artifact-volume",
+      "kind": "volume"
+    },
+    {
+      "role": "postgres",
+      "kind": "container",
+      "dependsOn": [
+        "network",
+        "database-volume"
+      ],
+      "container": {
+        "image": "docker.io/library/postgres@sha256:45cd22f8d32e189d245403954882f88e7a8714301fda80dab6da90f1265b25a3",
+        "nanoCPUs": 1000000000,
+        "memoryBytes": 536870912,
+        "networkRole": "network",
+        "aliases": [
+          "postgres"
+        ],
+        "environment": [
+          "POSTGRES_DB=mealcheck",
+          "POSTGRES_USER=mealcheck",
+          "POSTGRES_PASSWORD_FILE=/run/secrets/postgres-password"
+        ],
+        "mounts": [
+          {
+            "kind": "secret",
+            "source": "postgres-password",
+            "target": "/run/secrets/postgres-password",
+            "readOnly": true
+          },
+          {
+            "kind": "volume",
+            "source": "database-volume",
+            "target": "/var/lib/postgresql/data",
+            "readOnly": false
+          }
+        ],
+        "probe": {
+          "kind": "exec",
+          "command": [
+            "pg_isready",
+            "-U",
+            "mealcheck",
+            "-d",
+            "mealcheck"
+          ]
+        }
+      }
+    },
+    {
+      "role": "model",
+      "kind": "container",
+      "dependsOn": [
+        "network"
+      ],
+      "container": {
+        "image": "ghcr.io/ggml-org/llama.cpp@sha256:a48c794aabc51dc5f9663c358b946b79d4cc02de67ab4d508c2c850fd0bc20f8",
+        "nanoCPUs": 2000000000,
+        "cpuParameter": "modelNanoCPUs",
+        "memoryBytes": 1610612736,
+        "networkRole": "network",
+        "aliases": [
+          "model"
+        ],
+        "args": [
+          "--model",
+          "/models/model.gguf",
+          "--alias",
+          "mealcheck-lab-model",
+          "--host",
+          "0.0.0.0",
+          "--port",
+          "8080",
+          "--ctx-size",
+          "8192",
+          "--threads",
+          "${modelThreads}",
+          "--n-gpu-layers",
+          "0"
+        ],
+        "mounts": [
+          {
+            "kind": "model",
+            "source": "${modelPath}",
+            "target": "/models/model.gguf",
+            "readOnly": true
+          }
+        ],
+        "probe": {
+          "kind": "model",
+          "path": "/health",
+          "port": 8080
+        }
+      }
+    },
+    {
+      "role": "api",
+      "kind": "container",
+      "dependsOn": [
+        "network",
+        "artifact-volume",
+        "postgres",
+        "model"
+      ],
+      "container": {
+        "image": "localhost:15000/mealcheck@sha256:1f83e630d607befe4785ef159ec161c6a723981892407122c254767f852f0c2e",
+        "user": "10001:10001",
+        "nanoCPUs": 1000000000,
+        "memoryBytes": 805306368,
+        "networkRole": "network",
+        "aliases": [
+          "api"
+        ],
+        "environment": [
+          "MEALCHECK_ADDR=0.0.0.0:8080",
+          "MEALCHECK_STORE=postgres",
+          "MEALCHECK_HOSTED_MODE=local_model",
+          "MEALCHECK_LOCAL_MODEL_ENABLED=true",
+          "MEALCHECK_LOCAL_MODEL_BASE_URL=http://model:8080/v1",
+          "MEALCHECK_LOCAL_MODEL_NAME=mealcheck-lab-model",
+          "MEALCHECK_DATA_DIR=/var/lib/mealcheck",
+          "MEALCHECK_ARTIFACT_DIR=/var/lib/mealcheck/artifacts",
+          "MEALCHECK_FNDDS_FALLBACK_PATH=/opt/mealcheck/data/reference/fndds-2021-2023/fndds.sqlite"
+        ],
+        "mounts": [
+          {
+            "kind": "secret",
+            "source": "database-url",
+            "target": "/run/secrets/database-url",
+            "readOnly": true
+          },
+          {
+            "kind": "volume",
+            "source": "artifact-volume",
+            "target": "/var/lib/mealcheck/artifacts",
+            "readOnly": false
+          }
+        ],
+        "ports": [
+          {
+            "containerPort": 8080,
+            "hostPort": 18080,
+            "hostIP": "127.0.0.1",
+            "hostPortParameter": "apiHostPort"
+          }
+        ],
+        "probe": {
+          "kind": "application",
+          "path": "/api/status",
+          "port": 8080,
+          "components": [
+            "meal_check_submission",
+            "ai_meal_normalization",
+            "nutrition_allergen_checking"
+          ]
+        }
+      }
+    }
+  ]
+}

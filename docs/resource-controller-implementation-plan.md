@@ -1,14 +1,16 @@
 # Go Resource Controller Implementation Plan
 
 Date: 2026-10-06  
-Status: M0–M6 implemented; M0–M5 validated; M6 current-session checks validated, login/reboot unverified; M7 deferred
+Status: M0–M6 implemented; M0–M5 validated; M6 current-session checks validated, login/reboot unverified; M7 manifest buildout implemented, validation recorded in the evidence document; M8 native Linux operation deferred
 
 ## Outcome and Scope
 
 Implement the [resource controller specification](resource-controller-spec.md)
 as an isolated operations component. Develop the Go controller on the current
 Mac; use a fake provider for core tests, then Docker's Linux VM for real workload
-integration. Native Linux host operation (M7) is deferred by the current implementation request.
+integration. M7 separates the infrastructure engineer's system definition from
+the deployment user's manifest. Native Linux host operation moves to M8 and
+remains deferred until a native Linux environment is available.
 No separate physical machine or cloud VM is required to begin.
 
 The controller manages one deployment's containers, private network, and durable
@@ -31,11 +33,14 @@ claims; record which environment was actually exercised.
 | M4 | Real Docker resource provider | M1, M3 | Controller creates, stops, starts, and deletes an isolated stack safely. |
 | M5 | Readiness, drift repair, and failure budgets | M4 | Measured resource recovery and failure-policy checks pass. |
 | M6 | Mac supervision and reproducible demonstration | M5 | Controller restart and Docker outage walkthroughs pass on the Mac. |
-| M7 | Native Linux host verification | M6 | Same lifecycle and recovery gates pass with Docker Engine and systemd. |
+| M7 | Separate system and deployment manifests | M6 implementation | A trusted system definition and constrained deployment manifest resolve into durable desired state and drive the real workload. |
+| M8 | Native Linux host verification | M7 | Same manifest, lifecycle, and recovery gates pass with Docker Engine and systemd. |
 
 M1 and M2 can progress independently after M0. If Docker setup is blocked,
 continue M2–M3. M4 cannot pass until the workload packaging gate passes.
 This ordering does not imply parallel agent delegation.
+M7 development can proceed while the remaining M6 login/reboot and actual Docker
+Desktop restart checks are tracked separately; this does not mark those gates complete.
 
 ## M0 — Establish Environment and Workload Contracts
 
@@ -226,14 +231,103 @@ are untouched. A new operator can repeat the demonstration using the runbook.
 At this point the Mac-based container-controller MVP is complete. Its evidence
 supports container lifecycle and recovery claims on the tested Mac runtime.
 
-## M7 — Verify Native Linux Operation
+## M7 — Separate System and Deployment Manifests
+
+### Contract and scope
+
+Externalize the system definition currently encoded by `cpu-local-model-v1` in
+Go. Keep three separate responsibilities:
+
+| Layer | Author | Responsibility |
+| --- | --- | --- |
+| System manifest | Infrastructure engineer | Defines the MealCheck resource graph, image contracts, dependencies, networking, storage, resource limits, readiness probes, and permitted deployment parameters. |
+| Deployment manifest | Deployment user/operator | Selects a trusted system by name, version, and content digest; supplies deployment identity, desired lifecycle state, and allowed parameter values. |
+| Go implementation | Controller developer | Validates and resolves manifests; enforces ownership and retention; reconciles resources through providers with durable state and bounded recovery. |
+
+The deployment user operates a MealCheck instance. Meal plans submitted by
+MealCheck application users remain application requests, outside these manifests.
+
+The first system remains the existing single MealCheck deployment with one
+network, two persistent volumes, and PostgreSQL/model/API services. This milestone
+does not add arbitrary host scripts, a general workflow language, multiple
+deployments per controller, rolling updates, or automatic data migration.
+
+### Implementation tasks
+
+- Define strict, separately versioned JSON schemas and Go types for system and
+  deployment documents. Reject unknown fields and invalid references. Commit
+  discoverable JSON examples for both, clearly distinguishing templates from
+  runnable definitions with verified image digests.
+- Load system definitions from an explicitly configured, operator-owned trusted
+  catalog. A deployment manifest cannot supply an arbitrary system file or
+  widen the daemon's image, model-root, secret-root, or engine-access policies.
+  Pin the selected system's name, version, and canonical content digest.
+- Move service topology and dependencies, image contracts, CPU/memory limits,
+  ports, mounts, container arguments/environment, and supported readiness probes
+  into the engineer-authored system definition. Express dependencies as an
+  acyclic graph; validate missing references, cycles, and ordering before mutation.
+- Define typed deployment parameters with defaults, allowed values, and bounds.
+  Resolve references through a deterministic typed resolver rather than shell
+  execution or an unrestricted template engine. Revalidate the complete resolved
+  configuration, including paths, image pins, private networking, and retention.
+- Make image selection and resource limits appropriate to the target Docker
+  engine's architecture and capacity. Provide verified ARM64 and AMD64 workload
+  definitions or variants. In particular, replace the ARM64-only model image and
+  fixed eight-CPU assumption before deploying the lab on the four-CPU Intel
+  `mealcheck-server`; do not silently change Docker Desktop's allocation.
+- Refactor resource planning, dependency ordering, Docker configuration, and
+  readiness aggregation to consume the resolved system definition. Keep resource
+  ownership, operation journaling, data identity, and recovery mechanics in Go.
+  Secrets remain references to private files; contents never enter manifests or state.
+- Add a read-only validation/plan operation displaying the resolved resource
+  graph, selected system digest, and sanitized configuration before apply. Keep
+  apply's durable-acceptance acknowledgment distinct from observed readiness.
+- Persist the accepted deployment document, selected system identity/digest,
+  and complete resolved configuration transactionally. Reconcile the persisted
+  snapshot after restart; editing or removing a catalog file cannot silently
+  alter an accepted deployment. Identical resolved applies remain idempotent.
+- Preserve the current immutable-workload boundary. A changed system digest or
+  workload configuration requires an explicit supported transition; reject it
+  in this milestone rather than inventing an update/migration mechanism. Lifecycle
+  changes remain supported, and deletion remains terminal with data retained.
+- Define compatibility for existing `mealcheck.dev/v1alpha1` deployments and
+  SQLite state. Preserve installation UUIDs, generations, ownership, bound volume
+  identities, operation intents, retry budgets, and tombstones. Test upgrading
+  an accepted deployment without silently recreating resources or resetting budgets.
+- Update the CLI, spec renderer, installation configuration, runbook, and evidence
+  record to show which document the engineer owns and which the deployment user
+  supplies. Committed examples must be visible without first running a generator.
+
+### Deliverables and exit criteria
+
+Deliver separate system/deployment schemas and JSON examples, a trusted catalog
+with verified workload definitions, a deterministic resolver and read-only plan,
+the provider/reconciler refactor, compatibility tests, and operator documentation.
+
+Tests prove parameter bounds and defaults, unknown-field rejection, dependency
+cycle/reference rejection, architecture/capacity mismatch rejection, ownership
+and secret/path constraints, deterministic resolution and digest verification,
+identical apply, persisted snapshots across catalog edits and restart, and
+preservation of legacy state, budgets, volume bindings, and terminal deletion.
+Meaningful tests and the race detector pass.
+
+On an isolated Mac Docker engine, apply a deployment manifest referencing a
+committed trusted system definition, complete a real model-backed workflow, and
+repeat idempotency, recovery, stop/start, and retained-data deletion checks. Prove
+that engineer-approved parameter or profile choices produce the intended runtime
+configuration without editing Go source. Record the architecture and resources
+actually tested; Intel support requires its own verified images and workflow.
+Keep the native MealCheck service and shared ingress independently operated.
+
+## M8 — Verify Native Linux Operation
 
 ### Implementation tasks
 
 - Use an isolated local Linux VM or separately selected Linux host. A paid cloud
   host is optional and is a separate provisioning step.
-- Install the same pinned workload on native Docker Engine with Linux-specific
-  paths and permissions; build/run the Go controller for the target architecture.
+- Install the M7 manifest-driven pinned workload on native Docker Engine with
+  Linux-specific paths and permissions; build/run the Go controller for the
+  target architecture. Resolve and validate the same system/deployment contracts.
 - Add a systemd unit and document controller account, engine socket privileges,
   startup dependencies, state ownership, and logs.
 - Repeat the lifecycle, real workflow, restart persistence, uncertain-create,
@@ -258,7 +352,8 @@ inputs and redact secrets. Link failures to the change that resolves them.
 | Core Go policy demonstration | M0, M2, M3 |
 | Working real-resource controller | M0–M5 |
 | Supervised Mac MVP | M0–M6 |
-| Verified native Linux deployment | M0–M7 |
+| Manifest-defined MealCheck system | M0–M7, with remaining M6 runtime limits explicitly recorded |
+| Verified native Linux deployment | M0–M8 |
 
 Do not assign an eight-hour deadline to this project. Estimate implementation time
 after M0 establishes the environment and M1 exposes packaging/recovery work.

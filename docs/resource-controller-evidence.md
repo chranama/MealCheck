@@ -1,6 +1,7 @@
 # Resource Controller Evidence
 
-Implementation scope: M0–M6. M7 native Linux host operation is deferred.
+Implemented scope: M0–M7, including separate system/deployment manifests.
+Native Linux host operation is now M8 and remains deferred.
 
 ## M0 — Environment and workload contract
 
@@ -14,7 +15,8 @@ local Qwen3-0.6B-Q4_K_M model availability and no listener on port 18080.
 Commands: `uname -m`, `go version`, `sysctl -n hw.memsize`, `df -h`, Docker
 context/info, model inventory, and workload configuration source inspection.
 
-The independent review requested explicit M7 deferral and milestone evidence;
+The independent review requested explicit native Linux deferral (then M7, now
+M8) and milestone evidence;
 these corrections are included. Runtime/model image digest proof belongs to M1.
 No production services or public ingress were changed.
 
@@ -48,7 +50,7 @@ M6 login/reboot and actual Docker Desktop shutdown/restart were not exercised.
 The scoped connection outage kept the shared engine running. Those runtime gates
 remain unverified, and the original M6 exit gate is therefore only partially met.
 No workstation reboot or native production service change was performed.
-M7 native Linux host operation/systemd remains deferred by user instruction.
+M8 native Linux host operation/systemd remains deferred by user instruction.
 
 ## Final validation and review ledger
 
@@ -83,7 +85,42 @@ GitHub's Ubuntu runner exposed two socket tests that assumed the macOS path
 same permission, protocol and stale-socket assertions. The fix originated in
 PR #4 (`028b154`) and was propagated through dependent milestones before merging.
 Mac socket/CLI race tests passed after the repair; GitHub CI is the independent
-Ubuntu regression gate. This does not establish M7 native Linux deployment.
+Ubuntu regression gate. This does not establish M8 native Linux deployment.
 
 The integration request accepts the implemented Mac controller with the recorded
 M6 login/reboot and actual Docker Desktop shutdown/restart limits unchanged.
+
+## Roadmap revision — Separate manifests before native Linux
+
+The user moved native Linux operation from M7 to M8 and assigned M7 to separate
+engineer-authored system definitions from deployment-user manifests. M7 now
+externalize the current Go-defined workload profile, resolve constrained user
+parameters against a trusted versioned system, and persist the accepted resolved
+snapshot. Detailed tasks and exit gates are in the implementation plan.
+
+Existing M0–M6 review and test evidence remains historical evidence for those
+milestones. M6's remaining runtime checks are unchanged.
+
+## M7 — Trusted system and deployment manifests
+
+Implementation adds strict versioned JSON contracts, an operator-owned catalog,
+canonical system digest pinning, bounded typed parameter resolution, read-only
+`plan`, and transactionally persisted deployment/resolved snapshots. Provider
+configuration and graph ordering use the accepted snapshot. Catalog edits/removal
+cannot alter accepted configuration; changed workload/system pins are rejected.
+Legacy records retain their original ownership fingerprints and resource bindings.
+
+`go test ./...`, `go test -race ./internal/infra/... ./cmd/mealcheck-controller`,
+and opt-in real Docker ownership/incarnation tests passed. Tests cover strict
+decoding, bounds/defaults, graph cycles/references/order, capacity/architecture,
+actual image architecture, model/secret/port safety, read-only planning, restart
+without catalog access, immutable configuration, and golden pre-M7 SQLite state
+with unchanged UUID, generation, volume bindings, retry budgets and journal.
+
+The independent review identified host-versus-container application probe mapping
+and schema validation omissions; these were fixed and regression tested before
+PR completion. Detailed source review and PR results are recorded on the PR.
+
+Real ARM64 and Intel Mac runtime results, native image references, and build
+details are in [M7 manifest evidence](../deploy/controller/manifest-evidence.md).
+M8 native Linux and M6 login/reboot/actual Docker Desktop restart remain unverified.

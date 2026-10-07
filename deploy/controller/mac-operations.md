@@ -15,7 +15,10 @@ volumes, mode0700, with no existing daemon holding its lock.
 For a disposable demonstration:
 
 ```bash
-mkdir -p /tmp/controller-lab/bin /tmp/controller-lab/secrets/mealcheck-lab
+mkdir -p /tmp/controller-lab/bin /tmp/controller-lab/secrets/mealcheck-lab /tmp/controller-lab/systems
+cp deploy/controller/systems/mealcheck-cpu-arm64--v1.json /tmp/controller-lab/systems/
+chmod 700 /tmp/controller-lab/systems
+chmod 600 /tmp/controller-lab/systems/*.json
 chmod 700 /tmp/controller-lab/secrets/mealcheck-lab
 cp /tmp/controller-lab/secrets/postgres-password /tmp/controller-lab/secrets/mealcheck-lab/
 cp /tmp/controller-lab/secrets/database-url /tmp/controller-lab/secrets/mealcheck-lab/
@@ -25,6 +28,11 @@ MEALCHECK_LAUNCHAGENT_PATH=/tmp/controller-lab/dev.mealcheck.controller.lab.plis
 launchctl print gui/$(id -u)/dev.mealcheck.controller.lab
 /tmp/controller-lab/bin/mealcheck-controller get --state-dir /tmp/controller-lab/controller-state
 ```
+
+For Intel Docker Desktop, stage `mealcheck-cpu-amd64--v1.json` instead of the ARM64
+file in these examples and preload its native pins. The system declares smaller
+CPU/RAM limits; the daemon checks the actual Engine capacity before acceptance.
+Never change Docker Desktop allocation to make a fixed profile fit.
 
 The provider resolves `secretProfile=mealcheck-lab` beneath the configured secret
 root; the copy step stages the packaging credentials into that private profile
@@ -52,8 +60,14 @@ docker run -d --name mealcheck-lab-registry -p 127.0.0.1:15000:5000 \
 docker tag mealcheck-controller-lab:build localhost:15000/mealcheck:lab
 docker push localhost:15000/mealcheck:lab
 API_DIGEST=$(docker image inspect localhost:15000/mealcheck:lab --format '{{index .RepoDigests 0}}')
-python3 deploy/controller/render-spec.py --api-image "$API_DIGEST" \
+# Engineer: review the system API image matches the native preloaded API_DIGEST.
+# If different, edit the trusted system and issue a new version/content digest.
+python3 deploy/controller/render-spec.py \
+  --system-file /tmp/controller-lab/systems/mealcheck-cpu-arm64--v1.json \
+  --controller-binary /tmp/controller-lab/bin/mealcheck-controller \
   --output /tmp/controller-lab/desired.json
+/tmp/controller-lab/bin/mealcheck-controller plan \
+  --state-dir /tmp/controller-lab/controller-state --file /tmp/controller-lab/desired.json
 /tmp/controller-lab/bin/mealcheck-controller apply \
   --state-dir /tmp/controller-lab/controller-state --file /tmp/controller-lab/desired.json
 ```
@@ -64,9 +78,17 @@ before reusing it; the command above refuses to replace it. Preloaded digest ima
 remain usable without the registry while present in the Engine image store.
 
 The renderer refuses to overwrite an existing output. Choose a new filename when
-one exists and review it before apply. It uses the committed PostgreSQL/model
-pins, resolved read-only lab model path, private `mealcheck-lab` secret profile,
+one exists and review it before apply. It references the approved engineer system
+by name, version, and canonical digest,
+with a resolved read-only lab model path and private `mealcheck-lab` secret profile,
 loopback port18080, and Retain policy. Build/preload all images first.
+
+Accepted deployment and resolved system snapshots persist in SQLite; the source
+files are not watched. Catalog edits do not change existing resources. Workload
+configuration remains immutable after acceptance; changed references or parameter
+values are rejected. Lifecycle intent changes remain supported. Registry, model,
+secret-root, Engine endpoint, and trusted-catalog policies belong to the daemon
+and cannot be widened by a deployment input.
 
 ## Persistent installation example
 
@@ -83,10 +105,14 @@ export MEALCHECK_CONTROLLER_SOCKET="$MEALCHECK_CONTROLLER_STATE/controller.sock"
 export MEALCHECK_CONTROLLER_ENGINE="unix://$HOME/.docker/run/docker.sock"
 export MEALCHECK_CONTROLLER_SECRETS="$MEALCHECK_LAB_ROOT/secrets"
 export MEALCHECK_CONTROLLER_MODELS="$MEALCHECK_LAB_ROOT/models"
-export MEALCHECK_CONTROLLER_REGISTRIES='localhost:15000/mealcheck,postgres,ghcr.io/ggml-org/llama.cpp'
+export MEALCHECK_CONTROLLER_REGISTRIES='localhost:15000/mealcheck,docker.io/library,postgres,ghcr.io/ggml-org/llama.cpp'
+export MEALCHECK_CONTROLLER_CATALOG="$MEALCHECK_LAB_ROOT/systems"
 unset MEALCHECK_LAUNCHAGENT_PATH
 umask 077
-mkdir -p "$MEALCHECK_LAB_ROOT/bin" "$MEALCHECK_CONTROLLER_SECRETS/mealcheck-lab"
+mkdir -p "$MEALCHECK_LAB_ROOT/bin" "$MEALCHECK_CONTROLLER_SECRETS/mealcheck-lab" "$MEALCHECK_CONTROLLER_CATALOG"
+cp deploy/controller/systems/mealcheck-cpu-arm64--v1.json "$MEALCHECK_CONTROLLER_CATALOG/"
+chmod 700 "$MEALCHECK_CONTROLLER_CATALOG"
+chmod 600 "$MEALCHECK_CONTROLLER_CATALOG"/*.json
 ./deploy/controller/package-lab.sh prepare
 cp "$MEALCHECK_CONTROLLER_SECRETS/postgres-password" "$MEALCHECK_CONTROLLER_SECRETS/mealcheck-lab/"
 cp "$MEALCHECK_CONTROLLER_SECRETS/database-url" "$MEALCHECK_CONTROLLER_SECRETS/mealcheck-lab/"
@@ -95,7 +121,7 @@ go build -o "$MEALCHECK_CONTROLLER_BINARY" ./cmd/mealcheck-controller
 ```
 
 Generate a fresh desired-state document using `render-spec.py --lab-root
-"$MEALCHECK_LAB_ROOT"` and the preloaded pinned API image, then apply with this
+"$MEALCHECK_LAB_ROOT"`, `--system-file` and `--controller-binary`, then plan/apply with this
 state directory. The installer writes the default
 `~/Library/LaunchAgents/dev.mealcheck.controller.lab.plist`. Login discovery is
 expected from this placement; login/reboot remain unverified until exercised.

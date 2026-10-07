@@ -12,7 +12,7 @@ func TestStrictAndAllowedPaths(t *testing.T) {
 	model := filepath.Join(root, "model.gguf")
 	os.WriteFile(model, []byte("test"), 0600)
 	digest := "lab/api@sha256:" + strings.Repeat("a", 64)
-	d := Document{Version, "lab", "Running", Workload{"cpu-local-model-v1", digest, digest, digest, model, "lab", 18080, "Retain"}}
+	d := Document{APIVersion: Version, DeploymentID: "lab", DesiredState: "Running", Spec: Workload{Profile: "cpu-local-model-v1", APIImage: digest, PostgresImage: digest, ModelImage: digest, ModelPath: model, SecretProfile: "lab", APIHostPort: 18080, DataPolicy: "Retain"}}
 	p := Policy{ModelRoots: []string{root}, Registries: []string{"lab"}}
 	if e := d.Validate(p); e != nil {
 		t.Fatal(e)

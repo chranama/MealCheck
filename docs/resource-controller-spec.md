@@ -1,7 +1,7 @@
 # Go Resource Controller for MealCheck
 
 Date: 2026-10-06  
-Status: proposed; no controller implementation or runtime verification claimed
+Status: M0–M7 implemented; see evidence for runtime validation and limits. M8 native Linux operation deferred.
 
 ## Purpose
 
@@ -54,6 +54,12 @@ Do not use Docker Compose as the controller's execution backend: the Go provider
 must call the engine API directly so ownership and failure handling are explicit.
 
 ## User Contract
+
+This section describes the compatible M0–M6 single-manifest contract. M7 adds
+separate system and deployment documents as described under **M7 Manifest
+Separation** below. Existing accepted deployments continue using their original
+configuration and ownership fingerprints; conversion to a changed resolved system
+is rejected by the immutable-workload boundary.
 
 The operator supplies a versioned JSON desired-state document through a local
 CLI. The controller persists it before acknowledging acceptance. Applying an
@@ -109,7 +115,7 @@ port conflicts, and paths outside configured allowlists.
 
 ## Architecture and Persistence
 
-Proposed implementation layout:
+Implementation layout:
 
 ```text
 cmd/mealcheck-controller/          daemon and CLI entrypoints
@@ -309,6 +315,52 @@ secrets, tests, operator runbook, and an evidence record with commit, versions,
 host details, commands, observed timings, resource inventory, and limitations.
 This is a multi-stage project, not an assumed eight-hour extension of the Linux
 reliability sprint. Actual implementation estimates follow the packaging gate.
+
+## M7 Manifest Separation
+
+M7 separates a trusted, infrastructure-engineer-authored **system manifest**
+from a **deployment manifest** supplied by an operator of a MealCheck instance.
+The system defines services and dependencies, images, resources, networking,
+storage, readiness, and permitted parameter values. The deployment selects a
+system name/version/content digest and supplies identity, desired state, and
+constrained parameters. MealCheck application users' meal-plan inputs remain
+outside the infrastructure contract.
+
+Go code implements validation, typed resolution, reconciliation, ownership,
+durable operation recovery, and provider mechanics. It consumes an accepted
+resolved system snapshot rather than embedding the workload specification in
+the Docker adapter. System files come from an operator-configured trusted catalog;
+deployment users cannot expand that trust boundary or supply host scripts.
+
+Acceptance pins and persists the selected system identity, digest, deployment
+parameters, and resolved configuration. Catalog changes do not silently change
+running deployments. Workload updates and data migration remain outside this
+milestone; compatibility must preserve existing v1alpha1 state and resource
+ownership. Architecture-appropriate image pins and configurable resource limits
+are required, including the Intel server's engine constraints.
+
+The committed [system definitions](../deploy/controller/systems/README.md),
+[deployment JSON templates](../deploy/controller/examples/README.md), and
+[JSON Schemas](../deploy/controller/schemas/) are visible in the repository.
+The new versions are `mealcheck.dev/system/v1alpha1` and
+`mealcheck.dev/deployment/v1alpha1`. Configure `daemon --catalog DIRECTORY`;
+clients submit deployment documents through `plan --file` and `apply --file`.
+`system-digest --file` computes the canonical digest offline. New acceptance
+checks the live engine's architecture/capacity and preloaded image architecture.
+Apply acknowledges durable acceptance; `get` reports observed readiness.
+Daemon image/model-root policies apply to new resolution. Narrower allowlists or
+catalog removal do not revoke an accepted snapshot; stop/delete the workload to
+withdraw its accepted authority. Dynamic revocation is outside this milestone.
+
+Legacy v1alpha1 input remains supported. Upgrading the controller binary reads
+existing SQLite state without converting its workload or changing its fingerprint.
+Applying a new manifest-defined workload to that accepted legacy installation is
+rejected as an immutable configuration change. Use a fresh, separately owned
+installation until a supported update/migration mechanism exists.
+
+See [M7 implementation tasks and exit gates](resource-controller-implementation-plan.md#m7--separate-system-and-deployment-manifests).
+Native Linux host/systemd verification moves to M8 and remains deferred. Existing
+M6 login/reboot and actual Docker Desktop restart verification remains outstanding.
 
 ## Later VM Extension
 

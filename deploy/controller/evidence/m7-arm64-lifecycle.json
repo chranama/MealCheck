@@ -1,0 +1,15 @@
+{
+  "architecture": "arm64",
+  "restartWithoutCatalog": true,
+  "identicalApplyGeneration": 1,
+  "stopGeneration": 2,
+  "startGeneration": 3,
+  "deleteGeneration": 4,
+  "retainedVolumeIDs": {
+    "database-volume": "a814c0a31c0884ecefd337c8b04f0850",
+    "artifact-volume": "5310cea7b283368b1f3b95008afb2823"
+  },
+  "reportSHA256": "97082582755d0d82aba6944321a86d0c3ecb5da94ab2c9cc3d6788e9d89ea342",
+  "reportRetainedAcrossStopStart": true,
+  "deletedResourcesVerified": true
+}

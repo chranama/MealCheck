@@ -1,0 +1,277 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mealcheck.dev/schemas/system-v1alpha1.schema.json",
+  "title": "MealCheck system manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "const": "mealcheck.dev/system/v1alpha1"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,47}$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,47}$"
+    },
+    "architecture": {
+      "enum": [
+        "arm64",
+        "amd64"
+      ]
+    },
+    "applicationRole": {
+      "const": "api"
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "enum": [
+              "string",
+              "integer"
+            ]
+          },
+          "default": {
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "allowed": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": [
+                "string",
+                "integer"
+              ]
+            }
+          },
+          "minimum": {
+            "type": "number"
+          },
+          "maximum": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    },
+    "resources": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "enum": [
+              "network",
+              "database-volume",
+              "artifact-volume",
+              "postgres",
+              "model",
+              "api"
+            ]
+          },
+          "kind": {
+            "enum": [
+              "network",
+              "volume",
+              "container"
+            ]
+          },
+          "dependsOn": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "network",
+                "database-volume",
+                "artifact-volume",
+                "postgres",
+                "model",
+                "api"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "container": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "image": {
+                "type": "string",
+                "pattern": "^[^\\s]+@sha256:[0-9a-f]{64}$"
+              },
+              "user": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "environment": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "nanoCPUs": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "memoryBytes": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "networkRole": {
+                "const": "network"
+              },
+              "aliases": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "mounts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "volume",
+                        "model",
+                        "secret"
+                      ]
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "target": {
+                      "type": "string"
+                    },
+                    "readOnly": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "source",
+                    "target",
+                    "readOnly"
+                  ]
+                }
+              },
+              "ports": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "containerPort": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535
+                    },
+                    "hostPort": {
+                      "type": "integer",
+                      "minimum": 1024,
+                      "maximum": 65535
+                    },
+                    "hostIP": {
+                      "const": "127.0.0.1"
+                    },
+                    "hostPortParameter": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "containerPort",
+                    "hostPort",
+                    "hostIP"
+                  ]
+                }
+              },
+              "probe": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "exec",
+                      "http",
+                      "model",
+                      "application"
+                    ]
+                  },
+                  "command": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "port": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  },
+                  "components": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              "cpuParameter": {
+                "type": "string"
+              },
+              "memoryParameter": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "image",
+              "nanoCPUs",
+              "memoryBytes",
+              "networkRole",
+              "probe"
+            ]
+          }
+        },
+        "required": [
+          "role",
+          "kind"
+        ]
+      }
+    }
+  },
+  "required": [
+    "apiVersion",
+    "name",
+    "version",
+    "architecture",
+    "applicationRole",
+    "parameters",
+    "resources"
+  ]
+}

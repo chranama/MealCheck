@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/chranama/MealCheck/internal/infra/provider"
+	"github.com/chranama/MealCheck/internal/infra/spec"
 	"github.com/chranama/MealCheck/internal/infra/state"
 	"github.com/google/uuid"
 	"math/rand/v2"
@@ -31,6 +32,44 @@ type Controller struct {
 
 func Resources(owner string, r state.Record) []provider.Resource {
 	roles := []string{"network", "database-volume", "artifact-volume", "postgres", "model", "api"}
+	kinds := map[string]string{}
+	dependencies := map[string][]string{}
+	if resolved, err := r.Document.Spec.Resolved(); err == nil && resolved != nil {
+		roles = nil
+		// Stable topological ordering also makes reverse teardown safe when
+		// engineers author resources in a different order.
+		pending := append([]spec.ResolvedResource(nil), resolved.Resources...)
+		ordered := []spec.ResolvedResource{}
+		visited := map[string]bool{}
+		for len(pending) > 0 {
+			progress := false
+			next := []spec.ResolvedResource{}
+			for _, resource := range pending {
+				ready := true
+				for _, dependency := range resource.DependsOn {
+					if !visited[dependency] {
+						ready = false
+					}
+				}
+				if !ready {
+					next = append(next, resource)
+					continue
+				}
+				ordered = append(ordered, resource)
+				visited[resource.Role] = true
+				progress = true
+			}
+			if !progress {
+				break
+			} // Invalid graphs are rejected before acceptance.
+			pending = next
+		}
+		for _, resource := range ordered {
+			roles = append(roles, resource.Role)
+			kinds[resource.Role] = resource.Kind
+			dependencies[resource.Role] = resource.DependsOn
+		}
+	}
 	out := make([]provider.Resource, 0, len(roles))
 	for _, role := range roles {
 		kind := "container"
@@ -40,7 +79,10 @@ func Resources(owner string, r state.Record) []provider.Resource {
 		if role == "database-volume" || role == "artifact-volume" {
 			kind = "volume"
 		}
-		out = append(out, provider.Resource{Role: role, Kind: kind, Name: fmt.Sprintf("mc-%s-%s-%s", owner[:8], r.Document.DeploymentID, role), InstallationID: owner, DeploymentID: r.Document.DeploymentID, Fingerprint: r.Document.Spec.Fingerprint(), Generation: r.Generation, Workload: r.Document.Spec})
+		if configured, ok := kinds[role]; ok {
+			kind = configured
+		}
+		out = append(out, provider.Resource{DependsOn: dependencies[role], Role: role, Kind: kind, Name: fmt.Sprintf("mc-%s-%s-%s", owner[:8], r.Document.DeploymentID, role), InstallationID: owner, DeploymentID: r.Document.DeploymentID, Fingerprint: r.Document.Spec.Fingerprint(), Generation: r.Generation, Workload: r.Document.Spec})
 	}
 	return out
 }
@@ -71,6 +113,9 @@ func (c *Controller) Step(ctx context.Context) error {
 	}
 	if !r.Status.NextRetry.IsZero() && c.now().Before(r.Status.NextRetry) {
 		return nil
+	}
+	if _, err := r.Document.Spec.Resolved(); err != nil {
+		return fmt.Errorf("invalid persisted system snapshot: %w", err)
 	}
 	resources := Resources(c.Store.InstallationID, r)
 	o, e := c.observe(ctx, resources)
@@ -152,6 +197,16 @@ func (c *Controller) Step(ctx context.Context) error {
 		for i := range resources {
 			res := &resources[i]
 			actual, exists := o.Resources[res.Role]
+			dependenciesReady := true
+			for _, dependency := range res.DependsOn {
+				observed, ok := o.Resources[dependency]
+				if !ok || !observed.Ready {
+					dependenciesReady = false
+				}
+			}
+			if !dependenciesReady {
+				continue
+			}
 			if !exists {
 				target = res
 				action = "ensure"
@@ -185,7 +240,18 @@ func (c *Controller) Step(ctx context.Context) error {
 				delete(status.StartupSince, res.Role)
 			}
 		}
-		if target == nil && status.Phase == "Provisioning" {
+		allReady := true
+		for _, resource := range resources {
+			actual, exists := o.Resources[resource.Role]
+			if !exists || !actual.Ready || (resource.Kind == "container" && !actual.Running) {
+				allReady = false
+			}
+		}
+		if target == nil && status.Phase == "Provisioning" && !allReady {
+			status.Phase = "Degraded"
+			status.Conditions = c.conditions(r.Generation, "False", "DependenciesNotReady")
+		}
+		if target == nil && status.Phase == "Provisioning" && allReady {
 			status.Phase = "Ready"
 			status.RetryCount = 0
 			status.NextRetry = time.Time{}
@@ -411,10 +477,26 @@ func (c *Controller) observedConditions(status *state.Status, r state.Record, re
 			allPresent = false
 		}
 	}
-	pg, pgOK := o.Resources["postgres"]
-	model, modelOK := o.Resources["model"]
-	api, apiOK := o.Resources["api"]
-	values := map[string]bool{"ResourcesReady": allPresent, "DependenciesReady": pgOK && modelOK && pg.Running && pg.Ready && model.Running && model.Ready, "ApplicationReady": apiOK && api.Running && api.Ready, "Progressing": status.Phase != "Ready"}
+	applicationRole := "api"
+	dependencyRoles := []string{"postgres", "model"}
+	if resolved, err := r.Document.Spec.Resolved(); err == nil && resolved != nil {
+		applicationRole = resolved.ApplicationRole
+		dependencyRoles = nil
+		for _, resource := range resolved.Resources {
+			if resource.Role == applicationRole {
+				dependencyRoles = resource.DependsOn
+			}
+		}
+	}
+	dependenciesReady := true
+	for _, role := range dependencyRoles {
+		actual, ok := o.Resources[role]
+		if !ok || !actual.Ready {
+			dependenciesReady = false
+		}
+	}
+	api, apiOK := o.Resources[applicationRole]
+	values := map[string]bool{"ResourcesReady": allPresent, "DependenciesReady": dependenciesReady, "ApplicationReady": apiOK && api.Running && api.Ready, "Progressing": status.Phase != "Ready"}
 	trueReasons := map[string]string{"ResourcesReady": "ResourcesPresent", "DependenciesReady": "DependenciesHealthy", "ApplicationReady": "ApplicationHealthy", "Progressing": "Reconciling"}
 	falseReasons := map[string]string{"ResourcesReady": "ResourcesMissing", "DependenciesReady": "DependenciesNotReady", "ApplicationReady": "ApplicationNotReady", "Progressing": "Converged"}
 	for i := range status.Conditions {

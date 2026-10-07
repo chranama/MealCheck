@@ -175,7 +175,7 @@ func (s *Store) Apply(d spec.Document) (Record, error) {
 		if old.Document.Spec != d.Spec {
 			return old, errors.New("workload configuration is immutable")
 		}
-		if old.Document == d {
+		if old.Document.Spec == d.Spec && old.Document.APIVersion == d.APIVersion && old.Document.DeploymentID == d.DeploymentID && old.Document.DesiredState == d.DesiredState {
 			return old, nil
 		}
 	}

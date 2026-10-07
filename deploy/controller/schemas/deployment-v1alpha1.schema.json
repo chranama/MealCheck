@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mealcheck.dev/schemas/deployment-v1alpha1.schema.json",
+  "title": "MealCheck deployment manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "const": "mealcheck.dev/deployment/v1alpha1"
+    },
+    "deploymentID": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,47}$"
+    },
+    "desiredState": {
+      "enum": [
+        "Running",
+        "Stopped",
+        "Deleted"
+      ]
+    },
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "digest"
+      ]
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "integer"
+        ]
+      }
+    }
+  },
+  "required": [
+    "apiVersion",
+    "deploymentID",
+    "desiredState",
+    "system",
+    "parameters"
+  ]
+}
