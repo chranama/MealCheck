@@ -23,7 +23,8 @@ type Response struct {
 	Error  string `json:"error,omitempty"`
 }
 
-func Handler(s *state.Store, p spec.Policy) http.Handler {
+func Handler(s *state.Store, p spec.Policy) http.Handler { return HandlerWithNotify(s, p, nil) }
+func HandlerWithNotify(s *state.Store, p spec.Policy, notify func()) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		respond := func(v any, e error) {
@@ -62,7 +63,22 @@ func Handler(s *state.Store, p spec.Policy) http.Handler {
 				respond(nil, e)
 				return
 			}
+			canonical, err := filepath.EvalSymlinks(d.Spec.ModelPath)
+			if err != nil {
+				respond(nil, errors.New("model path cannot be resolved"))
+				return
+			}
+			d.Spec.ModelPath = canonical
 			v, e := s.Apply(d)
+			if e == nil && notify != nil {
+				notify()
+			}
+			respond(v, e)
+		case "retry":
+			v, e := s.Retry()
+			if e == nil && notify != nil {
+				notify()
+			}
 			respond(v, e)
 		case "get":
 			v, e := s.Get()
@@ -73,6 +89,9 @@ func Handler(s *state.Store, p spec.Policy) http.Handler {
 		case "start", "stop", "delete":
 			target := map[string]string{"start": "Running", "stop": "Stopped", "delete": "Deleted"}[q.Command]
 			v, e := s.Transition(target)
+			if e == nil && notify != nil {
+				notify()
+			}
 			respond(v, e)
 		default:
 			respond(nil, errors.New("unknown command"))

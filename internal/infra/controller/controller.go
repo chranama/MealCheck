@@ -3,22 +3,30 @@ package controller
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/chranama/MealCheck/internal/infra/provider"
 	"github.com/chranama/MealCheck/internal/infra/state"
 	"github.com/google/uuid"
+	"math/rand/v2"
 	"sync"
 	"time"
 )
 
 type Controller struct {
-	mu            sync.Mutex
-	Store         *state.Store
-	Provider      provider.Provider
-	Now           func() time.Time
-	Deadline      time.Duration
-	AfterMutation func() error
+	mu                  sync.Mutex
+	Store               *state.Store
+	Provider            provider.Provider
+	Now                 func() time.Time
+	Deadline            time.Duration
+	AfterMutation       func() error
+	StartupWindow       time.Duration
+	RetryBase, RetryMax time.Duration
+	StartLimit          int
+	StartWindow         time.Duration
+	Jitter              func(time.Duration) time.Duration
+	Wake                <-chan struct{}
 }
 
 func Resources(owner string, r state.Record) []provider.Resource {
@@ -58,17 +66,30 @@ func (c *Controller) Step(ctx context.Context) error {
 	if e != nil {
 		return e
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if !r.Status.NextRetry.IsZero() && c.now().Before(r.Status.NextRetry) {
+		return nil
+	}
 	resources := Resources(c.Store.InstallationID, r)
 	o, e := c.observe(ctx, resources)
 	status := r.Status
 	if status.Resources == nil {
 		status.Resources = map[string]state.Binding{}
 	}
+	if status.Starts == nil {
+		status.Starts = map[string][]time.Time{}
+	}
+	if status.StartupSince == nil {
+		status.StartupSince = map[string]time.Time{}
+	}
 	status.ObservedGeneration = r.Generation
 	status.Conditions = c.conditions(r.Generation, "False", "Reconciling")
 	if e != nil {
 		status.Phase = "Degraded"
 		status.Conditions = c.conditions(r.Generation, "Unknown", "EngineObservationUnavailable")
+		c.backoff(&status)
 		return c.Store.SetStatus(r.Generation, status)
 	}
 	status.LastObservation = c.now()
@@ -97,6 +118,11 @@ func (c *Controller) Step(ctx context.Context) error {
 		if exists {
 			status.Resources[res.Role] = state.Binding{ID: actual.ID, Name: res.Name, Retained: res.Kind == "volume" && r.Document.DesiredState == "Deleted"}
 		}
+	}
+	if status.Failure != "" && r.Document.DesiredState == "Running" {
+		status.Phase = "Blocked"
+		status.Conditions = c.conditions(r.Generation, "False", status.Failure)
+		return c.Store.SetStatus(r.Generation, status)
 	}
 	// Resolve old intents using known observation before selecting another action.
 	ops, e := c.Store.Operations()
@@ -140,12 +166,29 @@ func (c *Controller) Step(ctx context.Context) error {
 				if !actual.Ready {
 					status.Phase = "Degraded"
 					status.Conditions = c.conditions(r.Generation, "False", res.Role+"NotReady")
+					since, ok := status.StartupSince[res.Role]
+					if !ok {
+						since = c.now()
+						status.StartupSince[res.Role] = since
+					}
+					window := c.StartupWindow
+					if window == 0 {
+						window = 120 * time.Second
+					}
+					if c.now().Sub(since) >= window {
+						status.Phase = "Blocked"
+						status.Failure = res.Role + "ReadinessBudgetExhausted"
+						status.Conditions = c.conditions(r.Generation, "False", status.Failure)
+					}
 					break
 				}
+				delete(status.StartupSince, res.Role)
 			}
 		}
 		if target == nil && status.Phase == "Provisioning" {
 			status.Phase = "Ready"
+			status.RetryCount = 0
+			status.NextRetry = time.Time{}
 			status.Conditions = c.conditions(r.Generation, "True", "ObservedReady")
 			status.Conditions[3].Status = "False"
 		}
@@ -179,6 +222,30 @@ func (c *Controller) Step(ctx context.Context) error {
 			status.Phase = "Deleted"
 		}
 	}
+	if target != nil && action == "start" {
+		window := c.StartWindow
+		if window == 0 {
+			window = 10 * time.Minute
+		}
+		limit := c.StartLimit
+		if limit == 0 {
+			limit = 5
+		}
+		recent := []time.Time{}
+		for _, stamp := range status.Starts[target.Role] {
+			if c.now().Sub(stamp) < window {
+				recent = append(recent, stamp)
+			}
+		}
+		status.Starts[target.Role] = recent
+		if len(recent) >= limit {
+			status.Phase = "Blocked"
+			status.Conditions = c.conditions(r.Generation, "False", target.Role+"RestartBudgetExhausted")
+			status.NextRetry = recent[0].Add(window)
+			target = nil
+		}
+	}
+	c.observedConditions(&status, r, resources, o)
 	if e = c.Store.SetStatus(r.Generation, status); e != nil {
 		return e
 	}
@@ -195,6 +262,13 @@ func (c *Controller) Step(ctx context.Context) error {
 	op := state.Operation{ID: uuid.NewString(), Generation: r.Generation, Role: target.Role, Action: action, Fingerprint: target.Fingerprint}
 	if e = c.Store.Journal(op); e != nil {
 		return e
+	}
+	if action == "start" {
+		status.Starts[target.Role] = append(status.Starts[target.Role], c.now())
+		status.StartupSince[target.Role] = c.now()
+		if err := c.Store.SetStatus(r.Generation, status); err != nil {
+			return err
+		}
 	}
 	deadline := c.Deadline
 	if deadline == 0 {
@@ -221,11 +295,14 @@ func (c *Controller) Step(ctx context.Context) error {
 	if obsErr != nil {
 		status.Phase = "Degraded"
 		status.Conditions = c.conditions(r.Generation, "Unknown", "MutationOutcomeUnknown")
+		c.backoff(&status)
 		return c.Store.SetStatus(r.Generation, status)
 	}
 	actual, exists := observed.Resources[target.Role]
 	confirmed := (action == "ensure" && exists && provider.Compatible(*target, actual)) || (action == "start" && exists && actual.Running) || (action == "stop" && exists && !actual.Running) || (action == "remove" && !exists)
 	if confirmed {
+		status.RetryCount = 0
+		status.NextRetry = time.Time{}
 		op.Outcome = "Confirmed"
 		if exists {
 			status.Resources[target.Role] = state.Binding{ID: actual.ID, Name: target.Name, Retained: target.Kind == "volume"}
@@ -240,9 +317,14 @@ func (c *Controller) Step(ctx context.Context) error {
 		if errors.As(e, &pe) && !pe.Transient {
 			status.Phase = "Blocked"
 			reason = pe.Reason
+			status.Failure = reason
 		}
 		status.Conditions = c.conditions(r.Generation, "False", reason)
+		if status.Phase != "Blocked" {
+			c.backoff(&status)
+		}
 	}
+	c.observedConditions(&status, r, resources, observed)
 	if err := c.Store.Journal(op); err != nil {
 		return err
 	}
@@ -262,11 +344,14 @@ func (c *Controller) Run(ctx context.Context, interval time.Duration) error {
 			if e = c.Step(ctx); e != nil && ctx.Err() == nil {
 				return e
 			}
+		} else if e != sql.ErrNoRows {
+			return e
 		}
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
+		case <-c.Wake:
 		}
 	}
 }
@@ -274,7 +359,72 @@ func (c *Controller) Run(ctx context.Context, interval time.Duration) error {
 func (c *Controller) conditions(g int64, value, reason string) []state.Condition {
 	out := []state.Condition{}
 	for _, kind := range []string{"ResourcesReady", "DependenciesReady", "ApplicationReady", "Progressing"} {
-		out = append(out, state.Condition{Type: kind, Status: value, Reason: reason, Generation: g, TransitionTime: c.now()})
+		conditionValue := value
+		if kind == "Progressing" && value == "Unknown" {
+			conditionValue = "False"
+		}
+		out = append(out, state.Condition{Type: kind, Status: conditionValue, Reason: reason, Generation: g, TransitionTime: c.now()})
 	}
 	return out
+}
+
+func (c *Controller) backoff(s *state.Status) {
+	s.RetryCount++
+	base := c.RetryBase
+	if base == 0 {
+		base = time.Second
+	}
+	max := c.RetryMax
+	if max == 0 {
+		max = 30 * time.Second
+	}
+	delay := base
+	for i := 1; i < s.RetryCount && delay < max; i++ {
+		delay *= 2
+	}
+	if delay > max {
+		delay = max
+	}
+	if c.Jitter != nil {
+		delay = c.Jitter(delay)
+	} else {
+		delay = time.Duration(float64(delay) * (0.8 + rand.Float64()*0.4))
+	}
+	if delay < base {
+		delay = base
+	}
+	if delay > max {
+		delay = max
+	}
+	s.NextRetry = c.now().Add(delay)
+}
+
+// observedConditions separates existence, dependency health, application health,
+// and controller progress when an authoritative engine observation is available.
+func (c *Controller) observedConditions(status *state.Status, r state.Record, resources []provider.Resource, o provider.Observation) {
+	if r.Document.DesiredState != "Running" || status.Phase == "Blocked" {
+		return
+	}
+	allPresent := true
+	for _, res := range resources {
+		if _, ok := o.Resources[res.Role]; !ok {
+			allPresent = false
+		}
+	}
+	pg, pgOK := o.Resources["postgres"]
+	model, modelOK := o.Resources["model"]
+	api, apiOK := o.Resources["api"]
+	values := map[string]bool{"ResourcesReady": allPresent, "DependenciesReady": pgOK && modelOK && pg.Running && pg.Ready && model.Running && model.Ready, "ApplicationReady": apiOK && api.Running && api.Ready, "Progressing": status.Phase != "Ready"}
+	trueReasons := map[string]string{"ResourcesReady": "ResourcesPresent", "DependenciesReady": "DependenciesHealthy", "ApplicationReady": "ApplicationHealthy", "Progressing": "Reconciling"}
+	falseReasons := map[string]string{"ResourcesReady": "ResourcesMissing", "DependenciesReady": "DependenciesNotReady", "ApplicationReady": "ApplicationNotReady", "Progressing": "Converged"}
+	for i := range status.Conditions {
+		kind := status.Conditions[i].Type
+		if values[kind] {
+			status.Conditions[i].Status = "True"
+			status.Conditions[i].Reason = trueReasons[kind]
+		} else {
+			status.Conditions[i].Status = "False"
+			status.Conditions[i].Reason = falseReasons[kind]
+		}
+	}
 }
