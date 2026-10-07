@@ -1,0 +1,5 @@
+# Controller command interface
+
+`mealcheck-controller daemon --state-dir <private-directory> --model-roots <roots> --registries <image-prefixes>` owns a lifetime lock and serves a mode-0600 Unix socket. The socket defaults to `<state-dir>/controller.sock`. An existing live socket, regular file, symlink, or socket owned by another user is refused. Only an owned stale socket in an owned private directory can be removed after the state lock is held.
+
+Operator commands are `apply --file <document>`, `get`, `start`, `stop`, `delete`, and `events`, with the same `--state-dir` or `--socket` option. Successful commands return JSON and exit **0**. Invalid flags, validation or transition rejection, unavailable daemon, and transport failures print an error to stderr and exit **1**. Apply acknowledges durable acceptance and generation; it does not wait for readiness. Get status must be inspected separately. Delete is terminal and retains volumes. Events retain the latest 1,000 records and contain classified reasons rather than provider output or secrets.
