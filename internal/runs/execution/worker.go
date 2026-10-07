@@ -88,7 +88,11 @@ func (w *Worker) ProcessOne(ctx context.Context) (bool, error) {
 				return
 			}
 		} else if run.CasePath == normalize.RuntimeCasePath(w.Config, run.ID) {
-			done <- workerProcessResult{err: fmt.Errorf("pending BYOK run input expired before processing; resubmit with a fresh provider API key")}
+			message := "pending run input lost or expired before processing; resubmit the run"
+			if run.InputMode != core.InputModeLocalModel {
+				message = "pending BYOK run input lost or expired before processing; resubmit with a fresh provider API key"
+			}
+			done <- workerProcessResult{err: fmt.Errorf("%s", message)}
 			return
 		}
 
