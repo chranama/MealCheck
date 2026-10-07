@@ -48,3 +48,29 @@ The scoped connection outage kept the shared engine running. Those runtime gates
 remain unverified, and the original M6 exit gate is therefore only partially met.
 No workstation reboot or native production service change was performed.
 M7 native Linux host operation/systemd remains deferred by user instruction.
+
+## Final validation and review ledger
+
+`go test ./...` passed after the diagnostic assertion repair. The final
+`go test -race ./internal/infra/... ./cmd/mealcheck-controller
+./internal/runs/execution ./internal/state/postgres` suite passed. Shell syntax,
+Python syntax and plist parsing passed. PostgreSQL's opt-in live regression and
+Docker's opt-in live ownership/incarnation tests were exercised separately as
+recorded in M1/M4; ordinary test runs skip those live gates without explicit
+configuration.
+
+The independent review agent accepted these source snapshots:
+
+| PR | Reviewed head | Outcome |
+| --- | --- | --- |
+| #2 | `d00537e` | M0 accepted |
+| #3 | `4ef7506` | M1 accepted, including final regression repair |
+| #4 | `29cf5e0` | M2 accepted |
+| #5 | `851a0d5` | M3 accepted |
+| #6 | `aa27b37` | M4 accepted |
+| #7 | `22729e2` | M5 accepted |
+| #8 | `f4ebeb4` | M6 source accepted; original runtime gate partial |
+
+Later evidence-only updates do not change those implementation snapshots.
+Acceptance here means an automated independent-agent source review, not a human
+GitHub approval or merge. Operator login/reboot verification remains outstanding.
