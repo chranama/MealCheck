@@ -34,6 +34,7 @@ type Binding struct {
 	Retained bool   `json:"retained"`
 }
 type Status struct {
+	RetryEpoch         int64                  `json:"retryEpoch"`
 	Phase              string                 `json:"phase"`
 	ObservedGeneration int64                  `json:"observedGeneration"`
 	Conditions         []Condition            `json:"conditions"`
@@ -42,6 +43,8 @@ type Status struct {
 	RetryCount         int                    `json:"retryCount"`
 	NextRetry          time.Time              `json:"nextRetry"`
 	Starts             map[string][]time.Time `json:"starts,omitempty"`
+	StartupSince       map[string]time.Time   `json:"startupSince,omitempty"`
+	Failure            string                 `json:"failure,omitempty"`
 }
 type Operation struct {
 	ID          string `json:"id"`
@@ -181,6 +184,9 @@ func (s *Store) Apply(d spec.Document) (Record, error) {
 	r.Generation++
 	r.Tombstone = d.DesiredState == "Deleted"
 	r.Status.Phase = "Pending"
+	r.Status.NextRetry = time.Time{}
+	r.Status.RetryCount = 0
+	r.Status.Failure = ""
 	for i := range r.Status.Conditions {
 		r.Status.Conditions[i].Status = "False"
 		r.Status.Conditions[i].Reason = "DesiredStateChanged"
@@ -218,9 +224,20 @@ func (s *Store) SetStatus(g int64, status Status) error {
 	if e != nil {
 		return e
 	}
+	if r.Status.RetryEpoch != status.RetryEpoch {
+		return nil
+	}
 	if r.Generation != g {
 		status.Phase = "Pending"
 		status.ObservedGeneration = g
+	}
+	for i := range status.Conditions {
+		for _, old := range r.Status.Conditions {
+			if old.Type == status.Conditions[i].Type && old.Status == status.Conditions[i].Status && old.Reason == status.Conditions[i].Reason && old.Generation == status.Conditions[i].Generation {
+				status.Conditions[i].TransitionTime = old.TransitionTime
+				break
+			}
+		}
 	}
 	r.Status = status
 	tx, e := s.DB.Begin()
@@ -290,4 +307,41 @@ func (s *Store) Events() ([]Event, error) {
 		out = append(out, v)
 	}
 	return out, rows.Err()
+}
+
+// Retry explicitly resets operator-intervention budgets, without changing generation.
+func (s *Store) Retry() (Record, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	r, e := s.Get()
+	if e != nil {
+		return r, e
+	}
+	if r.Tombstone {
+		return r, errors.New("deleted deployment cannot retry")
+	}
+	r.Status.RetryEpoch++
+	r.Status.RetryCount = 0
+	r.Status.NextRetry = time.Time{}
+	r.Status.Starts = nil
+	r.Status.StartupSince = nil
+	r.Status.Failure = ""
+	r.Status.Phase = "Pending"
+	for i := range r.Status.Conditions {
+		r.Status.Conditions[i].Status = "False"
+		r.Status.Conditions[i].Reason = "OperatorRetry"
+		r.Status.Conditions[i].TransitionTime = time.Now().UTC()
+	}
+	tx, e := s.DB.Begin()
+	if e != nil {
+		return r, e
+	}
+	defer tx.Rollback()
+	if e = write(tx, r); e == nil {
+		e = event(tx, "OperatorRetry", r.Generation)
+	}
+	if e == nil {
+		e = tx.Commit()
+	}
+	return r, e
 }

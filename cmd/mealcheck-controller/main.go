@@ -70,10 +70,16 @@ func run(args []string) error {
 			return err
 		}
 		defer p.Close()
-		reconcile := &controller.Controller{Store: s, Provider: p}
+		wake := make(chan struct{}, 1)
+		reconcile := &controller.Controller{Store: s, Provider: p, Wake: wake}
 		done := make(chan error, 1)
 		go func() { err := reconcile.Run(ctx, 5*time.Second); done <- err; cancel() }()
-		serveErr := control.Serve(ctx, *socket, control.Handler(s, spec.Policy{ModelRoots: strings.Split(*roots, ","), Registries: strings.Split(*registries, ",")}))
+		serveErr := control.Serve(ctx, *socket, control.HandlerWithNotify(s, spec.Policy{ModelRoots: strings.Split(*roots, ","), Registries: strings.Split(*registries, ",")}, func() {
+			select {
+			case wake <- struct{}{}:
+			default:
+			}
+		}))
 		cancel()
 		reconcileErr := <-done
 		if serveErr != nil {

@@ -34,6 +34,11 @@ func TestHandlerLifecycleAndRejections(t *testing.T) {
 		return out
 	}
 	d := spec.Document{APIVersion: spec.Version, DeploymentID: "lab", DesiredState: "Running", Spec: spec.Workload{Profile: "cpu-local-model-v1", APIImage: "lab/api@sha256:" + strings.Repeat("a", 64), PostgresImage: "lab/pg@sha256:" + strings.Repeat("b", 64), ModelImage: "lab/model@sha256:" + strings.Repeat("c", 64), ModelPath: model, SecretProfile: "lab", APIHostPort: 18080, DataPolicy: "Retain"}}
+	link := filepath.Join(dir, "model-link")
+	if e := os.Symlink(model, link); e != nil {
+		t.Fatal(e)
+	}
+	d.Spec.ModelPath = link
 	b, _ := json.Marshal(d)
 	for _, command := range []string{"apply", "get", "stop", "start", "events", "delete", "delete"} {
 		q := Request{Version: spec.Version, Command: command}
@@ -43,6 +48,17 @@ func TestHandlerLifecycleAndRejections(t *testing.T) {
 		if out := call(q); out.Error != "" {
 			t.Fatal(command, out.Error)
 		}
+	}
+	canonicalModel, _ := filepath.EvalSymlinks(model)
+	stored, _ := s.Get()
+	if stored.Document.Spec.ModelPath != canonicalModel {
+		t.Fatal("model path not canonicalized", stored.Document.Spec.ModelPath)
+	}
+	os.Remove(link)
+	os.Symlink("missing", link)
+	stored, _ = s.Get()
+	if stored.Document.Spec.ModelPath != canonicalModel {
+		t.Fatal("retargeted symlink changed durable mount")
 	}
 	if out := call(Request{Version: spec.Version, Command: "start"}); out.Error == "" {
 		t.Fatal("resurrected deleted state")

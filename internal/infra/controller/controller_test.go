@@ -8,6 +8,7 @@ import (
 	"github.com/chranama/MealCheck/internal/infra/spec"
 	"github.com/chranama/MealCheck/internal/infra/state"
 	"testing"
+	"time"
 )
 
 func setup(t *testing.T) (*Controller, *fake.Provider) {
@@ -27,6 +28,11 @@ func setup(t *testing.T) (*Controller, *fake.Provider) {
 func converge(t *testing.T, c *Controller, phase string) {
 	t.Helper()
 	for i := 0; i < 30; i++ {
+		current, _ := c.Store.Get()
+		if !current.Status.NextRetry.IsZero() && c.now().Before(current.Status.NextRetry) {
+			next := current.Status.NextRetry
+			c.Now = func() time.Time { return next }
+		}
 		if e := c.Step(context.Background()); e != nil {
 			t.Fatal(e)
 		}
