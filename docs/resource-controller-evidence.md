@@ -30,8 +30,9 @@ No production services or public ingress were changed.
 | M6 | [#8](https://github.com/chranama/MealCheck/pull/8) | [Mac supervision and scoped outage](../deploy/controller/mac-operations.md) |
 
 An independent review agent reviewed every milestone. Findings were repaired
-before source acceptance. PRs are stacked in dependency order and remain open,
-unmerged; code-review acceptance is distinct from completion of every runtime gate.
+before source acceptance. The user authorized acceptance and merge of PRs #2–#8
+in dependency order on 2026-10-07. Their live merge status is recorded on GitHub;
+source acceptance and integration do not complete the remaining runtime gates.
 
 Full controller race suites and opt-in real Docker ownership/incarnation test
 passed. The repository-wide Go suite initially exposed a legacy assertion tied
@@ -74,3 +75,15 @@ The independent review agent accepted these source snapshots:
 Later evidence-only updates do not change those implementation snapshots.
 Acceptance here means an automated independent-agent source review, not a human
 GitHub approval or merge. Operator login/reboot verification remains outstanding.
+
+## Merge-stage CI repair
+
+GitHub's Ubuntu runner exposed two socket tests that assumed the macOS path
+`/private/tmp` existed. They now use the short Unix path `/tmp`, preserving the
+same permission, protocol and stale-socket assertions. The fix originated in
+PR #4 (`028b154`) and was propagated through dependent milestones before merging.
+Mac socket/CLI race tests passed after the repair; GitHub CI is the independent
+Ubuntu regression gate. This does not establish M7 native Linux deployment.
+
+The integration request accepts the implemented Mac controller with the recorded
+M6 login/reboot and actual Docker Desktop shutdown/restart limits unchanged.
