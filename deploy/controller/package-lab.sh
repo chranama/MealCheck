@@ -27,7 +27,7 @@ prepare)
   password=$(cat "$LAB_ROOT/secrets/postgres-password")
   [[ "$password" =~ ^[a-f0-9]{64}$ ]] || { echo 'lab password must be generated hex' >&2; exit 1; }
   printf 'postgres://mealcheck:%s@postgres:5432/mealcheck?sslmode=disable\n' "$password" > "$LAB_ROOT/secrets/database-url"
-  chmod 600 "$LAB_ROOT/secrets/"*
+  chmod 600 "$LAB_ROOT/secrets/postgres-password" "$LAB_ROOT/secrets/database-url"
   ;;
 up)
   [[ -f "$LAB_ROOT/secrets/database-url" && -f "$LAB_ROOT/models/model.gguf" ]] || { echo 'run prepare first' >&2; exit 1; }

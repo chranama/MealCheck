@@ -722,7 +722,7 @@ func TestBYOKRunFailsClosedWhenPendingInputExpiresBeforeWorkerClaim(t *testing.T
 	if run.Status != StatusFailed {
 		t.Fatalf("run status = %q, want failed", run.Status)
 	}
-	if !strings.Contains(run.Error, "pending BYOK run input expired") {
+	if !strings.Contains(run.Error, "pending BYOK run input lost or expired") || !strings.Contains(run.Error, "resubmit with a fresh provider API key") {
 		t.Fatalf("run error = %q, want pending input expired message", run.Error)
 	}
 }
