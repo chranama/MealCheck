@@ -15,7 +15,7 @@ import (
 )
 
 func TestSocketPermissionsAndProtocol(t *testing.T) {
-	dir, err := os.MkdirTemp("/private/tmp", "mc-sock-")
+	dir, err := os.MkdirTemp("/tmp", "mc-sock-")
 	if err != nil {
 		t.Fatal(err)
 	}

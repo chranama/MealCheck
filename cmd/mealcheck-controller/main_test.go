@@ -8,7 +8,7 @@ import (
 )
 
 func TestStaleSocketAndUnsafePaths(t *testing.T) {
-	dir, e := os.MkdirTemp("/private/tmp", "mc-cli-")
+	dir, e := os.MkdirTemp("/tmp", "mc-cli-")
 	if e != nil {
 		t.Fatal(e)
 	}
