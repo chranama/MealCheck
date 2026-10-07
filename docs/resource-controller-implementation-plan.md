@@ -1,14 +1,14 @@
 # Go Resource Controller Implementation Plan
 
 Date: 2026-10-06  
-Status: proposed; all milestones pending
+Status: implementation in progress; M0 contract reviewed; M1–M6 pending; M7 deferred
 
 ## Outcome and Scope
 
 Implement the [resource controller specification](resource-controller-spec.md)
 as an isolated operations component. Develop the Go controller on the current
 Mac; use a fake provider for core tests, then Docker's Linux VM for real workload
-integration. Verify native Linux host operation as a separate final milestone.
+integration. Native Linux host operation (M7) is deferred by the current implementation request.
 No separate physical machine or cloud VM is required to begin.
 
 The controller manages one deployment's containers, private network, and durable
