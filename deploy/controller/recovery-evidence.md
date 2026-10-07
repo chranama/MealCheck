@@ -13,13 +13,14 @@ hash remained `77b2e528d71fe0c670c89e22f376258d43e2b7d5833bcd294bcc8f9e420093f7`
 Measurements are sampled by the test harness: detection is the first fresh
 controller observation, running is an Engine observation, and Ready is current
 controller status. They are distinct from end-to-end model inference. The full
-real workflow was repeated after these recovery scenarios; its result is
-recorded in the final milestone evidence.
+real workflow was repeated after these recovery scenarios and passed
+normalization, review confirmation, deterministic checking and report retrieval.
 
 Reproduce against an explicitly prepared isolated Ready lab:
 
 ```sh
 python3 deploy/controller/test-recovery.py \
+  --engine unix://$HOME/.docker/run/docker.sock \
   --binary /tmp/controller-lab/bin/mealcheck-controller \
   --state-dir /tmp/controller-lab/controller-state \
   --report-run <completed-synthetic-run-id> --output /tmp/recovery-results.json
