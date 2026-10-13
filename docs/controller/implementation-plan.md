@@ -5,7 +5,7 @@ Status: M0–M6 implemented; M0–M5 validated; M6 current-session checks valida
 
 ## Outcome and Scope
 
-Implement the [resource controller specification](resource-controller-spec.md)
+Implement the [resource controller specification](specification.md)
 as an isolated operations component. Develop the Go controller on the current
 Mac; use a fake provider for core tests, then Docker's Linux VM for real workload
 integration. M7 separates the infrastructure engineer's system definition from
@@ -63,7 +63,7 @@ Desktop restart checks are tracked separately; this does not mark those gates co
 
 ### Deliverables and exit criteria
 
-Create a workload contract under `deploy/controller/README.md` describing image
+Create a workload contract under `docs/controller/workload.md` describing image
 contracts, architecture, dependency addresses, mounts, secret handling, resources,
 engine connection, and cleanup. Record the environment findings and unresolved
 blockers. Exit when the configuration is concrete enough to package and validate;
@@ -342,7 +342,7 @@ after this gate. VM creation/scheduling remains outside the implemented controll
 
 ## Evidence and Completion Tracking
 
-Maintain `docs/resource-controller-evidence.md` during implementation. Each
+Maintain `docs/controller/evidence/README.md` during implementation. Each
 milestone entry contains status, commit, environment, versions, commands, observed
 results, measured timings where relevant, and remaining limitations. Keep synthetic
 inputs and redact secrets. Link failures to the change that resolves them.

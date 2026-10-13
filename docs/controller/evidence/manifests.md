@@ -66,8 +66,8 @@ stopped afterward. The existing installed controller LaunchAgent remained runnin
 at PID 52388. The packaging loopback registry and retained test data remain outside
 the controller lifecycle.
 
-Structured results: [recovery](evidence/m7-intel-recovery.json),
-[lifecycle](evidence/m7-intel-lifecycle.json), [reopen](evidence/m7-intel-reopen.json).
+Structured results: [recovery](artifacts/m7-intel-recovery.json),
+[lifecycle](artifacts/m7-intel-lifecycle.json), [reopen](artifacts/m7-intel-reopen.json).
 This is macOS with Docker Desktop's Linux VM; native Linux host operation remains M8.
 
 ## ARM64 real runtime acceptance

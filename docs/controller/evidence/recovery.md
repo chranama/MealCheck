@@ -19,7 +19,7 @@ normalization, review confirmation, deterministic checking and report retrieval.
 Reproduce against an explicitly prepared isolated Ready lab:
 
 ```sh
-python3 deploy/controller/test-recovery.py \
+python3 deploy/controller/verification/test-recovery.py \
   --engine unix://$HOME/.docker/run/docker.sock \
   --binary /tmp/controller-lab/bin/mealcheck-controller \
   --state-dir /tmp/controller-lab/controller-state \
@@ -36,7 +36,7 @@ budgets (including initial start),120s startup timeout, retry across restart,
 commit, deletion versus in-flight mutation, cancellation and classified errors.
 These scenarios use controllable clocks rather than elapsed production waits;
 they do not claim real Docker crash-loop or missing-data destruction experiments.
-See [failure policy](failure-policy.md) for named tests and exact reset semantics.
+See [failure policy](../failure-policy.md) for named tests and exact reset semantics.
 
 Incarnation/ownership labels defend against accidental collisions/replacements
 within the controller ownership contract. A privileged Docker administrator can

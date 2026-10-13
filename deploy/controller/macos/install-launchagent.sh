@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs only the dedicated lab controller in the current GUI user session.
 set -Eeuo pipefail
-ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 LAB_ROOT=${MEALCHECK_LAB_ROOT:-/tmp/controller-lab}
 BINARY=${MEALCHECK_CONTROLLER_BINARY:-$LAB_ROOT/bin/mealcheck-controller}
 STATE=${MEALCHECK_CONTROLLER_STATE:-$LAB_ROOT/controller-state}
@@ -24,7 +24,7 @@ fi
 umask 077
 mkdir -p "$STATE" "$LAB_ROOT/logs" "$(dirname "$DEST")"
 chmod 700 "$STATE" "$LAB_ROOT/logs"
-python3 - "$ROOT/deploy/controller/dev.mealcheck.controller.lab.plist.template" "$DEST" "$BINARY" "$STATE" "$SOCKET" "$ENGINE" "$SECRETS" "$MODELS" "$REGISTRIES" "$LAB_ROOT/logs" "$CATALOG" <<'PY'
+python3 - "$ROOT/deploy/controller/macos/dev.mealcheck.controller.lab.plist.template" "$DEST" "$BINARY" "$STATE" "$SOCKET" "$ENGINE" "$SECRETS" "$MODELS" "$REGISTRIES" "$LAB_ROOT/logs" "$CATALOG" <<'PY'
 import plistlib,sys
 from xml.sax.saxutils import escape
 src,dest,*values=sys.argv[1:]

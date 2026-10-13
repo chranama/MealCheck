@@ -24,12 +24,12 @@ No production services or public ingress were changed.
 
 | Milestone | PR | Evidence |
 | --- | --- | --- |
-| M1 | [#3](https://github.com/chranama/MealCheck/pull/3) | [Packaging and interrupted-run recovery](../deploy/controller/packaging-evidence.md) |
+| M1 | [#3](https://github.com/chranama/MealCheck/pull/3) | [Packaging and interrupted-run recovery](packaging.md) |
 | M2 | [#4](https://github.com/chranama/MealCheck/pull/4) | Durable restart, validation, lifecycle, socket permissions/protocol and locking race tests |
 | M3 | [#5](https://github.com/chranama/MealCheck/pull/5) | Fake lifecycle, uncertain outcomes, actual state reopen, concurrent delete and data identity race tests |
-| M4 | [#6](https://github.com/chranama/MealCheck/pull/6) | [Real Docker lifecycle](../deploy/controller/docker-provider-evidence.md) |
-| M5 | [#7](https://github.com/chranama/MealCheck/pull/7) | [Measured drift recovery](../deploy/controller/recovery-evidence.md), [failure policy tests](../deploy/controller/failure-policy.md) |
-| M6 | [#8](https://github.com/chranama/MealCheck/pull/8) | [Mac supervision and scoped outage](../deploy/controller/mac-operations.md) |
+| M4 | [#6](https://github.com/chranama/MealCheck/pull/6) | [Real Docker lifecycle](docker-provider.md) |
+| M5 | [#7](https://github.com/chranama/MealCheck/pull/7) | [Measured drift recovery](recovery.md), [failure policy tests](../failure-policy.md) |
+| M6 | [#8](https://github.com/chranama/MealCheck/pull/8) | [Mac supervision and scoped outage](supervision.md) |
 
 An independent review agent reviewed every milestone. Findings were repaired
 before source acceptance. The user authorized acceptance and merge of PRs #2–#8
@@ -122,5 +122,5 @@ and schema validation omissions; these were fixed and regression tested before
 PR completion. Detailed source review and PR results are recorded on the PR.
 
 Real ARM64 and Intel Mac runtime results, native image references, and build
-details are in [M7 manifest evidence](../deploy/controller/manifest-evidence.md).
+details are in [M7 manifest evidence](manifests.md).
 M8 native Linux and M6 login/reboot/actual Docker Desktop restart remain unverified.

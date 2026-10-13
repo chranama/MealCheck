@@ -17,7 +17,7 @@ parser.add_argument('--api-host-port', type=int, default=18080)
 parser.add_argument('--desired-state', choices=['Running', 'Stopped'], default='Running')
 parser.add_argument('--output', required=True)
 args = parser.parse_args()
-root = Path(__file__).resolve().parents[2]
+root = Path(__file__).resolve().parents[3]
 pins = dict(line.split('=', 1) for line in (root/'deploy/controller/images.env').read_text().splitlines() if line and not line.startswith('#'))
 lab = Path(args.lab_root).resolve(strict=True)
 model = (lab/'models/model.gguf').resolve(strict=True)

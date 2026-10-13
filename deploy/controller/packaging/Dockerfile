@@ -14,7 +14,7 @@ COPY --from=build /out/mealcheck-server /usr/local/bin/mealcheck-server
 COPY data/ /opt/mealcheck/data/
 COPY examples/ /opt/mealcheck/examples/
 COPY schemas/ /opt/mealcheck/schemas/
-COPY deploy/controller/api-entrypoint.sh /usr/local/bin/api-entrypoint
+COPY deploy/controller/packaging/api-entrypoint.sh /usr/local/bin/api-entrypoint
 USER 10001:10001
 WORKDIR /opt/mealcheck
 EXPOSE 8080

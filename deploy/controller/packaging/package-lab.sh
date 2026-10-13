@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Packaging only; controller production resource operations use the Engine API.
 set -Eeuo pipefail
-ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 source "$ROOT/deploy/controller/images.env"
 LAB_ROOT=${MEALCHECK_LAB_ROOT:-/tmp/controller-lab}
 MODEL_SOURCE=${MEALCHECK_LAB_MODEL_SOURCE:-/Users/chranama/infra/models/gguf/Qwen3-0.6B-Q4_K_M.gguf}
@@ -13,7 +13,7 @@ owned() {
 }
 case "$command" in
 build)
-  docker build -f "$ROOT/deploy/controller/Dockerfile" -t "$API_IMAGE" "$ROOT"
+  docker build -f "$ROOT/deploy/controller/packaging/Dockerfile" -t "$API_IMAGE" "$ROOT"
   ;;
 prepare)
   umask 077

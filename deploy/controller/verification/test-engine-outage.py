@@ -12,7 +12,7 @@ import signal
 import subprocess
 import time
 
-root = Path(__file__).resolve().parents[2]
+root = Path(__file__).resolve().parents[3]
 lab = Path(os.environ.get('MEALCHECK_LAB_ROOT', '/tmp/controller-lab'))
 cli = [str(lab / 'bin/mealcheck-controller'), 'get', '--state-dir', str(lab / 'controller-state')]
 endpoint = os.environ.get('MEALCHECK_CONTROLLER_ENGINE', 'unix://' + os.path.expanduser('~/.docker/run/docker.sock'))
@@ -45,15 +45,15 @@ def wait_phase(phase, newer_than, timeout=60):
     raise RuntimeError('timed out waiting for ' + phase)
 
 def install(engine):
-    subprocess.run([str(root/'deploy/controller/uninstall-launchagent.sh')], env=env, check=True)
-    subprocess.run([str(root/'deploy/controller/install-launchagent.sh')], env=dict(env, MEALCHECK_CONTROLLER_ENGINE=engine), check=True)
+    subprocess.run([str(root/'deploy/controller/macos/uninstall-launchagent.sh')], env=env, check=True)
+    subprocess.run([str(root/'deploy/controller/macos/install-launchagent.sh')], env=dict(env, MEALCHECK_CONTROLLER_ENGINE=engine), check=True)
 
 before = status()
 if before['document'].get('deploymentID') != 'mealcheck-lab':
     raise SystemExit('refusing non-lab deployment')
 if before['status']['phase'] != 'Ready':
     raise SystemExit('lab must be Ready before outage demonstration')
-proxy = subprocess.Popen(['python3', str(root/'deploy/controller/engine-outage.py'), '--listen', listen, '--target', endpoint[7:]])
+proxy = subprocess.Popen(['python3', str(root/'deploy/controller/verification/engine-outage.py'), '--listen', listen, '--target', endpoint[7:]])
 try:
     for _ in range(100):
         if os.path.exists(listen):
