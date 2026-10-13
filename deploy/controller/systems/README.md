@@ -11,7 +11,7 @@ PostgreSQL/llama.cpp pins. It is runnable only after those exact images are prel
 and a real model and lab-only secret files are staged. The API reference belongs to
 a loopback development registry; it is not a published image available elsewhere.
 `mealcheck-cpu-amd64--v1.json` targets the four-CPU Intel lab with smaller explicit
-limits. See `../manifest-evidence.md` for image resolution and runtime validation.
+limits. See [manifest evidence](../../../docs/controller/evidence/manifests.md) for image resolution and runtime validation.
 
 Before using another API build, the infrastructure engineer must replace the API
 image in the system definition and issue a new system version or reviewed content

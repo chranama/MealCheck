@@ -24,7 +24,7 @@ cp /tmp/controller-lab/secrets/postgres-password /tmp/controller-lab/secrets/mea
 cp /tmp/controller-lab/secrets/database-url /tmp/controller-lab/secrets/mealcheck-lab/
 go build -o /tmp/controller-lab/bin/mealcheck-controller ./cmd/mealcheck-controller
 MEALCHECK_LAUNCHAGENT_PATH=/tmp/controller-lab/dev.mealcheck.controller.lab.plist \
-  ./deploy/controller/install-launchagent.sh
+  ./deploy/controller/macos/install-launchagent.sh
 launchctl print gui/$(id -u)/dev.mealcheck.controller.lab
 /tmp/controller-lab/bin/mealcheck-controller get --state-dir /tmp/controller-lab/controller-state
 ```
@@ -53,7 +53,7 @@ immutable reference explicitly. Reject an empty/tag-only result; the renderer
 validates the digest and copies no secrets:
 
 ```bash
-./deploy/controller/package-lab.sh build
+./deploy/controller/packaging/package-lab.sh build
 # Run a fresh build-only registry; Docker refuses any existing name collision.
 docker run -d --name mealcheck-lab-registry -p 127.0.0.1:15000:5000 \
   registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
@@ -62,7 +62,7 @@ docker push localhost:15000/mealcheck:lab
 API_DIGEST=$(docker image inspect localhost:15000/mealcheck:lab --format '{{index .RepoDigests 0}}')
 # Engineer: review the system API image matches the native preloaded API_DIGEST.
 # If different, edit the trusted system and issue a new version/content digest.
-python3 deploy/controller/render-spec.py \
+python3 deploy/controller/tools/render-spec.py \
   --system-file /tmp/controller-lab/systems/mealcheck-cpu-arm64--v1.json \
   --controller-binary /tmp/controller-lab/bin/mealcheck-controller \
   --output /tmp/controller-lab/desired.json
@@ -113,14 +113,14 @@ mkdir -p "$MEALCHECK_LAB_ROOT/bin" "$MEALCHECK_CONTROLLER_SECRETS/mealcheck-lab"
 cp deploy/controller/systems/mealcheck-cpu-arm64--v1.json "$MEALCHECK_CONTROLLER_CATALOG/"
 chmod 700 "$MEALCHECK_CONTROLLER_CATALOG"
 chmod 600 "$MEALCHECK_CONTROLLER_CATALOG"/*.json
-./deploy/controller/package-lab.sh prepare
+./deploy/controller/packaging/package-lab.sh prepare
 cp "$MEALCHECK_CONTROLLER_SECRETS/postgres-password" "$MEALCHECK_CONTROLLER_SECRETS/mealcheck-lab/"
 cp "$MEALCHECK_CONTROLLER_SECRETS/database-url" "$MEALCHECK_CONTROLLER_SECRETS/mealcheck-lab/"
 go build -o "$MEALCHECK_CONTROLLER_BINARY" ./cmd/mealcheck-controller
-./deploy/controller/install-launchagent.sh
+./deploy/controller/macos/install-launchagent.sh
 ```
 
-Generate a fresh desired-state document using `render-spec.py --lab-root
+Generate a fresh desired-state document using `python3 deploy/controller/tools/render-spec.py --lab-root
 "$MEALCHECK_LAB_ROOT"`, `--system-file` and `--controller-binary`, then plan/apply with this
 state directory. The installer writes the default
 `~/Library/LaunchAgents/dev.mealcheck.controller.lab.plist`. Login discovery is
@@ -129,7 +129,7 @@ expected from this placement; login/reboot remain unverified until exercised.
 ## Lifecycle walkthrough
 
 1. Apply a digest-pinned lab spec; inspect `get` and `events` until current-generation
-   readiness. Run `package-lab.sh smoke` (explicit loopback URL) against the controller
+   readiness. Run `./deploy/controller/packaging/package-lab.sh smoke` (explicit loopback URL) against the controller
    stack; this command runs only the smoke workflow, not packaging orchestration.
 2. Kill only the inventory-listed API container. Record detection, restart, health,
    and successful report retrieval separately. Completed reports must remain.
@@ -142,7 +142,7 @@ expected from this placement; login/reboot remain unverified until exercised.
 5. Stop/start through the CLI, re-fetch the report, then delete twice. Containers
    and network disappear; volumes and tombstone remain.
 
-Do not run `package-lab.sh up` while the controller stack uses port18080. Packaging
+Do not run `./deploy/controller/packaging/package-lab.sh up` while the controller stack uses port18080. Packaging
 and controller resource names/labels are distinct.
 
 ## Inspection and removal
@@ -152,7 +152,7 @@ launchctl print gui/$(id -u)/dev.mealcheck.controller.lab
 cat /tmp/controller-lab/logs/stderr.log
 /tmp/controller-lab/bin/mealcheck-controller events --state-dir /tmp/controller-lab/controller-state
 MEALCHECK_LAUNCHAGENT_PATH=/tmp/controller-lab/dev.mealcheck.controller.lab.plist \
-  ./deploy/controller/uninstall-launchagent.sh
+  ./deploy/controller/macos/uninstall-launchagent.sh
 ```
 
 Uninstall stops only the lab supervisor and removes its matching plist. It does
@@ -171,46 +171,6 @@ logout/login or reboot behavior. Reboot/login tests require an operator-controll
 window and are not performed automatically on this workstation. Record them as
 unverified until actually exercised.
 
-## Current-session supervision evidence (2026-10-07)
+## Verification evidence
 
-A real LaunchAgent was bootstrapped in `gui/501` using
-`MEALCHECK_LAUNCHAGENT_PATH=/tmp/controller-lab/dev.mealcheck.controller.lab.plist`.
-The process ran natively with the Docker Desktop Unix endpoint and private
-controller-state directory. This temporary plist was deliberately not installed
-under `~/Library/LaunchAgents`; it proves current-session bootstrap only and
-will not be automatically discovered at the next login. Persistent installation
-requires the default account LaunchAgents path and durable paths described above.
-
-A SIGKILL of the managed controller changed PID101 to PID787. The socket served
-persisted `Ready` status after 0.138 seconds; this measures supervisor/process
-availability, not fresh workload observation. A later status check confirmed
-fresh observation at `2026-10-07T15:37:18.794362Z`, generation1, Ready. All six
-managed resource IDs (three containers, two volumes, one network) stayed identical.
-The synthetic completed run `run_552b21f7b10c5eaf60b9ae80` remained completed.
-The daemon was left running for subsequent failure scenarios. No Docker Desktop
-shutdown, login/logout, reboot, native production service change, or shared ingress
-change was performed.
-
-## Scoped engine-connectivity outage
-
-`python3 deploy/controller/test-engine-outage.py` runs a reproducible lab-only
-outage without stopping Docker Desktop or other workloads. It temporarily routes
-the dedicated LaunchAgent through `engine-outage.py`, closes its active forwarding
-streams with SIGUSR1, and restores forwarding with SIGUSR2. The `finally` cleanup
-restores the original direct socket endpoint. Run only with the lab stack Ready.
-
-Measured 2026-10-07: loss detected in 5.033s, phase `Degraded`, resource/dependency/API
-conditions `Unknown` with reason `EngineObservationUnavailable`. Direct Docker Engine
-29.8.2 remained healthy. After restoring forwarding, fresh Ready observation took
-4.825s; generation 3 and all managed resource IDs stayed unchanged. The original
-LaunchAgent endpoint was restored and fresh Ready was verified afterward. This
-proves controller handling of engine connectivity loss; it does not prove actual
-Docker Desktop shutdown/restart or VM reboot behavior.
-
-## Final teardown evidence
-
-Deletion converged to Deleted, tombstone true, generation4. No managed containers
-or network remained; only the original database/artifact volumes were retained
-with matching incarnations. Repeated delete retained generation4. The temporary
-LaunchAgent was then uninstalled; the controller state and workload data remain.
-The local build registry remains available, outside the controller lifecycle.
+See [recorded supervision and outage evidence](../evidence/supervision.md) and the [verification ledger](../evidence/README.md) for completed checks and outstanding runtime gates.

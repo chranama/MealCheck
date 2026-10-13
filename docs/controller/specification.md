@@ -13,7 +13,7 @@ networks, and persistent volumes through a container-engine API.
 Develop the controller natively on macOS, first with a fake provider and then
 with a local Docker engine running Linux containers in a VM. Native Linux host
 operation is a separate verification gate. See the
-[implementation plan](resource-controller-implementation-plan.md) for milestones.
+[implementation plan](implementation-plan.md) for milestones.
 The existing macOS deployment remains independently operated. This proposal
 does not change the active product priority order.
 
@@ -339,9 +339,9 @@ milestone; compatibility must preserve existing v1alpha1 state and resource
 ownership. Architecture-appropriate image pins and configurable resource limits
 are required, including the Intel server's engine constraints.
 
-The committed [system definitions](../deploy/controller/systems/README.md),
-[deployment JSON templates](../deploy/controller/examples/README.md), and
-[JSON Schemas](../deploy/controller/schemas/) are visible in the repository.
+The committed [system definitions](../../deploy/controller/systems/README.md),
+[deployment JSON templates](../../deploy/controller/examples/README.md), and
+[JSON Schemas](../../deploy/controller/schemas) are visible in the repository.
 The new versions are `mealcheck.dev/system/v1alpha1` and
 `mealcheck.dev/deployment/v1alpha1`. Configure `daemon --catalog DIRECTORY`;
 clients submit deployment documents through `plan --file` and `apply --file`.
@@ -358,7 +358,7 @@ Applying a new manifest-defined workload to that accepted legacy installation is
 rejected as an immutable configuration change. Use a fresh, separately owned
 installation until a supported update/migration mechanism exists.
 
-See [M7 implementation tasks and exit gates](resource-controller-implementation-plan.md#m7--separate-system-and-deployment-manifests).
+See [M7 implementation tasks and exit gates](implementation-plan.md#m7--separate-system-and-deployment-manifests).
 Native Linux host/systemd verification moves to M8 and remains deferred. Existing
 M6 login/reboot and actual Docker Desktop restart verification remains outstanding.
 

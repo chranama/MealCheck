@@ -6,7 +6,7 @@ the committed catalog examples, while `modelPath` must be replaced with a staged
 real GGUF beneath the daemon's allowed root. The private `mealcheck-lab` secret
 profile must exist under the configured secret root. No secret contents are stored.
 
-Use `render-spec.py --system-file APPROVED_SYSTEM --controller-binary BINARY
+Use `python3 deploy/controller/tools/render-spec.py --system-file APPROVED_SYSTEM --controller-binary BINARY
 --lab-root LAB_ROOT --output NEW_FILE` to render a checksum-verified instance. The
 renderer does not edit the trusted system or choose images. Review using
 `mealcheck-controller plan --state-dir STATE --file NEW_FILE`, then apply the same
