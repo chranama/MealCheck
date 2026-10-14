@@ -15,6 +15,10 @@ COPY data/ /opt/mealcheck/data/
 COPY examples/ /opt/mealcheck/examples/
 COPY schemas/ /opt/mealcheck/schemas/
 COPY deploy/controller/packaging/api-entrypoint.sh /usr/local/bin/api-entrypoint
+# Private staging directories can carry 0700/0600 permissions into COPY.
+# These repository runtime assets are public and must be readable by the API user.
+RUN chmod 0755 /usr/local/bin/mealcheck-server /usr/local/bin/api-entrypoint \
+    && chmod -R a+rX /opt/mealcheck
 USER 10001:10001
 WORKDIR /opt/mealcheck
 EXPOSE 8080

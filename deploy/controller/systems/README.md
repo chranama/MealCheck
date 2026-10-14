@@ -35,3 +35,36 @@ and verify convergence; catalog editing is not a revocation mechanism.
 JSON Schemas in `../schemas/` describe the shape and disallow unknown fields. The Go
 resolver also checks parameter types/bounds, graph references and cycles, mounts,
 registry/model policy, image architecture, and actual Docker Engine capacity.
+
+## Production v2
+
+`mealcheck-production-amd64--v2.json` is the engineer-owned definition validated
+on the Intel macOS web server on 2026-10-13. It pins PostgreSQL 17.10, llama.cpp,
+and the corrected API image built from application revision `7402b33`. The API
+packaging normalizes runtime asset permissions so UID 10001 can read catalogs,
+fixtures, and schemas even when the build context was staged with umask 077.
+
+The definition preserves production access/CORS, retention, queue, and timeout
+settings. The model uses context 4096, two CPU threads, batch 256/microbatch 64,
+parallel 1, and a 2 GiB memory limit. PostgreSQL 512 MiB and API 768 MiB bring the
+total memory limits to 3328 MiB, within the inspected four-CPU Docker Engine.
+The API binds only to `127.0.0.1:18080`.
+
+Canonical system digest:
+`sha256:628d781cc368fb7b504b653b1631b716195e53b1e9f90146ce70f0cbac85d183`.
+The API image belongs to the web server's loopback registry and is not publicly
+downloadable. This deployment used a staged, cross-compiled API binary and a
+runtime-only Docker build; rebuilding the repository Dockerfile may produce a
+different digest. Preload these exact images or issue a reviewed system version
+with replacement pins. Private `mealcheck-production` credentials and the
+approved GGUF remain outside this repository. Configure the daemon's catalog,
+image allowlists, secret root, and model roots before planning a deployment.
+
+Real-model workflow, API/model container recovery, API recreation, controller
+KeepAlive restart, and report persistence passed in a fresh private installation.
+Its state directory is `controller-state-v2` under the server's controller root,
+with LaunchAgent label `dev.mealcheck.controller.production-v2`. A fresh installation
+was required because accepted workloads are immutable. The retired v1 installation,
+including its containers, network, volumes, state, LaunchAgent, and server manifests,
+was removed after ownership checks; backup and diagnostic evidence were preserved.
+Historical native data and public ingress have not been migrated to v2.
